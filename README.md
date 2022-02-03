@@ -2,7 +2,10 @@
 
 This is a quick hack to show the players 1v1 win/loss stats of the current season. The stats are serves as a simple HTML table via localhost:8080 and can be included in a stream overlay in OBS.
 
-Note: this is currently hardcoded to show ZvX replays. Different matchups need rewriting the code. 
+Limitations: 
+- This is currently hardcoded to show ZvX replays. Different matchups need rewriting the code. 
+- Cannot tell apart ranked and unranked, all 1v1 replays are included in the stats
+
 
 # How to run
 
