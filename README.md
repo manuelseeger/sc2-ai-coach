@@ -11,8 +11,8 @@ Limitations:
 
 Set 2 env variables: 
 
-PLAYER: Name of the player in game
-REPLAY_FOLDER: Local directory with the replays to scan
+* PLAYER: Name of the player in game
+* REPLAY_FOLDER: Local directory with the replays to scan
 
 Run [sc2stats.py](sc2stats.py) in a Python environment that has all dependencies from requirements.txt installed. 
 
