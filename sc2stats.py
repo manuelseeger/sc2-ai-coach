@@ -69,7 +69,7 @@ def get_replays(today):
     if ('T','Z') not in p3.index:
         p3.loc[('T','Z'),:] = 0
     if ('Z', 'Z') not in p3.index:
-        p.loc[('Z', 'Z'),:] = 0
+        p3.loc[('Z', 'Z'),:] = 0
 
     p.loc[('Z', 'P')] += p3.loc[('P','Z')]
     p.loc[('Z', 'T')] += p3.loc[('T','Z')]
