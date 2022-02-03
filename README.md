@@ -11,7 +11,7 @@ Set 2 env variables:
 PLAYER: Name of the player in game
 REPLAY_FOLDER: Local directory with the replays to scan
 
-Run main.py in a Python environment that has all dependencies from requirements.txt installed. 
+Run [sc2stats.py](sc2stats.py) in a Python environment that has all dependencies from requirements.txt installed. 
 
 # How to embed
 
