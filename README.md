@@ -21,3 +21,5 @@ Run [sc2stats.py](sc2stats.py) in a Python environment that has all dependencies
 Embed in OBS as a browser source on localhost:8080. Adapt template.html to change the styling of the result table. 
 
 Note: scanning replays is slow (~0.2-0.5 seconds per replay). Per default this auto-refreshes every 30 seconds. This can be adjusted in template.html as well. 
+
+![example](example.png)
