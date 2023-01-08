@@ -1,3 +1,4 @@
 pandas
 bottle
 sc2reader
+matplotlib.pyplot
