@@ -82,7 +82,16 @@ def analyze_replays(path):
 def player_worker_micro(replay):
     gamestarted = False
     rep = pd.DataFrame(
-        columns=["time", "player", "event", "object", "action", "target", "target_type"]
+        columns=[
+            "time",
+            "player",
+            "player_sid",
+            "event",
+            "object",
+            "action",
+            "target",
+            "target_type",
+        ]
     )
 
     skip = [
@@ -110,6 +119,7 @@ def player_worker_micro(replay):
         rep.loc[i] = [
             event.second,
             event.player.name if hasattr(event, "player") else np.nan,
+            event.player.sid if hasattr(event, "player") else np.nan,
             event.name,
             event.objects[0].name
             if hasattr(event, "objects") and len(event.objects) > 0
@@ -123,17 +133,13 @@ def player_worker_micro(replay):
             else np.nan,
         ]
 
-    p0 = rep.loc[rep["player"] == replay.players[0].name]
-    p1 = rep.loc[rep["player"] == replay.players[1].name]
+    ret = {}
 
-    # does the player micro to minerals?
-    micro0 = get_micro_score(p0)
-    micro1 = get_micro_score(p1)
+    for player in replay.players:
+        p = rep.loc[rep["player_sid"] == player.sid]
+        ret[player.sid] = get_micro_score(p)
 
-    return [
-        (replay.players[0].name, micro0[0], micro0[1]),
-        (replay.players[1].name, micro1[0], micro1[1]),
-    ]
+    return ret
 
 
 def get_micro_score(p0):

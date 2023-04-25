@@ -2,3 +2,13 @@ pandas
 bottle
 sc2reader
 matplotlib.pyplot
+PyMongo
+dnspython
+openai
+pyttsx3
+pytesseract
+requests
+BeautifulSoup
+cv2
+SpeechRecognition
+pyaudio
