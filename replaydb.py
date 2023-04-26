@@ -4,7 +4,6 @@ import sc2reader
 import logging
 from sc2reader.factories.plugins.replay import APMTracker
 import pymongo
-from bson.objectid import ObjectId
 from pymongo.server_api import ServerApi
 import os
 import sc2reader
@@ -35,6 +34,8 @@ factory.register_plugin("Replay", APMTracker())
 
 def toDb(file_path):
     replay = factory.load_replay(file_path)
+    if replay.game_type != "1v1" or replay.is_ladder is False:
+        return
     replay_dict = toSummaryDict(replay)
 
     replay_dict = convert_keys_to_strings(replay_dict)

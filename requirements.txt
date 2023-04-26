@@ -12,3 +12,4 @@ BeautifulSoup
 cv2
 SpeechRecognition
 pyaudio
+soundfile
