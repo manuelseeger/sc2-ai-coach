@@ -11,29 +11,6 @@ pytesseract.pytesseract.tesseract_cmd = (
     r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
 )
 
-filename = "obs/screenshots/map loading.png"
-
-
-def main():
-    print("watching for map loading screen")
-    stamp = os.stat(filename).st_mtime
-    while True:
-        mtime = os.stat(filename).st_mtime
-        if mtime != stamp and mtime - stamp > 1:
-            print("map loading screen detected")
-            stamp = os.stat(filename).st_mtime
-            map = None
-            while map == None:
-                map = parse_map_loading_screen()
-
-            stats = None
-            while stats == None:
-                stats = parse_map_stats(map)
-
-            with open("obs/map_stats.html", "w") as f:
-                f.write(stats.prettify())
-        sleep(0.3)
-
 
 def parse_map_loading_screen():
     image = cv2.imread(filename)
@@ -42,7 +19,14 @@ def parse_map_loading_screen():
     x, y, w, h = 852, 860, 800, 200
     ROI = image[y : y + h, x : x + w]
     mapname = pytesseract.image_to_string(ROI, lang="eng")
-    return mapname.strip().lower()
+    x, y, w, h = 333, 587, 276, 40
+    ROI = image[y : y + h, x : x + w]
+    player1 = pytesseract.image_to_string(ROI, lang="eng")
+    x, y, w, h = 1953, 587, 276, 40
+    ROI = image[y : y + h, x : x + w]
+    player2 = pytesseract.image_to_string(ROI, lang="eng")
+    print(mapname, player1, player2)
+    return (mapname.strip().lower(), player1.strip(), player2.strip())
 
 
 def parse_map_stats(map):
@@ -61,7 +45,3 @@ def parse_map_stats(map):
                 for sibling in h2.parent.next_siblings:
                     if sibling.name == "table":
                         return sibling
-
-
-if __name__ == "__main__":
-    main()

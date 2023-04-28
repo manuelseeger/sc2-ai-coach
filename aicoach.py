@@ -3,49 +3,16 @@ import openai
 import argparse
 import time
 import pyttsx3
-import speech_recognition as sr
 import pymongo
 from pymongo.server_api import ServerApi
 import torch
 import elevenlabs
 import numpy as np
 import whisper
-
-elevenlabs.set_api_key(os.environ.get("ELEVEN_API_KEY"))
-
-USE_11 = False
-
-voiceengine = pyttsx3.init()
-voices = voiceengine.getProperty("voices")
-voiceengine.setProperty("voice", voices[3].id)
-
-MONGO_USER = os.environ.get("MONGO_USER")
-MONGO_PASS = os.environ.get("MONGO_PASS")
-
-
-client = pymongo.MongoClient(
-    "mongodb+srv://{}:{}@sc2.k2kgmgk.mongodb.net/?retryWrites=true&w=majority".format(
-        MONGO_USER, MONGO_PASS
-    ),
-    server_api=ServerApi("1"),
-)
-
-db = client.SC2
-mongo_replays = db.replays
-
-openai.organization = os.getenv("OPENAI_API_ID")
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
-if torch.cuda.is_available():
-    device = torch.device("cuda:0")
-    print("GPU")
-    print(torch.cuda.current_device())
-    print(torch.cuda.device(0))
-    print(torch.cuda.get_device_name(0))
-else:
-    device = torch.device("cpu")
-    print("CPU")
-audio_model = whisper.load_model("base.en").to(device)
+import speech_recognition as sr
+import soundfile as sf
+import io
+from Levenshtein import distance as levenshtein
 
 
 def main():
@@ -58,79 +25,138 @@ def main():
 
     args = parser.parse_args()
 
-    build_orders = ""
+    coach = AICoach()
+
+    coach.init()
+
     opponent = "Driftoss"
 
-    replays = replays_for_player(opponent)
+    build_orders = coach.get_replays(opponent)
 
-    for replay in replays:
-        build_orders += "Date: {}\n".format(replay["date"])
-        build_orders += "Map: {}\n".format(replay["map_name"])
-        build_orders += "Duration: {} seconds\n".format(replay["game_length"])
-        build_orders += "Players:\n{}\n".format(
-            "\n".join(
-                ["{} ({})".format(p["name"], p["play_race"]) for p in replay["players"]]
+    coach.start_conversation(opponent, build_orders)
+
+
+class AICoach:
+    def init(self, harstem=False):
+        elevenlabs.set_api_key(os.environ.get("ELEVEN_API_KEY"))
+
+        self.USE_11 = harstem
+
+        self.voiceengine = pyttsx3.init()
+        voices = self.voiceengine.getProperty("voices")
+        self.voiceengine.setProperty("voice", voices[3].id)
+
+        client = pymongo.MongoClient(
+            "mongodb+srv://{}:{}@sc2.k2kgmgk.mongodb.net/?retryWrites=true&w=majority".format(
+                os.environ.get("MONGO_USER"), os.environ.get("MONGO_PASS")
+            ),
+            server_api=ServerApi("1"),
+        )
+
+        db = client.SC2
+        self.mongo_replays = db.replays
+
+        openai.organization = os.getenv("OPENAI_API_ID")
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+
+        if torch.cuda.is_available():
+            device = torch.device("cuda:0")
+            print("GPU")
+            print(torch.cuda.current_device())
+            print(torch.cuda.device(0))
+            print(torch.cuda.get_device_name(0))
+        else:
+            device = torch.device("cpu")
+            print("CPU")
+        self.audio_model = whisper.load_model("base.en").to(device)
+
+        self.recognizer = sr.Recognizer()
+
+        with sr.Microphone() as source:
+            self.recognizer.adjust_for_ambient_noise(source)
+
+    def get_replays(self, opponent):
+        build_orders = ""
+
+        replays = self.replays_for_player(opponent)
+
+        for replay in replays:
+            build_orders += "Date: {}\n".format(replay["date"])
+            build_orders += "Map: {}\n".format(replay["map_name"])
+            build_orders += "Duration: {} seconds\n".format(replay["game_length"])
+            build_orders += "Players:\n{}\n".format(
+                "\n".join(
+                    [
+                        "{} ({})".format(p["name"], p["play_race"])
+                        for p in replay["players"]
+                    ]
+                )
             )
+            build_orders += "Winner: {}\n".format(
+                [p for p in replay["players"] if p["result"] == "Win"][0]["name"]
+            )
+
+            build_orders += "Build Order ({}):\n".format(opponent)
+            for player in replay["players"]:
+                if player["name"] == opponent:
+                    for tick in player["build_order"]:
+                        timestamp = time.strptime(tick["time"], "%M:%S")
+                        if timestamp.tm_min < 7:
+                            build_orders += tick["time"] + " " + tick["name"] + "\n"
+            build_orders += "\n\n"
+
+        return build_orders
+
+    def start_conversation(self, player, build_orders):
+        priming = """The player I might have recently played against is called "{opponent}".
+
+    Here are some recent games of me aganst {opponent} with the build orders played by {opponent}. Use these to answer follow up questions on this player's play style.
+
+    {bo}""".format(
+            opponent=player, bo=build_orders
         )
-        build_orders += "Winner: {}\n".format(
-            [p for p in replay["players"] if p["result"] == "Win"][0]["name"]
-        )
 
-        build_orders += "Build Order ({}):\n".format(opponent)
-        for player in replay["players"]:
-            if player["name"] == opponent:
-                for tick in player["build_order"]:
-                    timestamp = time.strptime(tick["time"], "%M:%S")
-                    if timestamp.tm_min < 7:
-                        build_orders += tick["time"] + " " + tick["name"] + "\n"
-        build_orders += "\n\n"
+        if self.USE_11:
+            namephrase = "Your name is Harstem."
+        else:
+            namephrase = ""
 
-    conversation(opponent, build_orders)
+        self.messages = [
+            {
+                "role": "system",
+                "content": """You are my virtual coach for the strategy game StarCraft 2. {namephrase}
 
+    My name in StarCraft games is 'zatic'. You are given the name of an opponent player I might have played against.
+    If that is the case, you also get recent games and the build orders by that player from those games. Use this to answer questions on the games and the opponent.
 
-def conversation(player, build_orders):
-    r = sr.Recognizer()
+    When asked about build orders, please always try to summarize them to the essentials, and don't just return the full build order.
 
-    priming = """The player I might have recently played against is called "{opponent}".
+    Once you think our conversation is over, please end the conversation with the exact phrase "good luck, have fun". Make sure the conversation ends on that phrase exactly. """.format(
+                    namephrase=namephrase
+                ),
+            },
+            {
+                "role": "user",
+                "content": priming,
+            },
+        ]
 
-Here are some recent games of me aganst {opponent} with the build orders played by {opponent}. Use these to answer follow up questions on this player's play style.
+        while self.chat():
+            pass
 
-{bo}""".format(
-        opponent=player, bo=build_orders
-    )
-
-    question = "Hey coach, can you please give me a quick rundown of the opening builds {opponent} did in recent games? Also, how many probes did he have at 5 minutes game time?".format(
-        opponent=player
-    )
-
-    messages = [
-        {
-            "role": "system",
-            "content": """You are my virtual coach for the strategy game StarCraft 2.
-
-My name in StarCraft games is 'zatic'. You are given the name of an opponent player I might have played against.
-If that is the case, you also get recent games and the build orders by that player from those games. Use this to answer questions on the games and the opponent.
-
-Once you think our conversation is over, please wish me "good luck, have fun" """,
-        },
-        {
-            "role": "user",
-            "content": priming,
-        },
-    ]
-
-    prompt = ""
-    while True:
+    def chat(self):
         with sr.Microphone() as source:
             print(">>>")
-            audio = r.listen(source)
-            prompt = transcribe(audio)
+            audio = self.recognizer.listen(source)
+            prompt = self.transcribe(audio)
+            if self.is_silence(prompt):
+                return True
             print(prompt)
 
-        if prompt.lower().startswith("stop"):
-            break
+        if self.is_stop_command(prompt):
+            return False
 
-        messages.append(
+        self.messages.append(
             {
                 "role": "user",
                 "content": prompt,
@@ -138,39 +164,69 @@ Once you think our conversation is over, please wish me "good luck, have fun" ""
         )
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
-            messages=messages,
+            messages=self.messages,
         )
-        messages.append(
-            {"role": "assistant", "content": response["choices"][0]["message"].content}
+        self.messages.append(
+            {
+                "role": "assistant",
+                "content": response["choices"][0]["message"].content,
+            }
         )
         print("<<<")
         print(response["choices"][0]["message"].content)
+        self.say(text=response["choices"][0]["message"].content)
 
-        say(text=response["choices"][0]["message"].content)
+        if self.is_goodbye(response["choices"][0]["message"].content):
+            return False
+        return True
 
+    def is_goodbye(self, response):
+        if levenshtein(response[-20:].lower().strip(), "good luck, have fun") < 8:
+            return True
+        else:
+            return False
 
-def transcribe(audio):
-    audio_data = torch.from_numpy(
-        np.frombuffer(audio.get_raw_data(), np.int16).flatten().astype(np.float32)
-        / 32768.0
-    )
-    result = audio_model.transcribe(audio_data, language="english")
-    return result["text"]
+    def is_stop_command(self, prompt):
+        return prompt.lower().strip().startswith("stop")
 
+    def is_silence(self, prompt):
+        return len(prompt.strip()) < 10
 
-def say(text):
-    if USE_11:
-        audio = elevenlabs.generate(text=text, voice="Domi")
-        elevenlabs.play(audio)
-    else:
-        voiceengine.say(text)
-        voiceengine.runAndWait()
+    def transcribe(self, audio):
+        wav_bytes = audio.get_wav_data(convert_rate=16000)
+        wav_stream = io.BytesIO(wav_bytes)
+        audio_array, sampling_rate = sf.read(wav_stream)
+        audio_array = audio_array.astype(np.float32)
 
+        result = self.audio_model.transcribe(
+            audio_array,
+            language="en",
+            fp16=torch.cuda.is_available(),
+        )
+        return result["text"]
 
-def replays_for_player(player):
-    q = {"players": {"$elemMatch": {"name": player}}}
-    replays = mongo_replays.find(q)
-    return replays
+    def say(self, text):
+        if self.USE_11:
+            voices = elevenlabs.voices()
+            voice = None
+            for v in voices:
+                if v.name == "Coach Harstem":
+                    voice = v
+            if voice is None:
+                raise Exception("Voice not found")
+            voice.settings = elevenlabs.VoiceSettings(
+                stability=0.25, similarity_boost=0.75
+            )
+            audio = elevenlabs.generate(text=text, voice=voice)
+            elevenlabs.play(audio)
+        else:
+            self.voiceengine.say(text)
+            self.voiceengine.runAndWait()
+
+    def replays_for_player(self, player):
+        q = {"players": {"$elemMatch": {"name": player}}}
+        replays = self.mongo_replays.find(q)
+        return replays
 
 
 if __name__ == "__main__":
