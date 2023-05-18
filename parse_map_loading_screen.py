@@ -12,7 +12,7 @@ pytesseract.pytesseract.tesseract_cmd = (
 )
 
 
-def parse_map_loading_screen():
+def parse_map_loading_screen(filename):
     image = cv2.imread(filename)
     if type(image) is not numpy.ndarray:
         return None
@@ -40,7 +40,6 @@ def parse_map_stats(map):
         h2s = soup("h2")
 
         for h2 in h2s:
-            print(h2.string, map)
             if h2.string.lower() == map:
                 for sibling in h2.parent.next_siblings:
                     if sibling.name == "table":

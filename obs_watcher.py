@@ -1,19 +1,44 @@
+from dotenv import load_dotenv
+
+load_dotenv()
 import os
 from parse_map_loading_screen import parse_map_loading_screen, parse_map_stats
 import click
 from time import sleep
 from aicoach import AICoach
+import datetime
+import re
+import yaml
+import logging
+import sys
+
+config = yaml.safe_load(open("config.yml"))
+
+log = logging.getLogger(__name__)
+handler = logging.StreamHandler(sys.stdout)
+log.addHandler(handler)
+
 
 coach = AICoach()
+
+cleanf = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+clean_clan = re.compile(r"<(.+)>\s+(.*)")
+
+barcode = "llllllllll"
 
 
 @click.command()
 @click.option("--screenshot", help="Screenshow file to look for")
 @click.option("--runfor", help="Player to start conversation about")
 @click.option("--harstem", is_flag=True, help="Harstem voice mode")
-def main(screenshot, runfor, harstem):
-    harstem = True
-    coach.init(harstem)
+@click.option("--debug", is_flag=True, help="Debug mode")
+def main(screenshot, runfor, harstem, debug):
+    if debug:
+        log.setLevel(logging.INFO)
+        handler.setLevel(logging.INFO)
+        log.debug("debugging on")
+
+    coach.init(config=config, harstem=harstem, log=log, debug=debug)
 
     if screenshot:
         watch(screenshot)
@@ -25,38 +50,60 @@ def main(screenshot, runfor, harstem):
 
 def watch(filename):
     print("watching for map loading screen")
-    stamp = os.stat(filename).st_mtime
     while True:
-        mtime = os.stat(filename).st_mtime
-        if mtime != stamp and mtime - stamp > 1:
+        if os.path.exists(filename):
             print("map loading screen detected")
-            stamp = os.stat(filename).st_mtime
-            map = None
-            while map == None:
-                (
-                    map,
-                    player1,
-                    player2,
-                ) = parse_map_loading_screen(filename)
+            sleep(0.1)
 
-            stats = None
-            while stats == None:
-                stats = parse_map_stats(map)
+            path, name = os.path.split(filename)
+            parse = None
+            while parse == None:
+                parse = parse_map_loading_screen(filename)
+            map, player1, player2 = parse
 
-            with open("obs/map_stats.html", "w") as f:
-                f.write(stats.prettify())
+            print(f"found: {map}, {player1}, {player2}")
+            if len(player1) == 0:
+                player1 = barcode
+            if len(player2) == 0:
+                player2 = barcode
+
+            clan1, player1 = strip_clan_tag(player1)
+            clan2, player2 = strip_clan_tag(player2)
+            now = datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")
+            new_name = f"{map} - {cleanf.sub('', player1)} vs {cleanf.sub('', player2)} {now} .png"
+            os.rename(filename, os.path.join(path, new_name))
 
             if player1.lower() == "zatic":
                 opponent = player2
-            if player2.lower() == "zatic":
+            elif player2.lower() == "zatic":
                 opponent = player1
             else:
+                print("not zatic")
                 continue
+
+            write_map_stats(map)
 
             replays = coach.get_replays(opponent)
 
             coach.start_conversation(opponent, replays)
         sleep(0.3)
+
+
+def strip_clan_tag(name):
+    result = clean_clan.search(name)
+    if result is not None:
+        return result.group(1), result.group(2)
+    else:
+        return None, name
+
+
+def write_map_stats(map):
+    stats = None
+    while stats == None:
+        stats = parse_map_stats(map)
+
+    with open("obs/map_stats.html", "w") as f:
+        f.write(stats.prettify())
 
 
 if __name__ == "__main__":

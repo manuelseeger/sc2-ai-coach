@@ -1,28 +1,13 @@
 from sc2readerplugins.statistics import ReplayStats
 from sc2readerplugins.SpawningTool import SpawningTool
 import sc2reader
-import logging
 from sc2reader.factories.plugins.replay import APMTracker
 import pymongo
 from pymongo.server_api import ServerApi
 import os
 import sc2reader
 from sc2reader.engine.plugins import CreepTracker
-
-
-MONGO_USER = os.environ.get("MONGO_USER")
-MONGO_PASS = os.environ.get("MONGO_PASS")
-
-
-client = pymongo.MongoClient(
-    "mongodb+srv://{}:{}@sc2.k2kgmgk.mongodb.net/?retryWrites=true&w=majority".format(
-        MONGO_USER, MONGO_PASS
-    ),
-    server_api=ServerApi("1"),
-)
-
-db = client.SC2
-mongo_replays = db.replays
+from os.path import basename
 
 sc2reader.engine.register_plugin(CreepTracker())
 
@@ -32,30 +17,98 @@ factory.register_plugin("Replay", SpawningTool())
 factory.register_plugin("Replay", APMTracker())
 
 
-def toDb(file_path):
-    replay = factory.load_replay(file_path)
-    if replay.game_type != "1v1" or replay.is_ladder is False:
-        return
-    replay_dict = toSummaryDict(replay)
+class ReplayDB:
+    default_filters = []
 
-    replay_dict = convert_keys_to_strings(replay_dict)
+    config = None
 
-    rep_filter = {"_id": {"$eq": replay_dict["_id"]}}
+    def __init__(
+        self,
+        config,
+        debug=False,
+        log=None,
+    ):
+        MONGO_USER = os.environ.get("MONGO_USER")
+        MONGO_PASS = os.environ.get("MONGO_PASS")
 
-    mongo_replays.find_one_and_replace(
-        filter=rep_filter,
-        replacement=replay_dict,
-        upsert=True,
-    )
-
-    logging.info("Added {} to db.".format(file_path))
-    logging.info(
-        "{}: {} , {} ".format(
-            replay_dict["map_name"],
-            replay_dict["players"][0]["name"],
-            replay_dict["players"][1]["name"],
+        client = pymongo.MongoClient(
+            "mongodb+srv://{}:{}@sc2.k2kgmgk.mongodb.net/?retryWrites=true&w=majority".format(
+                MONGO_USER, MONGO_PASS
+            ),
+            server_api=ServerApi("1"),
         )
-    )
+        database = client.SC2
+        self.db = database.replays
+        self.default_filters = [self.is_ladder, lambda x: not self.is_instant_leave(x)]
+        self.debug = debug
+
+        if log is not None:
+            self.log = log
+        else:
+            import logging
+
+            self.log = logging.getLogger(__name__)
+
+        self.config = config
+
+    def set_debug(self, debug):
+        self.debug = debug
+
+    def get_most_recent(self):
+        return self.db.find().sort("unix_timestamp", -1).limit(1)[0]
+
+    def load_replay(self, file_path):
+        replay = factory.load_replay(file_path)
+        if self.debug:
+            print(f"Loaded {replay.filename}")
+        return replay
+
+    def is_ladder(self, replay):
+        is_ladder = replay.game_type == "1v1" and replay.is_ladder is True
+        if self.debug:
+            print(f"is_ladder: {is_ladder}")
+        return is_ladder
+
+    def is_instant_leave(self, replay):
+        is_instant_leave = replay.real_length.seconds < self.config.get(
+            "instant_leave_max"
+        )
+        if self.debug:
+            print(f"is_instant_leave: {is_instant_leave}")
+        return is_instant_leave
+
+    def apply_filters(self, replay, filters=[]):
+        for filter in filters + self.default_filters:
+            if filter(replay) is False:
+                return False
+        return True
+
+    def upsert_replay(self, replay):
+        replay_dict = toSummaryDict(replay)
+
+        replay_dict = convert_keys_to_strings(replay_dict)
+
+        rep_filter = {"_id": {"$eq": replay_dict["_id"]}}
+
+        self.db.find_one_and_replace(
+            filter=rep_filter,
+            replacement=replay_dict,
+            upsert=True,
+        )
+
+        self.log.info(f"Added {basename(replay.filename)} to db.")
+        self.log.info(
+            "{}: {} , {} ".format(
+                replay_dict["map_name"],
+                replay_dict["players"][0]["name"],
+                replay_dict["players"][1]["name"],
+            )
+        )
+
+    def replays_for_player(self, player):
+        q = {"players": {"$elemMatch": {"name": player}}}
+        replays = self.db.find(q)
+        return replays
 
 
 def toSummaryDict(replay):
