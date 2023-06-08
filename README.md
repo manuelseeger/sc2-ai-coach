@@ -6,10 +6,10 @@
 
 Examples: 
 
-> When did I last play againt this player? 
-> What was the opening build order of this player, in summary? 
-> What tech choice does this player go for usually? 
-> How many workers does this player have by the 6 minute mark? 
+- When did I last play againt this player? 
+- What was the opening build order of this player, in summary? 
+- What tech choice does this player go for usually? 
+- How many workers does this player have by the 6 minute mark? 
 
 The AI coach is embedded with a voice engine and can be interacted with live during gameplay via microphone. 
 
