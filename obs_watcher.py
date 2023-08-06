@@ -11,6 +11,7 @@ import re
 import yaml
 import logging
 import sys
+from time import sleep
 
 config = yaml.safe_load(open("config.yml"))
 
@@ -84,6 +85,12 @@ def watch(filename):
             write_map_stats(map)
 
             replays = coach.get_replays(opponent)
+
+            if len(replays) == 0:
+                print("no replays found")
+                coach.say(f"Sorry, I don't have any replays of {opponent}.")
+                sleep(5)
+                continue
 
             coach.start_conversation(opponent, replays)
         sleep(0.3)

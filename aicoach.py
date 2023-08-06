@@ -2,8 +2,6 @@ import os
 import openai
 import time
 import pyttsx3
-import pymongo
-from pymongo.server_api import ServerApi
 import torch
 import elevenlabs
 import numpy as np
@@ -51,21 +49,30 @@ class AICoach:
         self.audio_model = whisper.load_model("base.en").to(device)
 
         audio = PyAudio()
-        microphone_index = 0
-        for i in range(0, audio.get_device_count() - 1):
-            device = audio.get_device_info_by_index(i)
-            if device["name"] == "Microphone (NVIDIA Broadcast)":
-                microphone_index = i
-                log.info(f"Found microphone { device['name'] }")
-                break
 
-        microphone_index = 10
+        if not config.microphone_index:
+            microphone_index = 0
+            for i in range(0, audio.get_device_count() - 1):
+                device = audio.get_device_info_by_index(i)
+
+                # if device["name"] == "Microphone (2- Shure MV7)":
+                if device["name"] == "Microphone (NVIDIA Broadcast)":
+                    microphone_index = i
+                    log.info(f"Found microphone { device['name'] }")
+                    break
+        else:
+            microphone_index = config.microphone_index
 
         self.recognizer = sr.Recognizer()
+        self.recognizer.energy_threshold = config.recognizer.energy_threshold
+        self.recognizer.pause_threshold = config.recognizer.pause_threshold
+        self.recognizer.phrase_threshold = config.recognizer.phrase_threshold
+        self.recognizer.non_speaking_duration = config.recognizer.non_speaking_duration
+
         self.microphone = sr.Microphone(device_index=microphone_index)
 
-        with self.microphone as source:
-            self.recognizer.adjust_for_ambient_noise(source)
+        # with self.microphone as source:
+        #    self.recognizer.adjust_for_ambient_noise(source)
 
     def get_replays(self, opponent):
         build_orders = []
