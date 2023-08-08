@@ -39,7 +39,11 @@ class ReplayDB:
         )
         database = client.SC2
         self.db = database.replays
-        self.default_filters = [self.is_ladder, lambda x: not self.is_instant_leave(x)]
+        self.default_filters = [
+            self.is_ladder,
+            lambda x: not self.is_instant_leave(x),
+            lambda x: not self.has_afk_player(x),
+        ]
         self.debug = debug
 
         if log is not None:
@@ -76,6 +80,12 @@ class ReplayDB:
         if self.debug:
             print(f"is_instant_leave: {is_instant_leave}")
         return is_instant_leave
+
+    def has_afk_player(self, replay):
+        for player in replay.players:
+            if player.avg_apm < 10:
+                return True
+        return False
 
     def apply_filters(self, replay, filters=[]):
         for filter in filters + self.default_filters:
