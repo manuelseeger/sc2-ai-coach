@@ -2,7 +2,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 import os
-from parse_map_loading_screen import parse_map_loading_screen, parse_map_stats
+from parse_map_loading_screen import (
+    parse_map_loading_screen,
+    parse_map_stats,
+    clean_map_name,
+)
 import click
 from time import sleep
 from aicoach import AICoach
@@ -62,6 +66,8 @@ def watch(filename):
                 parse = parse_map_loading_screen(filename)
             map, player1, player2 = parse
 
+            map = clean_map_name(map, config["ladder_maps"])
+
             print(f"found: {map}, {player1}, {player2}")
             if len(player1) == 0:
                 player1 = barcode
@@ -71,20 +77,22 @@ def watch(filename):
             clan1, player1 = strip_clan_tag(player1)
             clan2, player2 = strip_clan_tag(player2)
             now = datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")
-            new_name = f"{map} - {cleanf.sub('', player1)} vs {cleanf.sub('', player2)} {now} .png"
+            new_name = f"{map} - {cleanf.sub('', player1)} vs {cleanf.sub('', player2)} {now}.png"
+            new_name = re.sub(r"[^\w_. -]", "_", new_name)
+
             os.rename(filename, os.path.join(path, new_name))
 
-            if player1.lower() == "zatic":
+            if player1.lower() == config["student"]:
                 opponent = player2
-            elif player2.lower() == "zatic":
+            elif player2.lower() == config["student"]:
                 opponent = player1
             else:
-                print("not zatic")
+                print(f"not {config['student']}, I'll keep looking")
                 continue
 
             write_map_stats(map)
 
-            replays = coach.get_replays(opponent)
+            replays = list(coach.get_replays(opponent))
 
             if len(replays) == 0:
                 print("no replays found")
@@ -92,7 +100,9 @@ def watch(filename):
                 sleep(5)
                 continue
 
-            coach.start_conversation(opponent, replays)
+            build_orders = coach.write_replay_summary(replays, opponent)
+            smurf_stats = coach.write_smurf_summary(replays, opponent)
+            coach.start_conversation(opponent, build_orders, smurf_stats)
         sleep(0.3)
 
 

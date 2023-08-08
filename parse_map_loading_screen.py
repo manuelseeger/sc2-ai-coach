@@ -1,11 +1,9 @@
-from PIL import Image
 import pytesseract
 import cv2
 from bs4 import BeautifulSoup
 import requests
-import os
-from time import sleep
 import numpy
+from Levenshtein import distance
 
 pytesseract.pytesseract.tesseract_cmd = (
     r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
@@ -14,9 +12,12 @@ pytesseract.pytesseract.tesseract_cmd = (
 
 def parse_map_loading_screen(filename):
     image = cv2.imread(filename)
+    # r = cv2.selectROI("select the area", image)
+
     if type(image) is not numpy.ndarray:
         return None
-    x, y, w, h = 852, 860, 800, 200
+    # x, y, w, h = 852, 860, 800, 200
+    x, y, w, h = 940, 900, 670, 100
     ROI = image[y : y + h, x : x + w]
     mapname = pytesseract.image_to_string(ROI, lang="eng")
     x, y, w, h = 333, 587, 276, 40
@@ -29,8 +30,17 @@ def parse_map_loading_screen(filename):
     return (mapname.strip().lower(), player1.strip(), player2.strip())
 
 
-def parse_map_stats(map):
+def clean_map_name(map, ladder_maps):
     map = map.strip().lower()
+    if map not in ladder_maps:
+        for ladder_map in ladder_maps:
+            if distance(map, ladder_map) < 5:
+                map = ladder_map
+                break
+    return map
+
+
+def parse_map_stats(map):
     with requests.Session() as s:
         r = s.get(
             "https://sc2replaystats.com/account/maps/69188/0/188916/1v1/AutoMM/55/Z"

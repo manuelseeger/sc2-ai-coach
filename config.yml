@@ -4,6 +4,8 @@ deamon_polling_rate: 10
 
 microphone_index: 2
 
+student: "zatic"
+
 recognizer:
   # minimum audio energy to consider for recording
   energy_threshold: 400
@@ -14,3 +16,12 @@ recognizer:
   phrase_threshold: 0.3
   # seconds of non-speaking audio to keep on both sides of the recording
   non_speaking_duration: 0.2
+
+ladder_maps:
+  - "babylon le"
+  - "dragon scales le"
+  - "neohumanity le"
+  - "royal blood le"
+  - "altitude le"
+  - "ancient cistern le"
+  - "gresvan le"

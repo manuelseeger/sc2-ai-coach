@@ -12,6 +12,7 @@ import io
 from Levenshtein import distance as levenshtein
 from replaydb import ReplayDB
 from pyaudio import PyAudio
+from smurf import smurf_detection_summary
 
 
 class AICoach:
@@ -50,7 +51,7 @@ class AICoach:
 
         audio = PyAudio()
 
-        if not config.microphone_index:
+        if not config["microphone_index"]:
             microphone_index = 0
             for i in range(0, audio.get_device_count() - 1):
                 device = audio.get_device_info_by_index(i)
@@ -61,13 +62,15 @@ class AICoach:
                     log.info(f"Found microphone { device['name'] }")
                     break
         else:
-            microphone_index = config.microphone_index
+            microphone_index = config["microphone_index"]
 
         self.recognizer = sr.Recognizer()
-        self.recognizer.energy_threshold = config.recognizer.energy_threshold
-        self.recognizer.pause_threshold = config.recognizer.pause_threshold
-        self.recognizer.phrase_threshold = config.recognizer.phrase_threshold
-        self.recognizer.non_speaking_duration = config.recognizer.non_speaking_duration
+        self.recognizer.energy_threshold = config["recognizer"]["energy_threshold"]
+        self.recognizer.pause_threshold = config["recognizer"]["pause_threshold"]
+        self.recognizer.phrase_threshold = config["recognizer"]["phrase_threshold"]
+        self.recognizer.non_speaking_duration = config["recognizer"][
+            "non_speaking_duration"
+        ]
 
         self.microphone = sr.Microphone(device_index=microphone_index)
 
@@ -75,9 +78,25 @@ class AICoach:
         #    self.recognizer.adjust_for_ambient_noise(source)
 
     def get_replays(self, opponent):
-        build_orders = []
+        return self.replay_db.replays_for_player(opponent)
 
-        replays = self.replay_db.replays_for_player(opponent)
+    def write_smurf_summary(self, replays, opponent):
+        opponent_handle = None
+        replay = replays[0]
+
+        for player in replay["players"]:
+            if player["name"] == opponent:
+                opponent_handle = player["toon_handle"]
+            else:
+                my_handle = player["toon_handle"]
+
+        return (
+            smurf_detection_summary(my_handle),
+            smurf_detection_summary(opponent_handle),
+        )
+
+    def write_replay_summary(self, replays, opponent):
+        build_orders = []
 
         for replay in replays:
             build = "Date: {}\n".format(replay["date"])
@@ -100,6 +119,7 @@ class AICoach:
             build += "Build Order ({}):\n".format(opponent)
             for player in replay["players"]:
                 if player["name"] == opponent:
+                    opponent_handle = player["toon_handle"]
                     for tick in player["build_order"]:
                         timestamp = time.strptime(tick["time"], "%M:%S")
                         if timestamp.tm_min < 7:
@@ -109,21 +129,19 @@ class AICoach:
 
         return build_orders
 
-    def start_conversation(self, player, build_orders):
-        priming = (
-            f"""The player I might have recently played against is called "{player}"."""
-        )
+    def start_conversation(self, player, build_orders, smurf_summary=None):
+        priming = f"""The player I have recently played against is called "{player}"."""
 
-        if len(build_orders) > 0:
-            priming += f"""
+        if smurf_summary is not None:
+            priming += f"Here are some statistics about this player's past standings and career in JSON format: {smurf_summary[1]}\n\n"
+            # priming += f"And here are the same statistics from me in JSON format: {smurf_summary[0]}\n\n"
+            priming += f"Use these statistics to determine if the opponnent is a smurf. The current league we are playing at is Diamond at around 4000 MMR. If the player was consistently above that level in the past, they would be a smurf.\n\n"
+
+        priming += f"""
 
 Here are some recent games of me aganst {player} with the build orders played by {player}. Use these to answer follow up questions on this player's play style.
 
 { "".join(build_orders) }"""
-        else:
-            priming += f"""
-
-There are no recent games against {player} in my database. When asked about it, just tell me that."""
 
         if self.USE_11:
             namephrase = "Your name is Harstem."
