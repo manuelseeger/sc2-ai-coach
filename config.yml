@@ -6,6 +6,8 @@ microphone_index: 2
 
 student: "zatic"
 
+gpt_model: "gpt-3.5-turbo"
+
 recognizer:
   # minimum audio energy to consider for recording
   energy_threshold: 400

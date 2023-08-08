@@ -19,6 +19,7 @@ class AICoach:
     def init(self, config, log=None, harstem=False, debug=False):
         elevenlabs.set_api_key(os.environ.get("ELEVEN_API_KEY"))
 
+        self.config = config
         self.USE_11 = harstem
         self.DEBUG = debug
 
@@ -49,20 +50,7 @@ class AICoach:
             self.log.info("CPU")
         self.audio_model = whisper.load_model("base.en").to(device)
 
-        audio = PyAudio()
-
-        if not config["microphone_index"]:
-            microphone_index = 0
-            for i in range(0, audio.get_device_count() - 1):
-                device = audio.get_device_info_by_index(i)
-
-                # if device["name"] == "Microphone (2- Shure MV7)":
-                if device["name"] == "Microphone (NVIDIA Broadcast)":
-                    microphone_index = i
-                    log.info(f"Found microphone { device['name'] }")
-                    break
-        else:
-            microphone_index = config["microphone_index"]
+        microphone_index = config["microphone_index"]
 
         self.recognizer = sr.Recognizer()
         self.recognizer.energy_threshold = config["recognizer"]["energy_threshold"]
@@ -193,7 +181,7 @@ Here are some recent games of me aganst {player} with the build orders played by
             },
         )
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model=self.config["gpt_model"],
             messages=self.messages,
         )
         self.messages.append(
