@@ -27,8 +27,8 @@ REPLAY_FOLDER = config.get("replay_folder")
 
 
 @click.group()
-@click.option("--clean", is_flag=True, default=False, help="Harstem voice mode")
-@click.option("--debug", is_flag=True, default=False, help="Harstem voice mode")
+@click.option("--clean", is_flag=True, default=False, help="Delete filtered replays")
+@click.option("--debug", is_flag=True, default=False, help="Print debug messages")
 @click.pass_context
 def cli(ctx, clean, debug):
     ctx.ensure_object(dict)

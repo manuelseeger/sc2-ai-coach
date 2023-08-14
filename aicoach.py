@@ -123,7 +123,7 @@ class AICoach:
         if smurf_summary is not None:
             priming += f"Here are some statistics about this player's past standings and career in JSON format: {smurf_summary[1]}\n\n"
             # priming += f"And here are the same statistics from me in JSON format: {smurf_summary[0]}\n\n"
-            priming += f"Use these statistics to determine if the opponnent is a smurf. The current league we are playing at is Diamond at around 4000 MMR. If the player was consistently above that level in the past, they would be a smurf.\n\n"
+            priming += f"Use these statistics to determine if the opponnent is a smurf, if asked to do so. The current league we are playing at is Diamond at around 4000 MMR. If the player was consistently above that level in the past, they would be a smurf.\n\n"
 
         priming += f"""
 

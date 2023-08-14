@@ -80,8 +80,6 @@ def watch(filename):
             new_name = f"{map} - {cleanf.sub('', player1)} vs {cleanf.sub('', player2)} {now}.png"
             new_name = re.sub(r"[^\w_. -]", "_", new_name)
 
-            os.rename(filename, os.path.join(path, new_name))
-
             if player1.lower() == config["student"]:
                 opponent = player2
             elif player2.lower() == config["student"]:
@@ -93,6 +91,8 @@ def watch(filename):
             write_map_stats(map)
 
             replays = list(coach.get_replays(opponent))
+
+            os.rename(filename, os.path.join(path, new_name))
 
             if len(replays) == 0:
                 print("no replays found")

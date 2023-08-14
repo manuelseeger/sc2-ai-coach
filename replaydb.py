@@ -84,6 +84,8 @@ class ReplayDB:
     def has_afk_player(self, replay):
         for player in replay.players:
             if player.avg_apm < 10:
+                if self.debug:
+                    print(f"has_afk_player: True")
                 return True
         return False
 
