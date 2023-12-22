@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 import os
-from parse_map_loading_screen import (
+from obs_tools.parse_map_loading_screen import (
     parse_map_loading_screen,
     parse_map_stats,
     clean_map_name,

@@ -10,7 +10,7 @@ import speech_recognition as sr
 import soundfile as sf
 import io
 from Levenshtein import distance as levenshtein
-from replaydb import ReplayDB
+from replays.replaydb import ReplayDB
 from pyaudio import PyAudio
 from smurf import smurf_detection_summary
 
