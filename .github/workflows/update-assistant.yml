@@ -1,9 +1,19 @@
+env:
+  ASSISTANT_ID: ${{ vars.ASSISTANT_ID }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+on:
+  push:
+    branches:
+      - main
+      - 'releases/**'
+      
 jobs:
   deployment:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Read instructions
       id: instructions
       uses: juliangruber/read-file-action@v1
