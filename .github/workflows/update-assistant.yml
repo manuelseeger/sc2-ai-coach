@@ -7,7 +7,7 @@ on:
     branches:
       - main
       - 'releases/**'
-      
+
 jobs:
   deployment:
     runs-on: ubuntu-latest
@@ -24,9 +24,9 @@ jobs:
     - name: Deploy Assistant
       uses: fjogeleit/http-request-action@v1
       with:
-        url: 'https://api.openai.com/v1/assistants/${{ASSISTANT_ID}}'
+        url: 'https://api.openai.com/v1/assistants/$ASSISTANT_ID'
         method: 'POST'
-        bearerToken: ${{OPENAI_API_KEY}}
+        bearerToken: $OPENAI_API_KEY
         customHeaders: '{"Content-Type": "application/json", "OpenAI-Beta": "assistants=v1"}'
         data: '{"instructions": "${{ steps.instructions.outputs.content }}"}'
     - name: Show Response
