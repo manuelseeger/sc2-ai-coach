@@ -2,12 +2,24 @@ jobs:
   deployment:
     runs-on: ubuntu-latest
     steps:
-    - name: Deploy Stage
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    - name: Read instructions
+      id: instructions
+      uses: juliangruber/read-file-action@v1
+      with:
+        path: ./aicoach/initial_instructions.txt
+    - name: Echo instructions
+      run: echo "${{ steps.instructions.outputs.content }}"    
+    - name: Deploy Assistant
       uses: fjogeleit/http-request-action@v1
       with:
-        url: 'https://ansible.io/api/v2/job_templates/84/launch/'
+        url: 'https://api.openai.com/v1/assistants/${{ASSISTANT_ID}}'
         method: 'POST'
-        username: ${{ secrets.AWX_USER }}
-        password: ${{ secrets.AWX_PASSWORD }}
-        customHeaders: '{"Content-Type": "application/json"}'
-        data: '{"key_1": "value_1", "key_2": "value_2"}'
+        bearerToken: ${{OPENAI_API_KEY}}
+        customHeaders: '{"Content-Type": "application/json", "OpenAI-Beta": "assistants=v1"}'
+        data: '{"instructions": "${{ steps.instructions.outputs.content }}"}'
+    - name: Show Response
+      run: |
+        echo ${{ steps.myRequest.outputs.response }}
+        echo ${{ steps.myRequest.outputs.headers }}
