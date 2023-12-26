@@ -1,0 +1,13 @@
+jobs:
+  deployment:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Deploy Stage
+      uses: fjogeleit/http-request-action@v1
+      with:
+        url: 'https://ansible.io/api/v2/job_templates/84/launch/'
+        method: 'POST'
+        username: ${{ secrets.AWX_USER }}
+        password: ${{ secrets.AWX_PASSWORD }}
+        customHeaders: '{"Content-Type": "application/json"}'
+        data: '{"key_1": "value_1", "key_2": "value_2"}'
