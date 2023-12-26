@@ -28,7 +28,7 @@ jobs:
         method: 'POST'
         bearerToken: ${{ secrets.OPENAI_API_KEY }}
         customHeaders: '{"Content-Type": "application/json", "OpenAI-Beta": "assistants=v1"}'
-        data: '{"instructions": "${{ steps.instructions.outputs.content }}"}'
+        data: '{"instructions": "hello"}'
     - name: Show Response
       run: |
         echo ${{ steps.myRequest.outputs.response }}
