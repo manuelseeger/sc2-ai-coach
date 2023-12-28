@@ -21,6 +21,9 @@ class AIFunction:
     def __str__(self):
         return json.dumps(_function_definition(self.fn), indent=2)
 
+    def json(self):
+        return _function_definition(self.fn)
+
 
 def _type_to_schema_type(type: str):
     return BASE_SCHEMA_MAP.get(type, str(type))
