@@ -1,7 +1,9 @@
-from .sc2readerplugins.statistics import ReplayStats
-from .sc2readerplugins.SpawningTool import SpawningTool
+from sc2readerplugins.statistics import ReplayStats
+from sc2readerplugins.SpawningTool import SpawningTool
 import sc2reader
-from sc2reader.factories.plugins.replay import APMTracker
+
+from sc2reader.factories.plugins.replay import APMTracker as APMTrackerBroken
+from sc2readerplugins.APMTracker import APMTracker
 import pymongo
 from pymongo.server_api import ServerApi
 import os
@@ -9,7 +11,9 @@ import sc2reader
 from sc2reader.engine.plugins import CreepTracker
 from os.path import basename
 
+
 sc2reader.engine.register_plugin(CreepTracker())
+
 
 factory = sc2reader.factories.SC2Factory()
 factory.register_plugin("Replay", ReplayStats())
@@ -31,13 +35,13 @@ class ReplayDB:
         MONGO_USER = os.environ.get("MONGO_USER")
         MONGO_PASS = os.environ.get("MONGO_PASS")
 
-        client = pymongo.MongoClient(
+        self.client = pymongo.MongoClient(
             "mongodb+srv://{}:{}@sc2.k2kgmgk.mongodb.net/?retryWrites=true&w=majority".format(
                 MONGO_USER, MONGO_PASS
             ),
             server_api=ServerApi("1"),
         )
-        database = client.SC2
+        database = self.client.SC2
         self.db = database.replays
         self.default_filters = [
             self.is_ladder,
@@ -54,6 +58,9 @@ class ReplayDB:
             self.log = logging.getLogger(__name__)
 
         self.config = config
+
+    def close(self):
+        self.client.close()
 
     def set_debug(self, debug):
         self.debug = debug
