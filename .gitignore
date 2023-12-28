@@ -9,3 +9,4 @@ replays.csv
 *.env
 obs/
 deamon.cmd
+aicoach/assistant.json

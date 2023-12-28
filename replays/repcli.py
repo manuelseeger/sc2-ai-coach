@@ -6,7 +6,7 @@ import glob
 import os
 import click
 import datetime
-from replays.replaydb import ReplayDB
+from replaydb import ReplayDB
 
 from os.path import join, basename, getmtime
 from datetime import datetime
@@ -14,6 +14,8 @@ import logging
 import sys
 from time import sleep
 import yaml
+
+from datetime import date
 
 config = yaml.safe_load(open("config.yml"))
 
@@ -103,9 +105,57 @@ def sync(ctx, delta):
 
 
 @cli.command()
+@click.pass_context
+@click.option(
+    "--from",
+    "-f",
+    "from_",
+    help="Start date for replay search",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    default=str(date.today()),
+)
+@click.option(
+    "--to",
+    "-t",
+    "to_",
+    help="End date for replay search",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    default=str(date.today()),
+)
+@click.argument("replay", type=click.Path(exists=True), required=False)
+def echo(ctx, from_: datetime, to_: datetime, replay: str):
+    click.echo(f"Syncing from most recent replay in DB {from_}")
+
+    if replay:
+        list_of_files = [replay]
+    else:
+        list_of_files = glob.glob(join(REPLAY_FOLDER, "*.SC2Replay"))
+        list_of_files = [
+            f
+            for f in list_of_files
+            if from_.timestamp() <= getmtime(f) and to_.timestamp() >= getmtime(f)
+        ]
+
+    list_of_files.sort(key=getmtime)
+
+    click.echo(f"Found {len(list_of_files)} replays to echo")
+
+    for file_path in list_of_files:
+        replay = db.load_replay(file_path)
+        if db.apply_filters(replay):
+            click.echo(f"Adding {basename(file_path)}")
+            click.echo(replay)
+        else:
+            click.echo(f"Filtered {basename(file_path)}")
+
+
+@cli.command()
 def clean():
     pass
 
 
 if __name__ == "__main__":
-    cli(obj={})
+    try:
+        cli(obj={})
+    finally:
+        db.close()

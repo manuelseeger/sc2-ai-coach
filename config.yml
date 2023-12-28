@@ -8,6 +8,8 @@ student: "zatic"
 
 gpt_model: "gpt-3.5-turbo"
 
+open_ai_model: "gpt-4-1106-preview"
+
 recognizer:
   # minimum audio energy to consider for recording
   energy_threshold: 400

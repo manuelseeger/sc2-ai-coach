@@ -4,4 +4,11 @@ dependencies:
   - requests=2.31.0
   - python-dotenv=0.21.0
   - click=8.1.7
+  - pyyaml=6.0.1
+  - pymongo=4.6.1
+  - numpy=1.26.2
+  - pandas=2.1.4
   - pip
+  - pip:
+      - sc2reader==1.8.0
+      - spawningtool==2.10.0

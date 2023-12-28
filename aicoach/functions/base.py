@@ -11,6 +11,9 @@ BASE_SCHEMA_MAP = {
 
 
 class AIFunction:
+    """Decorator for AI functions. Decorated functions will be added to the
+    assistant's tools on build."""
+
     def __init__(self, fn):
         functools.update_wrapper(self, fn)
         self.fn = fn
@@ -19,22 +22,22 @@ class AIFunction:
         return self.fn(*args, **kwargs)
 
     def __str__(self):
-        return json.dumps(_function_definition(self.fn), indent=2)
+        return json.dumps(self.json(), indent=2)
 
     def json(self):
-        return _function_definition(self.fn)
+        return function_definition(self.fn)
 
 
-def _type_to_schema_type(type: str):
+def type_to_schema_type(type: str):
     return BASE_SCHEMA_MAP.get(type, str(type))
 
 
-def _function_definition(fn):
+def function_definition(fn):
     sig = inspect.signature(fn)
 
     args = {
         n: {
-            "type": _type_to_schema_type(p.annotation.__origin__.__name__),
+            "type": type_to_schema_type(p.annotation.__origin__.__name__),
             "description": p.annotation.__metadata__[0],
         }
         for n, p in sig.parameters.items()
