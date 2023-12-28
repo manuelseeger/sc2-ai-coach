@@ -1,5 +1,5 @@
-from sc2readerplugins.statistics import ReplayStats
-from sc2readerplugins.SpawningTool import SpawningTool
+from .sc2readerplugins.statistics import ReplayStats
+from .sc2readerplugins.SpawningTool import SpawningTool
 import sc2reader
 from sc2reader.factories.plugins.replay import APMTracker
 import pymongo
