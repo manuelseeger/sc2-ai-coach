@@ -1,7 +1,7 @@
 import argparse
 from datetime import date, datetime
 import os
-from replaydb import toDb
+from replays.replaydb import toDb
 import glob
 import json
 

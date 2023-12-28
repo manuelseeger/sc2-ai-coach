@@ -6,7 +6,7 @@ import glob
 import os
 import click
 import datetime
-from replaydb import ReplayDB
+from replays.replaydb import ReplayDB
 
 from os.path import join, basename, getmtime
 from datetime import datetime

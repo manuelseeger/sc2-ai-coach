@@ -1,0 +1,35 @@
+env:
+  ASSISTANT_ID: ${{ vars.ASSISTANT_ID }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+on:
+  push:
+    branches:
+      - main
+      - 'releases/**'
+      
+jobs:
+  deployment:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Read instructions
+      id: instructions
+      uses: juliangruber/read-file-action@v1
+      with:
+        path: ./aicoach/initial_instructions.txt
+    - name: Echo instructions
+      run: echo "${{ steps.instructions.outputs.content }}"    
+    - name: Deploy Assistant
+      uses: fjogeleit/http-request-action@v1
+      with:
+        url: 'https://api.openai.com/v1/assistants/${{ASSISTANT_ID}}'
+        method: 'POST'
+        bearerToken: ${{OPENAI_API_KEY}}
+        customHeaders: '{"Content-Type": "application/json", "OpenAI-Beta": "assistants=v1"}'
+        data: '{"instructions": "${{ steps.instructions.outputs.content }}"}'
+    - name: Show Response
+      run: |
+        echo ${{ steps.myRequest.outputs.response }}
+        echo ${{ steps.myRequest.outputs.headers }}
