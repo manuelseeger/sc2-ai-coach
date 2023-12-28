@@ -8,3 +8,4 @@ replays.csv
 *.csv
 *.env
 obs/
+deamon.cmd
