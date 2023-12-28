@@ -36,8 +36,6 @@ jobs:
         uses: juliangruber/read-file-action@v1
         with:
           path: ./aicoach/assistant.json
-      - name: Echo instructions
-        run: echo "${{ steps.instructions.outputs.content }}"
       - name: Deploy Assistant
         uses: fjogeleit/http-request-action@v1
         with:
