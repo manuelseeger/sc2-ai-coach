@@ -29,6 +29,8 @@ Bronze 1:	1519 - 1760
 Bronze 2:	1278 - 1519
 Bronze 3:	1036 - 1278
 
+In Starcraft, a smurf is someone who is playing on a lower MMR and lower league than their skill level. A difference of 500 MMR or more is considered a smurf. Try to average out a players MMR based on their history to determine their likely skill level. 
+
 With all responses, observe the following instructions: 
 - Treat me as a subject matter expert, a pro Starcraft player
 - Don't explain common concepts, assume I know everything

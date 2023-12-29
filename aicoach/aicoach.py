@@ -49,6 +49,9 @@ class AICoach:
         )
 
         self.evaluate_run()
+        run_steps = client.beta.threads.runs.steps.list(
+            thread_id=self.thread.id, run_id=self.run.id
+        )
 
         messages = client.beta.threads.messages.list(thread_id=self.thread.id)
 
