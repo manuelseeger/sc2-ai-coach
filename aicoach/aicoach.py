@@ -34,26 +34,29 @@ class AICoach:
 
     def create_thread(self):
         self.thread = client.beta.threads.create()
+
+    def create_run(self):
         self.run = client.beta.threads.runs.create(
             thread_id=self.thread.id,
             assistant_id=self.assistant.id,
         )
 
-    def chat(self, message):
-        self.run = wait_on_run(self.run, self.thread)
+    def chat(self, text):
         message = client.beta.threads.messages.create(
             thread_id=self.thread.id,
             role="user",
-            content=message,
+            content=text,
         )
 
         self.evaluate_run()
 
         messages = client.beta.threads.messages.list(thread_id=self.thread.id)
 
-        return messages.data[-1].content[0].text.value
+        return messages.data[0].content[0].text.value
 
     def evaluate_run(self):
+        if self.run is None:
+            self.create_run()
         self.run = wait_on_run(self.run, self.thread)
 
         if self.run.status == "requires_action":
@@ -72,7 +75,7 @@ class AICoach:
         self.run = client.beta.threads.runs.submit_tool_outputs(
             thread_id=self.thread.id,
             run_id=self.run.id,
-            tool_outputs=[{"tool_call_id": id, "output": result}],
+            tool_outputs=[{"tool_call_id": id, "output": json.dumps(result)}],
         )
 
 
