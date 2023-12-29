@@ -7,15 +7,19 @@ load_dotenv()
 
 
 def main():
-    assistant = {"instructions": "", "tools": [], "model": "gpt-4"}
+    tools = [
+        {
+            "type:": "code_interpreter",
+        }
+    ]
+    assistant = {"instructions": "", "tools": tools, "model": "gpt-4"}
 
     with open(os.path.join("aicoach", "initial_instructions.txt"), "r") as f:
         assistant["instructions"] = f.read()
 
-    if len(AIFunctions) > 0:
-        assistant["tools"] = [
-            {"type": "function", "function": f.json()} for f in AIFunctions
-        ]
+    assistant["tools"] = assistant["tools"] + [
+        {"type": "function", "function": f.json()} for f in AIFunctions
+    ]
 
     assistant["model"] = os.environ.get("ASSISTANT_MODEL", "gpt-4-1106-preview")
 
