@@ -12,7 +12,9 @@ def LookupPlayer(
 ) -> str:
     """Lookup a player by their toon handle and return their career summary in JSON format.
 
-    These stats can be used to determine if a player is a smurf or not based on the current MMR and the history of the player.
+    These stats can be used to determine if a player is a smurf or not based on the current MMR
+    and the history of the player. A smurf is someone who is playing on a lower MMR and lower league
+    than their skill level. A difference of 500 MMR or more is considered a smurf.
     """
     summary = {}
 
