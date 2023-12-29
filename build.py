@@ -17,7 +17,7 @@ def main():
             {"type": "function", "function": f.json()} for f in AIFunctions
         ]
 
-    assistant["model"] = os.environ.get("ASSISTANT_MODEL", "gpt-4")
+    assistant["model"] = os.environ.get("ASSISTANT_MODEL", "gpt-4-1106-preview")
 
     with open(os.path.join("aicoach", "assistant.json"), "w") as f:
         f.write(json.dumps(assistant, indent=2))
