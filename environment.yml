@@ -12,6 +12,7 @@ dependencies:
   - pandas=2.1.4
   - openai=1.6.1
   - pytest=7.4.0
+  - tiktoken=0.5.2
   - pip
   - pip:
       - sc2reader==1.8.0
