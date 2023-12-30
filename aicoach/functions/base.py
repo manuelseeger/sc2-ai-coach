@@ -50,6 +50,10 @@ def function_definition(fn):
         "parameters": {
             "type": "object",
             "properties": args,
-            "required": [n for n in sig.parameters],
+            "required": [
+                n
+                for n, p in sig.parameters.items()
+                if p.default == inspect.Parameter.empty
+            ],
         },
     }
