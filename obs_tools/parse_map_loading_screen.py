@@ -40,10 +40,10 @@ def clean_map_name(map, ladder_maps):
     return map
 
 
-def parse_map_stats(map):
+def parse_map_stats(map, season):
     with requests.Session() as s:
         r = s.get(
-            "https://sc2replaystats.com/account/maps/69188/0/188916/1v1/AutoMM/55/Z"
+            f"https://sc2replaystats.com/account/maps/69188/0/188916/1v1/AutoMM/{season}/Z"
         )
         soup = BeautifulSoup(r.content, "html.parser")
 

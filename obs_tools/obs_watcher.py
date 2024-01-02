@@ -2,14 +2,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 import os
-from obs_tools.parse_map_loading_screen import (
+from parse_map_loading_screen import (
     parse_map_loading_screen,
     parse_map_stats,
     clean_map_name,
 )
 import click
 from time import sleep
-from aicoach import AICoach
+
 import datetime
 import re
 import yaml
@@ -24,8 +24,6 @@ handler = logging.StreamHandler(sys.stdout)
 log.addHandler(handler)
 
 
-coach = AICoach()
-
 cleanf = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 clean_clan = re.compile(r"<(.+)>\s+(.*)")
 
@@ -36,14 +34,19 @@ barcode = "llllllllll"
 @click.option("--screenshot", help="Screenshow file to look for")
 @click.option("--runfor", help="Player to start conversation about")
 @click.option("--harstem", is_flag=True, help="Harstem voice mode")
+@click.option("--withcoach", is_flag=True, help="Run with AI coach")
 @click.option("--debug", is_flag=True, help="Debug mode")
-def main(screenshot, runfor, harstem, debug):
+def main(screenshot, runfor, harstem, withcoach, debug):
     if debug:
         log.setLevel(logging.INFO)
         handler.setLevel(logging.INFO)
         log.debug("debugging on")
 
-    coach.init(config=config, harstem=harstem, log=log, debug=debug)
+    if withcoach:
+        from aicoach import AICoach
+
+        coach = AICoach()
+        coach.init(config=config, harstem=harstem, log=log, debug=debug)
 
     if screenshot:
         watch(screenshot)
@@ -53,7 +56,7 @@ def main(screenshot, runfor, harstem, debug):
         coach.start_conversation(runfor, replays)
 
 
-def watch(filename):
+def watch(filename, coach=None):
     print("watching for map loading screen")
     while True:
         if os.path.exists(filename):
@@ -90,19 +93,22 @@ def watch(filename):
 
             write_map_stats(map)
 
-            replays = list(coach.get_replays(opponent))
-
             os.rename(filename, os.path.join(path, new_name))
 
-            if len(replays) == 0:
-                print("no replays found")
-                coach.say(f"Sorry, I don't have any replays of {opponent}.")
-                sleep(5)
-                continue
+            if coach is not None:
+                replays = list(coach.get_replays(opponent))
 
-            build_orders = coach.write_replay_summary(replays, opponent)
-            smurf_stats = coach.write_smurf_summary(replays, opponent)
-            coach.start_conversation(opponent, build_orders, smurf_stats)
+                if len(replays) == 0:
+                    print("no replays found")
+                    coach.say(f"Sorry, I don't have any replays of {opponent}.")
+                    sleep(5)
+                    continue
+
+                build_orders = coach.write_replay_summary(replays, opponent)
+                smurf_stats = coach.write_smurf_summary(replays, opponent)
+                coach.start_conversation(opponent, build_orders, smurf_stats)
+            else:
+                print("no coach, will keep looking for new map")
         sleep(0.3)
 
 
@@ -117,7 +123,7 @@ def strip_clan_tag(name):
 def write_map_stats(map):
     stats = None
     while stats == None:
-        stats = parse_map_stats(map)
+        stats = parse_map_stats(map, config["season"])
 
     with open("obs/map_stats.html", "w") as f:
         f.write(stats.prettify())

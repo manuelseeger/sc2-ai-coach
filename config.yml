@@ -4,6 +4,8 @@ deamon_polling_rate: 10
 
 microphone_index: 2
 
+oww_model: "hey_jarvis"
+
 student: "zatic"
 
 gpt_model: "gpt-3.5-turbo"
@@ -21,11 +23,15 @@ recognizer:
   # seconds of non-speaking audio to keep on both sides of the recording
   non_speaking_duration: 0.2
 
+season: 57
+
 ladder_maps:
-  - "babylon le"
-  - "dragon scales le"
-  - "neohumanity le"
-  - "royal blood le"
-  - "altitude le"
-  - "ancient cistern le"
-  - "gresvan le"
+  - hecate le
+  - oceanborn le
+  - solaris le
+  - hard lead le
+  - radhuset station le
+  - site delta le
+  - equilibrium le
+  - goldenaura le
+  - alcyone le

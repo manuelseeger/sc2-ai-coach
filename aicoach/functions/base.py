@@ -37,11 +37,11 @@ def function_definition(fn):
     sig = inspect.signature(fn)
 
     args = {
-        n: {
-            "type": type_to_schema_type(p.annotation.__origin__.__name__),
-            "description": p.annotation.__metadata__[0],
+        name: {
+            "type": type_to_schema_type(parameter.annotation.__origin__.__name__),
+            "description": parameter.annotation.__metadata__[0],
         }
-        for n, p in sig.parameters.items()
+        for name, parameter in sig.parameters.items()
     }
 
     return {
@@ -51,9 +51,9 @@ def function_definition(fn):
             "type": "object",
             "properties": args,
             "required": [
-                n
-                for n, p in sig.parameters.items()
-                if p.default == inspect.Parameter.empty
+                name
+                for name, parameter in sig.parameters.items()
+                if parameter.default == inspect.Parameter.empty
             ],
         },
     }
