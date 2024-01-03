@@ -18,6 +18,7 @@ dependencies:
   - beautifulsoup4=4.12.2
   - python-levenshtein=0.23.0
   - onnxruntime=1.17.0
+  - blinker=1.7.0
   - pip
   - pip:
       - pyaudio=0.2.14
