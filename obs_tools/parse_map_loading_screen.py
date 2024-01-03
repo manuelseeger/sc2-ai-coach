@@ -82,6 +82,11 @@ def strip_clan_tag(name):
         return None, name
 
 
+def rename_file(filename, new_name):
+    path, _ = os.path.split(filename)
+    os.rename(filename, os.path.join(path, new_name))
+
+
 class LoadingScreenScanner(threading.Thread):
     def __init__(self, name):
         super().__init__()

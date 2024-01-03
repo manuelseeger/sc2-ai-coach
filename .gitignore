@@ -11,3 +11,4 @@ obs/
 deamon.cmd
 aicoach/assistant.json
 deploy.cmd
+logs/

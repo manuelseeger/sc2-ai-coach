@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 import json
 import tiktoken
+from rich import print
 
 load_dotenv()
 

@@ -10,7 +10,6 @@ load_dotenv()
 
 ASSISTANT_ID = os.environ["ASSISTANT_ID"]
 
-
 client = OpenAI()
 
 

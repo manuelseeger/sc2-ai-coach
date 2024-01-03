@@ -46,7 +46,7 @@ def function_definition(fn):
 
     return {
         "name": fn.__name__,
-        "description": fn.__doc__,
+        "description": inspect.getdoc(fn),
         "parameters": {
             "type": "object",
             "properties": args,
