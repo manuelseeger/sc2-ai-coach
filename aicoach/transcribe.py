@@ -3,15 +3,17 @@ from transformers import pipeline
 import numpy as np
 import soundfile as sf
 import io
+from config import config
 
 
 class Transcriber:
     def __init__(self):
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
         self.pipe = pipeline(
             "automatic-speech-recognition",
-            model="openai/whisper-large-v3",
+            model=config.speech_recognition_model,
             torch_dtype=torch.float16,
-            device="cuda:0",
+            device=device,
         )
 
     def transcribe(self, audio):

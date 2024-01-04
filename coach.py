@@ -5,7 +5,6 @@ import os
 import click
 from time import sleep
 import datetime
-import yaml
 import logging
 import sys
 from blinker import signal
@@ -15,10 +14,10 @@ from obs_tools.parse_map_loading_screen import LoadingScreenScanner, rename_file
 from obs_tools.mic import Microphone
 from typing import Dict
 from rich import print
+from rich.logging import RichHandler
+from config import config
 
-config: Dict = yaml.safe_load(open("config.yml"))
-
-log = logging.getLogger(__name__)
+log = logging.getLogger(config.name)
 
 handler = logging.FileHandler(
     os.path.join(
@@ -26,6 +25,7 @@ handler = logging.FileHandler(
     )
 )
 log.addHandler(handler)
+log.addHandler(RichHandler())
 
 
 mic = Microphone()

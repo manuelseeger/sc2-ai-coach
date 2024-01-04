@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import json
 import tiktoken
 from rich import print
+from config import config
 
 load_dotenv()
 
@@ -16,7 +17,7 @@ def main():
             "type:": "code_interpreter",
         }
     ]
-    assistant = {"instructions": "", "tools": tools, "model": "gpt-4"}
+    assistant = {"instructions": "", "tools": tools, "model": config.gpt_model}
 
     with open(os.path.join("aicoach", "initial_instructions.txt"), "r") as f:
         assistant["instructions"] = f.read()
@@ -26,8 +27,6 @@ def main():
     assistant["tools"] = assistant["tools"] + [
         {"type": "function", "function": f.json()} for f in AIFunctions
     ]
-
-    assistant["model"] = os.environ.get("ASSISTANT_MODEL", "gpt-4-1106-preview")
 
     with open(os.path.join("aicoach", "assistant.json"), "w") as f:
         f.write(json.dumps(assistant, indent=2))

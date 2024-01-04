@@ -1,3 +1,4 @@
+name: "AICoach"
 replay_folder: "C:\\Users\\manuel\\OneDrive\\Documents\\StarCraft II\\Accounts\\250568\\2-S2-1-691545\\Replays\\Multiplayer"
 instant_leave_max: 60
 deamon_polling_rate: 10
@@ -8,9 +9,9 @@ oww_model: "hey_jarvis"
 
 student: "zatic"
 
-gpt_model: "gpt-3.5-turbo"
+gpt_model: "gpt-4-1106-preview"
 
-open_ai_model: "gpt-4-1106-preview"
+speech_recognition_model: "openai/whisper-large-v3"
 
 screenshot: "obs/screenshots/_maploading.png"
 

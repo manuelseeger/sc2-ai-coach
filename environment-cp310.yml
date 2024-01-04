@@ -33,3 +33,4 @@ dependencies:
       - transformers
       - SpeechRecognition
       - pyttsx3
+      - pydantic-yaml
