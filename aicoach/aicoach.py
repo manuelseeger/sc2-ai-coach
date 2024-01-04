@@ -38,17 +38,6 @@ class AICoach:
         self.assistant: Assistant = client.beta.assistants.retrieve(assistant_id=ASSISTANT_ID)
         self.functions = {f.__name__: f for f in AIFunctions}
     
-    def initiate_from_scanner(self, map, opponent, mmr) -> str:
-        with open(os.path.join("aicoach", "prompt_scanner.txt"), "r") as f:
-            prompt = f.read()
-            
-        prompt = prompt.replace("{{map}}", map)
-        prompt = prompt.replace("{{opponent}}", opponent)
-        prompt = prompt.replace("{{mmr}}", mmr)
-        
-        self.create_thread(prompt)
-        run = self.evaluate_run()
-        return self.get_most_recent_message()
         
     def get_most_recent_message(self):
         messages = client.beta.threads.messages.list(thread_id=self.thread.id)
@@ -115,6 +104,9 @@ class AICoach:
             run_id=run.id,
             tool_outputs=[{"tool_call_id": tool_call_id, "output": json.dumps(result)}],
         )
+
+
+
 
 
 def main():

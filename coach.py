@@ -30,7 +30,6 @@ log.addHandler(RichHandler())
 
 mic = Microphone()
 transcriber = Transcriber()
-coach = AICoach()
 
 
 @click.command()
@@ -42,43 +41,76 @@ def main(debug):
         handler.setLevel(logging.DEBUG)
         log.debug("debugging on")
 
+
+    session = AISession()
+    
     listener = WakeWordListener("listener")
     listener.start()
 
     scanner = LoadingScreenScanner("scanner")
     scanner.start()
+    
+    wake = signal("wakeup")
+    wake.connect(session.handle_wake)
+
+    loading_screen = signal("loading_screen")
+    loading_screen.connect(session.handle_scanner)
 
     while True:
         try:
-            if coach.thread:
+            if session.is_active():
                 pass
             else:
                 log.debug("Waiting for thread")
-                sleep(5)
+            sleep(5)
 
         except KeyboardInterrupt:
             break
 
+class AISession:
+    coach: AICoach = None
+    last_map: str = None
+    last_opponent: str = None
+    last_mmr: str = None
+    thread_id: str = None
+    
+    def __init__(self):
+        self.coach = AICoach()
 
-def handle_scanner(sender, **kw):
-    log.debug(sender, kw)
-    rename_file(config.screenshot, kw["new_name"])
+    def initiate_from_scanner(self, map, opponent, mmr) -> str:
+        with open(os.path.join("aicoach", "prompt_scanner.txt"), "r") as f:
+            prompt = f.read()
+            
+        prompt = prompt.replace("{{map}}", map)
+        prompt = prompt.replace("{{opponent}}", opponent)
+        prompt = prompt.replace("{{mmr}}", mmr)
+        
+        self.coach.create_thread(prompt)
+        run = self.coach.evaluate_run()
+        return self.coach.get_most_recent_message()
+    
+    def is_active(self):
+        return self.thread_id is not None
+
+    def handle_scanner(self, sender, **kw):
+        log.debug(sender, kw)
+        rename_file(config.screenshot, kw["new_name"])
+        if not self.is_active():
+            response = self.initiate_from_scanner(kw["map"], kw["opponent"], kw["mmr"])
+            self.thread_id = self.coach.current_thread_id
+            mic.say(response)
 
 
-def handle_wake(sender, **kw):
-    log.debug(sender, kw)
-    audio = mic.listen()
-    log.debug("Got voice input")
-    prompt = transcriber.transcribe(audio)
-    log.debug("Transcribed voice input")
-    print(prompt)
+    def handle_wake(self, sender, **kw):
+        log.debug(sender, kw)
+        audio = mic.listen()
+        log.debug("Got voice input")
+        prompt = transcriber.transcribe(audio)
+        log.debug("Transcribed voice input")
+        print(prompt)
 
 
-wake = signal("wakeup")
-wake.connect(handle_wake)
 
-loading_screen = signal("loading_screen")
-loading_screen.connect(handle_scanner)
 
 if __name__ == "__main__":
     main()
