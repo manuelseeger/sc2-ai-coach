@@ -3,13 +3,20 @@ import os
 from dotenv import load_dotenv
 import json
 import tiktoken
-from rich import print
+from rich import print, print_json
 from config import config
+import requests
+import click
 
 load_dotenv()
 
+ASSISTANT_ID = os.environ["ASSISTANT_ID"]
+OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 
-def main():
+
+@click.command()
+@click.option("--deploy", "do_deploy", is_flag=True, default=False, help="Deploy assistant after building")
+def main(do_deploy):
     encoding = tiktoken.get_encoding("cl100k_base")
 
     tools = [
@@ -31,6 +38,17 @@ def main():
     with open(os.path.join("aicoach", "assistant.json"), "w") as f:
         f.write(json.dumps(assistant, indent=2))
 
+    if do_deploy:
+        deploy(assistant)
 
+def deploy(assistant):
+    with requests.Session() as s: 
+        url = f"https://api.openai.com/v1/assistants/{ASSISTANT_ID}"
+        r = s.post(url, headers={"Content-Type": "application/json", 
+                                 "OpenAI-Beta": "assistants=v1",
+                                 "Authorization": f"Bearer {OPENAI_API_KEY}"}, 
+                   data=json.dumps(assistant, indent=2))
+        print_json(r.text)
+    
 if __name__ == "__main__":
     main()
