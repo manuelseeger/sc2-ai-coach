@@ -10,7 +10,10 @@ import os
 import sc2reader
 from sc2reader.engine.plugins import CreepTracker
 from os.path import basename
+import logging
+from config import config
 
+log = logging.getLogger(config.name)
 
 sc2reader.engine.register_plugin(CreepTracker())
 
@@ -20,25 +23,16 @@ factory.register_plugin("Replay", ReplayStats())
 factory.register_plugin("Replay", SpawningTool())
 factory.register_plugin("Replay", APMTracker())
 
+MONGO_USER = os.environ.get("MONGO_USER")
+MONGO_PASS = os.environ.get("MONGO_PASS")
+MONGO_HOST = os.environ.get("MONGO_HOST")
 
 class ReplayDB:
     default_filters = []
 
-    config = None
-
-    def __init__(
-        self,
-        config,
-        debug=False,
-        log=None,
-    ):
-        MONGO_USER = os.environ.get("MONGO_USER")
-        MONGO_PASS = os.environ.get("MONGO_PASS")
-
+    def __init__(self):
         self.client = pymongo.MongoClient(
-            "mongodb+srv://{}:{}@sc2.k2kgmgk.mongodb.net/?retryWrites=true&w=majority".format(
-                MONGO_USER, MONGO_PASS
-            ),
+            f"mongodb+srv://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}/?retryWrites=true&w=majority",
             server_api=ServerApi("1"),
         )
         database = self.client.SC2
@@ -48,51 +42,34 @@ class ReplayDB:
             lambda x: not self.is_instant_leave(x),
             lambda x: not self.has_afk_player(x),
         ]
-        self.debug = debug
-
-        if log is not None:
-            self.log = log
-        else:
-            import logging
-
-            self.log = logging.getLogger(__name__)
-
-        self.config = config
 
     def close(self):
         self.client.close()
-
-    def set_debug(self, debug):
-        self.debug = debug
 
     def get_most_recent(self):
         return self.db.find().sort("unix_timestamp", -1).limit(1)[0]
 
     def load_replay(self, file_path):
         replay = factory.load_replay(file_path)
-        if self.debug:
-            print(f"Loaded {replay.filename}")
+        log.debug(f"Loaded {replay.filename}")
         return replay
 
     def is_ladder(self, replay):
         is_ladder = replay.game_type == "1v1" and replay.is_ladder is True
-        if self.debug:
-            print(f"is_ladder: {is_ladder}")
+        log.debug(f"is_ladder: {is_ladder}")
         return is_ladder
 
     def is_instant_leave(self, replay):
         is_instant_leave = replay.real_length.seconds < self.config.get(
             "instant_leave_max"
         )
-        if self.debug:
-            print(f"is_instant_leave: {is_instant_leave}")
+        log.debug(f"is_instant_leave: {is_instant_leave}")
         return is_instant_leave
 
     def has_afk_player(self, replay):
         for player in replay.players:
             if player.avg_apm < 10:
-                if self.debug:
-                    print(f"has_afk_player: True")
+                log.debug(f"has_afk_player: True")
                 return True
         return False
 
@@ -115,13 +92,9 @@ class ReplayDB:
             upsert=True,
         )
 
-        self.log.info(f"Added {basename(replay.filename)} to db.")
-        self.log.info(
-            "{}: {} , {} ".format(
-                replay_dict["map_name"],
-                replay_dict["players"][0]["name"],
-                replay_dict["players"][1]["name"],
-            )
+        log.info(f"Added {basename(replay.filename)} to db.")
+        log.info(
+            f'{replay_dict["map_name"]}: {replay_dict["players"][0]["name"]} , {replay_dict["players"][1]["name"]}'
         )
 
     def replays_for_player(self, player):

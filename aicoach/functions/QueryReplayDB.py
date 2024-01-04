@@ -7,39 +7,14 @@ from bson.json_util import loads, dumps
 
 MONGO_USER = os.environ.get("MONGO_USER")
 MONGO_PASS = os.environ.get("MONGO_PASS")
+MONGO_HOST = os.environ.get("MONGO_HOST")
 
 client = pymongo.MongoClient(
-    "mongodb+srv://{}:{}@sc2.k2kgmgk.mongodb.net/?retryWrites=true&w=majority".format(
-        MONGO_USER, MONGO_PASS
-    ),
+    f"mongodb+srv://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}/?retryWrites=true&w=majority",
     server_api=ServerApi("1"),
 )
 database = client.SC2
 db = database.replays
-
-default_projection = {
-    "_id": 1,
-    "game_length": 1,
-    "map_name": 1,
-    "players.avg_apm": 1,
-    "players.highest_league": 1,
-    "players.name": 1,
-    "players.messages": 1,
-    "players.pick_race": 1,
-    "players.pid": 1,
-    "players.play_race": 1,
-    "players.result": 1,
-    "players.scaled_rating": 1,
-    "players.stats": 1,
-    "players.toon_handle": 1,
-    "players.build_order.time": 1,
-    "players.build_order.name": 1,
-    "players.build_order.supply": 1,
-    "players.build_order.is_chronoboosted": 1,
-    "real_length": 1,
-    "stats": 1,
-    "unix_timestamp": 1,
-}
 
 example = '''
 {
@@ -115,6 +90,30 @@ example = '''
   "unix_timestamp": 1703779713,
 }
 '''
+
+default_projection = {
+    "_id": 1,
+    "game_length": 1,
+    "map_name": 1,
+    "players.avg_apm": 1,
+    "players.highest_league": 1,
+    "players.name": 1,
+    "players.messages": 1,
+    "players.pick_race": 1,
+    "players.pid": 1,
+    "players.play_race": 1,
+    "players.result": 1,
+    "players.scaled_rating": 1,
+    "players.stats": 1,
+    "players.toon_handle": 1,
+    "players.build_order.time": 1,
+    "players.build_order.name": 1,
+    "players.build_order.supply": 1,
+    "players.build_order.is_chronoboosted": 1,
+    "real_length": 1,
+    "stats": 1,
+    "unix_timestamp": 1,
+}
 
 
 @AIFunction

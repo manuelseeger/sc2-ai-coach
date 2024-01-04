@@ -35,12 +35,11 @@ coach = AICoach()
 
 @click.command()
 # @click.option("--runfor", help="Player to start conversation about")
-# @click.option("--withcoach", is_flag=True, help="Run with AI coach")
 @click.option("--debug", is_flag=True, help="Debug mode")
 def main(debug):
     if debug:
-        log.setLevel(logging.INFO)
-        handler.setLevel(logging.INFO)
+        log.setLevel(logging.DEBUG)
+        handler.setLevel(logging.DEBUG)
         log.debug("debugging on")
 
     listener = WakeWordListener("listener")
@@ -51,8 +50,11 @@ def main(debug):
 
     while True:
         try:
-            print("waiting")
-            sleep(5)
+            if coach.thread:
+                pass
+            else:
+                log.debug("Waiting for thread")
+                sleep(5)
 
         except KeyboardInterrupt:
             break
@@ -60,8 +62,7 @@ def main(debug):
 
 def handle_scanner(sender, **kw):
     log.debug(sender, kw)
-    filename = config.get("screenshot")
-    rename_file(filename, kw["new_name"])
+    rename_file(config.screenshot, kw["new_name"])
 
 
 def handle_wake(sender, **kw):
