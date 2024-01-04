@@ -50,11 +50,10 @@ def clean_map_name(map, ladder_maps):
     return map
 
 
-def parse_map_stats(map, season):
+def get_map_stats(map):
     with requests.Session() as s:
-        r = s.get(
-            f"https://sc2replaystats.com/account/maps/69188/0/188916/1v1/AutoMM/{season}/Z"
-        )
+        url = f"{config.student.sc2replaystats_map_url}/{config.season}/{config.student.race[0]}"
+        r = s.get(url)
         soup = BeautifulSoup(r.content, "html.parser")
 
         h2s = soup("h2")
@@ -65,8 +64,6 @@ def parse_map_stats(map, season):
                     if sibling.name == "table":
                         return sibling
 
-
-filename = config.screenshot
 
 barcode = "barcode"
 
@@ -95,14 +92,14 @@ class LoadingScreenScanner(threading.Thread):
     def run(self):
         loading_screen = signal("loading_screen")
         while True:
-            if os.path.exists(filename):
+            if os.path.exists(config.screenshot):
                 log.info("map loading screen detected")
                 sleep(0.3)
 
-                path, name = os.path.split(filename)
+                path, name = os.path.split(config.screenshot)
                 parse = None
                 while parse == None:
-                    parse = parse_map_loading_screen(filename)
+                    parse = parse_map_loading_screen(config.screenshot)
                 map, player1, player2 = parse
 
                 map = clean_map_name(map, config.ladder_maps)

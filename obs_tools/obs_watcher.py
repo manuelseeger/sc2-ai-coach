@@ -4,7 +4,7 @@ load_dotenv()
 import os
 from parse_map_loading_screen import (
     parse_map_loading_screen,
-    parse_map_stats,
+    get_map_stats,
     clean_map_name,
 )
 import click
@@ -123,7 +123,7 @@ def strip_clan_tag(name):
 def write_map_stats(map):
     stats = None
     while stats == None:
-        stats = parse_map_stats(map, config["season"])
+        stats = get_map_stats(map)
 
     with open("obs/map_stats.html", "w") as f:
         f.write(stats.prettify())

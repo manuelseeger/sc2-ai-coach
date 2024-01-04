@@ -7,6 +7,14 @@ class RecognizerConfig(BaseModel):
     pause_threshold: float = 0.5
     phrase_threshold: float = 0.3
     non_speaking_duration: float = 0.2
+    
+class StudentConfig(BaseModel):
+    name: str
+    race: str
+    sc2replaystats_map_url: str
+    
+    def __repr__(self) -> str:
+        return self.name
 
 class Config(BaseModel):
     name: str = "AICoach"
@@ -18,8 +26,8 @@ class Config(BaseModel):
 
     oww_model: str = "hey_jarvis"
 
-    student: str
-
+    student: StudentConfig = StudentConfig()
+    
     gpt_model: str = "gpt-3.5-turbo"
     
     speech_recognition_model: str
