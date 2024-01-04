@@ -35,60 +35,27 @@ Replay data is provided in JSON format. Here is an example replay:
 
 {
   "_id": "ebf5056314ee19f959925afe9312c0a8803e11d52709dc144a9328b6f108db9c",
-  "build": 91115,
-  "category": "Ladder",
-  "date": {
-    "$date": "2023-12-28T16:08:33.000Z"
-  },
-  "expansion": "LotV",
-  "filehash": "ebf5056314ee19f959925afe9312c0a8803e11d52709dc144a9328b6f108db9c",
-  "filename": "C:\\Users\\player1\\OneDrive\\Documents\\StarCraft II\\Accounts\\23232323\\2-S2-1-45454545\\Replays\\Multiplayer\\Hecate LE (58).SC2Replay",
-  "file_time": null,
-  "frames": 28881,
-  "game_fps": 16,
   "game_length": 1289,
-  "game_type": "1v1",
-  "is_ladder": true,
-  "is_private": false,
   "map_name": "Hecate LE",
-  "map_size": null,
-  "observers": [],
   "players": [
     {
       "avg_apm": 171.35627081021087,
       "build_order": [
         {
-          "frame": 8.200000000000045,
           "time": "0:00",
           "name": "SCV",
           "supply": 12,
-          "is_worker": true,
-          "clock_position": 1,
           "is_chronoboosted": false
         },
         {
-          "frame": 279.20000000000005,
           "time": "0:12",
           "name": "SCV",
           "supply": 13,
-          "is_worker": true,
-          "clock_position": 1,
           "is_chronoboosted": false
         },
       ],
-      "clan_tag": "",
-      "color": {
-        "r": 180,
-        "g": 20,
-        "b": 30,
-        "a": 255,
-        "name": "Red"
-      },
-      "creep_spread_by_minute": null,
-      "handicap": 100,
       "highest_league": 5,
       "name": "BabouLeFou",
-      "max_creep_spread": null,
       "messages": [],
       "pick_race": "Terran",
       "pid": 1,
@@ -99,71 +66,25 @@ Replay data is provided in JSON format. Here is an example replay:
         "worker_split": 0,
         "worker_micro": 0
       },
-      "sid": 0,
-      "supply": [
-        [
-          0,
-          12
-        ],
-        [
-          1,
-          12
-        ],
-      ],
-      "type": null,
       "toon_handle": "2-S2-1-1849098",
-      "toon_id": 1849098,
-      "uid": 0,
-      "units_lost": [
-        {
-          "frame": 5836,
-          "time": "4:20",
-          "name": "Hellion",
-          "killer": 2,
-          "clock_position": 0
-        },
-      ],
-      "url": "https://starcraft2.com/en-us/profile/2/1/1849098"
     },
     {
-      "abilities_used": [
-        {
-          "frame": 3622,
-          "time": "2:41",
-          "name": "SpawnLarva"
-        },
-      ],
       "avg_apm": 317.7573407202216,
       "build_order": [
         {
-          "frame": 18.200000000000045,
           "time": "0:00",
           "name": "Drone",
           "supply": 12,
-          "is_worker": true,
-          "clock_position": 7,
           "is_chronoboosted": false
         },
       ],
-      "clan_tag": "",
-      "color": {
-        "r": 0,
-        "g": 66,
-        "b": 255,
-        "a": 255,
-        "name": "Blue"
-      },
-      "creep_spread_by_minute": null,
-      "handicap": 100,
       "highest_league": 5,
       "name": "zatic",
-      "max_creep_spread": null,
       "messages": [
         {
           "pid": 1,
           "second": 0,
           "text": "glhf",
-          "is_public": true
         }
       ],
       "pick_race": "Zerg",
@@ -175,50 +96,18 @@ Replay data is provided in JSON format. Here is an example replay:
         "worker_split": 1,
         "worker_micro": 0
       },
-      "sid": 1,
-      "supply": [
-        [
-          0,
-          12
-        ],
-        [
-          1,
-          12
-        ],
-      ],
-      "type": null,
       "toon_handle": "2-S2-1-691545",
-      "toon_id": 691545,
-      "uid": 1,
-      "units_lost": [],
-      "url": "https://starcraft2.com/en-us/profile/2/1/691545",
       }
   ],
-  "region": "eu",
-  "release": "5.0.12.91115",
   "real_length": 1289,
-  "real_type": "1v1",
-  "release_string": "5.0.12.91115",
-  "speed": "Faster",
   "stats": {
     "loserDoesGG": false
   },
-  "time_zone": 1,
-  "type": "1v1",
   "unix_timestamp": 1703779713,
-  "utc_date": null,
-  "versions": [
-    1,
-    5,
-    0,
-    12,
-    91115,
-    91115
-  ]
 }
 
 These are important fields in a replay to look for: 
-players: An array of the players who played the game the replay is for
+players: An array of the players who played the game the replay is for. Important: The array is not sorted and the order is arbitrary.
 stats.loserDoesGG: Does the loser type "GG" at the end of the game? 
 unix_timestamp: The date and time the game was played
 

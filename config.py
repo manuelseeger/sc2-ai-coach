@@ -26,7 +26,7 @@ class Config(BaseModel):
 
     oww_model: str = "hey_jarvis"
 
-    student: StudentConfig = StudentConfig()
+    student: StudentConfig
     
     gpt_model: str = "gpt-3.5-turbo"
     
