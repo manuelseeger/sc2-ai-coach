@@ -26,3 +26,4 @@ dependencies:
       - sc2reader==1.8.0
       - spawningtool==2.10.0
       - openwakeword==0.5.1
+      - openai-whisper==20231117
