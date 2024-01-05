@@ -27,10 +27,12 @@ owwModel = Model([config.oww_model], inference_framework="onnx")
 
 wakeup = signal("wakeup")
 
+
 class WakeWordListener(threading.Thread):
     def __init__(self, name):
         super().__init__()
         self.name = name
+        self.daemon = True
 
     def run(self):
         while True:
@@ -39,7 +41,6 @@ class WakeWordListener(threading.Thread):
             prediction = owwModel.predict(audio)
 
             for mdl in owwModel.prediction_buffer.keys():
-
                 scores = list(owwModel.prediction_buffer[mdl])
 
                 for score in scores:
