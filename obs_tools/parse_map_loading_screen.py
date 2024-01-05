@@ -65,7 +65,7 @@ def get_map_stats(map):
                         return sibling
 
 
-barcode = "barcode"
+barcode = "BARCODE"
 
 cleanf = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 clean_clan = re.compile(r"<(.+)>\s+(.*)")
@@ -112,14 +112,14 @@ class LoadingScreenScanner(threading.Thread):
                 clan1, player1 = strip_clan_tag(player1)
                 clan2, player2 = strip_clan_tag(player2)
                 log.info(f"found: {map}, {player1}, {player2}")
-                
+
                 now = datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")
                 new_name = f"{map} - {cleanf.sub('', player1)} vs {cleanf.sub('', player2)} {now}.png"
                 new_name = re.sub(r"[^\w_. -]", "_", new_name)
 
-                if player1.lower() == config.student:
+                if player1.lower() == config.student.name.lower():
                     opponent = player2
-                elif player2.lower() == config.student:
+                elif player2.lower() == config.student.name.lower():
                     opponent = player1
                 else:
                     log.info(f"not {config.student}, I'll keep looking")

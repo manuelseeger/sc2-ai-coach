@@ -3,8 +3,10 @@ from typing import Dict
 import logging
 import pyttsx3
 from config import config
+from subprocess import call
 
 log = logging.getLogger(config.name)
+log.setLevel(logging.DEBUG)
 
 
 class Microphone:
@@ -24,14 +26,25 @@ class Microphone:
 
         self.voiceengine = pyttsx3.init()
         voices = self.voiceengine.getProperty("voices")
-        self.voiceengine.setProperty("voice", voices[3].id if len(voices) > 3 else voices[0].id)
+        self.voiceengine.setProperty(
+            "voice", voices[3].id if len(voices) > 3 else voices[0].id
+        )
 
     def listen(self):
         with self.microphone as source:
             audio = self.recognizer.listen(source)
-            log.debug("Got voice input")
         return audio
 
-    def say(self, text):
+    def say_(self, text):
         self.voiceengine.say(text)
-        self.voiceengine.runAndWait()
+        ret = self.voiceengine.runAndWait()
+        log.debug(f"Done speaking")
+
+    def say(self, text):
+        call(
+            [
+                "C:\\Users\\manuel\\.conda\\envs\\aicoach310\\python.exe",
+                "obs_tools/say.py",
+                text,
+            ]
+        )
