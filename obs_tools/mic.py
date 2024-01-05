@@ -4,6 +4,7 @@ import logging
 import pyttsx3
 from config import config
 from subprocess import call
+import sys
 
 log = logging.getLogger(config.name)
 log.setLevel(logging.DEBUG)
@@ -41,9 +42,11 @@ class Microphone:
         log.debug(f"Done speaking")
 
     def say(self, text):
+        # runandwait is broken and hangs the program
+        # so we speak in a subprocess
         call(
             [
-                "C:\\Users\\manuel\\.conda\\envs\\aicoach310\\python.exe",
+                sys.executable,
                 "obs_tools/say.py",
                 text,
             ]
