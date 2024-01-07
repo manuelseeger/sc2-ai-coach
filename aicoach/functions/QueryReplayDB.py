@@ -158,8 +158,8 @@ def QueryReplayDB(
     Query and projection documents need to be compatible with MongoDB version 4.5 and up.
     """
     # Force the arguments to be valid JSON
-    if filter is None:
-        filter = '{player.name: "zatic"}'
+    if filter is None or filter == "{}":
+        filter = f'{{player.name: "{config.student.name}"}}'
     filter = ast.literal_eval(json.dumps(filter))
     projection = ast.literal_eval(json.dumps(projection))
     sort = ast.literal_eval(json.dumps(sort))

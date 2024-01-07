@@ -46,6 +46,9 @@ class AICoach:
 
     def get_most_recent_message(self):
         messages = client.beta.threads.messages.list(thread_id=self.thread.id)
+        if messages.data[0].role != "assistant":
+            log.warn("Assistant sent no message")
+            return ""
         return messages.data[0].content[0].text.value
 
     def create_thread(self, message=None):
