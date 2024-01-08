@@ -28,7 +28,7 @@ handler = logging.FileHandler(
     )
 )
 log.addHandler(handler)
-log.addHandler(RichHandler(level=logging.DEBUG))
+log.addHandler(RichHandler(level=logging.DEBUG, show_time=False, markup=True))
 
 
 mic = Microphone()
@@ -84,6 +84,7 @@ class AISession:
         with open(os.path.join("aicoach", "prompt_scanner.txt"), "r") as f:
             prompt = f.read()
 
+        prompt = prompt.replace("{{student}}", str(config.student.name))
         prompt = prompt.replace("{{map}}", str(map))
         prompt = prompt.replace("{{opponent}}", str(opponent))
         prompt = prompt.replace("{{mmr}}", str(mmr))

@@ -1,4 +1,4 @@
-My player name in Starcraft 2 is "zatic". I am currently playing against "{{opponent}}" on the map {{map}}. We are currently playing at {{mmr}} MMR. 
+My player name in Starcraft 2 is "{{student}}". I am currently playing against "{{opponent}}" on the map {{map}}. We are currently playing at {{mmr}} MMR. 
 
 See if you can find past replays of {{opponent}}. When requesting replays, only get the first 5 minutes of build orders You can use the limit_time parameter (with 300 seconds) for that. 
 If you find replays, give a 1 sentence summary of {{opponent}} strategy and be ready to answer questions about these past games against {{opponent}}.

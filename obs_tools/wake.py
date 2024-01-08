@@ -44,6 +44,6 @@ class WakeWordListener(threading.Thread):
                 scores = list(owwModel.prediction_buffer[mdl])
 
                 for score in scores:
-                    if score > 0.5:
+                    if score > config.oww_sensitivity:
                         log.info(f"Model {mdl} woke up with a score of {score}")
                         wakeup.send(self)

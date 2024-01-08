@@ -3,7 +3,7 @@ from typing import Dict
 import logging
 import pyttsx3
 from config import config
-from subprocess import call
+from subprocess import call, Popen
 import sys
 
 log = logging.getLogger(config.name)
@@ -44,7 +44,7 @@ class Microphone:
     def say(self, text):
         # runandwait is broken and hangs the program
         # so we speak in a subprocess
-        call(
+        Popen(
             [
                 sys.executable,
                 "obs_tools/say.py",

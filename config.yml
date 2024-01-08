@@ -7,7 +7,9 @@ microphone_index: 2
 
 oww_model: "hey_jarvis"
 
-student: 
+oww_sensitivity: 0.7
+
+student:
   name: "zatic"
   race: "Zerg"
   sc2replaystats_map_url: "https://sc2replaystats.com/account/maps/69188/0/188916/1v1/AutoMM/"
