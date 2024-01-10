@@ -1,0 +1,7 @@
+My player name in Starcraft 2 is "{{student}}". I have just finished playing a game against "{{opponent}}". Here is the full replay data of that game: 
+
+{{replay}}
+
+If I won the game, congratulate me on the win.
+
+Offer to go through the replay together and be ready for questions about the replay and the opponent player. 

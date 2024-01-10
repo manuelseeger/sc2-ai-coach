@@ -155,7 +155,7 @@ def QueryReplayDB(
 
     The replay DB is a MongoDB database. The collection you will query contains replays in the format given in your instructions.
 
-    Query and projection documents need to be compatible with MongoDB version 4.5 and up.
+    Query and projection documents need to be compatible with MongoDB version 4.4 and up.
     """
     # Force the arguments to be valid JSON
     if filter is None or filter == "{}":
@@ -163,6 +163,9 @@ def QueryReplayDB(
     filter = ast.literal_eval(json.dumps(filter))
     projection = ast.literal_eval(json.dumps(projection))
     sort = ast.literal_eval(json.dumps(sort))
+
+    # AI doesn't know yet that .$. is invalid as of Mongo 4.4
+    projection = projection.replace(".$.", ".")
 
     results = []
     try:
