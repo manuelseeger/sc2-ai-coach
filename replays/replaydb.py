@@ -1,9 +1,9 @@
-from sc2readerplugins.statistics import ReplayStats
-from sc2readerplugins.SpawningTool import SpawningTool
+from .sc2readerplugins.statistics import ReplayStats
+from .sc2readerplugins.SpawningTool import SpawningTool
 import sc2reader
 
 from sc2reader.factories.plugins.replay import APMTracker as APMTrackerBroken
-from sc2readerplugins.APMTracker import APMTracker
+from .sc2readerplugins.APMTracker import APMTracker
 import pymongo
 from pymongo.server_api import ServerApi
 import os
@@ -26,6 +26,7 @@ factory.register_plugin("Replay", APMTracker())
 MONGO_USER = os.environ.get("MONGO_USER")
 MONGO_PASS = os.environ.get("MONGO_PASS")
 MONGO_HOST = os.environ.get("MONGO_HOST")
+
 
 class ReplayDB:
     default_filters = []
@@ -60,10 +61,10 @@ class ReplayDB:
         return is_ladder
 
     def is_instant_leave(self, replay):
-        is_instant_leave = replay.real_length.seconds < self.config.get(
-            "instant_leave_max"
+        is_instant_leave = replay.real_length.seconds < config.instant_leave_max
+        log.debug(
+            f"is_instant_leave: {is_instant_leave}, {replay.real_length.seconds}s"
         )
-        log.debug(f"is_instant_leave: {is_instant_leave}")
         return is_instant_leave
 
     def has_afk_player(self, replay):

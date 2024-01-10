@@ -6,26 +6,23 @@ import glob
 import os
 import click
 import datetime
-from replaydb import ReplayDB
+from replays.replaydb import ReplayDB
 
 from os.path import join, basename, getmtime
 from datetime import datetime
 import logging
 import sys
 from time import sleep
-import yaml
-
 from datetime import date
+from rich import print
 
-config = yaml.safe_load(open("config.yml"))
+from config import config
 
 log = logging.getLogger()
 handler = logging.StreamHandler(sys.stdout)
 log.addHandler(handler)
 
-db = ReplayDB(config=config, log=log)
-
-REPLAY_FOLDER = config.get("replay_folder")
+db = ReplayDB()
 
 
 @click.group()
@@ -37,39 +34,38 @@ def cli(ctx, clean, debug):
     ctx.obj["CLEAN"] = clean
     ctx.obj["DEBUG"] = debug
 
-    if debug:
-        click.echo("Debug mode is %s" % ("on" if debug else "off"))
-        click.echo("Clean mode is %s" % ("on" if clean else "off"))
-        db.set_debug(debug)
-        log.setLevel(logging.DEBUG)
+    print("Debug mode is %s" % ("on" if debug else "off"))
+    print("Clean mode is %s" % ("on" if clean else "off"))
+
+    log.setLevel(logging.DEBUG)
 
 
 @cli.command()
 @click.pass_context
 def deamon(ctx):
-    click.echo("Monitoring folder for new replays")
-    click.echo("Press Ctrl+C to exit")
-    list_of_files = glob.glob(join(REPLAY_FOLDER, "*.SC2Replay"))
+    print("Monitoring folder for new replays")
+    print("Press Ctrl+C to exit")
+    list_of_files = glob.glob(join(config.replay_folder, "*.SC2Replay"))
 
     try:
         while True:
-            new_list_of_files = glob.glob(join(REPLAY_FOLDER, "*.SC2Replay"))
+            new_list_of_files = glob.glob(join(config.replay_folder, "*.SC2Replay"))
             new_list_of_files = [f for f in new_list_of_files if f not in list_of_files]
             for file_path in new_list_of_files:
                 sleep(5)
                 replay = db.load_replay(file_path)
                 if db.apply_filters(replay):
-                    click.echo(f"Adding {basename(file_path)}")
+                    print(f"Adding {basename(file_path)}")
                     db.upsert_replay(replay)
                 else:
-                    click.echo(f"Filtered {basename(file_path)}")
+                    print(f"Filtered {basename(file_path)}")
                     if db.is_instant_leave(replay) and ctx.obj["CLEAN"]:
                         os.remove(file_path)
-                        click.echo(f"Deleted {basename(file_path)}")
+                        print(f"Deleted {basename(file_path)}")
             list_of_files = new_list_of_files + list_of_files
-            sleep(config.get("deamon_polling_rate"))
+            sleep(config.deamon_polling_rate)
     except KeyboardInterrupt:
-        click.echo("Exiting")
+        print("Exiting")
 
 
 @cli.command()
@@ -83,25 +79,25 @@ def sync(ctx, delta):
 
     # get date from timestamp:
     sync_date = datetime.fromtimestamp(most_recent_date).strftime("%Y-%m-%d %H:%M:%S")
-    click.echo(f"Syncing from most recent replay in DB {sync_date}")
+    print(f"Syncing from most recent replay in DB {sync_date}")
 
-    list_of_files = glob.glob(join(REPLAY_FOLDER, "*.SC2Replay"))
+    list_of_files = glob.glob(join(config.replay_folder, "*.SC2Replay"))
     list_of_files = [f for f in list_of_files if most_recent_date <= getmtime(f)]
 
     list_of_files.sort(key=getmtime)
 
-    click.echo(f"Found {len(list_of_files)} replays to sync")
+    print(f"Found {len(list_of_files)} replays to sync")
 
     for file_path in list_of_files:
         replay = db.load_replay(file_path)
         if db.apply_filters(replay):
-            click.echo(f"Adding {basename(file_path)}")
+            print(f"Adding {basename(file_path)}")
             db.upsert_replay(replay)
         else:
-            click.echo(f"Filtered {basename(file_path)}")
+            print(f"Filtered {basename(file_path)}")
             if db.is_instant_leave(replay) and ctx.obj["CLEAN"]:
                 os.remove(file_path)
-                click.echo(f"Deleted {basename(file_path)}")
+                print(f"Deleted {basename(file_path)}")
 
 
 @cli.command()
@@ -124,12 +120,12 @@ def sync(ctx, delta):
 )
 @click.argument("replay", type=click.Path(exists=True), required=False)
 def echo(ctx, from_: datetime, to_: datetime, replay: str):
-    click.echo(f"Syncing from most recent replay in DB {from_}")
+    print(f"Syncing from most recent replay in DB {from_}")
 
     if replay:
         list_of_files = [replay]
     else:
-        list_of_files = glob.glob(join(REPLAY_FOLDER, "*.SC2Replay"))
+        list_of_files = glob.glob(join(config.replay_folder, "*.SC2Replay"))
         list_of_files = [
             f
             for f in list_of_files
@@ -138,15 +134,15 @@ def echo(ctx, from_: datetime, to_: datetime, replay: str):
 
     list_of_files.sort(key=getmtime)
 
-    click.echo(f"Found {len(list_of_files)} replays to echo")
+    print(f"Found {len(list_of_files)} replays to echo")
 
     for file_path in list_of_files:
         replay = db.load_replay(file_path)
         if db.apply_filters(replay):
-            click.echo(f"Adding {basename(file_path)}")
-            click.echo(replay)
+            print(f"Adding {basename(file_path)}")
+            print(replay)
         else:
-            click.echo(f"Filtered {basename(file_path)}")
+            print(f"Filtered {basename(file_path)}")
 
 
 @cli.command()
