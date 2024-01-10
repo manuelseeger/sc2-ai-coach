@@ -12,6 +12,7 @@ from sc2reader.engine.plugins import CreepTracker
 from os.path import basename
 import logging
 from config import config
+from .types import Replay
 
 log = logging.getLogger(config.name)
 
@@ -50,7 +51,7 @@ class ReplayDB:
     def get_most_recent(self):
         return self.db.find().sort("unix_timestamp", -1).limit(1)[0]
 
-    def load_replay(self, file_path):
+    def load_replay_raw(self, file_path):
         replay = factory.load_replay(file_path)
         log.debug(f"Loaded {replay.filename}")
         return replay
@@ -102,6 +103,10 @@ class ReplayDB:
         q = {"players": {"$elemMatch": {"name": player}}}
         replays = self.db.find(q)
         return replays
+
+    def to_typed_replay(self, replay) -> Replay:
+        replay_dict = toSummaryDict(replay)
+        return Replay(**replay_dict)
 
 
 def toSummaryDict(replay):

@@ -53,7 +53,7 @@ def deamon(ctx):
             new_list_of_files = [f for f in new_list_of_files if f not in list_of_files]
             for file_path in new_list_of_files:
                 sleep(5)
-                replay = db.load_replay(file_path)
+                replay = db.load_replay_raw(file_path)
                 if db.apply_filters(replay):
                     print(f"Adding {basename(file_path)}")
                     db.upsert_replay(replay)
@@ -89,7 +89,7 @@ def sync(ctx, delta):
     print(f"Found {len(list_of_files)} replays to sync")
 
     for file_path in list_of_files:
-        replay = db.load_replay(file_path)
+        replay = db.load_replay_raw(file_path)
         if db.apply_filters(replay):
             print(f"Adding {basename(file_path)}")
             db.upsert_replay(replay)
@@ -137,7 +137,7 @@ def echo(ctx, from_: datetime, to_: datetime, replay: str):
     print(f"Found {len(list_of_files)} replays to echo")
 
     for file_path in list_of_files:
-        replay = db.load_replay(file_path)
+        replay = db.load_replay_raw(file_path)
         if db.apply_filters(replay):
             print(f"Adding {basename(file_path)}")
             print(replay)
