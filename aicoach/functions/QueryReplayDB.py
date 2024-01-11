@@ -8,6 +8,7 @@ import ast
 import json
 import logging
 from config import config
+from replays import time2secs
 
 log = logging.getLogger(config.name)
 

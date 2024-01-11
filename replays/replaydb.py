@@ -154,11 +154,11 @@ def toSummaryDict(replay):
                 "avg_apm": getattr(player, "avg_apm", None),
                 "build_order": getattr(player, "build_order", None),
                 "clan_tag": getattr(player, "clan_tag", None),
+                "clock_position": getattr(player, "clock_position", None),
                 "color": player.color.__dict__ if hasattr(player, "color") else None,
                 "creep_spread_by_minute": getattr(
                     player, "creep_spread_by_minute", None
                 ),
-                "handicap": getattr(player, "handicap", None),
                 "highest_league": getattr(player, "highest_league", None),
                 "name": getattr(player, "name", None),
                 "max_creep_spread": getattr(player, "max_creep_spread", None),
@@ -173,7 +173,6 @@ def toSummaryDict(replay):
                 "stats": getattr(player, "stats", None),
                 "sid": getattr(player, "sid", None),
                 "supply": supply,
-                "type": getattr(player, "type", None),
                 "toon_handle": getattr(player, "toon_handle", None),
                 "toon_id": getattr(player, "toon_id", None),
                 "uid": getattr(player, "uid", None),
@@ -216,7 +215,6 @@ def toSummaryDict(replay):
         "expansion": getattr(replay, "expansion", None),
         "filehash": getattr(replay, "filehash", None),
         "filename": getattr(replay, "filename", None),
-        "file_time": getattr(replay, "file_time", None),
         "frames": getattr(replay, "frames", None),
         "game_fps": getattr(replay, "game_fps", None),
         "game_length": getattr(getattr(replay, "game_length", None), "seconds", None),
@@ -224,7 +222,8 @@ def toSummaryDict(replay):
         "is_ladder": getattr(replay, "is_ladder", False),
         "is_private": getattr(replay, "is_private", False),
         "map_name": getattr(replay, "map_name", None),
-        "map_size": getattr(replay, "map_size", None),
+        "map_size": (getattr(replay, 'map_details', None)['width'], 
+                     getattr(replay, 'map_details', None)['height']),
         "observers": observers,
         "players": players,
         "region": getattr(replay, "region", None),
@@ -237,7 +236,6 @@ def toSummaryDict(replay):
         "time_zone": getattr(replay, "time_zone", None),
         "type": getattr(replay, "type", None),
         "unix_timestamp": getattr(replay, "unix_timestamp", None),
-        "utc_date": getattr(replay, "utc_date", None),
         "versions": getattr(replay, "versions", None),
     }
 

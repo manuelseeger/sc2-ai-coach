@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import List, Tuple, Dict
 from datetime import datetime
 from config import config
+from .util import time2secs
 
 
 def convert_to_nested_structure(d: dict):
@@ -72,21 +73,31 @@ class UnitLoss(BaseModel):
     frame: int = None
     time: str = None
     name: str = None
-    killer: int = None
+    killer: int | None = None
     clock_position: int = None
-
+    
+    
+class BuildOrder(BaseModel):
+    frame: float = None
+    time: str = None
+    name: str = None
+    supply: int = None
+    clock_position: int | None = None
+    is_chronoboosted: bool = None
+    is_worker: bool = None
+    
 
 class Player(BaseModel):
     abilities_used: List[AbilityUsed] = None
     avg_apm: float = None
-    build_order: list = None
+    build_order: List[BuildOrder] = None
     clan_tag: str = None
     color: Color = None
-    creep_spread_by_minute: Dict[int, float] = None
+    creep_spread_by_minute: Dict[int, float] | None = None
     handicap: int = None
     highest_league: int = None
     name: str = None
-    max_creep_spread: Tuple[int, float] = None
+    max_creep_spread: Tuple[int, float] | None = None
     messages: List[Message] = None
     pick_race: str = None
     pid: int = None
@@ -95,7 +106,6 @@ class Player(BaseModel):
     scaled_rating: int = None
     stats: PlayerStats = None
     supply: List[Tuple[int, int]] = None
-    type: str = None
     toon_handle: str = None
     toon_id: int = None
     uid: int = None
@@ -115,7 +125,6 @@ class Replay(BaseModel):
     expansion: str = None
     filehash: str = None
     filename: str = None
-    file_time: str = None
     frames: int = None
     game_fps: int = None
     game_length: int = None
@@ -123,7 +132,7 @@ class Replay(BaseModel):
     is_ladder: bool = True
     is_private: bool = False
     map_name: str = None
-    map_size: str = None
+    map_size: Tuple[int, int] = None
     observers: List[Observer] = None
     players: List[Player] = None
     region: str = None
@@ -133,21 +142,36 @@ class Replay(BaseModel):
     release_string: str = None
     speed: str = None
     stats: ReplayStats = None
-    time_zone: str = None
+    time_zone: float = None
     type: str = None
     unix_timestamp: int = None
-    utc_date: str = None
-    versions: list = None
-
-    def default_projection(self) -> dict:
+    versions: List[int] = None
+    
+    
+    def _exclude_keys_for_build_order(self, limit=1000) -> dict:
         """Return a dictionary of replay limited to the default projection fields"""
-        return self.dict(include=include_keys, exclude_unset=True)
+        exclude_keys = {}
+        
+        for p, player in enumerate(self.players): 
+            for i, build_order in enumerate(player.build_order):
+                if time2secs(build_order.time) > limit:
+                    players = exclude_keys.setdefault("players", {})
+                    player_ex = players.setdefault(p, {})
+                    builder_order_ex = player_ex.setdefault("build_order", {})
+                    builder_order_ex[i] = True
+
+        
+        return exclude_keys
+
+    def default_projection(self, limit=1000) -> dict:
+        """Return a dictionary of replay limited to the default projection fields"""
+        exclude_keys = self._exclude_keys_for_build_order(limit=limit)
+        return self.model_dump(include=include_keys, exclude=exclude_keys, exclude_unset=True)
 
     def default_projection_json(self, limit=1000) -> str:
         """Return a dictionary of replay limited to the default projection fields"""
-
-        exclude_keys = {"players": {"__all__": {"build_order": True}}}
-        return self.json(include=include_keys, exclude=exclude_keys, exclude_unset=True)
-
-
-4
+        
+        
+        exclude_keys = self._exclude_keys_for_build_order(limit=limit)
+        
+        return self.model_dump_json(include=include_keys, exclude=exclude_keys, exclude_unset=True)
