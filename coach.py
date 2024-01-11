@@ -182,6 +182,7 @@ class AISession:
             self.converse()
 
     def handle_new_replay(self, sender, replay: Replay):
+        log.debug(sender, replay)
         if not self.is_active():
             log.debug("New replay detected")
             response = self.initiate_from_new_replay(replay)
