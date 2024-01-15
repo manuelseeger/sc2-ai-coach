@@ -2,6 +2,6 @@ My player name in Starcraft 2 is "{{student}}". I have just finished playing a g
 
 {{replay}}
 
-If I won the game, congratulate me on the win.
+If I won the game, congratulate me on the win. If I lost, tell me not to feel bad about it. 
 
 Offer to go through the replay together and be ready for questions about the replay and the opponent player. 

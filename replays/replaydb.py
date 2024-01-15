@@ -81,8 +81,8 @@ class ReplayDB:
                 return False
         return True
 
-    def upsert_replay(self, replay):
-        replay_dict = toSummaryDict(replay)
+    def upsert_replay(self, replay_raw):
+        replay_dict = replay_to_dict(replay_raw)
 
         replay_dict = convert_keys_to_strings(replay_dict)
 
@@ -94,7 +94,7 @@ class ReplayDB:
             upsert=True,
         )
 
-        log.info(f"Added {basename(replay.filename)} to db.")
+        log.info(f"Added {basename(replay_raw.filename)} to db.")
         log.info(
             f'{replay_dict["map_name"]}: {replay_dict["players"][0]["name"]} , {replay_dict["players"][1]["name"]}'
         )
@@ -104,12 +104,12 @@ class ReplayDB:
         replays = self.db.find(q)
         return replays
 
-    def to_typed_replay(self, replay) -> Replay:
-        replay_dict = toSummaryDict(replay)
+    def to_typed_replay(self, replay_raw) -> Replay:
+        replay_dict = replay_to_dict(replay_raw)
         return Replay(**replay_dict)
 
 
-def toSummaryDict(replay):
+def replay_to_dict(replay) -> dict:
     # Build observers into dictionary
     observers = list()
     for observer in replay.observers:
@@ -207,7 +207,7 @@ def toSummaryDict(replay):
         )
 
     # Consolidate replay metadata into dictionary
-    return {
+    replay_dict = {
         "_id": replay.filehash,
         "build": getattr(replay, "build", None),
         "category": getattr(replay, "category", None),
@@ -222,8 +222,10 @@ def toSummaryDict(replay):
         "is_ladder": getattr(replay, "is_ladder", False),
         "is_private": getattr(replay, "is_private", False),
         "map_name": getattr(replay, "map_name", None),
-        "map_size": (getattr(replay, 'map_details', None)['width'], 
-                     getattr(replay, 'map_details', None)['height']),
+        "map_size": (
+            getattr(replay, "map_details", None)["width"],
+            getattr(replay, "map_details", None)["height"],
+        ),
         "observers": observers,
         "players": players,
         "region": getattr(replay, "region", None),
@@ -238,6 +240,8 @@ def toSummaryDict(replay):
         "unix_timestamp": getattr(replay, "unix_timestamp", None),
         "versions": getattr(replay, "versions", None),
     }
+
+    return convert_keys_to_strings(replay_dict)
 
 
 def convert_keys_to_strings(d):

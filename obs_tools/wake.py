@@ -35,6 +35,7 @@ class WakeWordListener(threading.Thread):
         self.daemon = True
 
     def run(self):
+        log.debug("Starting wakeword listener")
         while True:
             audio = np.frombuffer(mic_stream.read(CHUNK), dtype=np.int16)
 

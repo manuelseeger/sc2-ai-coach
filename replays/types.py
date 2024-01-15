@@ -75,8 +75,8 @@ class UnitLoss(BaseModel):
     name: str = None
     killer: int | None = None
     clock_position: int = None
-    
-    
+
+
 class BuildOrder(BaseModel):
     frame: float = None
     time: str = None
@@ -85,7 +85,7 @@ class BuildOrder(BaseModel):
     clock_position: int | None = None
     is_chronoboosted: bool = None
     is_worker: bool = None
-    
+
 
 class Player(BaseModel):
     abilities_used: List[AbilityUsed] = None
@@ -93,7 +93,7 @@ class Player(BaseModel):
     build_order: List[BuildOrder] = None
     clan_tag: str = None
     color: Color = None
-    creep_spread_by_minute: Dict[int, float] | None = None
+    creep_spread_by_minute: Dict[str, float] | None = None
     handicap: int = None
     highest_league: int = None
     name: str = None
@@ -146,13 +146,12 @@ class Replay(BaseModel):
     type: str = None
     unix_timestamp: int = None
     versions: List[int] = None
-    
-    
-    def _exclude_keys_for_build_order(self, limit=1000) -> dict:
+
+    def _exclude_keys_for_build_order(self, limit) -> dict:
         """Return a dictionary of replay limited to the default projection fields"""
         exclude_keys = {}
-        
-        for p, player in enumerate(self.players): 
+
+        for p, player in enumerate(self.players):
             for i, build_order in enumerate(player.build_order):
                 if time2secs(build_order.time) > limit:
                     players = exclude_keys.setdefault("players", {})
@@ -160,18 +159,35 @@ class Replay(BaseModel):
                     builder_order_ex = player_ex.setdefault("build_order", {})
                     builder_order_ex[i] = True
 
-        
         return exclude_keys
 
-    def default_projection(self, limit=1000) -> dict:
+    def default_projection(self, limit=450) -> dict:
         """Return a dictionary of replay limited to the default projection fields"""
         exclude_keys = self._exclude_keys_for_build_order(limit=limit)
-        return self.model_dump(include=include_keys, exclude=exclude_keys, exclude_unset=True)
+        return self.model_dump(
+            include=include_keys, exclude=exclude_keys, exclude_unset=True
+        )
 
-    def default_projection_json(self, limit=1000) -> str:
-        """Return a dictionary of replay limited to the default projection fields"""
-        
-        
+    def default_projection_json(self, limit=450) -> str:
+        """Return a JSON string of replay limited to the default projection fields"""
         exclude_keys = self._exclude_keys_for_build_order(limit=limit)
-        
-        return self.model_dump_json(include=include_keys, exclude=exclude_keys, exclude_unset=True)
+        return self.model_dump_json(
+            include=include_keys, exclude=exclude_keys, exclude_unset=True
+        )
+
+    def __str__(self) -> str:
+        projection = {
+            "date": 1,
+            "map_name": 1,
+            "game_length": 1,
+            "players.name": 1,
+            "players.play_race": 1,
+        }
+        include_keys = convert_to_nested_structure(projection)
+        wrap_all_fields(include_keys)
+        return self.model_dump_json(
+            include=include_keys, exclude_unset=True, exclude_defaults=True
+        )
+
+    def __repr__(self) -> str:
+        return self.__str__()

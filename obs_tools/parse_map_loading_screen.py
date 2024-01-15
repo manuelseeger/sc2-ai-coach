@@ -90,6 +90,7 @@ class LoadingScreenScanner(threading.Thread):
         self.name = name
 
     def run(self):
+        log.debug("Starting loading screen scanner")
         loading_screen = signal("loading_screen")
         while True:
             if os.path.exists(config.screenshot):

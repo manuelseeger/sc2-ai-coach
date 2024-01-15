@@ -24,7 +24,7 @@ class NewReplayScanner(threading.Thread):
         self.daemon = True
 
     def run(self):
-        log.info("Starting replay scanner")
+        log.debug("Starting replay scanner")
         list_of_files = glob.glob(join(config.replay_folder, "*.SC2Replay"))
 
         while True:

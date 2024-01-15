@@ -53,6 +53,7 @@ class AICoach:
 
     def create_thread(self, message=None):
         self.thread: Thread = client.beta.threads.create()
+        log.debug(f"Created thread {self.thread.id}")
         self.threads[self.thread.id] = self.thread
 
         self.current_thread_id = self.thread.id
@@ -104,7 +105,6 @@ class AICoach:
                 tool_outputs=outputs,
             )
             run = wait_on_run(run, self.thread, statuses=["requires_action"])
-        # run = self.evaluate_run(run)
         if run.status == "completed":
             return run
 
@@ -112,7 +112,6 @@ class AICoach:
         log.debug(name, args)
         log.info('Calling function "{}" with args: {}'.format(name, args))
         result = self.functions[name](**args)
-        # log.debug(result)
 
         output = {
             "tool_call_id": tool_call_id,

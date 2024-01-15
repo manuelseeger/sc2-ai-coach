@@ -4,9 +4,8 @@ load_dotenv()
 import os
 import click
 from time import sleep
-import datetime
+from datetime import datetime
 import logging
-import sys
 from blinker import signal
 from aicoach import AICoach, Transcriber, get_prompt
 from obs_tools.wake import WakeWordListener
@@ -20,17 +19,19 @@ from Levenshtein import distance as levenshtein
 from replays import NewReplayScanner
 from replays.types import Replay
 
+
 log = logging.getLogger(config.name)
 log.setLevel(logging.INFO)
 log.setLevel(logging.DEBUG)
 
+# log everything including stacktrace to a file:
 handler = logging.FileHandler(
-    os.path.join(
-        "logs", f"{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}-obs_watcher.log"
-    )
+    os.path.join("logs", f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-obs_watcher.log"),
 )
 log.addHandler(handler)
-log.addHandler(RichHandler(level=logging.DEBUG, show_time=False, markup=True))
+log.addHandler(
+    RichHandler(level=logging.DEBUG, show_time=False, markup=True, show_path=False)
+)
 
 
 mic = Microphone()
@@ -66,18 +67,38 @@ def main(debug):
     new_replay.connect(session.handle_new_replay)
 
     log.info("Starting main loop")
+
+    ping_printed = False
     while True:
         try:
             if session.is_active():
                 pass
             else:
-                log.debug("Waiting for thread")
-            sleep(10)
+                # print once every 10 seconds so we know you are still alive
+                if datetime.now().second % 10 == 0 and not ping_printed:
+                    log.debug("Waiting for thread")
+                    ping_printed = True
+                else:
+                    ping_printed = False
+
+            sleep(0.1)
 
         except KeyboardInterrupt:
             break
 
 
+def singleton(cls):
+    instances = {}
+
+    def wrapper(*args, **kwargs):
+        if cls not in instances:
+            instances[cls] = cls(*args, **kwargs)
+        return instances[cls]
+
+    return wrapper
+
+
+@singleton
 class AISession:
     coach: AICoach = None
     last_map: str = None
@@ -99,9 +120,8 @@ class AISession:
 
         prompt = get_prompt("prompt_scanner.txt", replacements)
 
-        self.thread_id = self.coach.current_thread_id
-
         self.coach.create_thread(prompt)
+        self.thread_id = self.coach.current_thread_id
         run = self.coach.evaluate_run()
         return self.coach.get_most_recent_message()
 
@@ -145,9 +165,14 @@ class AISession:
             "replay": str(replay.default_projection_json()),
         }
         prompt = get_prompt("prompt_new_replay.txt", replacements)
-        self.thread_id = self.coach.current_thread_id
+
+        with open(
+            f"logs/{datetime.now().strftime('%Y%m%d-%H%M%S')}-new_replay.json", "w"
+        ) as f:
+            f.write(prompt)
 
         self.coach.create_thread(prompt)
+        self.thread_id = self.coach.current_thread_id
         run = self.coach.evaluate_run()
         return self.coach.get_most_recent_message()
 
@@ -182,7 +207,7 @@ class AISession:
             self.converse()
 
     def handle_new_replay(self, sender, replay: Replay):
-        log.debug(sender, replay)
+        log.debug(sender)
         if not self.is_active():
             log.debug("New replay detected")
             response = self.initiate_from_new_replay(replay)

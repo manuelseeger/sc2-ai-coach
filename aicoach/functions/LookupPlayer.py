@@ -31,10 +31,13 @@ def LookupPlayer(
         api_url = API_BASE + handle
 
         with requests.Session() as s:
-            r = s.get(api_url)
+            r = s.get(api_url, timeout=10)
+
+            if r.status_code != 200:
+                log.warning(f"Failed to lookup player {toon_handle} ({r.status_code})")
+                return summary
 
             profile = r.json()
-
             summary["career"] = profile["career"]
             summary["snapshot"] = profile["snapshot"]
 
