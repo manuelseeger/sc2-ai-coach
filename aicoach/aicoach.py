@@ -31,6 +31,9 @@ def wait_on_run(run, thread, statuses=[]):
             run_id=run.id,
         )
         time.sleep(0.3)
+    if run.status == "failed":
+        log.error(f"Run {run.id} in thread {thread.id} failed")
+        log.error(run.last_error.message)
     log.info(f"Run {run.id} in thread {thread.id} is {run.status}")
     return run
 

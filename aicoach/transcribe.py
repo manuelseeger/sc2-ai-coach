@@ -7,9 +7,9 @@ from config import config
 import logging
 import torch
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
-import onnxruntime
+import transformers
 
-onnxruntime.set_default_logger_severity(3)
+transformers.logging.set_verbosity_error()
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 log.setLevel(logging.DEBUG)
@@ -60,4 +60,5 @@ class Transcriber:
             chunk_length_s=30,
             batch_size=24,
         )
+        log.info("Transcription complete")
         return outputs

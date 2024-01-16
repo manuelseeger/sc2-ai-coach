@@ -79,7 +79,15 @@ class TwitchObsLogHandler(Handler):
             self.fqn = self.get_fqn(record.name, record.funcName)
             return
 
-        self.print(record.msg, emoji=emoji)
+        msg = ""
+        if record.levelno == logging.WARN:
+            msg = f":warning: [yellow]{record.msg}[/yellow]"
+        elif record.levelno == logging.ERROR:
+            msg = f":bomb: [red]{record.msg}[/red]"
+        else:
+            msg = record.msg
+
+        self.print(msg, emoji=emoji)
         self.fqn = self.get_fqn(record.name, record.funcName)
 
     def get_fqn(self, name: str, funcName: str):
