@@ -31,6 +31,7 @@ def wait_on_run(run, thread, statuses=[]):
             run_id=run.id,
         )
         time.sleep(0.3)
+    log.info(f"Run {run.id} in thread {thread.id} is {run.status}")
     return run
 
 

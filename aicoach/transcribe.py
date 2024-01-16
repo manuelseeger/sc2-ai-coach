@@ -49,6 +49,7 @@ class Transcriber:
         )
 
     def transcribe(self, audio):
+        log.info("Transcribing...")
         wav_bytes = audio.get_wav_data(convert_rate=16000)
         wav_stream = io.BytesIO(wav_bytes)
         audio_array, sampling_rate = sf.read(wav_stream)

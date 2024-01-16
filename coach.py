@@ -77,6 +77,7 @@ def main(debug):
                 if datetime.now().second % 10 == 0:
                     if not ping_printed:
                         log.debug("Waiting for thread ...")
+                        log.info("Waiting for thread ...")
                         ping_printed = True
                 else:
                     ping_printed = False
@@ -125,6 +126,7 @@ class AISession:
             mic.say(response)
             if self.is_goodbye(response):
                 log.debug(f"Goodbye, closing thread {self.thread_id}")
+                log.info(response)
                 self.thread_id = None
                 break
 

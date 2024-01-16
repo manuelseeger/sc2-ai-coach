@@ -70,7 +70,7 @@ cleanf = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 clean_clan = re.compile(r"<(.+)>\s+(.*)")
 
 
-def strip_clan_tag(name):
+def split_clan_tag(name):
     result = clean_clan.search(name)
     if result is not None:
         return result.group(1), result.group(2)
@@ -99,10 +99,10 @@ class LoadingScreenScanner(threading.Thread):
                 log.info("map loading screen detected")
                 sleep(0.3)
 
-                path, name = os.path.split(config.screenshot)
                 parse = None
                 while parse == None:
                     parse = parse_map_loading_screen(config.screenshot)
+                    sleep(0.1)
                 map, player1, player2 = parse
 
                 map = clean_map_name(map, config.ladder_maps)
@@ -112,9 +112,9 @@ class LoadingScreenScanner(threading.Thread):
                 if len(player2) == 0:
                     player2 = barcode
 
-                clan1, player1 = strip_clan_tag(player1)
-                clan2, player2 = strip_clan_tag(player2)
-                log.info(f"found: {map}, {player1}, {player2}")
+                clan1, player1 = split_clan_tag(player1)
+                clan2, player2 = split_clan_tag(player2)
+                log.info(f"Found: {map}, {player1}, {player2}")
 
                 now = datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")
                 new_name = f"{map} - {cleanf.sub('', player1)} vs {cleanf.sub('', player2)} {now}.png"
