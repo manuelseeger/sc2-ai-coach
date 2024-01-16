@@ -9,7 +9,7 @@ import os
 from time import sleep
 from .replaydb import ReplayDB
 
-log = logging.getLogger(config.name)
+log = logging.getLogger(f"{config.name}.{__name__}")
 log.setLevel(logging.INFO)
 
 newreplay = signal("replay")
@@ -24,6 +24,9 @@ class NewReplayScanner(threading.Thread):
         self.daemon = True
 
     def run(self):
+        self.replay_scanner()
+
+    def replay_scanner(self):
         log.debug("Starting replay scanner")
         list_of_files = glob.glob(join(config.replay_folder, "*.SC2Replay"))
 

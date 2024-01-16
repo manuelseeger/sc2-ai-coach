@@ -13,7 +13,7 @@ from blinker import signal
 from config import config
 import logging
 
-log = logging.getLogger(config.name)
+log = logging.getLogger(f"{config.name}.{__name__}")
 
 pytesseract.pytesseract.tesseract_cmd = (
     r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
@@ -36,7 +36,6 @@ def parse_map_loading_screen(filename):
     x, y, w, h = 1953, 587, 276, 40
     ROI = image[y : y + h, x : x + w]
     player2 = pytesseract.image_to_string(ROI, lang="eng")
-    print(mapname, player1, player2)
     return (mapname.strip().lower(), player1.strip(), player2.strip())
 
 
@@ -90,6 +89,9 @@ class LoadingScreenScanner(threading.Thread):
         self.name = name
 
     def run(self):
+        self.scan_loading_screen()
+
+    def scan_loading_screen(self):
         log.debug("Starting loading screen scanner")
         loading_screen = signal("loading_screen")
         while True:

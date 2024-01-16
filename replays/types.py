@@ -169,7 +169,10 @@ class Replay(BaseModel):
         )
 
     def default_projection_json(self, limit=450) -> str:
-        """Return a JSON string of replay limited to the default projection fields"""
+        """Return a JSON string of replay limited to the default projection fields
+
+        Limit this to 450 seconds by default, as this results in a JSON string of about
+        28Kb, which allows for an OpenAI prompt within the 32Kb API limit."""
         exclude_keys = self._exclude_keys_for_build_order(limit=limit)
         return self.model_dump_json(
             include=include_keys, exclude=exclude_keys, exclude_unset=True

@@ -1,10 +1,10 @@
 from .base import AIFunction
 from typing import Annotated
 import requests
-from logging import getLogger
+import logging
 from config import config
 
-log = getLogger(config.name)
+log = logging.getLogger(f"{config.name}.{__name__}")
 
 PROFILE_BASE = "https://starcraft2.com/en-us/profile/"
 API_BASE = "https://starcraft2.blizzard.com/en-us/api/sc2/profile/"

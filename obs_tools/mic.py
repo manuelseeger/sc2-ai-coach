@@ -6,7 +6,7 @@ from config import config
 from subprocess import call, Popen
 import sys
 
-log = logging.getLogger(config.name)
+log = logging.getLogger(f"{config.name}.{__name__}")
 log.setLevel(logging.DEBUG)
 
 

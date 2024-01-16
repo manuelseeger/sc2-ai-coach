@@ -11,27 +11,26 @@ from aicoach import AICoach, Transcriber, get_prompt
 from obs_tools.wake import WakeWordListener
 from obs_tools.parse_map_loading_screen import LoadingScreenScanner, rename_file
 from obs_tools.mic import Microphone
-from typing import Dict
-from rich import print
 from rich.logging import RichHandler
 from config import config
 from Levenshtein import distance as levenshtein
 from replays import NewReplayScanner
 from replays.types import Replay
-
+from obs_tools.rich_log import TwitchObsLogHandler
 
 log = logging.getLogger(config.name)
 log.setLevel(logging.INFO)
 log.setLevel(logging.DEBUG)
 
-# log everything including stacktrace to a file:
+
 handler = logging.FileHandler(
     os.path.join("logs", f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-obs_watcher.log"),
 )
 log.addHandler(handler)
-log.addHandler(
-    RichHandler(level=logging.DEBUG, show_time=False, markup=True, show_path=False)
-)
+log.addHandler(TwitchObsLogHandler())
+# log.addHandler(
+#    RichHandler(level=logging.DEBUG, show_time=False, markup=True, show_path=False)
+# )
 
 
 mic = Microphone()
@@ -75,9 +74,10 @@ def main(debug):
                 pass
             else:
                 # print once every 10 seconds so we know you are still alive
-                if datetime.now().second % 10 == 0 and not ping_printed:
-                    log.debug("Waiting for thread")
-                    ping_printed = True
+                if datetime.now().second % 10 == 0:
+                    if not ping_printed:
+                        log.debug("Waiting for thread ...")
+                        ping_printed = True
                 else:
                     ping_printed = False
 
@@ -87,18 +87,6 @@ def main(debug):
             break
 
 
-def singleton(cls):
-    instances = {}
-
-    def wrapper(*args, **kwargs):
-        if cls not in instances:
-            instances[cls] = cls(*args, **kwargs)
-        return instances[cls]
-
-    return wrapper
-
-
-@singleton
 class AISession:
     coach: AICoach = None
     last_map: str = None

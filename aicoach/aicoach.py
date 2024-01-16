@@ -10,11 +10,11 @@ from config import config
 import logging
 from typing import Dict
 
-log = logging.getLogger(config.name)
+
+log = logging.getLogger(f"{config.name}.{__name__}")
 log.setLevel(logging.INFO)
 
 load_dotenv()
-
 
 ASSISTANT_ID = os.environ["ASSISTANT_ID"]
 
@@ -22,6 +22,7 @@ client = OpenAI()
 
 
 def wait_on_run(run, thread, statuses=[]):
+    log.info(f"Waiting on run {run.id} in thread {thread.id}")
     while (
         run.status == "queued" or run.status == "in_progress" or run.status in statuses
     ):

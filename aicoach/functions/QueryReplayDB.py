@@ -10,7 +10,7 @@ import logging
 from config import config
 from replays import time2secs
 
-log = logging.getLogger(config.name)
+log = logging.getLogger(f"{config.name}.{__name__}")
 
 MONGO_USER = os.environ.get("MONGO_USER")
 MONGO_PASS = os.environ.get("MONGO_PASS")

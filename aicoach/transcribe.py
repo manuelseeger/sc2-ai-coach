@@ -7,15 +7,18 @@ from config import config
 import logging
 import torch
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+import onnxruntime
 
+onnxruntime.set_default_logger_severity(3)
 
-log = logging.getLogger(config.name)
+log = logging.getLogger(f"{config.name}.{__name__}")
 log.setLevel(logging.DEBUG)
 
 
 class Transcriber:
     def __init__(self):
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        torch.set_default_device(device)
         torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
         model_id = config.speech_recognition_model
 
@@ -42,7 +45,7 @@ class Transcriber:
             device=device,
         )
         log.debug(
-            f"Transcriber initialized, Flash-Attn-2: {is_flash_attn_2_available()}, Device: {device}"
+            f"Transcriber initialized, Device: {device}, Flash-Attn-2: {is_flash_attn_2_available()}"
         )
 
     def transcribe(self, audio):

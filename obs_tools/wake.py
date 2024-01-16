@@ -7,6 +7,7 @@ from config import config
 import logging
 
 log = logging.getLogger(config.name)
+log = logging.getLogger(f"{config.name}.{__name__}")
 
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
@@ -35,6 +36,9 @@ class WakeWordListener(threading.Thread):
         self.daemon = True
 
     def run(self):
+        self.listen_for_wake_word()
+
+    def listen_for_wake_word(self):
         log.debug("Starting wakeword listener")
         while True:
             audio = np.frombuffer(mic_stream.read(CHUNK), dtype=np.int16)
@@ -46,5 +50,5 @@ class WakeWordListener(threading.Thread):
 
                 for score in scores:
                     if score > config.oww_sensitivity:
-                        log.info(f"Model {mdl} woke up with a score of {score}")
+                        log.info(f"Model woke up with a score of {score:.2f}")
                         wakeup.send(self)
