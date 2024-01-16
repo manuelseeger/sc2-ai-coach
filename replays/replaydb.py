@@ -148,6 +148,10 @@ def replay_to_dict(replay) -> dict:
         if supply is not None:
             supply = convert_keys_to_strings(supply)
 
+        max_creep_spread = getattr(player, "max_creep_spread", None)
+        if type(max_creep_spread) is not tuple and max_creep_spread is not None:
+            max_creep_spread = ()
+
         players.append(
             {
                 "abilities_used": getattr(player, "abilities_used", None),
@@ -161,7 +165,7 @@ def replay_to_dict(replay) -> dict:
                 ),
                 "highest_league": getattr(player, "highest_league", None),
                 "name": getattr(player, "name", None),
-                "max_creep_spread": getattr(player, "max_creep_spread", None),
+                "max_creep_spread": max_creep_spread,
                 "messages": [m for m in messages if m["pid"] == player.sid],
                 "pick_race": getattr(player, "pick_race", None),
                 "pid": getattr(player, "pid", None),

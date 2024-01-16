@@ -5,6 +5,11 @@ import threading
 from blinker import signal
 from config import config
 import logging
+from time import sleep
+from datetime import datetime
+import onnxruntime
+
+onnxruntime.set_default_logger_severity(3)
 
 log = logging.getLogger(config.name)
 log = logging.getLogger(f"{config.name}.{__name__}")
@@ -40,15 +45,18 @@ class WakeWordListener(threading.Thread):
 
     def listen_for_wake_word(self):
         log.debug("Starting wakeword listener")
+        last_score_timestamp = datetime.now()
         while True:
             audio = np.frombuffer(mic_stream.read(CHUNK), dtype=np.int16)
 
             prediction = owwModel.predict(audio)
 
-            for mdl in owwModel.prediction_buffer.keys():
-                scores = list(owwModel.prediction_buffer[mdl])
+            score = prediction[config.oww_model]
 
-                for score in scores:
-                    if score > config.oww_sensitivity:
-                        log.info(f"Model woke up with a score of {score:.2f}")
-                        wakeup.send(self)
+            if score > config.oww_sensitivity:
+                if (datetime.now() - last_score_timestamp).seconds > 5:
+                    last_score_timestamp = datetime.now()
+                    log.info(f"Model woke up with a score of {score:.2f}")
+                    wakeup.send(self)
+                    owwModel.reset()
+                    sleep(5)
