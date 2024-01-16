@@ -11,12 +11,12 @@ from aicoach import AICoach, Transcriber, get_prompt
 from obs_tools.wake import WakeWordListener
 from obs_tools.parse_map_loading_screen import LoadingScreenScanner, rename_file
 from obs_tools.mic import Microphone
-from rich.logging import RichHandler
 from config import config
 from Levenshtein import distance as levenshtein
 from replays import NewReplayScanner
 from replays.types import Replay
 from obs_tools.rich_log import TwitchObsLogHandler
+
 
 log = logging.getLogger(config.name)
 log.setLevel(logging.INFO)
@@ -26,12 +26,13 @@ log.setLevel(logging.DEBUG)
 handler = logging.FileHandler(
     os.path.join("logs", f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-obs_watcher.log"),
 )
+one_file_handler = logging.FileHandler(
+    mode="a",
+    filename=os.path.join("logs", "_obs_watcher.log"),
+)
 log.addHandler(handler)
+log.addHandler(one_file_handler)
 log.addHandler(TwitchObsLogHandler())
-# log.addHandler(
-#    RichHandler(level=logging.DEBUG, show_time=False, markup=True, show_path=False)
-# )
-
 
 mic = Microphone()
 transcriber = Transcriber()
