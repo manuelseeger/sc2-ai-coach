@@ -55,6 +55,9 @@ class ReplayDB:
         replay = factory.load_replay(file_path)
         log.debug(f"Loaded {replay.filename}")
         return replay
+    
+    def load_replay(self, file_path: str) -> Replay:
+        return self.to_typed_replay(self.load_replay_raw(file_path))
 
     def is_ladder(self, replay):
         is_ladder = replay.game_type == "1v1" and replay.is_ladder is True

@@ -30,31 +30,3 @@ def test_function_query_build_order():
     assert len(response) > 0
     print(response)
 
-
-def test_init_from_scanner():
-    # mic = Microphone()
-    # transcriber = Transcriber()
-
-    session = AISession()
-
-    map = "Acropolis LE"
-    opponent = "Driftoss"
-    mmr = "3786"
-    response = session.initiate_from_scanner(map, opponent, mmr)
-    print(response)
-
-    message = f"What opening did {opponent} do in the last game we played?"
-    print(message)
-
-    response = session.chat(message)
-    print(response)
-
-    message = f"What upgrades did {opponent} get in that game?"
-    print(message)
-
-    response = session.chat(message)
-    print(response)
-
-    assert isinstance(response, str)
-    assert len(response) > 0
-    print(response)
