@@ -9,7 +9,11 @@ import logging
 from blinker import signal
 from aicoach import AICoach, Transcriber, get_prompt
 from obs_tools.wake import WakeWordListener
-from obs_tools.parse_map_loading_screen import LoadingScreenScanner, rename_file
+from obs_tools.parse_map_loading_screen import (
+    LoadingScreenScanner,
+    rename_file,
+    get_map_stats,
+)
 from obs_tools.mic import Microphone
 from config import config
 from Levenshtein import distance as levenshtein
@@ -121,8 +125,10 @@ class AISession:
             audio = mic.listen()
             log.debug("Got voice input")
             prompt = transcriber.transcribe(audio)
+            if prompt is None or "text" not in prompt or len(prompt["text"]) < 7:
+                continue
             log.debug(prompt["text"])
-            response = self.coach.chat(prompt["text"])
+            response = self.chat(prompt["text"])
             log.debug(f"Response:\n{response}")
             mic.say(response)
             if self.is_goodbye(response):
@@ -158,7 +164,9 @@ class AISession:
         prompt = get_prompt("prompt_new_replay.txt", replacements)
 
         with open(
-            f"logs/{datetime.now().strftime('%Y%m%d-%H%M%S')}-new_replay.json", "w"
+            f"logs/{datetime.now().strftime('%Y%m%d-%H%M%S')}-new_replay.json",
+            "w",
+            encoding="utf-8",
         ) as f:
             f.write(prompt)
 
@@ -177,6 +185,15 @@ class AISession:
     def handle_scanner(self, sender, **kw):
         log.debug(sender, kw)
         rename_file(config.screenshot, kw["new_name"])
+
+        stats = None
+        while stats == None:
+            stats = get_map_stats(kw["map"])
+            sleep(0.1)
+
+        with open("obs/map_stats.html", "w") as f:
+            f.write(stats.prettify())
+
         if not self.is_active():
             response = self.initiate_from_scanner(
                 kw["map"], kw["opponent"], self.last_mmr
