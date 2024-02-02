@@ -6,7 +6,7 @@ import numpy
 from Levenshtein import distance
 import threading
 import os
-from time import sleep
+from time import sleep, time
 import re
 import datetime
 from blinker import signal
@@ -83,6 +83,22 @@ def rename_file(filename, new_name):
     os.rename(filename, os.path.join(path, new_name))
 
 
+def wait_for_file(file_path: str, timeout: int = 3, delay: float = 0.1) -> bool:
+    """Wait for a file to be fully written before reading it"""
+    start_time = time()
+    prev_mtime = 0
+
+    while time() - start_time < timeout:
+        current_mtime = os.path.getmtime(file_path)
+        if current_mtime != prev_mtime:
+            prev_mtime = current_mtime
+        else:
+            # No changes in the last iteration, assume the file is fully written
+            return True
+        sleep(delay)
+    return False
+
+
 class LoadingScreenScanner(threading.Thread):
     def __init__(self, name):
         super().__init__()
@@ -99,10 +115,11 @@ class LoadingScreenScanner(threading.Thread):
                 log.info("map loading screen detected")
                 sleep(0.3)
 
-                parse = None
-                while parse == None:
+                if wait_for_file(config.screenshot):
                     parse = parse_map_loading_screen(config.screenshot)
-                    sleep(0.1)
+                else:
+                    log.error("File not readable")
+                    continue
                 map, player1, player2 = parse
 
                 map = clean_map_name(map, config.ladder_maps)
