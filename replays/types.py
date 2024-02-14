@@ -83,7 +83,7 @@ class BuildOrder(BaseModel):
     name: str = None
     supply: int = None
     clock_position: int | None = None
-    is_chronoboosted: bool = None
+    is_chronoboosted: bool | None = None
     is_worker: bool = None
 
 
@@ -158,6 +158,12 @@ class Replay(BaseModel):
                     player_ex = players.setdefault(p, {})
                     builder_order_ex = player_ex.setdefault("build_order", {})
                     builder_order_ex[i] = True
+                # exclude chrono if false:
+                elif not build_order.is_chronoboosted:
+                    players = exclude_keys.setdefault("players", {})
+                    player_ex = players.setdefault(p, {})
+                    builder_order_ex = player_ex.setdefault("build_order", {})
+                    builder_order_ex[i] = {"is_chronoboosted": True}
 
         return exclude_keys
 
