@@ -9,6 +9,7 @@ import json
 import logging
 from config import config
 from replays import time2secs
+from replays.types import Replay
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -151,7 +152,7 @@ def QueryReplayDB(
         int,
         "An integer to specify the maximum number of seconds to include results from. When limit_time is given, arrays in the result set are filtered to only include elements up to that time. This is optional.",
     ] = None,
-) -> str:
+) -> list:
     """Query the replay database and return JSON representation of all matching replays.
 
     The replay DB is a MongoDB database. The collection you will query contains replays in the format given in your instructions.
@@ -168,7 +169,7 @@ def QueryReplayDB(
     # AI doesn't know yet that .$. is invalid as of Mongo 4.4
     projection = projection.replace(".$.", ".")
 
-    results = []
+    results_replays = []
     try:
         cursor = db.find(
             filter=loads(str(filter)),
@@ -177,18 +178,12 @@ def QueryReplayDB(
             limit=limit,
         )
         results = list(cursor)
-        # Filter build orders to only include events up to limit_time
-        # The aggregation needed to do this in DB is too complex for the AI assistant
-        if limit_time:
-            for result in results:
-                for player in result["players"]:
-                    player["build_order"] = [
-                        bo
-                        for bo in player["build_order"]
-                        if duration_to_seconds(bo["time"]) <= limit_time
-                    ]
+        result_replays = [Replay(**result) for result in results]
     except Exception as e:
         log.error(e)
         return []
 
-    return results
+    return [
+        result_replay.default_projection(limit=limit_time)
+        for result_replay in result_replays
+    ]

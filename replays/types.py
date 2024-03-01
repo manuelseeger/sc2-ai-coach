@@ -153,7 +153,7 @@ class Replay(BaseModel):
 
         for p, player in enumerate(self.players):
             for i, build_order in enumerate(player.build_order):
-                if time2secs(build_order.time) > limit:
+                if limit is not None and time2secs(build_order.time) > limit:
                     players = exclude_keys.setdefault("players", {})
                     player_ex = players.setdefault(p, {})
                     builder_order_ex = player_ex.setdefault("build_order", {})

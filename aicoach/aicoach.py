@@ -118,9 +118,14 @@ class AICoach:
         log.info('Calling function "{}" with args: {}'.format(name, args))
         result = self.functions[name](**args)
 
+        result_json = json.dumps(result, default=str)
+
+        if len(result_json) > 20000:
+            log.debug("Result too long: ", len(result_json))
+
         output = {
             "tool_call_id": tool_call_id,
-            "output": json.dumps(result, default=str),
+            "output": result_json,
         }
         return output
 
