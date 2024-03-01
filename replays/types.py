@@ -3,6 +3,7 @@ from typing import List, Tuple, Dict
 from datetime import datetime
 from config import config
 from .util import time2secs
+from enum import Enum
 
 
 def convert_to_nested_structure(d: dict):
@@ -117,6 +118,24 @@ class Observer(BaseModel):
     pass
 
 
+class Metadata(BaseModel):
+    replay_id: str = None
+    description: str = None
+    tags: List[str] | None = None
+    conversation: List[Message] | None = None
+
+
+class Role(str, Enum):
+    user = "user"
+    assistant = "assistant"
+
+
+class Message(BaseModel):
+    created_at: datetime = None
+    role: Role = None
+    text: str = None
+
+
 class Replay(BaseModel):
     _id: str = None
     build: int = None
@@ -147,13 +166,17 @@ class Replay(BaseModel):
     unix_timestamp: int = None
     versions: List[int] = None
 
-    def _exclude_keys_for_build_order(self, limit) -> dict:
-        """Return a dictionary of replay limited to the default projection fields"""
+    def _exclude_keys_for_build_order(self, limit, include_workers) -> dict:
+        """Generate all keys which should be excluded from the replay on model_dump"""
         exclude_keys = {}
 
         for p, player in enumerate(self.players):
             for i, build_order in enumerate(player.build_order):
-                if limit is not None and time2secs(build_order.time) > limit:
+                if (limit is not None and time2secs(build_order.time) > limit) or (
+                    not include_workers
+                    and build_order.is_worker
+                    and not build_order.is_chronoboosted
+                ):
                     players = exclude_keys.setdefault("players", {})
                     player_ex = players.setdefault(p, {})
                     builder_order_ex = player_ex.setdefault("build_order", {})
@@ -167,19 +190,23 @@ class Replay(BaseModel):
 
         return exclude_keys
 
-    def default_projection(self, limit=450) -> dict:
+    def default_projection(self, limit=450, include_workers=True) -> dict:
         """Return a dictionary of replay limited to the default projection fields"""
-        exclude_keys = self._exclude_keys_for_build_order(limit=limit)
+        exclude_keys = self._exclude_keys_for_build_order(
+            limit=limit, include_workers=include_workers
+        )
         return self.model_dump(
             include=include_keys, exclude=exclude_keys, exclude_unset=True
         )
 
-    def default_projection_json(self, limit=450) -> str:
+    def default_projection_json(self, limit=450, include_workers=True) -> str:
         """Return a JSON string of replay limited to the default projection fields
 
         Limit this to 450 seconds by default, as this results in a JSON string of about
         28Kb, which allows for an OpenAI prompt within the 32Kb API limit."""
-        exclude_keys = self._exclude_keys_for_build_order(limit=limit)
+        exclude_keys = self._exclude_keys_for_build_order(
+            limit=limit, include_workers=include_workers
+        )
         return self.model_dump_json(
             include=include_keys, exclude=exclude_keys, exclude_unset=True
         )

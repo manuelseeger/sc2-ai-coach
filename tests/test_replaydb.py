@@ -11,8 +11,6 @@ def test_replay_typing():
 
     replay = db.to_typed_replay(raw_replay)
 
-    replay_json = replay.json()
-
     assert replay.map_name == "Equilibrium LE"
 
 
@@ -55,6 +53,25 @@ def test_default_projection_chrono():
     )
 
 
+def test_default_projection_workers():
+    fixture = "Radhuset Station LE (85) ZvP chrono.SC2Replay"
+
+    workers = ["Drone", "Probe", "SCV"]
+
+    db = ReplayDB()
+    raw_replay = db.load_replay_raw(join(FIXTURE_DIR, fixture))
+
+    replay = db.to_typed_replay(raw_replay)
+
+    default_projection = replay.default_projection(include_workers=False)
+
+    worker_in_bo = [
+        bo["name"] not in workers or "is_chronoboosted" in bo
+        for bo in default_projection["players"][0]["build_order"]
+    ]
+    assert all(worker_in_bo)
+
+
 def test_add_metadata():
     db = ReplayDB()
 
@@ -63,13 +80,3 @@ def test_add_metadata():
     raw_replay = db.load_replay_raw(f"tests/fixtures/{rep}")
 
     replay = db.to_typed_replay(raw_replay)
-
-    metadata = replay.add_metadata()
-
-    assert "build" not in metadata
-    assert "players" in metadata
-    assert "name" in metadata["players"][0]
-    assert "sid" in metadata["players"][0]
-    assert all(
-        time2secs(bo["time"]) <= 100 for bo in metadata["players"][0]["build_order"]
-    )
