@@ -3,12 +3,12 @@ import cv2
 from bs4 import BeautifulSoup
 import requests
 import numpy
-from Levenshtein import distance
+from Levenshtein import distance as levenstein
 import threading
 import os
 from time import sleep, time
 import re
-import datetime
+from datetime import datetime
 from blinker import signal
 from config import config
 import logging
@@ -43,7 +43,7 @@ def clean_map_name(map, ladder_maps):
     map = map.strip().lower()
     if map not in ladder_maps:
         for ladder_map in ladder_maps:
-            if distance(map, ladder_map) < 5:
+            if levenstein(map, ladder_map) < 5:
                 map = ladder_map
                 break
     return map
@@ -133,7 +133,7 @@ class LoadingScreenScanner(threading.Thread):
                 clan2, player2 = split_clan_tag(player2)
                 log.info(f"Found: {map}, {player1}, {player2}")
 
-                now = datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")
+                now = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
                 new_name = f"{map} - {cleanf.sub('', player1)} vs {cleanf.sub('', player2)} {now}.png"
                 new_name = re.sub(r"[^\w_. -]", "_", new_name)
 

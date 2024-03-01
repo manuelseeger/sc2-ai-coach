@@ -33,7 +33,7 @@ def type_to_schema_type(type: str):
 
 
 def function_definition(fn):
-    """Return a JSON schema definition for a function."""
+    """Return a JSON schema definition for the decorated function."""
     sig = inspect.signature(fn)
 
     args = {

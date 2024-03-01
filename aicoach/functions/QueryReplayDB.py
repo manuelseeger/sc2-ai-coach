@@ -169,7 +169,6 @@ def QueryReplayDB(
     # AI doesn't know yet that .$. is invalid as of Mongo 4.4
     projection = projection.replace(".$.", ".")
 
-    results_replays = []
     try:
         cursor = db.find(
             filter=loads(str(filter)),
