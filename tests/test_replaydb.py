@@ -1,27 +1,30 @@
-from replays import ReplayDB, time2secs
+from replays import ReplayReader, time2secs, db
 from os.path import join
+from replays.types import AssistantMessage, Metadata, Role
+from datetime import datetime, timedelta
+from pyodmongo.queries import eq
 
 FIXTURE_DIR = "tests/fixtures"
 
 
 def test_replay_typing():
-    db = ReplayDB()
+    reader = ReplayReader()
 
-    raw_replay = db.load_replay_raw("tests/fixtures/Equilibrium LE (84).SC2Replay")
+    raw_replay = reader.load_replay_raw("tests/fixtures/Equilibrium LE (84).SC2Replay")
 
-    replay = db.to_typed_replay(raw_replay)
+    replay = reader.to_typed_replay(raw_replay)
 
     assert replay.map_name == "Equilibrium LE"
 
 
 def test_default_projection_time():
-    db = ReplayDB()
+    reader = ReplayReader()
 
     fixture = "Equilibrium LE (84).SC2Replay"
 
-    raw_replay = db.load_replay_raw(join(FIXTURE_DIR, fixture))
+    raw_replay = reader.load_replay_raw(join(FIXTURE_DIR, fixture))
 
-    replay = db.to_typed_replay(raw_replay)
+    replay = reader.to_typed_replay(raw_replay)
 
     limit = 100
 
@@ -40,10 +43,10 @@ def test_default_projection_time():
 def test_default_projection_chrono():
     fixture = "Radhuset Station LE (85) ZvP chrono.SC2Replay"
 
-    db = ReplayDB()
-    raw_replay = db.load_replay_raw(join(FIXTURE_DIR, fixture))
+    reader = ReplayReader()
+    raw_replay = reader.load_replay_raw(join(FIXTURE_DIR, fixture))
 
-    replay = db.to_typed_replay(raw_replay)
+    replay = reader.to_typed_replay(raw_replay)
 
     default_projection = replay.default_projection()
 
@@ -58,10 +61,10 @@ def test_default_projection_workers():
 
     workers = ["Drone", "Probe", "SCV"]
 
-    db = ReplayDB()
-    raw_replay = db.load_replay_raw(join(FIXTURE_DIR, fixture))
+    reader = ReplayReader()
+    raw_replay = reader.load_replay_raw(join(FIXTURE_DIR, fixture))
 
-    replay = db.to_typed_replay(raw_replay)
+    replay = reader.to_typed_replay(raw_replay)
 
     default_projection = replay.default_projection(include_workers=False)
 
@@ -73,10 +76,29 @@ def test_default_projection_workers():
 
 
 def test_add_metadata():
-    db = ReplayDB()
+    reader = ReplayReader()
 
     rep = "Site Delta LE (106) ZvZ 2base Muta into mass muta chaotic win.SC2Replay"
 
-    raw_replay = db.load_replay_raw(f"tests/fixtures/{rep}")
+    replay = reader.load_replay(join(FIXTURE_DIR, rep))
 
-    replay = db.to_typed_replay(raw_replay)
+    meta = Metadata(
+        replay=replay.id,
+    )
+    meta.description = "This is a test description 2"
+    meta.conversation = [
+        AssistantMessage(
+            **{"created_at": datetime.now(), "role": Role.user, "text": "Hello"}
+        ),
+        AssistantMessage(
+            **{
+                "created_at": datetime.now() + timedelta(seconds=1),
+                "role": Role.assistant,
+                "text": "Hi there!",
+            }
+        ),
+    ]
+
+    meta.tags = ["test", "zvz", "muta"]
+
+    db.save(meta, query=eq(Metadata.replay, replay.id))

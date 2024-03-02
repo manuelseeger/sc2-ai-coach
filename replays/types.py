@@ -1,9 +1,10 @@
-from pydantic import BaseModel
-from typing import List, Tuple, Dict
+from pydantic import BaseModel, Field
+from typing import List, Tuple, Dict, ClassVar, Annotated
 from datetime import datetime
 from config import config
 from .util import time2secs
 from enum import Enum
+from pyodmongo import DbModel
 
 
 def convert_to_nested_structure(d: dict):
@@ -41,6 +42,9 @@ include_keys = convert_to_nested_structure(config.default_projection)
 wrap_all_fields(include_keys)
 
 
+ReplayId = Annotated[str, Field(max_length=64, min_length=64)]
+
+
 class AbilityUsed(BaseModel):
     frame: int = None
     time: str = None
@@ -54,7 +58,7 @@ class Color(BaseModel):
     r: int = None
 
 
-class Message(BaseModel):
+class AssistantMessage(BaseModel):
     pid: int = None
     second: int = None
     text: str = None
@@ -95,11 +99,10 @@ class Player(BaseModel):
     clan_tag: str = None
     color: Color = None
     creep_spread_by_minute: Dict[str, float] | None = None
-    handicap: int = None
     highest_league: int = None
     name: str = None
     max_creep_spread: Tuple[int, float] | None = None
-    messages: List[Message] = None
+    messages: List[AssistantMessage] = None
     pick_race: str = None
     pid: int = None
     play_race: str = None
@@ -118,26 +121,8 @@ class Observer(BaseModel):
     pass
 
 
-class Metadata(BaseModel):
-    replay_id: str = None
-    description: str = None
-    tags: List[str] | None = None
-    conversation: List[Message] | None = None
-
-
-class Role(str, Enum):
-    user = "user"
-    assistant = "assistant"
-
-
-class Message(BaseModel):
-    created_at: datetime = None
-    role: Role = None
-    text: str = None
-
-
-class Replay(BaseModel):
-    _id: str = None
+class Replay(DbModel):
+    id: ReplayId
     build: int = None
     category: str = None
     date: datetime = None
@@ -165,6 +150,8 @@ class Replay(BaseModel):
     type: str = None
     unix_timestamp: int = None
     versions: List[int] = None
+
+    _collection: ClassVar = "replays"
 
     def _exclude_keys_for_build_order(self, limit, include_workers) -> dict:
         """Generate all keys which should be excluded from the replay on model_dump"""
@@ -227,3 +214,22 @@ class Replay(BaseModel):
 
     def __repr__(self) -> str:
         return self.__str__()
+
+
+class Role(str, Enum):
+    user = "user"
+    assistant = "assistant"
+
+
+class AssistantMessage(BaseModel):
+    created_at: datetime = None
+    role: Role = None
+    text: str = None
+
+
+class Metadata(DbModel):
+    replay: ReplayId
+    description: str = None
+    tags: List[str] | None = None
+    conversation: List[AssistantMessage] | None = None
+    _collection: ClassVar = "replays.meta"

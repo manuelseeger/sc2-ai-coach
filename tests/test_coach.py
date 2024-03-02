@@ -1,23 +1,24 @@
 from rich import print
-from aicoach import AICoach
-from obs_tools.mic import Microphone
-from aicoach.transcribe import Transcriber
 from coach import AISession
-from replays import ReplayDB, time2secs
+from replays import ReplayReader, time2secs
+from os.path import join
 
 pin = lambda x: print(f">>> {x}\n\n")
 pout = lambda x: print(f"<<< {x}\n\n")
 
 
+FIXTURE_DIR = "tests/fixtures"
+
+
 def test_init_from_new_replay():
-    db = ReplayDB()
+    reader = ReplayReader()
     session = AISession()
 
     rep = "Site Delta LE (106) ZvZ 2base Muta into mass muta chaotic win.SC2Replay"
 
-    raw_replay = db.load_replay_raw(f"tests/fixtures/{rep}")
+    raw_replay = reader.load_replay_raw(join(FIXTURE_DIR, rep))
 
-    replay = db.to_typed_replay(raw_replay)
+    replay = reader.to_typed_replay(raw_replay)
 
     res = session.initiate_from_new_replay(replay)
     pout(res)
@@ -27,23 +28,21 @@ def test_init_from_new_replay():
     response = session.chat(message)
     pout(response)
 
-    message = (
-        f"Please extract keywords that characterize the game. Focus on the essentials."
-    )
+    message = f"Please extract keywords that characterize the game. Focus on the essentials. Give me the keywords comma-separated."
     pin(message)
     response = session.chat(message)
     pout(response)
 
 
 def test_init_from_replay_with_nonutf8_chars():
-    db = ReplayDB()
+    reader = ReplayReader()
     session = AISession()
 
     rep = "Equilibrium LE (95) Greek letters in player name.SC2Replay"
 
-    raw_replay = db.load_replay_raw(f"tests/fixtures/{rep}")
+    raw_replay = reader.load_replay_raw(join(FIXTURE_DIR, rep))
 
-    replay = db.to_typed_replay(raw_replay)
+    replay = reader.to_typed_replay(raw_replay)
 
     res = session.initiate_from_new_replay(replay)
     pout(res)

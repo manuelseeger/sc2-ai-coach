@@ -12,7 +12,7 @@ oww_sensitivity: 0.7
 student:
   name: "zatic"
   race: "Zerg"
-  sc2replaystats_map_url: "https://sc2replaystats.com/account/maps/69188/0/188916/1v1/AutoMM/"
+  sc2replaystats_map_url: "https://sc2replaystats.com/account/maps/69188/0/188916/1v1/AutoMM"
 
 gpt_model: "gpt-4-1106-preview"
 
@@ -66,3 +66,5 @@ default_projection:
   real_length: 1
   stats: 1
   unix_timestamp: 1
+
+db_name: "SC2"

@@ -83,6 +83,8 @@ class Config(BaseModel):
         "unix_timestamp": 1,
     }
 
+    db_name: str = "SC2"
+
 
 with open("config.yml") as f:
     config_yml = f.read()

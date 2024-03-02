@@ -6,8 +6,7 @@ import glob
 import os
 import click
 import datetime
-from replays.replaydb import ReplayDB
-
+from replays import ReplayReader, db
 from os.path import join, basename, getmtime
 from datetime import datetime
 import logging
@@ -15,6 +14,9 @@ import sys
 from time import sleep
 from datetime import date
 from rich import print
+from replays.types import Replay
+
+from replays import replaydb
 
 from config import config
 
@@ -22,7 +24,7 @@ log = logging.getLogger()
 handler = logging.StreamHandler(sys.stdout)
 log.addHandler(handler)
 
-db = ReplayDB()
+reader = ReplayReader()
 
 
 @click.group()
@@ -53,13 +55,14 @@ def deamon(ctx):
             new_list_of_files = [f for f in new_list_of_files if f not in list_of_files]
             for file_path in new_list_of_files:
                 sleep(5)
-                replay = db.load_replay_raw(file_path)
-                if db.apply_filters(replay):
+                replay_raw = reader.load_replay_raw(file_path)
+                if reader.apply_filters(replay_raw):
                     print(f"Adding {basename(file_path)}")
-                    db.upsert_replay(replay)
+                    replay = reader.to_typed_replay(replay_raw)
+                    db.save(replay)
                 else:
                     print(f"Filtered {basename(file_path)}")
-                    if db.is_instant_leave(replay) and ctx.obj["CLEAN"]:
+                    if reader.is_instant_leave(replay_raw) and ctx.obj["CLEAN"]:
                         os.remove(file_path)
                         print(f"Deleted {basename(file_path)}")
             list_of_files = new_list_of_files + list_of_files
@@ -74,8 +77,10 @@ def deamon(ctx):
     "--delta", "-d", default=True, help="Only parse and push delta compared to upstream"
 )
 def sync(ctx, delta):
-    most_recent = db.get_most_recent()
-    most_recent_date = most_recent["unix_timestamp"]
+    # most_recent: Replay = db.find_one(Model=Replay)
+    most_recent = replaydb.get_most_recent()
+    # most_recent = db._db.replays.find().sort("unix_timestamp", -1).limit(1)[0]
+    most_recent_date = most_recent.unix_timestamp
 
     # get date from timestamp:
     sync_date = datetime.fromtimestamp(most_recent_date).strftime("%Y-%m-%d %H:%M:%S")
@@ -89,13 +94,15 @@ def sync(ctx, delta):
     print(f"Found {len(list_of_files)} replays to sync")
 
     for file_path in list_of_files:
-        replay = db.load_replay_raw(file_path)
-        if db.apply_filters(replay):
+        replay_raw = reader.load_replay_raw(file_path)
+        if reader.apply_filters(replay_raw):
             print(f"Adding {basename(file_path)}")
-            db.upsert_replay(replay)
+            replay = reader.to_typed_replay(replay_raw)
+            replaydb.upsert(replay)
+
         else:
             print(f"Filtered {basename(file_path)}")
-            if db.is_instant_leave(replay) and ctx.obj["CLEAN"]:
+            if reader.is_instant_leave(replay_raw) and ctx.obj["CLEAN"]:
                 os.remove(file_path)
                 print(f"Deleted {basename(file_path)}")
 
@@ -137,8 +144,8 @@ def echo(ctx, from_: datetime, to_: datetime, replay: str):
     print(f"Found {len(list_of_files)} replays to echo")
 
     for file_path in list_of_files:
-        replay = db.load_replay_raw(file_path)
-        if db.apply_filters(replay):
+        replay = reader.load_replay_raw(file_path)
+        if reader.apply_filters(replay):
             print(f"Adding {basename(file_path)}")
             print(replay)
         else:
@@ -154,4 +161,4 @@ if __name__ == "__main__":
     try:
         cli(obj={})
     finally:
-        db.close()
+        pass

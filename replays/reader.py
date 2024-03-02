@@ -1,15 +1,10 @@
 from .sc2readerplugins.statistics import ReplayStats
 from .sc2readerplugins.SpawningTool import SpawningTool
 import sc2reader
-
 from sc2reader.factories.plugins.replay import APMTracker as APMTrackerBroken
 from .sc2readerplugins.APMTracker import APMTracker
-import pymongo
-from pymongo.server_api import ServerApi
-import os
 import sc2reader
 from sc2reader.engine.plugins import CreepTracker
-from os.path import basename
 import logging
 from config import config
 from .types import Replay
@@ -24,38 +19,22 @@ factory.register_plugin("Replay", ReplayStats())
 factory.register_plugin("Replay", SpawningTool())
 factory.register_plugin("Replay", APMTracker())
 
-MONGO_USER = os.environ.get("MONGO_USER")
-MONGO_PASS = os.environ.get("MONGO_PASS")
-MONGO_HOST = os.environ.get("MONGO_HOST")
 
-
-class ReplayDB:
+class ReplayReader:
     default_filters = []
 
     def __init__(self):
-        self.client = pymongo.MongoClient(
-            f"mongodb+srv://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}/?retryWrites=true&w=majority",
-            server_api=ServerApi("1"),
-        )
-        database = self.client.SC2
-        self.db = database.replays
         self.default_filters = [
             self.is_ladder,
             lambda x: not self.is_instant_leave(x),
             lambda x: not self.has_afk_player(x),
         ]
 
-    def close(self):
-        self.client.close()
-
-    def get_most_recent(self):
-        return self.db.find().sort("unix_timestamp", -1).limit(1)[0]
-
     def load_replay_raw(self, file_path):
         replay = factory.load_replay(file_path)
         log.debug(f"Loaded {replay.filename}")
         return replay
-    
+
     def load_replay(self, file_path: str) -> Replay:
         return self.to_typed_replay(self.load_replay_raw(file_path))
 
@@ -83,29 +62,6 @@ class ReplayDB:
             if filter(replay) is False:
                 return False
         return True
-
-    def upsert_replay(self, replay_raw):
-        replay_dict = replay_to_dict(replay_raw)
-
-        replay_dict = convert_keys_to_strings(replay_dict)
-
-        rep_filter = {"_id": {"$eq": replay_dict["_id"]}}
-
-        self.db.find_one_and_replace(
-            filter=rep_filter,
-            replacement=replay_dict,
-            upsert=True,
-        )
-
-        log.info(f"Added {basename(replay_raw.filename)} to db.")
-        log.info(
-            f'{replay_dict["map_name"]}: {replay_dict["players"][0]["name"]} , {replay_dict["players"][1]["name"]}'
-        )
-
-    def replays_for_player(self, player):
-        q = {"players": {"$elemMatch": {"name": player}}}
-        replays = self.db.find(q)
-        return replays
 
     def to_typed_replay(self, replay_raw) -> Replay:
         replay_dict = replay_to_dict(replay_raw)
@@ -174,9 +130,11 @@ def replay_to_dict(replay) -> dict:
                 "pid": getattr(player, "pid", None),
                 "play_race": getattr(player, "play_race", None),
                 "result": getattr(player, "result", None),
-                "scaled_rating": player.init_data.get("scaled_rating")
-                if hasattr(player, "init_data")
-                else None,
+                "scaled_rating": (
+                    player.init_data.get("scaled_rating")
+                    if hasattr(player, "init_data")
+                    else None
+                ),
                 "stats": getattr(player, "stats", None),
                 "sid": getattr(player, "sid", None),
                 "supply": supply,
@@ -201,9 +159,11 @@ def replay_to_dict(replay) -> dict:
                 "frame": getattr(event, "frame", None),
                 "hotkey": getattr(event, "hotkey", None),
                 "name": getattr(event, "name", None),
-                "player_pid": getattr(event.player, "pid", None)
-                if hasattr(event, "player")
-                else None,
+                "player_pid": (
+                    getattr(event.player, "pid", None)
+                    if hasattr(event, "player")
+                    else None
+                ),
                 "second": getattr(event, "second", None),
                 "target_unit_type": getattr(event, "target_unit_type", None),
                 "target_unit_id": getattr(event, "target_unit_id", None),
@@ -215,7 +175,7 @@ def replay_to_dict(replay) -> dict:
 
     # Consolidate replay metadata into dictionary
     replay_dict = {
-        "_id": replay.filehash,
+        "id": replay.filehash,
         "build": getattr(replay, "build", None),
         "category": getattr(replay, "category", None),
         "date": getattr(replay, "date", None),
