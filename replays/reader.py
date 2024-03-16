@@ -109,7 +109,7 @@ def replay_to_dict(replay) -> dict:
 
         max_creep_spread = getattr(player, "max_creep_spread", None)
         if type(max_creep_spread) is not tuple and max_creep_spread is not None:
-            max_creep_spread = ()
+            max_creep_spread = (0, 0)
 
         players.append(
             {

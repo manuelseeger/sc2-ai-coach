@@ -6,7 +6,7 @@ import glob
 from os.path import join, basename
 import os
 from time import sleep
-from replays import db, ReplayReader
+from replays import replaydb, ReplayReader
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 log.setLevel(logging.INFO)
@@ -38,7 +38,7 @@ class NewReplayScanner(threading.Thread):
                 if reader.apply_filters(replay_raw):
                     log.info(f"New replay {basename(file_path)}")
                     replay = reader.to_typed_replay(replay_raw)
-                    db.save(replay)
+                    replaydb.upsert(replay)
                     newreplay.send(self, replay=replay)
                 else:
                     if reader.is_instant_leave(replay_raw):
