@@ -12,6 +12,7 @@ from datetime import datetime
 from blinker import signal
 from config import config
 import logging
+from obs_tools.sc2client import sc2client
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -143,6 +144,14 @@ class LoadingScreenScanner(threading.Thread):
                     opponent = player1
                 else:
                     log.info(f"not {config.student}, I'll keep looking")
+                    os.remove(config.screenshot)
+                    continue
+
+                if opponent == barcode:
+                    log.info("Barcode detected, trying to get exact barcode")
+                    gameinfo = sc2client.wait_for_gameinfo()
+                    opponent = sc2client.get_opponent_name(gameinfo)
+                    log.info(f"Barcode resolved to {opponent}")
                     continue
 
                 loading_screen.send(

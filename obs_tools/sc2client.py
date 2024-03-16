@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import List
 from enum import Enum
 from pydantic_core import ValidationError
+from time import time, sleep
 import logging
 from config import config
 
@@ -56,10 +57,23 @@ class SC2Client:
                 log.warn(f"Invalid game data: {e}")
         return None
 
-    def get_opponent_name(self) -> str:
-        game = self.get_gameinfo()
-        if game:
-            for player in game.players:
+    def get_opponent_name(self, gameinfo=None) -> str:
+        if gameinfo is None:
+            gameinfo = self.get_gameinfo()
+        if gameinfo:
+            for player in gameinfo.players:
                 if player.name != config.student.name:
                     return player.name
         return None
+
+    def wait_for_gameinfo(self, timeout: int = 20, delay: float = 0.5) -> GameInfo:
+        start_time = time()
+        while time() - start_time < timeout:
+            gameinfo = self.get_gameinfo()
+            if gameinfo and gameinfo.displayTime > 0:
+                return gameinfo
+            sleep(delay)
+        return None
+
+
+sc2client = SC2Client()
