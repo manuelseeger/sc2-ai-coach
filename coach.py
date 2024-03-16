@@ -134,8 +134,12 @@ class AISession:
             if self.is_goodbye(response):
                 log.debug(f"Goodbye, closing thread {self.thread_id}")
                 log.info(response)
-                self.thread_id = None
+                self.close()
                 break
+
+    def close(self):
+        self.thread_id = None
+        self.coach = AICoach()
 
     def is_goodbye(self, response):
         if levenshtein(response[-20:].lower().strip(), "good luck, have fun") < 8:
@@ -159,7 +163,9 @@ class AISession:
             "student": str(config.student.name),
             "map": str(replay.map_name),
             "opponent": str(opponent),
-            "replay": str(replay.default_projection_json()),
+            "replay": str(
+                replay.default_projection_json(limit=600, include_workers=False)
+            ),
         }
         prompt = get_prompt("prompt_new_replay.txt", replacements)
 
