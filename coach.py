@@ -90,9 +90,7 @@ def main(debug):
                         ping_printed = True
                 else:
                     ping_printed = False
-
             sleep(0.1)
-
         except KeyboardInterrupt:
             break
 
@@ -101,12 +99,21 @@ class AISession:
     coach: AICoach = None
     last_map: str = None
     last_opponent: str = None
-    last_mmr: int = 3850
+    last_mmr: int = 3900
     thread_id: str = None
     last_rep_id: str = None
 
     def __init__(self):
+        last_replay = replaydb.get_most_recent()
+        self.update_last_replay(last_replay)
         self.coach = AICoach()
+
+    def update_last_replay(self, replay):
+        replay = replaydb.get_most_recent()
+        self.last_map = replay.map_name
+        self.last_opponent = replay.get_player(config.student.name, opponent=True).name
+        self.last_mmr = replay.get_player(config.student.name).scaled_rating
+        self.last_rep_id = replay.id
 
     def initiate_from_scanner(self, map, opponent, mmr) -> str:
         replacements = {
@@ -235,6 +242,8 @@ class AISession:
             done = self.converse()
             if done:
                 mic.say("I'll save a summary of the game.")
+                self.update_last_replay(replay)
+
                 messages: list[ThreadMessage] = self.coach.get_conversation()
 
                 summary = self.chat(
@@ -248,6 +257,7 @@ class AISession:
                 try:
                     tags = [t.strip() for t in tags.split(",")]
                 except:
+                    log.warn("Assistant gave us invalid tags")
                     tags = []
 
                 meta: Metadata = Metadata(replay=replay.id, description=summary)
@@ -263,7 +273,7 @@ class AISession:
                     if m.content[0].text.value
                 ]
 
-                replaydb.engine.save(meta, query=eq(Metadata.replay, replay.id))
+                replaydb.db.save(meta, query=eq(Metadata.replay, replay.id))
 
                 self.close()
 
