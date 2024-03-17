@@ -15,13 +15,19 @@ OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 
 
 @click.command()
-@click.option("--deploy", "do_deploy", is_flag=True, default=False, help="Deploy assistant after building")
+@click.option(
+    "--deploy",
+    "do_deploy",
+    is_flag=True,
+    default=False,
+    help="Deploy assistant after building",
+)
 def main(do_deploy):
     encoding = tiktoken.get_encoding("cl100k_base")
 
     tools = [
         {
-            "type:": "code_interpreter",
+            "type": "code_interpreter",
         }
     ]
     assistant = {"instructions": "", "tools": tools, "model": config.gpt_model}
@@ -41,14 +47,21 @@ def main(do_deploy):
     if do_deploy:
         deploy(assistant)
 
+
 def deploy(assistant):
-    with requests.Session() as s: 
+    with requests.Session() as s:
         url = f"https://api.openai.com/v1/assistants/{ASSISTANT_ID}"
-        r = s.post(url, headers={"Content-Type": "application/json", 
-                                 "OpenAI-Beta": "assistants=v1",
-                                 "Authorization": f"Bearer {OPENAI_API_KEY}"}, 
-                   data=json.dumps(assistant, indent=2))
+        r = s.post(
+            url,
+            headers={
+                "Content-Type": "application/json",
+                "OpenAI-Beta": "assistants=v1",
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
+            },
+            data=json.dumps(assistant, indent=2),
+        )
         print_json(r.text)
-    
+
+
 if __name__ == "__main__":
     main()
