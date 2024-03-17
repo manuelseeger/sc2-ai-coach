@@ -1,7 +1,7 @@
 from pyodmongo import DbEngine
 import os
 from config import config
-from .types import Replay
+from .types import Replay, Metadata
 from pyodmongo.queries import eq
 from pydantic_core import ValidationError
 
@@ -19,13 +19,16 @@ engine = DbEngine(mongo_uri=mongo_uri, db_name=config.db_name)
 
 class ReplayDB:
     def __init__(self):
-        self.engine = engine
-        self.replays = self.engine._db["replays"]
-        self.meta = self.engine._db["replays.meta"]
+        self.db = engine
+        self.replays = self.db._db["replays"]
+        self.meta = self.db._db["replays.meta"]
 
-    def upsert(self, replay: Replay):
+    def upsert(self, model: Replay | Metadata):
         try:
-            return self.engine.save(replay, query=eq(Replay.id, replay.id))
+            if isinstance(model, Replay):
+                return self.db.save(model, query=eq(Replay.id, model.id))
+            elif isinstance(model, Metadata):
+                return self.db.save(model, query=eq(Metadata.id, model.id))
         except ValidationError as e:
             return None
 
@@ -34,7 +37,7 @@ class ReplayDB:
         return Replay(**most_recent)
 
     def find(self, Model):
-        return self.engine.find(Model)
+        return self.db.find(Model)
 
 
 replaydb = ReplayDB()

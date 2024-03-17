@@ -153,29 +153,39 @@ class Replay(DbModel):
 
     _collection: ClassVar = "replays"
 
+    def get_player(self, name: str, opponent: bool = False) -> Player:
+        for player in self.players:
+            if player.name == name and not opponent:
+                return player
+            if player.name != name and opponent:
+                return player
+
     def _exclude_keys_for_build_order(self, limit, include_workers) -> dict:
         """Generate all keys which should be excluded from the replay on model_dump"""
         exclude_keys = {}
 
-        for p, player in enumerate(self.players):
-            for i, build_order in enumerate(player.build_order):
-                if (limit is not None and time2secs(build_order.time) > limit) or (
-                    not include_workers
-                    and build_order.is_worker
-                    and not build_order.is_chronoboosted
-                ):
-                    players = exclude_keys.setdefault("players", {})
-                    player_ex = players.setdefault(p, {})
-                    builder_order_ex = player_ex.setdefault("build_order", {})
-                    builder_order_ex[i] = True
-                # exclude chrono if false:
-                elif not build_order.is_chronoboosted:
-                    players = exclude_keys.setdefault("players", {})
-                    player_ex = players.setdefault(p, {})
-                    builder_order_ex = player_ex.setdefault("build_order", {})
-                    builder_order_ex[i] = {"is_chronoboosted": True}
+        if self.players:
+            for p, player in enumerate(self.players):
+                if player.build_order is None:
+                    continue
+                for i, build_order in enumerate(player.build_order):
+                    if (limit is not None and time2secs(build_order.time) > limit) or (
+                        not include_workers
+                        and build_order.is_worker
+                        and not build_order.is_chronoboosted
+                    ):
+                        players = exclude_keys.setdefault("players", {})
+                        player_ex = players.setdefault(p, {})
+                        builder_order_ex = player_ex.setdefault("build_order", {})
+                        builder_order_ex[i] = True
+                    # exclude chrono if false:
+                    elif not build_order.is_chronoboosted:
+                        players = exclude_keys.setdefault("players", {})
+                        player_ex = players.setdefault(p, {})
+                        builder_order_ex = player_ex.setdefault("build_order", {})
+                        builder_order_ex[i] = {"is_chronoboosted": True}
 
-        return exclude_keys
+            return exclude_keys
 
     def default_projection(self, limit=450, include_workers=True) -> dict:
         """Return a dictionary of replay limited to the default projection fields"""
