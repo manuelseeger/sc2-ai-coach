@@ -20,6 +20,10 @@ from Levenshtein import distance as levenshtein
 from replays import NewReplayScanner
 from replays.types import Replay
 from obs_tools.rich_log import TwitchObsLogHandler
+from replays.types import Metadata, AssistantMessage
+from replays.db import replaydb, eq
+
+from openai.types.beta.threads.thread_message import ThreadMessage
 
 
 log = logging.getLogger(config.name)
@@ -132,10 +136,7 @@ class AISession:
             log.debug(f"Response:\n{response}")
             mic.say(response)
             if self.is_goodbye(response):
-                log.debug(f"Goodbye, closing thread {self.thread_id}")
-                log.info(response)
-                self.close()
-                break
+                return True
 
     def close(self):
         self.thread_id = None
@@ -206,7 +207,9 @@ class AISession:
             )
             log.debug(f"Response: {response}")
             mic.say(response)
-            self.converse()
+            done = self.converse()
+            if done:
+                self.close()
 
     def handle_wake(self, sender, **kw):
         if not self.is_active():
@@ -218,7 +221,9 @@ class AISession:
             response = self.initiate_from_voice(prompt["text"])
             log.debug(f"Response: {response}")
             mic.say(response)
-            self.converse()
+            done = self.converse()
+            if done:
+                self.close()
 
     def handle_new_replay(self, sender, replay: Replay):
         log.debug(sender)
@@ -227,7 +232,40 @@ class AISession:
             response = self.initiate_from_new_replay(replay)
             log.debug(f"Response: {response}")
             mic.say(response)
-            self.converse()
+            done = self.converse()
+            if done:
+                mic.say("I'll save a summary of the game.")
+                messages: list[ThreadMessage] = self.coach.get_conversation()
+
+                summary = self.chat(
+                    "Can you please summarize the game in one paragraph? Make sure to mention tech choices, timings, but keep it short."
+                )
+
+                tags = self.chat(
+                    "Please extract keywords that characterize the game. Focus on the essentials. Give me the keywords comma-separated."
+                )
+
+                try:
+                    tags = [t.strip() for t in tags.split(",")]
+                except:
+                    tags = []
+
+                meta: Metadata = Metadata(replay=replay.id, description=summary)
+                meta.tags = tags
+                meta.conversation = [
+                    AssistantMessage(
+                        role=m.role,
+                        text=m.content[0].text.value,
+                        created_at=datetime.fromtimestamp(m.created_at),
+                    )
+                    # skip the instruction message which includes the replay as JSON
+                    for m in messages[::-1][1:]
+                    if m.content[0].text.value
+                ]
+
+                replaydb.engine.save(meta, query=eq(Metadata.replay, replay.id))
+
+                self.close()
 
 
 if __name__ == "__main__":

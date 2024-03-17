@@ -50,11 +50,17 @@ class AICoach:
         self.functions = {f.__name__: f for f in AIFunctions}
 
     def get_most_recent_message(self):
-        messages = client.beta.threads.messages.list(thread_id=self.thread.id)
+        messages = client.beta.threads.messages.list(
+            thread_id=self.thread.id, order="desc", limit=1
+        )
         if messages.data[0].role != "assistant":
             log.warn("Assistant sent no message")
             return ""
         return messages.data[0].content[0].text.value
+
+    def get_conversation(self):
+        messages = client.beta.threads.messages.list(thread_id=self.thread.id)
+        return messages.data
 
     def create_thread(self, message=None):
         self.thread: Thread = client.beta.threads.create()
@@ -86,9 +92,6 @@ class AICoach:
         )
 
         self.evaluate_run()
-        # run_steps = client.beta.threads.runs.steps.list(
-        #    thread_id=self.thread.id, run_id=self.run.id
-        # )
         return self.get_most_recent_message()
 
     def evaluate_run(self, run=None) -> Run:

@@ -10,6 +10,24 @@ pout = lambda x: print(f"<<< {x}\n\n")
 FIXTURE_DIR = "tests/fixtures"
 
 
+class MicMock:
+    def listen(self):
+        return None
+
+    def say(self, text):
+        print(text)
+
+
+class TranscriberMock:
+    _data: list[str] = None
+
+    def __init__(self, data: list[str] = None) -> None:
+        self._data = data
+
+    def transcribe(self, audio):
+        return {"text": self._data.pop(0)}
+
+
 def test_init_from_new_replay():
     reader = ReplayReader()
     session = AISession()
@@ -58,3 +76,23 @@ def test_init_from_replay_with_nonutf8_chars():
     pin(message)
     response = session.chat(message)
     pout(response)
+
+
+def test_init_from_replay_with_metadata(mocker):
+    reader = ReplayReader()
+    session = AISession()
+
+    user_convo = [
+        "A what time did the protoss build their first 2 ground units?",
+        "At what time did they take their third base?",
+        "What did they spend their first 3 chronoboosts on?",
+        "Thank you, that will be all for now.",
+    ]
+    mocker.patch("coach.mic", MicMock())
+    mocker.patch("coach.transcriber", TranscriberMock(data=user_convo))
+
+    rep = "Solaris LE (179) ZvP ground hydra lurker.SC2Replay"
+
+    replay = reader.load_replay(join(FIXTURE_DIR, rep))
+
+    session.handle_new_replay(__name__, replay)

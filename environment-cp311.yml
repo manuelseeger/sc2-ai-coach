@@ -4,6 +4,7 @@ channels:
   - huggingface
 dependencies:
   - python=3.11
+  - conda-forge::pydantic=2.6
   - requests
   - python-dotenv
   - click
@@ -11,8 +12,9 @@ dependencies:
   - pymongo
   - numpy
   - pandas
-  - openai
+  - conda-forge::openai
   - pytest
+  - pytest-mock
   - tiktoken
   - rich
   - pytesseract
@@ -21,10 +23,10 @@ dependencies:
   - onnxruntime
   - blinker
   #- pytorch # conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
-  - pysoundfile
   - pip
   - pip:
       - pyaudio
+      - pysoundfile
       - opencv-python
       - sc2reader
       - spawningtool
