@@ -152,7 +152,6 @@ class LoadingScreenScanner(threading.Thread):
                     gameinfo = sc2client.wait_for_gameinfo()
                     opponent = sc2client.get_opponent_name(gameinfo)
                     log.info(f"Barcode resolved to {opponent}")
-                    continue
 
                 loading_screen.send(
                     self,
