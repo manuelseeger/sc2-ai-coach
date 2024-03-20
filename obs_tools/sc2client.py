@@ -40,6 +40,29 @@ class Player(BaseModel):
 
 
 class GameInfo(BaseModel):
+    """
+    {
+        isReplay: false,
+        displayTime: 93,
+        players: [
+            {
+                id: 1,
+                name: "Owlrazum",
+                type: "user",
+                race: "Terr",
+                result: "Undecided"
+            },
+            {
+                id: 2,
+                name: "zatic",
+                type: "user",
+                race: "Zerg",
+                result: "Undecided"
+            }
+        ]
+    }
+    """
+
     isReplay: bool
     displayTime: float
     players: List[Player]
@@ -77,3 +100,6 @@ class SC2Client:
 
 
 sc2client = SC2Client()
+
+if __name__ == "__main__":
+    print(GameInfo.model_json_schema())

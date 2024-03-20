@@ -14,6 +14,7 @@ def test_obs_log():
 
 
 # SC2 must be running and a game must be in progress or have been played recently
+# or use https://github.com/leigholiver/sc2apiemulator
 def test_sc2client_get_opponent():
 
     client = SC2Client()
