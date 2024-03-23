@@ -26,6 +26,7 @@ Prerequisites:
 - A GPT4 account (API access)
 - MongoDB for replays
 - A NVidia GPU
+- A microphone
 
 Set up all dependencies from environment-cp311.yml (I prefer conda, but venv/pip should work too).
 Configure environment variables to point to your OpenAI accounts and MongoDB.
