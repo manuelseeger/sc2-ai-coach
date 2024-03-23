@@ -30,6 +30,7 @@ Prerequisites:
 
 Set up all dependencies from environment-cp311.yml (I prefer conda, but venv/pip should work too).
 Configure environment variables to point to your OpenAI accounts and MongoDB.
+Adjust config.yml with your personal details.
 
 [parse_map_loading_screen.py](parse_map_loading_screen.py) needs you to setup OBS to take a screenshot when the maploading screen is showing in SC2. This is done to read the opponents name. It's possible to adjust the code to skip this but this needs some coding.
 
