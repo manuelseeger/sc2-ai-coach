@@ -7,6 +7,8 @@ expetiment.ipynb
 replays.csv
 *.csv
 *.env
+!.env
+config.*.yml
 obs/
 deamon.cmd
 aicoach/assistant.json
