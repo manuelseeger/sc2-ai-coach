@@ -1,25 +1,29 @@
 name: "AICoach"
-replay_folder: "C:\\Users\\manuel\\OneDrive\\Documents\\StarCraft II\\Accounts\\250568\\2-S2-1-691545\\Replays\\Multiplayer"
+# Where to look for replays
+replay_folder: "C:\\Users\\student\\Documents\\StarCraft II\\Accounts\\1234567568\\2-S2-1-123456\\Replays\\Multiplayer"
+# Game shorter than this will be ignored and the replays deleted
 instant_leave_max: 50
+# Look for new replays every X seconds
 deamon_polling_rate: 10
-
+# Index of the audio device as returned by pyaudio
 microphone_index: 2
-
+# Which model to use from openwakeword
 oww_model: "hey_jarvis"
-
+# Sensitivity of the wake word
 oww_sensitivity: 0.7
-
+# Configure the "student" - the player using AI coach
 student:
-  name: "zatic"
+  name: "studentname"
   race: "Zerg"
-  sc2replaystats_map_url: "https://sc2replaystats.com/account/maps/69188/0/188916/1v1/AutoMM"
-
+  # URL pointing to your public sc2replaystats profile's map stats 
+  sc2replaystats_map_url: "https://sc2replaystats.com/account/maps/12345/0/1234567/1v1/AutoMM"
+# which GPT model to use for OpenAI Assistant API
 gpt_model: "gpt-4-1106-preview"
-
+# which speech recognition model to use from huggingface speech-to-text
 speech_recognition_model: "openai/whisper-large-v3"
-
+# relative path to screenshot file which OBS takes when the map is loading
 screenshot: "obs/screenshots/_maploading.png"
-
+# Configure speech recognition from microphone
 recognizer:
   # minimum audio energy to consider for recording
   energy_threshold: 400
@@ -29,9 +33,9 @@ recognizer:
   phrase_threshold: 0.3
   # seconds of non-speaking audio to keep on both sides of the recording
   non_speaking_duration: 0.2
-
+# Current ladder season
 season: 58
-
+# Maps in the current ladder pool
 ladder_maps:
   - hecate le
   - oceanborn le
@@ -42,7 +46,7 @@ ladder_maps:
   - equilibrium le
   - goldenaura le
   - alcyone le
-
+# Configure which replay fields to include per default when reading replays
 default_projection:
   _id: 1
   date: 1
@@ -66,5 +70,5 @@ default_projection:
   real_length: 1
   stats: 1
   unix_timestamp: 1
-
+# Name of the MongoDB database where the replay collection is stored
 db_name: "SC2"
