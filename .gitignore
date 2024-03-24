@@ -6,8 +6,8 @@ __pycache__/
 expetiment.ipynb
 replays.csv
 *.csv
-*.env
-!.env
+.env*
+!.env.example
 config.*.yml
 obs/
 deamon.cmd

@@ -41,7 +41,8 @@ def AddMetadata(
     )
 
     if tags_parsed and tags_parsed != []:
-        meta.tags = meta.tags + tags_parsed
+        # remove potential duplicates
+        meta.tags = list(set(meta.tags + tags_parsed))
 
     replaydb.upsert(meta)
     return True

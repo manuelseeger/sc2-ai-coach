@@ -1,28 +1,15 @@
 from .base import AIFunction
 from typing import Annotated
-import os
-import pymongo
-from pymongo.server_api import ServerApi
 from bson.json_util import loads, dumps
 import ast
 import json
 import logging
 from config import config
-from replays import time2secs
+from replays import db as replaydb
 from replays.types import Replay
 
+
 log = logging.getLogger(f"{config.name}.{__name__}")
-
-MONGO_USER = os.environ.get("MONGO_USER")
-MONGO_PASS = os.environ.get("MONGO_PASS")
-MONGO_HOST = os.environ.get("MONGO_HOST")
-
-client = pymongo.MongoClient(
-    f"mongodb+srv://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}/?retryWrites=true&w=majority",
-    server_api=ServerApi("1"),
-)
-database = client.SC2
-db = database.replays
 
 example = """
 {
@@ -170,7 +157,7 @@ def QueryReplayDB(
     projection = projection.replace(".$.", ".")
 
     try:
-        cursor = db.find(
+        cursor = replaydb.replays.find(
             filter=loads(str(filter)),
             projection=loads(str(projection)),
             sort=loads(str(sort)),

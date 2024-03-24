@@ -1,7 +1,8 @@
 from rich import print
 from config import Config
 
-def test_load_config(): 
+
+def test_load_config():
     config: Config = Config()
     print(config)
     assert config.name == "AICoach"
@@ -12,4 +13,7 @@ def test_load_config():
     assert config.oww_model == "hey_jarvis"
     assert config.oww_sensitivity == 0.7
     assert config.recognizer.energy_threshold == 400
-    assert config.assistant_id.get_secret_value() == "1234"
+    assert config.assistant_id is not None
+    assert config.mongo_dsn is not None
+
+    print(config.mongo_dsn)

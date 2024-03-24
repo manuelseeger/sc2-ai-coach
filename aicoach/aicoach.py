@@ -1,8 +1,6 @@
 from openai import OpenAI
 from openai.types.beta import Thread, Assistant
 from openai.types.beta.threads import Run
-from dotenv import load_dotenv
-import os
 import time
 import json
 from .functions import AIFunctions
@@ -14,11 +12,7 @@ from typing import Dict
 log = logging.getLogger(f"{config.name}.{__name__}")
 log.setLevel(logging.INFO)
 
-load_dotenv()
-
-ASSISTANT_ID = os.environ["ASSISTANT_ID"]
-
-client = OpenAI()
+client = OpenAI(api_key=config.openai_api_key, organization=config.openai_org_id)
 
 
 def wait_on_run(run, thread, statuses=[]):
@@ -45,7 +39,7 @@ class AICoach:
 
     def __init__(self):
         self.assistant: Assistant = client.beta.assistants.retrieve(
-            assistant_id=ASSISTANT_ID
+            assistant_id=config.assistant_id
         )
         self.functions = {f.__name__: f for f in AIFunctions}
 

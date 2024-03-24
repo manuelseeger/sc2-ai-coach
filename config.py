@@ -1,22 +1,35 @@
 from pydantic import BaseModel
 from typing import Dict, List, Type, Tuple
-from pydantic_yaml import parse_yaml_raw_as
-from pydantic.types import SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict, YamlConfigSettingsSource, PydanticBaseSettingsSource
+from pydantic_settings import (
+    BaseSettings,
+    SettingsConfigDict,
+    YamlConfigSettingsSource,
+    PydanticBaseSettingsSource,
+    EnvSettingsSource,
+    DotEnvSettingsSource,
+)
+from typing import Annotated
 from glob import glob
+from pydantic.networks import UrlConstraints
+from pydantic_core import MultiHostUrl
+
+# https://github.com/pydantic/pydantic/pull/7116
+MongoSRVDsn = Annotated[MultiHostUrl, UrlConstraints(allowed_schemes=["mongodb+srv"])]
 
 
 def sort_config_files(files):
     def key_func(file: str):
-        return (not file.startswith('.'), file.count('.'))
+        return (not file.startswith("."), file.count("."))
 
     return sorted(files, key=key_func)
-    
-yaml_files = glob('config*.yml')
+
+
+yaml_files = glob("config*.yml")
 yaml_files = sort_config_files(yaml_files)
 
-env_files = glob('*.env') + glob('.env')
+env_files = glob(".env*")
 env_files = sort_config_files(env_files)
+
 
 class RecognizerConfig(BaseModel):
     energy_threshold: int = 400
@@ -38,7 +51,9 @@ class StudentConfig(BaseModel):
 
 
 class Config(BaseSettings):
-    model_config = SettingsConfigDict(yaml_file=yaml_files, env_file=env_files, env_prefix="AICOACH_")
+    model_config = SettingsConfigDict(
+        yaml_file=yaml_files, env_file=env_files, env_prefix="AICOACH_", extra="ignore"
+    )
     name: str = "AICoach"
     replay_folder: str
     instant_leave_max: int = 60
@@ -52,7 +67,9 @@ class Config(BaseSettings):
 
     student: StudentConfig
 
-    assistant_id: SecretStr
+    openai_api_key: str
+    openai_org_id: str
+    assistant_id: str
 
     gpt_model: str = "gpt-3.5-turbo"
 
@@ -102,18 +119,24 @@ class Config(BaseSettings):
     }
 
     db_name: str = "SC2"
-    mongo_user: SecretStr
-    mongo_pass: SecretStr
-    mongo_host: SecretStr
-
+    mongo_dsn: MongoSRVDsn
 
     @classmethod
-    def settings_customise_sources(cls,
+    def settings_customise_sources(
+        cls,
         settings_cls: Type[BaseSettings],
         init_settings: PydanticBaseSettingsSource,
-        env_settings: PydanticBaseSettingsSource,
-        dotenv_settings: PydanticBaseSettingsSource,
+        env_settings: EnvSettingsSource,
+        dotenv_settings: DotEnvSettingsSource,
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> Tuple[PydanticBaseSettingsSource, ...]:
-        return (init_settings, env_settings, dotenv_settings, file_secret_settings, YamlConfigSettingsSource(settings_cls),)
-#config: Config = Config()
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            file_secret_settings,
+            YamlConfigSettingsSource(settings_cls),
+        )
+
+
+config: Config = Config()

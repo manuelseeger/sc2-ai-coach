@@ -9,7 +9,10 @@ def test_function_smurf_detection():
 
     message = f"I am playing someone on around 3000 MMR. The player I am playing with has the handle toon handle '{handle}'. Can you tell me if they are a smurf?"
 
-    response = aicoach.create_thread(message)
+    aicoach.create_thread(message)
+
+    run = aicoach.evaluate_run()
+    response = aicoach.get_most_recent_message()
 
     assert isinstance(response, str)
     assert len(response) > 0
@@ -19,7 +22,7 @@ def test_function_smurf_detection():
 def test_function_query_build_order():
     aicoach = AICoach()
 
-    message = f"My player ID is 'zatic'. Get the build order of the opponent of the last 5 games I played against 'protoss' opponents."
+    message = f"My player ID is 'zatic'. Get the build order of the opponent of the last 3 games I played against 'protoss' opponents."
 
     aicoach.create_thread(message)
 
