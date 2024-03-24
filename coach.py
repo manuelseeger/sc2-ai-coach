@@ -198,7 +198,6 @@ class AISession:
 
     def handle_scanner(self, sender, **kw):
         log.debug(sender, kw)
-        rename_file(config.screenshot, kw["new_name"])
 
         stats = None
         while stats == None:

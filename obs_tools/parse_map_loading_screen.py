@@ -6,6 +6,7 @@ import numpy
 from Levenshtein import distance as levenstein
 import threading
 import os
+from os.path import split, splitext, join
 from time import sleep, time
 import re
 from datetime import datetime
@@ -19,25 +20,60 @@ log = logging.getLogger(f"{config.name}.{__name__}")
 pytesseract.pytesseract.tesseract_cmd = (
     r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
 )
+cvflags = None
+
+# portrait size
+W, H = 105, 105
+
+
+def get_right_portrait(image):
+    x, y = 2235, 560
+    return image[y : y + H, x : x + W]
+
+
+def get_left_portrait(image):
+    x, y = 221, 560
+    return image[y : y + H, x : x + W]
+
+
+def save_portrait(portrait, new_name):
+    path, _ = split(config.screenshot)
+    portrait_name = splitext(new_name)[0] + "_portrait.png"
+    cv2.imwrite(join(path, "portraits", portrait_name), portrait)
+
+
+def is_student(player_name: str) -> bool:
+    return player_name.strip().lower() == config.student.name.lower()
 
 
 def parse_map_loading_screen(filename):
-    image = cv2.imread(filename)
-    # r = cv2.selectROI("select the area", image)
+    image = cv2.imread(filename, flags=cvflags)
 
     if type(image) is not numpy.ndarray:
         return None
-    # x, y, w, h = 852, 860, 800, 200
+
     x, y, w, h = 940, 900, 670, 100
     ROI = image[y : y + h, x : x + w]
     mapname = pytesseract.image_to_string(ROI, lang="eng")
     x, y, w, h = 333, 587, 276, 40
     ROI = image[y : y + h, x : x + w]
-    player1 = pytesseract.image_to_string(ROI, lang="eng")
+    player_left = pytesseract.image_to_string(ROI, lang="eng")
     x, y, w, h = 1953, 587, 276, 40
     ROI = image[y : y + h, x : x + w]
-    player2 = pytesseract.image_to_string(ROI, lang="eng")
-    return (mapname.strip().lower(), player1.strip(), player2.strip())
+    player_right = pytesseract.image_to_string(ROI, lang="eng")
+
+    opponent_portrait = None
+    if is_student(player_left):
+        opponent_portrait = get_right_portrait(image)
+    if is_student(player_right):
+        opponent_portrait = get_left_portrait(image)
+
+    return (
+        mapname.strip().lower(),
+        player_left.strip(),
+        player_right.strip(),
+        opponent_portrait,
+    )
 
 
 def clean_map_name(map, ladder_maps):
@@ -104,6 +140,13 @@ class LoadingScreenScanner(threading.Thread):
     def __init__(self, name):
         super().__init__()
         self.name = name
+        self._stop_event = threading.Event()
+
+    def stop(self):
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
 
     def run(self):
         self.scan_loading_screen()
@@ -112,6 +155,9 @@ class LoadingScreenScanner(threading.Thread):
         log.debug("Starting loading screen scanner")
         loading_screen = signal("loading_screen")
         while True:
+            if self.stopped():
+                log.debug("Stopping loading screen scanner")
+                break
             if os.path.exists(config.screenshot):
                 log.info("map loading screen detected")
                 sleep(0.3)
@@ -121,7 +167,7 @@ class LoadingScreenScanner(threading.Thread):
                 else:
                     log.error("File not readable")
                     continue
-                map, player1, player2 = parse
+                map, player1, player2, opponent_portrait = parse
 
                 map = clean_map_name(map, config.ladder_maps)
 
@@ -152,6 +198,9 @@ class LoadingScreenScanner(threading.Thread):
                     gameinfo = sc2client.wait_for_gameinfo()
                     opponent = sc2client.get_opponent_name(gameinfo)
                     log.info(f"Barcode resolved to {opponent}")
+
+                rename_file(config.screenshot, new_name)
+                save_portrait(opponent_portrait, new_name)
 
                 loading_screen.send(
                     self,
