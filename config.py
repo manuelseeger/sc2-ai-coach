@@ -11,7 +11,7 @@ from pydantic_settings import (
 from typing import Annotated
 from glob import glob
 from pydantic.networks import UrlConstraints
-from pydantic_core import MultiHostUrl
+from pydantic_core import MultiHostUrl, Url
 
 # https://github.com/pydantic/pydantic/pull/7116
 MongoSRVDsn = Annotated[MultiHostUrl, UrlConstraints(allowed_schemes=["mongodb+srv"])]
@@ -29,6 +29,7 @@ yaml_files = sort_config_files(yaml_files)
 
 env_files = glob(".env*")
 env_files = sort_config_files(env_files)
+env_files.remove(".env.example")
 
 
 class RecognizerConfig(BaseModel):
@@ -41,7 +42,7 @@ class RecognizerConfig(BaseModel):
 class StudentConfig(BaseModel):
     name: str
     race: str
-    sc2replaystats_map_url: str
+    sc2replaystats_map_url: Url
 
     def __repr__(self) -> str:
         return self.name
