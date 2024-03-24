@@ -27,7 +27,7 @@ def AddMetadata(
         "A list of keywords to add to the replay, comma separated. Example: 'smurf, cheese, proxy'",
     ],
 ) -> bool:
-    """Adds metadata like tags to a replay."""
+    """Adds metadata like tags to a replay for a given replay ID."""
 
     tags_parsed = []
     try:

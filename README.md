@@ -28,7 +28,7 @@ Prerequisites:
 - A NVidia GPU
 - A microphone
 
-Set up all dependencies from environment-cp311.yml (I prefer conda, but venv/pip should work too).
+Set up all dependencies from environment-cp311.yml (I prefer conda, but venv/pip should work too). This will need Python experience and ideally some experience with machine learning with Python.
 Configure environment variables to point to your OpenAI accounts and MongoDB.
 Adjust config.yml with your personal details.
 

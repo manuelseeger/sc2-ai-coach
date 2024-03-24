@@ -1,4 +1,4 @@
-from replays import ReplayReader, time2secs, db
+from replays import ReplayReader, time2secs, db, replaydb
 from os.path import join
 from replays.types import AssistantMessage, Metadata, Role
 from datetime import datetime, timedelta
@@ -85,7 +85,7 @@ def test_add_metadata():
     meta = Metadata(
         replay=replay.id,
     )
-    meta.description = "This is a test description 2"
+    meta.description = "This is a test description 3"
     meta.conversation = [
         AssistantMessage(
             **{"created_at": datetime.now(), "role": Role.user, "text": "Hello"}
@@ -100,5 +100,7 @@ def test_add_metadata():
     ]
 
     meta.tags = ["test", "zvz", "muta"]
+
+    replaydb.db.save(meta, query=eq(Metadata.replay, replay.id))
 
     db.save(meta, query=eq(Metadata.replay, replay.id))
