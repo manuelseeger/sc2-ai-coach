@@ -13,12 +13,13 @@ version 1.0.0.4 (2018-04-06)
 import platform
 from builtins import *
 from functools import cmp_to_key
+import numpy as np
 
 isWindows = platform.system() == "Windows"
-# print(isWindows)
+
 import ctypes
 
-isDebugPrint = True
+isDebugPrint = False
 
 STD_OUTPUT_HANDLE = -11
 

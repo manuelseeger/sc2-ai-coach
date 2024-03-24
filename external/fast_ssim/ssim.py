@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import math
-from base import *
+from .base import *
 import skimage.measure
 import scipy
 import scipy.misc
