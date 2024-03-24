@@ -24,6 +24,8 @@ dependencies:
   - onnxruntime
   - blinker
   #- pytorch # conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
+  - jupyter
+  - conda-forge::matplotlib
   - pip
   - pip:
       - pyaudio

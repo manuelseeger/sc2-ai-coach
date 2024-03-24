@@ -30,22 +30,10 @@ Prerequisites:
 
 Set up all dependencies from environment-cp311.yml (I prefer conda, but venv/pip should work too). This will need Python experience and ideally some experience with machine learning with Python.
 Configure environment variables to point to your OpenAI accounts and MongoDB.
-Adjust config.yml with your personal details.
+Adjust config.yml with your personal details or add your own config.custom.yml to overwrite default settings.
 
-[parse_map_loading_screen.py](parse_map_loading_screen.py) needs you to setup OBS to take a screenshot when the maploading screen is showing in SC2. This is done to read the opponents name. It's possible to adjust the code to skip this but this needs some coding.
+[parse_map_loading_screen.py](obs_tools/parse_map_loading_screen.py) needs you to setup OBS to take a screenshot when the maploading screen is showing in SC2. This is done to read the opponents name. It's possible to adjust the code to skip this but this needs some coding.
 
 ## SC2 map stats
 
-[parse_map_loading_screen.py](parse_map_loading_screen.py) can parse the currently played map from a screenshot and provide a stream overlay with this season's map win/loss statistics by matchup. The statistics are taken from https://sc2replaystats.com/ if a public account exists for the player.
-
-## SC2 replay stats
-
-This is a quick hack to show the players 1v1 win/loss stats of the current season. The stats are serves as a simple HTML table via localhost:8080 and can be included in a stream overlay in OBS.
-
-#### How to embed
-
-Embed in OBS as a browser source with a local file for map stats, and on localhost:8080 for replay stats. Adapt template.html to change the styling of the result table.
-
-Note: scanning replays is slow (~0.2-0.5 seconds per replay). Per default this auto-refreshes every 30 seconds. This can be adjusted in template.html as well.
-
-![example](example.png)
+[parse_map_loading_screen.py](obs_tools/parse_map_loading_screen.py) can parse the currently played map from a screenshot and provide a stream overlay with this season's map win/loss statistics by matchup. The statistics are taken from https://sc2replaystats.com/ if a public account exists for the player.
