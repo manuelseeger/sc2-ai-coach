@@ -15,5 +15,3 @@ def test_load_config():
     assert config.recognizer.energy_threshold == 400
     assert config.assistant_id is not None
     assert config.mongo_dsn is not None
-
-    print(config.mongo_dsn)
