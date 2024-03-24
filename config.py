@@ -1,7 +1,22 @@
 from pydantic import BaseModel
-from typing import Dict, List
+from typing import Dict, List, Type, Tuple
 from pydantic_yaml import parse_yaml_raw_as
+from pydantic.types import SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict, YamlConfigSettingsSource, PydanticBaseSettingsSource
+from glob import glob
 
+
+def sort_config_files(files):
+    def key_func(file: str):
+        return (not file.startswith('.'), file.count('.'))
+
+    return sorted(files, key=key_func)
+    
+yaml_files = glob('config*.yml')
+yaml_files = sort_config_files(yaml_files)
+
+env_files = glob('*.env') + glob('.env')
+env_files = sort_config_files(env_files)
 
 class RecognizerConfig(BaseModel):
     energy_threshold: int = 400
@@ -22,7 +37,8 @@ class StudentConfig(BaseModel):
         return self.name
 
 
-class Config(BaseModel):
+class Config(BaseSettings):
+    model_config = SettingsConfigDict(yaml_file=yaml_files, env_file=env_files, env_prefix="AICOACH_")
     name: str = "AICoach"
     replay_folder: str
     instant_leave_max: int = 60
@@ -35,6 +51,8 @@ class Config(BaseModel):
     oww_sensitivity: float = 0.7
 
     student: StudentConfig
+
+    assistant_id: SecretStr
 
     gpt_model: str = "gpt-3.5-turbo"
 
@@ -84,9 +102,18 @@ class Config(BaseModel):
     }
 
     db_name: str = "SC2"
+    mongo_user: SecretStr
+    mongo_pass: SecretStr
+    mongo_host: SecretStr
 
 
-with open("config.yml") as f:
-    config_yml = f.read()
-
-config: Config = parse_yaml_raw_as(Config, config_yml)
+    @classmethod
+    def settings_customise_sources(cls,
+        settings_cls: Type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> Tuple[PydanticBaseSettingsSource, ...]:
+        return (init_settings, env_settings, dotenv_settings, file_secret_settings, YamlConfigSettingsSource(settings_cls),)
+#config: Config = Config()
