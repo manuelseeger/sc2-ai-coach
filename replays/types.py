@@ -5,6 +5,7 @@ from config import config
 from .util import time2secs
 from enum import Enum
 from pyodmongo import DbModel
+from bson.binary import Binary
 
 
 def convert_to_nested_structure(d: dict):
@@ -243,3 +244,22 @@ class Metadata(DbModel):
     tags: List[str] | None = None
     conversation: List[AssistantMessage] | None = None
     _collection: ClassVar = "replays.meta"
+
+from typing import Any
+import pydantic
+from typing_extensions import Annotated
+import bson
+
+
+def _to_bson_binary(value: Any) -> bson.Binary:
+    return value if isinstance(value, bson.Binary) else bson.Binary(value)
+
+BsonBinary = Annotated[
+    bson.Binary, pydantic.PlainValidator(_to_bson_binary)
+]
+
+class PlayerInfo(DbModel):
+    name: str = None
+    toon_handle: str = None
+    portrait: BsonBinary | None = None
+    _collection: ClassVar = "replays.players"
