@@ -1,0 +1,10 @@
+Please extract keywords that characterize the game. Focus on the essentials. Give me the keywords comma-separated.
+        
+Important to include are tech choices. Do no include generic terms like "aggression" or "macro" or terms which can be 
+read from the main replay like the player name or race.
+
+Examples: 
+
+"reaper opening, 3cc, 2-1-1"
+"adept opening, early 3rd base, glaive timing, smurf"
+"stargate, oracle, 3rd base, blink stalkers"

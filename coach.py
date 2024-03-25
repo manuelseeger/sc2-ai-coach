@@ -11,7 +11,6 @@ from aicoach import AICoach, Transcriber, get_prompt
 from obs_tools.wake import WakeWordListener
 from obs_tools.parse_map_loading_screen import (
     LoadingScreenScanner,
-    rename_file,
     get_map_stats,
 )
 from obs_tools.mic import Microphone
@@ -20,11 +19,8 @@ from Levenshtein import distance as levenshtein
 from replays import NewReplayScanner
 from replays.types import Replay
 from obs_tools.rich_log import TwitchObsLogHandler
-from replays.types import Metadata, AssistantMessage
-from replays.db import replaydb, eq
-
-from openai.types.beta.threads.thread_message import ThreadMessage
-
+from replays.db import replaydb
+from replays.metadata import safe_replay_summary
 
 log = logging.getLogger(config.name)
 log.setLevel(logging.INFO)
@@ -243,47 +239,8 @@ class AISession:
                 mic.say("I'll save a summary of the game.")
                 self.update_last_replay(replay)
 
-                messages: list[ThreadMessage] = self.coach.get_conversation()
-
-                summary = self.chat(
-                    "Can you please summarize the game in one paragraph? Make sure to mention tech choices, timings, but keep it short."
-                )
-
-                tags = self.chat(
-                    """Please extract keywords that characterize the game. Focus on the essentials. Give me the keywords comma-separated.
-                    
-                    Important to include are tech choices. Do no include generic terms like "aggression" or "macro" or terms which can be 
-                    read from the main replay like the player name or race.
-                    
-                    Examples: 
-                    
-                    "reaper opening, 3cc, 2-1-1"
-                    "adept opening, early 3rd base, glaive timing"
-                    "stargate, oracle, 3rd base, blink stalkers"
-                    """
-                )
-
-                try:
-                    tags = [t.strip() for t in tags.split(",")]
-                except:
-                    log.warn("Assistant gave us invalid tags")
-                    tags = []
-
-                meta: Metadata = Metadata(replay=replay.id, description=summary)
-                meta.tags = tags
-                meta.conversation = [
-                    AssistantMessage(
-                        role=m.role,
-                        text=m.content[0].text.value,
-                        created_at=datetime.fromtimestamp(m.created_at),
-                    )
-                    # skip the instruction message which includes the replay as JSON
-                    for m in messages[::-1][1:]
-                    if m.content[0].text.value
-                ]
-
-                replaydb.db.save(meta, query=eq(Metadata.replay, replay.id))
-
+                safe_replay_summary(replay, self.coach)
+                
                 self.close()
 
 
