@@ -5,7 +5,7 @@ import ast
 import json
 import logging
 from config import config
-from replays import db as replaydb
+from replays import replaydb
 from replays.types import Replay
 
 
