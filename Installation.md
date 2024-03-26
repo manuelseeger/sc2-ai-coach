@@ -24,3 +24,10 @@ Set MAX_JOBS=4 if less than 100Gb of RAM
 Needs a CUDA capabale NVidia GPU to run fast whisper. 
 
 conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
+
+
+## tesseract
+
+Install tesseract with language data. (Windows: https://github.com/UB-Mannheim/tesseract/wiki).
+If installed to non-default location adjust tessdata_dir in config.
+

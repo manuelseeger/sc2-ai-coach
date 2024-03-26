@@ -78,6 +78,8 @@ class Config(BaseSettings):
 
     screenshot: str = "obs/screenshots/_maploading.png"
 
+    tessdata_dir: str = "C:\\Program Files\\Tesseract-OCR\\tessdata"
+
     recognizer: RecognizerConfig = RecognizerConfig()
 
     season: int = 57
