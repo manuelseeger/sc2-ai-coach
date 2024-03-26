@@ -2,7 +2,7 @@ from datetime import datetime
 from replays.types import Replay, Metadata, AssistantMessage
 from replays.db import replaydb, eq
 from aicoach import AICoach, get_prompt
-from openai.types.beta.threads import ThreadMessage
+from openai.types.beta.threads import Message
 import logging
 from config import config
 import bson
@@ -14,7 +14,7 @@ log.setLevel(logging.INFO)
 
 def safe_replay_summary(replay: Replay, coach: AICoach):
 
-    messages: list[ThreadMessage] = coach.get_conversation()
+    messages: list[Message] = coach.get_conversation()
 
     summary = coach.chat(
         "Can you please summarize the game in one paragraph? Make sure to mention tech choices, timings, but keep it short."
