@@ -60,5 +60,4 @@ class Transcriber:
             chunk_length_s=30,
             batch_size=24,
         )
-        log.info("Transcription complete")
         return outputs

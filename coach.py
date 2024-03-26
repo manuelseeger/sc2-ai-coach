@@ -21,6 +21,8 @@ from replays.types import Replay
 from obs_tools.rich_log import TwitchObsLogHandler
 from replays.db import replaydb
 from replays.metadata import safe_replay_summary
+from replays.types import Role
+from rich.prompt import Prompt
 
 log = logging.getLogger(config.name)
 log.setLevel(logging.INFO)
@@ -36,7 +38,9 @@ one_file_handler = logging.FileHandler(
 )
 log.addHandler(handler)
 log.addHandler(one_file_handler)
-log.addHandler(TwitchObsLogHandler())
+
+obs_handler = TwitchObsLogHandler()
+log.addHandler(obs_handler)
 
 mic = Microphone()
 transcriber = Transcriber()
@@ -44,13 +48,17 @@ transcriber = Transcriber()
 
 @click.command()
 @click.option("--debug", is_flag=True, help="Debug mode")
-def main(debug):
+@click.option("-v", "--verbose", is_flag=True, help="Verbose mode: print voice input and responses to console")
+@click.option("-t", "-textmode", is_flag=True, help="Text mode: run without audio input/output")
+def main(debug, verbose, textmode):
     if debug:
         log.setLevel(logging.DEBUG)
         handler.setLevel(logging.DEBUG)
         log.debug("debugging on")
 
     session = AISession()
+    session.verbose = verbose
+    session.textmode = textmode
 
     listener = WakeWordListener("listener")
     listener.start()
@@ -98,6 +106,8 @@ class AISession:
     last_mmr: int = 3900
     thread_id: str = None
     last_rep_id: str = None
+    verbose: bool = False
+    textmode: bool = False
 
     def __init__(self):
         last_replay = replaydb.get_most_recent()
@@ -128,18 +138,37 @@ class AISession:
 
     def converse(self):
         while True:
-            log.info(">>>")
-            audio = mic.listen()
-            log.debug("Got voice input")
-            prompt = transcriber.transcribe(audio)
-            if prompt is None or "text" not in prompt or len(prompt["text"]) < 7:
-                continue
-            log.debug(prompt["text"])
+            if self.textmode:
+                prompt = {
+                    "text": Prompt.ask(">>>")
+                }
+            else:
+                audio = mic.listen()
+                log.debug("Got voice input")
+                prompt = transcriber.transcribe(audio)
+                if prompt is None or "text" not in prompt or len(prompt["text"]) < 7:
+                    continue
+                log.debug(prompt["text"])
+            
+            if self.verbose:
+                log.info(prompt["text"], extra={'role': Role.user})
+
             response = self.chat(prompt["text"])
-            log.debug(f"Response:\n{response}")
-            mic.say(response)
+            log.debug(response)
+
+            if self.verbose:
+                log.info(response, extra={'role': Role.assistant})
+            
+            self.say(response)
+
             if self.is_goodbye(response):
                 return True
+            
+    def say(self, message):
+        if self.textmode:
+            log.info(message, extra={'role': Role.assistant})
+        else:
+            mic.say(message)
 
     def close(self):
         self.thread_id = None
@@ -208,7 +237,7 @@ class AISession:
                 kw["map"], kw["opponent"], self.last_mmr
             )
             log.debug(f"Response: {response}")
-            mic.say(response)
+            self.say(response)
             done = self.converse()
             if done:
                 self.close()
@@ -222,7 +251,7 @@ class AISession:
             log.debug(prompt["text"])
             response = self.initiate_from_voice(prompt["text"])
             log.debug(f"Response: {response}")
-            mic.say(response)
+            self.say(response)
             done = self.converse()
             if done:
                 self.close()
@@ -233,7 +262,7 @@ class AISession:
             log.debug("New replay detected")
             response = self.initiate_from_new_replay(replay)
             log.debug(f"Response: {response}")
-            mic.say(response)
+            self.say(response)
             done = self.converse()
             if done:
                 mic.say("I'll save a summary of the game.")

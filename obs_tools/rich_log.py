@@ -57,6 +57,7 @@ def get_emoji(name: str, funcName: str) -> str:
 
 
 class TwitchObsLogHandler(Handler):
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._last = None
@@ -73,6 +74,12 @@ class TwitchObsLogHandler(Handler):
         self._last = record.msg
 
         emoji = get_emoji(record.name, record.funcName)
+
+        if hasattr(record, "role"):
+            if record.role == "assistant":
+                emoji = Emojis.aicoach
+            else:
+                emoji = Emojis.mic
 
         if self.is_status(record):
             self.set_status(record)
