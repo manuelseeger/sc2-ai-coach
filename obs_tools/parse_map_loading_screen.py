@@ -1,4 +1,3 @@
-import pytesseract
 import cv2
 from bs4 import BeautifulSoup
 import requests
@@ -14,12 +13,11 @@ from blinker import signal
 from config import config
 import logging
 from obs_tools.sc2client import sc2client
+import tesserocr
+from PIL import Image
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
-pytesseract.pytesseract.tesseract_cmd = (
-    r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
-)
 cvflags = None
 
 # portrait size
@@ -46,22 +44,32 @@ def is_student(player_name: str) -> bool:
     return player_name.strip().lower() == config.student.name.lower()
 
 
-def parse_map_loading_screen(filename):
+def cv2_to_image(cv2_image: numpy.ndarray) -> Image.Image:
+    return Image.fromarray(cv2.cvtColor(cv2_image, cv2.COLOR_BGR2RGB))
+
+def parse_map_loading_screen(filename: str) -> tuple[str, str, str, numpy.ndarray]:
     image = cv2.imread(filename, flags=cvflags)
 
     if type(image) is not numpy.ndarray:
         return None
 
-    x, y, w, h = 940, 900, 670, 100
-    ROI = image[y : y + h, x : x + w]
-    mapname = pytesseract.image_to_string(ROI, lang="eng")
-    x, y, w, h = 333, 587, 276, 40
-    ROI = image[y : y + h, x : x + w]
-    player_left = pytesseract.image_to_string(ROI, lang="eng")
-    x, y, w, h = 1953, 587, 276, 40
-    ROI = image[y : y + h, x : x + w]
-    player_right = pytesseract.image_to_string(ROI, lang="eng")
+    with tesserocr.PyTessBaseAPI(path=config.tessdata_dir) as tess:
+        x, y, w, h = 940, 900, 670, 100
+        ROI = image[y : y + h, x : x + w]
+        tess.SetImage(cv2_to_image(ROI))
+        mapname = tess.GetUTF8Text()
 
+        x, y, w, h = 333, 587, 276, 40
+        ROI = image[y : y + h, x : x + w]
+        tess.SetImage(cv2_to_image(ROI))
+        player_left = tess.GetUTF8Text()
+        
+        x, y, w, h = 1953, 587, 276, 40
+        ROI = image[y : y + h, x : x + w]
+        tess.SetImage(cv2_to_image(ROI))
+        player_right = tess.GetUTF8Text()
+        
+        
     opponent_portrait = None
     if is_student(player_left):
         opponent_portrait = get_right_portrait(image)

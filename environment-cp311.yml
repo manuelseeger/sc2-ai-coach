@@ -18,7 +18,7 @@ dependencies:
   - pytest-mock
   - tiktoken
   - rich
-  - pytesseract
+  - simonflueckiger::tesserocr
   - beautifulsoup4
   - python-levenshtein
   - onnxruntime

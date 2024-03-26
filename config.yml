@@ -23,6 +23,8 @@ gpt_model: "gpt-4-1106-preview"
 speech_recognition_model: "openai/whisper-large-v3"
 # relative path to screenshot file which OBS takes when the map is loading
 screenshot: "obs/screenshots/_maploading.png"
+# Where tesserocr should look for the tesseract data
+tessdata_dir: "C:\\Program Files\\Tesseract-OCR\\tessdata"
 # Configure speech recognition from microphone
 recognizer:
   # minimum audio energy to consider for recording
