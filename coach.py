@@ -1,19 +1,15 @@
-from dotenv import load_dotenv
-
-load_dotenv()
 import os
 import click
 from time import sleep
 from datetime import datetime
 import logging
 from blinker import signal
-from aicoach import AICoach, Transcriber, get_prompt
-from obs_tools.wake import WakeWordListener
+from aicoach import AICoach, get_prompt
 from obs_tools.parse_map_loading_screen import (
     LoadingScreenScanner,
     get_map_stats,
 )
-from obs_tools.mic import Microphone
+
 from config import config
 from Levenshtein import distance as levenshtein
 from replays import NewReplayScanner
@@ -42,14 +38,14 @@ log.addHandler(one_file_handler)
 obs_handler = TwitchObsLogHandler()
 log.addHandler(obs_handler)
 
-mic = Microphone()
-transcriber = Transcriber()
+mic = None
+transcriber = None
 
 
 @click.command()
 @click.option("--debug", is_flag=True, help="Debug mode")
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode: print voice input and responses to console")
-@click.option("-t", "-textmode", is_flag=True, help="Text mode: run without audio input/output")
+@click.option("-t", "--textmode", is_flag=True, help="Text mode: run without audio input/output")
 def main(debug, verbose, textmode):
     if debug:
         log.setLevel(logging.DEBUG)
@@ -60,8 +56,18 @@ def main(debug, verbose, textmode):
     session.verbose = verbose
     session.textmode = textmode
 
-    listener = WakeWordListener("listener")
-    listener.start()
+    if not textmode:
+        from obs_tools.mic import Microphone
+        from aicoach import Transcriber
+        from obs_tools.wake import WakeWordListener
+
+        global mic
+        mic = Microphone()
+        global transcriber
+        transcriber = Transcriber()
+
+        listener = WakeWordListener("listener")
+        listener.start()
 
     scanner = LoadingScreenScanner("scanner")
     scanner.start()

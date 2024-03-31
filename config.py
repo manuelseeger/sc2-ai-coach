@@ -14,7 +14,7 @@ from pydantic.networks import UrlConstraints
 from pydantic_core import MultiHostUrl, Url
 
 # https://github.com/pydantic/pydantic/pull/7116
-MongoSRVDsn = Annotated[MultiHostUrl, UrlConstraints(allowed_schemes=["mongodb+srv"])]
+MongoSRVDsn = Annotated[MultiHostUrl, UrlConstraints(allowed_schemes=["mongodb+srv", "mongodb"])]
 
 
 def sort_config_files(files):
