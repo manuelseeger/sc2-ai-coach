@@ -8,10 +8,10 @@ import logging
 from time import sleep
 from datetime import datetime
 import onnxruntime
+from .types import WakeResult
 
 onnxruntime.set_default_logger_severity(3)
 
-log = logging.getLogger(config.name)
 log = logging.getLogger(f"{config.name}.{__name__}")
 
 FORMAT = pyaudio.paInt16
@@ -57,6 +57,6 @@ class WakeWordListener(threading.Thread):
                 if (datetime.now() - last_score_timestamp).seconds > 5:
                     last_score_timestamp = datetime.now()
                     log.info(f"Model woke up with a score of {score:.2f}")
-                    wakeup.send(self)
+                    wakeup.send(self, wakeresult=WakeResult(awake=True))
                     owwModel.reset()
                     sleep(5)
