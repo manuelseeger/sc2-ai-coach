@@ -2,14 +2,16 @@ db = db.getSiblingDB('admin');
 
 db.auth(process.env['MONGO_INITDB_ROOT_USERNAME'], process.env['MONGO_INITDB_ROOT_PASSWORD']);
 
-db = db.getSiblingDB('SC2');
+db = db.getSiblingDB(process.env['DB_NAME']);
 
 db.createUser({
 'user': process.env['DBOWNER_USERNAME'],
 'pwd': process.env['DBOWNER_PASSWORD'],
 'roles': [{
     'role': 'dbOwner',
-    'db': 'SC2'}]});
+    'db': process.env['DB_NAME']}
+]
+});
     
 db.createCollection('replays');
 db.createCollection('replays.meta');
