@@ -1,0 +1,2 @@
+open ../.env.production | from toml | load-env
+mongoexport --db SC2 --collection replays --sort '{"unix_timestamp": -1}' --limit 100 --jsonArray --out ./mongo-seed/100_most_recent.json $env.AICOACH_MONGO_DSN
