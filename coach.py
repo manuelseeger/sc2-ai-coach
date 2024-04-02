@@ -5,12 +5,7 @@ from datetime import datetime
 import logging
 from blinker import signal
 from aicoach import AICoach, get_prompt
-from obs_tools.parse_map_loading_screen import (
-    LoadingScreenScanner,
-    get_map_stats,
-)
-
-from config import config
+from config import config, AudioMode
 from Levenshtein import distance as levenshtein
 from replays import NewReplayScanner
 from replays.types import Replay
@@ -19,7 +14,8 @@ from replays.db import replaydb
 from replays.metadata import safe_replay_summary
 from replays.types import Role
 from rich.prompt import Prompt
-from enum import Enum
+from obs_tools import GameStartedScanner, WakeListener
+from obs_tools.types import ScanResult, WakeResult
 
 rootlogger = logging.getLogger()
 for handler in rootlogger.handlers.copy():
@@ -32,6 +28,9 @@ rootlogger.addHandler(logging.NullHandler())
 log = logging.getLogger(config.name)
 log.propagate = False
 log.setLevel(logging.INFO)
+
+if not os.path.exists("logs"):
+    os.makedirs("logs")
 
 handler = logging.FileHandler(
     os.path.join("logs", f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-obs_watcher.log"),
@@ -51,12 +50,6 @@ mic = None
 transcriber = None
 
 
-class AudioMode(str, Enum):
-    text = "text"
-    voice_in = "in"
-    voice_out = "out"
-    full = "fullaudio"
-
 
 @click.command()
 @click.option("--debug", is_flag=True, help="Debug mode")
@@ -66,6 +59,7 @@ def main(debug, verbose, audiomode):
     if debug:
         log.setLevel(logging.DEBUG)
         handler.setLevel(logging.DEBUG)
+        obs_handler.setLevel(logging.DEBUG)
         log.debug("debugging on")
 
     session = AISession()
@@ -75,18 +69,12 @@ def main(debug, verbose, audiomode):
     if audiomode in [AudioMode.voice_in, AudioMode.full]:
         from obs_tools.mic import Microphone
         from aicoach import Transcriber
-        from obs_tools.wake import WakeWordListener
 
         global mic
         mic = Microphone()
         global transcriber
         transcriber = Transcriber()
 
-        listener = WakeWordListener("listener")
-        listener.start()
-        
-        wake = signal("wakeup")
-        wake.connect(session.handle_wake)
 
     if audiomode in [AudioMode.voice_out, AudioMode.full]:
         from obs_tools.tts import tts as tts_engine
@@ -95,12 +83,17 @@ def main(debug, verbose, audiomode):
         tts.feed("")
         tts.play_async()
     
-    scanner = LoadingScreenScanner("scanner")
+    listener = WakeListener(name="listener")
+    listener.start()
+
+    scanner = GameStartedScanner(name="scanner")
     scanner.start()
 
-    replay_scanner = NewReplayScanner("replay_scanner")
+    replay_scanner = NewReplayScanner(name="replay_scanner")
     replay_scanner.start()
 
+    wake = signal("wakeup")
+    wake.connect(session.handle_wake)
 
     loading_screen = signal("loading_screen")
     loading_screen.connect(session.handle_scanner)
@@ -180,12 +173,13 @@ class AISession:
                 log.debug(prompt["text"])
             else: 
                 prompt = {
-                    "text": Prompt.ask(">>>")
+                    "text": Prompt.ask(config.student.emoji)
                 }
             if self.verbose:
                 log.info(prompt["text"], extra={'role': Role.user})
 
             response = self.chat(prompt["text"])
+            log.info(response, extra={'role': Role.assistant})
 
             if self.is_goodbye(response):
                 return True
@@ -193,7 +187,13 @@ class AISession:
     def stream_thread(self):
         for message in self.coach.stream_thread():
             self.say(message)
-            
+
+    def chat(self, message: str) -> str:
+        buffer = ""
+        for response in self.coach.chat(message):
+            buffer += response
+            self.say(response)
+        return buffer
             
     def say(self, message):
         if self.audiomode in [AudioMode.text, AudioMode.voice_in]:
@@ -211,12 +211,6 @@ class AISession:
             return True
         else:
             return False
-
-    def initiate_from_voice(self, message: str) -> str:
-        self.coach.create_thread(message)
-        self.thread_id = self.coach.current_thread_id
-        run = self.coach.evaluate_run()
-        return self.coach.get_most_recent_message()
 
     def initiate_from_new_replay(self, replay: Replay) -> str:
         opponent = (
@@ -245,44 +239,33 @@ class AISession:
         self.thread_id = self.coach.current_thread_id
         
 
-    def chat(self, message: str):
-        for response in self.coach.chat(message):
-            self.say(response)
-
     def is_active(self):
         return self.thread_id is not None
 
-    def handle_scanner(self, sender, **kw):
-        log.debug(sender, kw)
+    def handle_scanner(self, sender, scanresult: ScanResult):
+        log.debug(sender, scanresult)
 
-        stats = None
-        while stats == None:
-            stats = get_map_stats(kw["map"])
-            sleep(0.1)
-
-        with open("obs/map_stats.html", "w") as f:
-            f.write(stats.prettify())
+        if scanresult.mapname:
+            #stats = get_map_stats(kw["map"])
+            #with open("obs/map_stats.html", "w") as f:
+            #    f.write(stats.prettify())
+            pass
 
         if not self.is_active():
-            response = self.initiate_from_scanner(
-                kw["map"], kw["opponent"], self.last_mmr
+            self.initiate_from_scanner(
+                scanresult.mapname, scanresult.opponent, self.last_mmr
             )
-            #log.debug(f"Response: {response}")
-            #self.say(response)
+            self.stream_thread()
             done = self.converse()
             if done:
                 self.close()
 
-    def handle_wake(self, sender, **kw):
+    def handle_wake(self, sender, wakeresult: WakeResult):
+        log.debug(sender)
         if not self.is_active():
-            log.debug("Listining for voice input")
-            audio = mic.listen()
-            log.debug("Got voice input:")
-            prompt = transcriber.transcribe(audio)
-            log.debug(prompt["text"])
-            response = self.initiate_from_voice(prompt["text"])
-            log.debug(f"Response: {response}")
-            self.say(response)
+            self.coach.create_thread()
+            self.thread_id = self.coach.current_thread_id
+
             done = self.converse()
             if done:
                 self.close()

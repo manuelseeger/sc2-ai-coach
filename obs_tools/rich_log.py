@@ -1,11 +1,12 @@
 import logging
-from rich import print
 from logging import LogRecord, Filterer, NOTSET, _checkLevel, _addHandlerRef, Handler
 from time import sleep
 from rich.console import Console
 from rich.status import Status
 from config import config
 from typing import Dict
+from pydantic import BaseModel
+from replays.types import Role
 
 console = Console()
 
@@ -13,9 +14,26 @@ console = Console()
 thinking_status = console.status("Thinking...", spinner="dots2")
 transcribing_status = console.status("Transcribing...", spinner="point")
 
-STATUS_METHODS: Dict[str, Status] = {
-    "wait_on_run": thinking_status,
-    "transcribe": transcribing_status,
+
+class LogStatus(Status):
+    name: str
+    buffer: str = ""
+    def __init__(self, status: str = "", spinner: str = "dots", name: str = None):
+        self.name = name
+        self.buffer = status
+        super().__init__(status, console=console, spinner=spinner)
+
+    def stream(self, message: str):
+        self.buffer += message
+        self.update(self.buffer)
+
+
+
+STATUS_METHODS: Dict[str, LogStatus] = {
+    "converse": LogStatus(name="converse"),
+    "transcribe":  LogStatus(name="transcribe"),
+    "playrich": LogStatus(name="playrich"),
+    "say": LogStatus(name="play"),
 }
 
 
@@ -25,7 +43,7 @@ class Emojis:
     warning: str = ":warning:"
     error: str = ":x:"
     critical: str = ":skull:"
-    aicoach: str = ":alien_monster:"
+    aicoach: str = ":robot_face:"
     mic: str = ":microphone:"
     loading_screen: str = ":tv:"
     replay: str = ":videocassette:"
@@ -81,12 +99,11 @@ class TwitchObsLogHandler(Handler):
             else:
                 emoji = Emojis.mic
 
-        if hasattr(record, "flush"):
-            flush = record.flush
-        else:
-            flush = False
+        flush = getattr(record, "flush", False)
 
-        if self.is_status(record):
+        if self.check_stop(record):
+            self.stop_statuses()
+        elif self.is_status(record):
             self.set_status(record)
             self.fqn = self.get_fqn(record.name, record.funcName)
             return
@@ -111,14 +128,25 @@ class TwitchObsLogHandler(Handler):
         else:
             console.print(f"{emoji} {message}")
 
+    def check_stop(self, record: LogRecord) -> bool:
+        for status in STATUS_METHODS.values():
+            if status.status == record.msg:
+                return True
+        return False
+    
     def set_status(self, record: LogRecord) -> None:
-        self.stop_statuses()
+
         if self.fqn != self.get_fqn(record.name, record.funcName):
+            self.stop_statuses()
             STATUS_METHODS[record.funcName].start()
+            STATUS_METHODS[record.funcName].stream(record.msg)
+        else:
+            STATUS_METHODS[record.funcName].stream(record.msg)
 
     def stop_statuses(self):
         for status in STATUS_METHODS.values():
             status.stop()
+            status.buffer = ""
 
     def get_status(self, record: LogRecord) -> Status:
         if record.funcName in STATUS_METHODS.keys():
@@ -128,15 +156,10 @@ class TwitchObsLogHandler(Handler):
     def is_status(self, record: LogRecord) -> bool:
         if record.funcName in STATUS_METHODS.keys():
             return True
+        
+        role = getattr(record, "role", None)
+        flush = getattr(record, "flush", False)
+
+        if flush and role == Role.assistant:
+            return True
         return False
-
-
-if __name__ == "__main__":
-    log = logging.getLogger("twitch")
-    log.setLevel(logging.DEBUG)
-    log.addHandler(TwitchObsLogHandler())
-
-    log.info("I am Thinking")
-
-    sleep(4)
-    log.info("Stopped thinking")
