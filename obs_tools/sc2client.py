@@ -1,11 +1,11 @@
 import requests
-from pydantic import BaseModel
-from typing import List
-from enum import Enum
 from pydantic_core import ValidationError
 from time import time, sleep
 import logging
 from config import config
+import threading
+from blinker import signal
+from .types import ScanResult, GameInfo, Result
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -16,56 +16,6 @@ race_map = {
     "random": "RANDOM",
 }
 
-
-class Race(str, Enum):
-    terran = "Terr"
-    protoss = "Prot"
-    zerg = "Zerg"
-    random = "random"
-
-
-class Result(str, Enum):
-    win = "Victory"
-    loss = "Defeat"
-    undecided = "Undecided"
-    tie = "Tie"
-
-
-class Player(BaseModel):
-    id: int
-    name: str
-    type: str
-    race: Race
-    result: Result
-
-
-class GameInfo(BaseModel):
-    """
-    {
-        isReplay: false,
-        displayTime: 93,
-        players: [
-            {
-                id: 1,
-                name: "Owlrazum",
-                type: "user",
-                race: "Terr",
-                result: "Undecided"
-            },
-            {
-                id: 2,
-                name: "zatic",
-                type: "user",
-                race: "Zerg",
-                result: "Undecided"
-            }
-        ]
-    }
-    """
-
-    isReplay: bool
-    displayTime: float
-    players: List[Player]
 
 
 class SC2Client:
@@ -97,9 +47,53 @@ class SC2Client:
                 return gameinfo
             sleep(delay)
         return None
+    
+    def get_ongoing_gameinfo(self) -> GameInfo: 
+        gameinfo = self.get_gameinfo()
+        if gameinfo and gameinfo.displayTime > 0 and gameinfo.players[0].result != Result.undecided:
+            return gameinfo
+        return None
 
 
 sc2client = SC2Client()
+
+class ClientAPIScanner(threading.Thread):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+        self._stop_event = threading.Event()
+
+    def stop(self):
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
+
+    def run(self):
+        self.scan_client_api()
+
+    def scan_client_api(self):
+        log.debug("Starting game client scanner")
+        loading_screen = signal("loading_screen")
+        while True:
+            if self.stopped():
+                log.debug("Stopping game client scanner")
+                break
+
+            gameinfo = sc2client.get_ongoing_gameinfo()
+
+            if gameinfo is not None:
+
+                opponent = sc2client.get_opponent_name(gameinfo)
+                mapname = ""
+
+                scanresult = ScanResult(mapname=mapname, opponent=opponent)
+
+                loading_screen.send(
+                    self,
+                    scanresult
+                )
+            sleep(1)
 
 if __name__ == "__main__":
     print(GameInfo.model_json_schema())

@@ -15,6 +15,7 @@ import logging
 from obs_tools.sc2client import sc2client
 import tesserocr
 from PIL import Image
+from .types import ScanResult
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -210,10 +211,7 @@ class LoadingScreenScanner(threading.Thread):
                 rename_file(config.screenshot, new_name)
                 save_portrait(opponent_portrait, new_name)
 
+                scanresult = ScanResult(mapname=map, opponent=opponent)
                 loading_screen.send(
-                    self,
-                    map=map,
-                    student=config.student,
-                    opponent=opponent,
-                    new_name=new_name,
+                    self,scanresult=scanresult
                 )
