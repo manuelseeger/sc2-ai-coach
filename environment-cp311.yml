@@ -42,3 +42,4 @@ dependencies:
       - pydantic-yaml
       #- flash_attn # https://pypi.org/project/flash-attn/
       - pyodmongo
+      - RealtimeTTS

@@ -81,6 +81,11 @@ class TwitchObsLogHandler(Handler):
             else:
                 emoji = Emojis.mic
 
+        if hasattr(record, "flush"):
+            flush = record.flush
+        else:
+            flush = False
+
         if self.is_status(record):
             self.set_status(record)
             self.fqn = self.get_fqn(record.name, record.funcName)
@@ -94,14 +99,17 @@ class TwitchObsLogHandler(Handler):
         else:
             msg = record.msg
 
-        self.print(msg, emoji=emoji)
+        self.print(msg, emoji=emoji, flush=flush)
         self.fqn = self.get_fqn(record.name, record.funcName)
 
     def get_fqn(self, name: str, funcName: str):
         return f"{name}.{funcName}"
 
-    def print(self, message, emoji=Emojis.aicoach):
-        console.print(f"{emoji} {message}")
+    def print(self, message, emoji=Emojis.aicoach, flush: bool = False):
+        if flush:
+            console.print(f"{message}", end="")
+        else:
+            console.print(f"{emoji} {message}")
 
     def set_status(self, record: LogRecord) -> None:
         self.stop_statuses()
