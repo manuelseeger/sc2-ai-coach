@@ -22,8 +22,7 @@ The GPT assistant behind AI coach can use mulitple high level capabilities like 
 Please understand that this is a hobby project and not ready to run without some technical setup. You will need Python experience to get this running. This code is presented as-is and I can't provide support for it.
 
 Prerequisites:
-
-- A GPT4 account (API access)
+- An OpenAI API account with credits
 - MongoDB for replays
 - A NVidia GPU
 - A microphone
@@ -33,6 +32,28 @@ Configure environment variables to point to your OpenAI accounts and MongoDB.
 Adjust config.yml with your personal details or add your own config.custom.yml to overwrite default settings.
 
 [parse_map_loading_screen.py](obs_tools/parse_map_loading_screen.py) needs you to setup OBS to take a screenshot when the maploading screen is showing in SC2. This is done to read the opponents name. It's possible to adjust the code to skip this but this needs some coding.
+
+### Replay DB
+
+AICoach relies on a MongoDB with replays to gain information from. Fire up a local DB for development from [mongodb/](./mongodb/).
+
+Use [repcli.py](repcli.py) to populate the DB. 
+
+```sh
+python repcli.py sync --from=2024-01-01
+```
+to push all replays from 2024 forward to the DB. 
+
+```sh
+python repcli.py --help
+```
+for more options.
+
+## Limitations
+
+Probably a lot...
+
+This is meant for competitives 1v1 ladder. Team games, arcade, customs are not supported and explicidely excluded from all replay processing.
 
 ## SC2 map stats
 
