@@ -1,0 +1,23 @@
+name: aicoach311
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - conda-forge::pydantic=2.6
+  - conda-forge::pydantic-settings
+  - requests
+  - click
+  - pymongo
+  - conda-forge::openai
+  - pytest
+  - pytest-mock
+  - tiktoken
+  - rich
+  - python-levenshtein
+  - blinker
+  - pip
+  - pip:
+      - sc2reader
+      - spawningtool
+      - pydantic-yaml
+      - pyodmongo

@@ -7,9 +7,7 @@ dependencies:
   - conda-forge::pydantic=2.6
   - conda-forge::pydantic-settings
   - requests
-  - python-dotenv
   - click
-  - pyyaml
   - pymongo
   - numpy
   - pandas
@@ -38,8 +36,7 @@ dependencies:
       - accelerate
       - transformers
       - SpeechRecognition
-      - pyttsx3
       - pydantic-yaml
       #- flash_attn # https://pypi.org/project/flash-attn/
       - pyodmongo
-      - RealtimeTTS
+      #- RealtimeTTS # install manually as it downgrades openai
