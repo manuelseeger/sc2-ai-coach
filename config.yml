@@ -4,27 +4,18 @@ replay_folder: "C:\\Users\\student\\Documents\\StarCraft II\\Accounts\\123456756
 # Game shorter than this will be ignored and the replays deleted
 instant_leave_max: 50
 # Look for new replays every X seconds
-deamon_polling_rate: 10
+deamon_polling_rate: 1
+
+# Audiomode, one of "fullaudio", "text", "in", "out"
+audiomode: "fullaudio"
 # Index of the audio device as returned by pyaudio
 microphone_index: 2
 # Which model to use from openwakeword
 oww_model: "hey_jarvis"
 # Sensitivity of the wake word
 oww_sensitivity: 0.7
-# Configure the "student" - the player using AI coach
-student:
-  name: "studentname"
-  race: "Zerg"
-  # URL pointing to your public sc2replaystats profile's map stats 
-  sc2replaystats_map_url: "https://sc2replaystats.com/account/maps/12345/0/1234567/1v1/AutoMM"
-# which GPT model to use for OpenAI Assistant API
-gpt_model: "gpt-4-1106-preview"
 # which speech recognition model to use from huggingface speech-to-text
 speech_recognition_model: "openai/whisper-large-v3"
-# relative path to screenshot file which OBS takes when the map is loading
-screenshot: "obs/screenshots/_maploading.png"
-# Where tesserocr should look for the tesseract data
-tessdata_dir: "C:\\Program Files\\Tesseract-OCR\\tessdata"
 # Configure speech recognition from microphone
 recognizer:
   # minimum audio energy to consider for recording
@@ -35,6 +26,26 @@ recognizer:
   phrase_threshold: 0.3
   # seconds of non-speaking audio to keep on both sides of the recording
   non_speaking_duration: 0.2
+# Hotkey to call up the AI coach prompt when run in text-in mode
+wake_key: "ctrl+alt+w"
+
+# Configure the "student" - the player using AI coach
+student:
+  name: "studentname"
+  race: "Zerg"
+  # Emoji to represent the studen in output
+  emoji: ":man_technologist:"
+  # URL pointing to your public sc2replaystats profile's map stats 
+  sc2replaystats_map_url: "https://sc2replaystats.com/account/maps/12345/0/1234567/1v1/AutoMM"
+
+# Integration with OBS; Faster detection of new game started but requires manual OBS setup
+obs_integration: False
+# which GPT model to use for OpenAI Assistant API
+gpt_model: "gpt-4-1106-preview"
+# relative path to screenshot file which OBS takes when the map is loading
+screenshot: "obs/screenshots/_maploading.png"
+# Where tesserocr should look for the tesseract data
+tessdata_dir: "C:\\Program Files\\Tesseract-OCR\\tessdata"
 # Current ladder season
 season: 58
 # Maps in the current ladder pool

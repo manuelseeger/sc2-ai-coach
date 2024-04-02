@@ -12,6 +12,7 @@ from typing import Annotated
 from glob import glob
 from pydantic.networks import UrlConstraints
 from pydantic_core import MultiHostUrl, Url
+from enum import Enum
 
 # https://github.com/pydantic/pydantic/pull/7116
 MongoSRVDsn = Annotated[MultiHostUrl, UrlConstraints(allowed_schemes=["mongodb+srv", "mongodb"])]
@@ -32,6 +33,13 @@ env_files = sort_config_files(env_files)
 env_files.remove(".env.example")
 
 
+
+class AudioMode(str, Enum):
+    text = "text"
+    voice_in = "in"
+    voice_out = "out"
+    full = "fullaudio"
+
 class RecognizerConfig(BaseModel):
     energy_threshold: int = 400
     pause_threshold: float = 0.5
@@ -43,6 +51,7 @@ class StudentConfig(BaseModel):
     name: str
     race: str
     sc2replaystats_map_url: Url
+    emoji: str = ":man_technologist:"
 
     def __repr__(self) -> str:
         return self.name
@@ -60,27 +69,24 @@ class Config(BaseSettings):
     instant_leave_max: int = 60
     deamon_polling_rate: int = 10
 
+    audiomode: AudioMode = AudioMode.full
     microphone_index: int = 2
-
     oww_model: str = "hey_jarvis"
-
     oww_sensitivity: float = 0.7
+    speech_recognition_model: str
+    recognizer: RecognizerConfig = RecognizerConfig()
+    wake_key: str = "ctrl+alt+w"
 
     student: StudentConfig
 
     openai_api_key: str
     openai_org_id: str
     assistant_id: str
-
     gpt_model: str = "gpt-3.5-turbo"
 
-    speech_recognition_model: str
-
+    obs_integration: bool = False
     screenshot: str = "obs/screenshots/_maploading.png"
-
     tessdata_dir: str = "C:\\Program Files\\Tesseract-OCR\\tessdata"
-
-    recognizer: RecognizerConfig = RecognizerConfig()
 
     season: int = 57
 
