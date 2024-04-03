@@ -22,10 +22,12 @@ def safe_replay_summary(replay: Replay, coach: AICoach):
 
     prompt = get_prompt("prompt_tags.txt", {})
 
-    tags = coach.chat(prompt)
+    tags_raw = ""
+    for token in coach.chat(prompt):
+        tags_raw += token
 
     try:
-        tags = [t.strip() for t in tags.split(",")]
+        tags = [t.strip() for t in tags_raw.split(",")]
     except:
         log.warn("Assistant gave us invalid tags")
         tags = []
