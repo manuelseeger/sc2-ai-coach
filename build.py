@@ -1,17 +1,11 @@
 from aicoach.functions import AIFunctions
 import os
-from dotenv import load_dotenv
 import json
 import tiktoken
 from rich import print, print_json
 from config import config
 import requests
 import click
-
-load_dotenv()
-
-ASSISTANT_ID = os.environ["ASSISTANT_ID"]
-OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 
 
 @click.command()
@@ -50,13 +44,13 @@ def main(do_deploy):
 
 def deploy(assistant):
     with requests.Session() as s:
-        url = f"https://api.openai.com/v1/assistants/{ASSISTANT_ID}"
+        url = f"https://api.openai.com/v1/assistants/{config.assistant_id}"
         r = s.post(
             url,
             headers={
                 "Content-Type": "application/json",
                 "OpenAI-Beta": "assistants=v1",
-                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Authorization": f"Bearer {config.openai_api_key}",
             },
             data=json.dumps(assistant, indent=2),
         )
