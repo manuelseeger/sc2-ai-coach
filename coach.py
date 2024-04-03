@@ -50,11 +50,19 @@ mic = None
 transcriber = None
 
 
-
 @click.command()
 @click.option("--debug", is_flag=True, help="Debug mode")
-@click.option("-v", "--verbose", is_flag=True, help="Verbose mode: print voice input and responses to console")
-@click.option("--audiomode", type=click.Choice(AudioMode, case_sensitive=False), help="Run with/without audio input/output")
+@click.option(
+    "-v",
+    "--verbose",
+    is_flag=True,
+    help="Verbose mode: print voice input and responses to console",
+)
+@click.option(
+    "--audiomode",
+    type=click.Choice(AudioMode, case_sensitive=False),
+    help="Run with/without audio input/output",
+)
 def main(debug, verbose, audiomode):
     if debug:
         log.setLevel(logging.DEBUG)
@@ -63,26 +71,28 @@ def main(debug, verbose, audiomode):
         log.debug("debugging on")
 
     session = AISession()
+
+    audiomode = config.audiomode
     session.verbose = verbose
     session.audiomode = audiomode
 
     if audiomode in [AudioMode.voice_in, AudioMode.full]:
         from obs_tools.mic import Microphone
-        from aicoach import Transcriber
+        from aicoach.transcribe import Transcriber
 
         global mic
         mic = Microphone()
         global transcriber
         transcriber = Transcriber()
 
-
     if audiomode in [AudioMode.voice_out, AudioMode.full]:
         from obs_tools.tts import tts as tts_engine
+
         global tts
         tts = tts_engine
         tts.feed("")
         tts.play_async()
-    
+
     listener = WakeListener(name="listener")
     listener.start()
 
@@ -158,8 +168,8 @@ class AISession:
         self.thread_id = self.coach.current_thread_id
 
         self.coach.stream_thread()
-        #log.info(message, extra={'role': Role.assistant})
-        
+        # log.info(message, extra={'role': Role.assistant})
+
         return
 
     def converse(self):
@@ -171,19 +181,17 @@ class AISession:
                 if prompt is None or "text" not in prompt or len(prompt["text"]) < 7:
                     continue
                 log.debug(prompt["text"])
-            else: 
-                prompt = {
-                    "text": Prompt.ask(config.student.emoji)
-                }
+            else:
+                prompt = {"text": Prompt.ask(config.student.emoji)}
             if self.verbose:
-                log.info(prompt["text"], extra={'role': Role.user})
+                log.info(prompt["text"], extra={"role": Role.user})
 
             response = self.chat(prompt["text"])
-            log.info(response, extra={'role': Role.assistant})
+            log.info(response, extra={"role": Role.assistant})
 
             if self.is_goodbye(response):
                 return True
-            
+
     def stream_thread(self):
         for message in self.coach.stream_thread():
             self.say(message)
@@ -194,11 +202,11 @@ class AISession:
             buffer += response
             self.say(response)
         return buffer
-            
+
     def say(self, message):
         if self.audiomode in [AudioMode.text, AudioMode.voice_in]:
             log.info(message, extra={"role": Role.assistant, "flush": True})
-        else: 
+        else:
             if self.verbose:
                 log.info(message, extra={"role": Role.assistant, "flush": True})
             tts.feed(message)
@@ -237,7 +245,6 @@ class AISession:
 
         self.coach.create_thread(prompt)
         self.thread_id = self.coach.current_thread_id
-        
 
     def is_active(self):
         return self.thread_id is not None
@@ -246,8 +253,8 @@ class AISession:
         log.debug(sender, scanresult)
 
         if scanresult.mapname:
-            #stats = get_map_stats(kw["map"])
-            #with open("obs/map_stats.html", "w") as f:
+            # stats = get_map_stats(kw["map"])
+            # with open("obs/map_stats.html", "w") as f:
             #    f.write(stats.prettify())
             pass
 
@@ -282,7 +289,7 @@ class AISession:
                 self.update_last_replay(replay)
 
                 safe_replay_summary(replay, self.coach)
-                
+
                 self.close()
 
 
