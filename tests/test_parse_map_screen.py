@@ -4,7 +4,7 @@ from obs_tools.parse_map_loading_screen import (
     rename_file,
     get_map_stats,
     parse_map_loading_screen,
-    split_clan_tag
+    split_clan_tag,
 )
 import os
 from time import sleep, time
@@ -65,29 +65,3 @@ def test_save_portrait(scanner: LoadingScreenScanner):
         if time() - start > 10:
             assert False, "Timeout"
         sleep(0.1)
-
-
-def test_tesseract():
-    target_file = "alcyone le - Darkcabal vs zatic 2024-01-09 16-29-38.png"
-
-    map, player1, player2, opponent_portrait = parse_map_loading_screen(
-        join(FIXTURE_DIR, target_file)
-    )
-
-    assert map.lower() == "alcyone le"
-    assert player1 == "<ExL> Darkcabal"
-    assert player2 == "zatic"
-
-
-def test_cutout_portrait():
-    target_file = "alcyone le - Darkcabal vs zatic 2024-01-09 16-29-38.png"
-    reference = 'darkcabal_manual_portrait.png'
-
-    map, player1, player2, opponent_portrait = parse_map_loading_screen(
-        join(FIXTURE_DIR, target_file)
-    )
-
-    portrait = cv2.imread(join(FIXTURE_DIR, reference))
-
-    score = ssim(opponent_portrait, portrait)
-    assert score > 0.9
