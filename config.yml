@@ -7,7 +7,7 @@ instant_leave_max: 50
 deamon_polling_rate: 1
 
 # Audiomode, one of "fullaudio", "text", "in", "out"
-audiomode: "fullaudio"
+audiomode: "text"
 # Index of the audio device as returned by pyaudio
 microphone_index: 2
 # Which model to use from openwakeword
@@ -33,9 +33,9 @@ wake_key: "ctrl+alt+w"
 student:
   name: "studentname"
   race: "Zerg"
-  # Emoji to represent the studen in output
+  # Emoji to represent the student in output
   emoji: ":man_technologist:"
-  # URL pointing to your public sc2replaystats profile's map stats 
+  # URL pointing to your public sc2replaystats profile's map stats
   sc2replaystats_map_url: "https://sc2replaystats.com/account/maps/12345/0/1234567/1v1/AutoMM"
 
 # Integration with OBS; Faster detection of new game started but requires manual OBS setup
@@ -47,18 +47,18 @@ screenshot: "obs/screenshots/_maploading.png"
 # Where tesserocr should look for the tesseract data
 tessdata_dir: "C:\\Program Files\\Tesseract-OCR\\tessdata"
 # Current ladder season
-season: 58
+season: 59
 # Maps in the current ladder pool
 ladder_maps:
-  - hecate le
-  - oceanborn le
-  - solaris le
-  - hard lead le
-  - radhuset station le
-  - site delta le
-  - equilibrium le
-  - goldenaura le
-  - alcyone le
+  - Goldenaura LE
+  - Site Delta LE
+  - Oceanborn LE
+  - Post-Youth LE
+  - Amphion LE
+  - Crimson Court LE
+  - Dynasty LE
+  - Alcyone LE
+  - Ghost River LE
 # Configure which replay fields to include per default when reading replays
 default_projection:
   _id: 1
