@@ -1,4 +1,5 @@
 import requests
+from requests.exceptions import ConnectionError
 from pydantic_core import ValidationError
 from time import time, sleep
 import logging
@@ -17,17 +18,19 @@ race_map = {
 }
 
 
-
 class SC2Client:
 
     def get_gameinfo(self) -> GameInfo:
-        response = requests.get("http://127.0.0.1:6119/game")
-        if response.status_code == 200:
-            try:
-                game = GameInfo.model_validate_json(response.text)
-                return game
-            except ValidationError as e:
-                log.warn(f"Invalid game data: {e}")
+        try:
+            response = requests.get("http://127.0.0.1:6119/game")
+            if response.status_code == 200:
+                try:
+                    game = GameInfo.model_validate_json(response.text)
+                    return game
+                except ValidationError as e:
+                    log.warn(f"Invalid game data: {e}")
+        except ConnectionError as e:
+            log.warn("Could not connect to SC2 game client, is it running?")
         return None
 
     def get_opponent_name(self, gameinfo=None) -> str:
@@ -47,15 +50,20 @@ class SC2Client:
                 return gameinfo
             sleep(delay)
         return None
-    
-    def get_ongoing_gameinfo(self) -> GameInfo: 
+
+    def get_ongoing_gameinfo(self) -> GameInfo:
         gameinfo = self.get_gameinfo()
-        if gameinfo and gameinfo.displayTime > 0 and gameinfo.players[0].result != Result.undecided:
+        if (
+            gameinfo
+            and gameinfo.displayTime > 0
+            and gameinfo.players[0].result != Result.undecided
+        ):
             return gameinfo
         return None
 
 
 sc2client = SC2Client()
+
 
 class ClientAPIScanner(threading.Thread):
     def __init__(self, name):
@@ -82,18 +90,16 @@ class ClientAPIScanner(threading.Thread):
 
             gameinfo = sc2client.get_ongoing_gameinfo()
 
-            if gameinfo is not None:
+            if gameinfo is not None and not gameinfo.isReplay:
 
                 opponent = sc2client.get_opponent_name(gameinfo)
                 mapname = ""
 
                 scanresult = ScanResult(mapname=mapname, opponent=opponent)
 
-                loading_screen.send(
-                    self,
-                    scanresult
-                )
+                loading_screen.send(self, scanresult=scanresult)
             sleep(1)
+
 
 if __name__ == "__main__":
     print(GameInfo.model_json_schema())
