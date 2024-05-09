@@ -128,13 +128,13 @@ to read all 1v1 ladder replays from beginning of 2024. With the `--simulation` f
 
 The `replays` collection of the DB should now be populated with replay documents.
 
-See `python repcli.py sync --help` for more options.
+See `python repcli.py sync --help` for more options. You can always repopulate the DB from replay files without destroying anything. AICoach does not change anything on the replay data in the DB.
 
 ### (Optional) Additional settings
 
 Configure a wake hotkey. On pressing this key (combination) AICoach will wake up and ask for input. Default: `ctrl+alt+w`.
 
-Configure student.emoji if you want to show a different icon in the terminal output.
+Configure student.emoji if you want to show a [different icon](./playground/emojis.txt) in the terminal output.
 
 ```yaml
 # config.yourname.yml
