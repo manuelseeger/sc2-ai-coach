@@ -1,6 +1,5 @@
 run.cmd
 .ipynb_checkpoints/
-.vscode/
 .pyc
 __pycache__/
 expetiment.ipynb
