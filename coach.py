@@ -29,6 +29,23 @@ log = logging.getLogger(config.name)
 log.propagate = False
 log.setLevel(logging.INFO)
 
+if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
+    from obs_tools.mic import Microphone
+    from aicoach.transcribe import Transcriber
+
+    mic = Microphone()
+    transcriber = Transcriber()
+
+if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
+    from obs_tools.tts import tts as tts_engine
+
+    tts = tts_engine
+    tts.feed("")
+    tts.play_async()
+
+if config.obs_integration:
+    from obs_tools.mapstats import get_map_stats
+
 if not os.path.exists("logs"):
     os.makedirs("logs")
 
@@ -45,9 +62,6 @@ log.addHandler(one_file_handler)
 obs_handler = TwitchObsLogHandler()
 obs_handler.setLevel(logging.INFO)
 log.addHandler(obs_handler)
-
-mic = None
-transcriber = None
 
 
 @click.command()
@@ -72,26 +86,7 @@ def main(debug, verbose, audiomode):
 
     session = AISession()
 
-    audiomode = config.audiomode
     session.verbose = verbose
-    session.audiomode = audiomode
-
-    if audiomode in [AudioMode.voice_in, AudioMode.full]:
-        from obs_tools.mic import Microphone
-        from aicoach.transcribe import Transcriber
-
-        global mic
-        mic = Microphone()
-        global transcriber
-        transcriber = Transcriber()
-
-    if audiomode in [AudioMode.voice_out, AudioMode.full]:
-        from obs_tools.tts import tts as tts_engine
-
-        global tts
-        tts = tts_engine
-        tts.feed("")
-        tts.play_async()
 
     listener = WakeListener(name="listener")
     listener.start()
@@ -140,7 +135,6 @@ class AISession:
     thread_id: str = None
     last_rep_id: str = None
     verbose: bool = False
-    audiomode: AudioMode = AudioMode.full
 
     def __init__(self):
         last_replay = replaydb.get_most_recent()
@@ -174,7 +168,7 @@ class AISession:
 
     def converse(self):
         while True:
-            if self.audiomode in [AudioMode.voice_in, AudioMode.full]:
+            if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
                 audio = mic.listen()
                 log.debug("Got voice input")
                 prompt = transcriber.transcribe(audio)
@@ -204,7 +198,7 @@ class AISession:
         return buffer
 
     def say(self, message):
-        if self.audiomode in [AudioMode.text, AudioMode.voice_in]:
+        if config.audiomode in [AudioMode.text, AudioMode.voice_in]:
             log.info(message, extra={"role": Role.assistant, "flush": True})
         else:
             if self.verbose:
@@ -252,11 +246,10 @@ class AISession:
     def handle_scanner(self, sender, scanresult: ScanResult):
         log.debug(sender, scanresult)
 
-        if scanresult.mapname:
-            # stats = get_map_stats(kw["map"])
-            # with open("obs/map_stats.html", "w") as f:
-            #    f.write(stats.prettify())
-            pass
+        if scanresult.mapname and config.obs_integration:
+            stats = get_map_stats(scanresult.mapname)
+            with open("obs/map_stats.html", "w") as f:
+                f.write(stats.prettify())
 
         if not self.is_active():
             self.initiate_from_scanner(

@@ -1,6 +1,4 @@
 import cv2
-from bs4 import BeautifulSoup
-import requests
 import numpy
 from Levenshtein import distance as levenstein
 import threading
@@ -48,6 +46,7 @@ def is_student(player_name: str) -> bool:
 def cv2_to_image(cv2_image: numpy.ndarray) -> Image.Image:
     return Image.fromarray(cv2.cvtColor(cv2_image, cv2.COLOR_BGR2RGB))
 
+
 def parse_map_loading_screen(filename: str) -> tuple[str, str, str, numpy.ndarray]:
     image = cv2.imread(filename, flags=cvflags)
 
@@ -64,13 +63,12 @@ def parse_map_loading_screen(filename: str) -> tuple[str, str, str, numpy.ndarra
         ROI = image[y : y + h, x : x + w]
         tess.SetImage(cv2_to_image(ROI))
         player_left = tess.GetUTF8Text()
-        
+
         x, y, w, h = 1953, 587, 276, 40
         ROI = image[y : y + h, x : x + w]
         tess.SetImage(cv2_to_image(ROI))
         player_right = tess.GetUTF8Text()
-        
-        
+
     opponent_portrait = None
     if is_student(player_left):
         opponent_portrait = get_right_portrait(image)
@@ -93,21 +91,6 @@ def clean_map_name(map, ladder_maps):
                 map = ladder_map
                 break
     return map
-
-
-def get_map_stats(map):
-    with requests.Session() as s:
-        url = f"{config.student.sc2replaystats_map_url}/{config.season}/{config.student.race[0]}"
-        r = s.get(url)
-        soup = BeautifulSoup(r.content, "html.parser")
-
-        h2s = soup("h2")
-
-        for h2 in h2s:
-            if h2.string.lower() == map:
-                for sibling in h2.parent.next_siblings:
-                    if sibling.name == "table":
-                        return sibling
 
 
 barcode = "BARCODE"
@@ -212,6 +195,4 @@ class LoadingScreenScanner(threading.Thread):
                 save_portrait(opponent_portrait, new_name)
 
                 scanresult = ScanResult(mapname=map, opponent=opponent)
-                loading_screen.send(
-                    self,scanresult=scanresult
-                )
+                loading_screen.send(self, scanresult=scanresult)
