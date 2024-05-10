@@ -90,8 +90,7 @@ class ClientAPIScanner(threading.Thread):
 
             gameinfo = sc2client.get_ongoing_gameinfo()
 
-            if gameinfo is not None and not gameinfo.isReplay:
-
+            if self.is_live_game(gameinfo):
                 opponent = sc2client.get_opponent_name(gameinfo)
                 mapname = ""
 
@@ -99,6 +98,14 @@ class ClientAPIScanner(threading.Thread):
 
                 loading_screen.send(self, scanresult=scanresult)
             sleep(1)
+
+    def is_live_game(self, gameinfo):
+        return (
+            gameinfo
+            and gameinfo.displayTime > 0
+            and gameinfo.players[0].result == Result.undecided
+            and not gameinfo.isReplay
+        )
 
 
 if __name__ == "__main__":
