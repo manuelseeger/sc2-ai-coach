@@ -19,8 +19,8 @@ MongoSRVDsn = Annotated[MultiHostUrl, UrlConstraints(allowed_schemes=["mongodb+s
 
 
 def sort_config_files(files):
-    def key_func(file: str):
-        return (not file.startswith("."), file.count("."))
+    def key_func(filename: str):
+        return (not filename.startswith("."), filename.count("."))
 
     return sorted(files, key=key_func)
 

@@ -41,7 +41,7 @@ student:
 # Integration with OBS; Faster detection of new game started but requires manual OBS setup
 obs_integration: False
 # which GPT model to use for OpenAI Assistant API
-gpt_model: "gpt-4-1106-preview"
+gpt_model: "gpt-4-turbo"
 # relative path to screenshot file which OBS takes when the map is loading
 screenshot: "obs/screenshots/_maploading.png"
 # Where tesserocr should look for the tesseract data
