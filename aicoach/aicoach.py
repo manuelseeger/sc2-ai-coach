@@ -103,6 +103,9 @@ class AICoach:
         self.assistant: Assistant = client.beta.assistants.retrieve(
             assistant_id=config.assistant_id
         )
+        self._init_functions()
+
+    def _init_functions(self):
         self.functions = {f.__name__: f for f in AIFunctions}
 
     def get_most_recent_message(self):
@@ -139,7 +142,7 @@ class AICoach:
             assistant_id=self.assistant.id,
         ) as stream:
             for event in stream:
-                for token in self.process_event(event):
+                for token in self._process_event(event):
                     yield token
 
     def create_run(self) -> Run:
@@ -150,7 +153,7 @@ class AICoach:
         run = wait_on_run(run, self.thread)
         return run
 
-    def process_event(self, event) -> Generator[str, None, None]:
+    def _process_event(self, event) -> Generator[str, None, None]:
         if isinstance(event, ThreadMessageDelta):
             deltaevent: MessageDeltaEvent = event.data
             for text in deltaevent.delta.content:
@@ -158,10 +161,10 @@ class AICoach:
 
         elif isinstance(event, ThreadRunRequiresAction):
             run: Run = event.data
-            tool_outputs = self.handle_tool_calls(run)
-            with self.submit_tool_outputs(run.id, tool_outputs) as stream:
+            tool_outputs = self._handle_tool_calls(run)
+            with self._submit_tool_outputs(run.id, tool_outputs) as stream:
                 for event in stream:
-                    for token in self.process_event(event):
+                    for token in self._process_event(event):
                         yield token
         else:
             pass
@@ -177,20 +180,20 @@ class AICoach:
             assistant_id=self.assistant.id,
         ) as stream:
             for event in stream:
-                for token in self.process_event(event):
+                for token in self._process_event(event):
                     yield token
 
-    def handle_tool_calls(self, run: Run) -> dict[str, str]:
+    def _handle_tool_calls(self, run: Run) -> dict[str, str]:
         required_action = run.required_action
         if required_action.type != "submit_tool_outputs":
             return {}
         tool_calls: list[RequiredActionFunctionToolCall] = (
             required_action.submit_tool_outputs.tool_calls
         )
-        results = [self.handle_tool_call(tool_call) for tool_call in tool_calls]
+        results = [self._handle_tool_call(tool_call) for tool_call in tool_calls]
         return {tool_id: result for tool_id, result in results if tool_id is not None}
 
-    def handle_tool_call(
+    def _handle_tool_call(
         self, tool_call: RequiredActionFunctionToolCall
     ) -> tuple[str, str]:
         if tool_call.type != "function":
@@ -208,7 +211,7 @@ class AICoach:
 
         return (tool_call.id, result_json_string)
 
-    def submit_tool_outputs(
+    def _submit_tool_outputs(
         self, run_id: str, tool_ids_to_result_map: dict[str, str]
     ) -> AssistantStreamManager[AssistantEventHandler]:
         tool_outputs = [
@@ -244,11 +247,3 @@ class AICoach:
             run = wait_on_run(run, self.thread, statuses=["requires_action"])
         if run.status == "completed":
             return run
-
-
-def main():
-    pass
-
-
-if __name__ == "__main__":
-    main()
