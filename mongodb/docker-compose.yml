@@ -17,7 +17,7 @@ services:
     links:
       - mongodb
     env_file:
-      - .env      
+      - .env
     volumes:
       - ./mongo-seed:/mongo-seed
     command:

@@ -11,6 +11,7 @@ engine = DbEngine(mongo_uri=str(config.mongo_dsn), db_name=config.db_name)
 
 SC2Model = Union[Replay, Metadata]
 
+
 class ReplayDB:
     def __init__(self):
         self.db = engine
@@ -27,7 +28,11 @@ class ReplayDB:
             return None
 
     def get_most_recent(self) -> Replay:
-        most_recent = engine._db.replays.find().sort("unix_timestamp", -1).limit(1)[0]
+        most_recents = engine._db.replays.find().sort("unix_timestamp", -1).limit(1)
+        if most_recents.retrieved == 0:
+            raise ValueError("No replays found")
+
+        most_recent = list(most_recents)[0]
         return Replay(**most_recent)
 
     def find(self, model: SC2Model) -> SC2Model:

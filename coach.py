@@ -108,6 +108,8 @@ def main(debug, verbose, audiomode):
 
     log.info("Starting main loop")
 
+    log.info("Audio mode: " + str(config.audiomode))
+
     ping_printed = False
     while True:
         try:
@@ -124,6 +126,7 @@ def main(debug, verbose, audiomode):
                     ping_printed = False
             sleep(0.1)
         except KeyboardInterrupt:
+            log.info("Exiting ...")
             break
 
 

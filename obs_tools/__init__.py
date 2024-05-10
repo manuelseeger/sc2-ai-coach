@@ -4,8 +4,8 @@ from config import config, AudioMode
 if config.obs_integration:
     from .parse_map_loading_screen import (
         LoadingScreenScanner as GameStartedScanner,
-        get_map_stats,
     )
+    from .mapstats import get_map_stats
 else:
     from .sc2client import ClientAPIScanner as GameStartedScanner
 

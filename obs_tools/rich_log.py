@@ -1,11 +1,9 @@
 import logging
-from logging import LogRecord, Filterer, NOTSET, _checkLevel, _addHandlerRef, Handler
-from time import sleep
+from logging import LogRecord, Handler
 from rich.console import Console
 from rich.status import Status
 from config import config
 from typing import Dict
-from pydantic import BaseModel
 from replays.types import Role
 
 console = Console()
@@ -18,6 +16,7 @@ transcribing_status = console.status("Transcribing...", spinner="point")
 class LogStatus(Status):
     name: str
     buffer: str = ""
+
     def __init__(self, status: str = "", spinner: str = "dots", name: str = None):
         self.name = name
         self.buffer = status
@@ -28,10 +27,9 @@ class LogStatus(Status):
         self.update(self.buffer)
 
 
-
 STATUS_METHODS: Dict[str, LogStatus] = {
     "converse": LogStatus(name="converse"),
-    "transcribe":  LogStatus(name="transcribe"),
+    "transcribe": LogStatus(name="transcribe"),
     "playrich": LogStatus(name="playrich"),
     "say": LogStatus(name="play"),
 }
@@ -75,7 +73,7 @@ def get_emoji(name: str, funcName: str) -> str:
 
 
 class TwitchObsLogHandler(Handler):
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._last = None
@@ -133,7 +131,7 @@ class TwitchObsLogHandler(Handler):
             if status.status == record.msg:
                 return True
         return False
-    
+
     def set_status(self, record: LogRecord) -> None:
 
         if self.fqn != self.get_fqn(record.name, record.funcName):
@@ -156,7 +154,7 @@ class TwitchObsLogHandler(Handler):
     def is_status(self, record: LogRecord) -> bool:
         if record.funcName in STATUS_METHODS.keys():
             return True
-        
+
         role = getattr(record, "role", None)
         flush = getattr(record, "flush", False)
 
