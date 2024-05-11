@@ -200,12 +200,12 @@ class AISession:
 
         return buffer
 
-    def say(self, message):
+    def say(self, message, flush=True):
         if config.audiomode in [AudioMode.text, AudioMode.voice_in]:
-            log.info(message, extra={"role": Role.assistant, "flush": True})
+            log.info(message, extra={"role": Role.assistant, "flush": flush})
         else:
             if self.verbose:
-                log.info(message, extra={"role": Role.assistant, "flush": True})
+                log.info(message, extra={"role": Role.assistant, "flush": flush})
             tts.feed(message)
 
     def close(self):
@@ -284,7 +284,7 @@ class AISession:
             log.info(response, extra={"role": Role.assistant})
             done = self.converse()
             if done:
-                self.say("I'll save a summary of the game.")
+                self.say("I'll save a summary of the game.", flush=False)
                 self.update_last_replay(replay)
 
                 safe_replay_summary(replay, self.coach)

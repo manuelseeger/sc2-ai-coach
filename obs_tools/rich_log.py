@@ -147,11 +147,14 @@ class TwitchObsLogHandler(Handler):
         self._status_methods = {}
 
     def is_status(self, record: LogRecord) -> bool:
-        if record.funcName in STATUS_METHODS:
-            return True
-
         role = getattr(record, "role", None)
         flush = getattr(record, "flush", False)
+
+        if flush == False:
+            return False
+
+        if record.funcName in STATUS_METHODS:
+            return True
 
         if flush and role == Role.assistant:
             return True
