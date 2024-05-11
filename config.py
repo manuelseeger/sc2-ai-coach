@@ -1,25 +1,28 @@
-from pydantic import BaseModel
-from typing import Dict, List, Type, Tuple
-from pydantic_settings import (
-    BaseSettings,
-    SettingsConfigDict,
-    YamlConfigSettingsSource,
-    PydanticBaseSettingsSource,
-    EnvSettingsSource,
-    DotEnvSettingsSource,
-)
-from typing import Annotated
+from enum import Enum
 from glob import glob
+from typing import Annotated, Dict, List, Tuple, Type
+
+from pydantic import BaseModel
 from pydantic.networks import UrlConstraints
 from pydantic_core import MultiHostUrl, Url
+from pydantic_settings import (
+    BaseSettings,
+    DotEnvSettingsSource,
+    EnvSettingsSource,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+    YamlConfigSettingsSource,
+)
 
 # https://github.com/pydantic/pydantic/pull/7116
-MongoSRVDsn = Annotated[MultiHostUrl, UrlConstraints(allowed_schemes=["mongodb+srv"])]
+MongoSRVDsn = Annotated[
+    MultiHostUrl, UrlConstraints(allowed_schemes=["mongodb+srv", "mongodb"])
+]
 
 
 def sort_config_files(files):
-    def key_func(file: str):
-        return (not file.startswith("."), file.count("."))
+    def key_func(filename: str):
+        return (not filename.startswith("."), filename.count("."))
 
     return sorted(files, key=key_func)
 
@@ -30,6 +33,13 @@ yaml_files = sort_config_files(yaml_files)
 env_files = glob(".env*")
 env_files = sort_config_files(env_files)
 env_files.remove(".env.example")
+
+
+class AudioMode(str, Enum):
+    text = "text"
+    voice_in = "in"
+    voice_out = "out"
+    full = "fullaudio"
 
 
 class RecognizerConfig(BaseModel):
@@ -43,6 +53,7 @@ class StudentConfig(BaseModel):
     name: str
     race: str
     sc2replaystats_map_url: Url
+    emoji: str = ":man_technologist:"
 
     def __repr__(self) -> str:
         return self.name
@@ -60,27 +71,25 @@ class Config(BaseSettings):
     instant_leave_max: int = 60
     deamon_polling_rate: int = 10
 
+    audiomode: AudioMode = AudioMode.full
     microphone_index: int = 2
-
     oww_model: str = "hey_jarvis"
-
     oww_sensitivity: float = 0.7
+    speech_recognition_model: str
+    recognizer: RecognizerConfig = RecognizerConfig()
+    wake_key: str = "ctrl+alt+w"
 
     student: StudentConfig
 
     openai_api_key: str
     openai_org_id: str
     assistant_id: str
-
     gpt_model: str = "gpt-3.5-turbo"
 
-    speech_recognition_model: str
-
+    obs_integration: bool = False
+    sc2_client_url: str = "http://127.0.0.1:6119"
     screenshot: str = "obs/screenshots/_maploading.png"
-
     tessdata_dir: str = "C:\\Program Files\\Tesseract-OCR\\tessdata"
-
-    recognizer: RecognizerConfig = RecognizerConfig()
 
     season: int = 57
 

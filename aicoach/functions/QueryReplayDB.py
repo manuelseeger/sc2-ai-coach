@@ -112,9 +112,11 @@ default_projection = {
 }
 
 
-def duration_to_seconds(duration_str):
-    minutes, seconds = duration_str.split(":")
-    return int(minutes) * 60 + int(seconds)
+def force_valid_json_string(obj) -> str:
+    if isinstance(obj, str):
+        return json.dumps(ast.literal_eval(obj))
+    elif isinstance(obj, dict):
+        return json.dumps(obj)
 
 
 @AIFunction
@@ -149,9 +151,9 @@ def QueryReplayDB(
     # Force the arguments to be valid JSON
     if filter is None or filter == "{}":
         filter = f'{{player.name: "{config.student.name}"}}'
-    filter = ast.literal_eval(json.dumps(filter))
-    projection = ast.literal_eval(json.dumps(projection))
-    sort = ast.literal_eval(json.dumps(sort))
+    filter = force_valid_json_string(filter)
+    projection = force_valid_json_string(projection)
+    sort = force_valid_json_string(sort)
 
     # AI doesn't know yet that .$. is invalid as of Mongo 4.4
     projection = projection.replace(".$.", ".")

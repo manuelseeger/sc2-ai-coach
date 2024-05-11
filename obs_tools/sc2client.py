@@ -1,11 +1,15 @@
-import requests
-from pydantic import BaseModel
-from typing import List
-from enum import Enum
-from pydantic_core import ValidationError
-from time import time, sleep
 import logging
+import threading
+from time import sleep, time
+
+import requests
+from blinker import signal
+from pydantic_core import ValidationError
+from requests.exceptions import ConnectionError
+
 from config import config
+
+from .types import GameInfo, Result, ScanResult
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -17,67 +21,18 @@ race_map = {
 }
 
 
-class Race(str, Enum):
-    terran = "Terr"
-    protoss = "Prot"
-    zerg = "Zerg"
-    random = "random"
-
-
-class Result(str, Enum):
-    win = "Victory"
-    loss = "Defeat"
-    undecided = "Undecided"
-    tie = "Tie"
-
-
-class Player(BaseModel):
-    id: int
-    name: str
-    type: str
-    race: Race
-    result: Result
-
-
-class GameInfo(BaseModel):
-    """
-    {
-        isReplay: false,
-        displayTime: 93,
-        players: [
-            {
-                id: 1,
-                name: "Owlrazum",
-                type: "user",
-                race: "Terr",
-                result: "Undecided"
-            },
-            {
-                id: 2,
-                name: "zatic",
-                type: "user",
-                race: "Zerg",
-                result: "Undecided"
-            }
-        ]
-    }
-    """
-
-    isReplay: bool
-    displayTime: float
-    players: List[Player]
-
-
 class SC2Client:
-
     def get_gameinfo(self) -> GameInfo:
-        response = requests.get("http://127.0.0.1:6119/game")
-        if response.status_code == 200:
-            try:
-                game = GameInfo.model_validate_json(response.text)
-                return game
-            except ValidationError as e:
-                log.warn(f"Invalid game data: {e}")
+        try:
+            response = requests.get(config.sc2_client_url + "/game")
+            if response.status_code == 200:
+                try:
+                    game = GameInfo.model_validate_json(response.text)
+                    return game
+                except ValidationError as e:
+                    log.warn(f"Invalid game data: {e}")
+        except ConnectionError as e:
+            log.warn("Could not connect to SC2 game client, is SC2 running?")
         return None
 
     def get_opponent_name(self, gameinfo=None) -> str:
@@ -98,8 +53,71 @@ class SC2Client:
             sleep(delay)
         return None
 
+    def get_ongoing_gameinfo(self) -> GameInfo:
+        gameinfo = self.get_gameinfo()
+        if (
+            gameinfo
+            and gameinfo.displayTime > 0
+            and gameinfo.players[0].result == Result.undecided
+        ):
+            return gameinfo
+        return None
+
 
 sc2client = SC2Client()
+
+
+class ClientAPIScanner(threading.Thread):
+
+    last_gameinfo = None
+
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+        self._stop_event = threading.Event()
+
+    def stop(self):
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
+
+    def run(self):
+        self.scan_client_api()
+
+    def scan_client_api(self):
+        log.debug("Starting game client scanner")
+        loading_screen = signal("loading_screen")
+        while True:
+            if self.stopped():
+                log.debug("Stopping game client scanner")
+                break
+
+            gameinfo = sc2client.get_ongoing_gameinfo()
+
+            if self.is_live_game(gameinfo):
+                if gameinfo == self.last_gameinfo:
+                    # same ongoing game, just later in time
+                    if gameinfo.displayTime >= self.last_gameinfo.displayTime:
+                        continue
+
+                self.last_gameinfo = gameinfo
+                opponent = sc2client.get_opponent_name(gameinfo)
+                mapname = ""
+
+                scanresult = ScanResult(mapname=mapname, opponent=opponent)
+
+                loading_screen.send(self, scanresult=scanresult)
+            sleep(1)
+
+    def is_live_game(self, gameinfo):
+        return (
+            gameinfo
+            and gameinfo.displayTime > 0
+            and gameinfo.players[0].result == Result.undecided
+            and not gameinfo.isReplay
+        )
+
 
 if __name__ == "__main__":
     print(GameInfo.model_json_schema())

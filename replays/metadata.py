@@ -1,12 +1,12 @@
-from datetime import datetime
-from replays.types import Replay, Metadata, AssistantMessage
-from replays.db import replaydb, eq
-from aicoach import AICoach, get_prompt
-from openai.types.beta.threads import ThreadMessage
 import logging
-from config import config
-import bson
+from datetime import datetime
 
+from openai.types.beta.threads import Message
+
+from aicoach import AICoach, get_prompt
+from config import config
+from replays.db import eq, replaydb
+from replays.types import AssistantMessage, Metadata, Replay
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 log.setLevel(logging.INFO)
@@ -14,18 +14,18 @@ log.setLevel(logging.INFO)
 
 def safe_replay_summary(replay: Replay, coach: AICoach):
 
-    messages: list[ThreadMessage] = coach.get_conversation()
+    messages: list[Message] = coach.get_conversation()
 
-    summary = coach.chat(
+    summary = coach.get_response(
         "Can you please summarize the game in one paragraph? Make sure to mention tech choices, timings, but keep it short."
     )
 
     prompt = get_prompt("prompt_tags.txt", {})
 
-    tags = coach.chat(prompt)
+    tags_raw = coach.get_response(prompt)
 
     try:
-        tags = [t.strip() for t in tags.split(",")]
+        tags = [t.strip() for t in tags_raw.split(",")]
     except:
         log.warn("Assistant gave us invalid tags")
         tags = []

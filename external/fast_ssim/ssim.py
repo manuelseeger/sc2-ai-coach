@@ -40,14 +40,12 @@ def get_dll_function(
 ):
     func = dll.__getattr__(func_name)
     func.restype = type_dict[res_type]
-    func.argtypes = [
-        type_dict[str.lower(x).replace(" ", "")] for x in arg_types
-    ]
+    func.argtypes = [type_dict[str.lower(x).replace(" ", "")] for x in arg_types]
     return func
 
 
 class DLL:
-    
+
     # float PSNR_Byte(Byte* pDataX, Byte* pDataY, int step, int width, int height, int maxVal);
     PSNR_Byte = get_dll_function(
         "float", "PSNR_Byte", ["Byte*", "Byte*", "int", "int", "int", "int"]
@@ -71,7 +69,7 @@ class DLL:
     )
 
 
-def psnr(x: NDArray[np.uint8], y: NDArray[np.uint8], max_value: int=None) -> float:
+def psnr(x: NDArray[np.uint8], y: NDArray[np.uint8], max_value: int = None) -> float:
     [h, w, c] = x.shape
     x = x.astype("float32") if (x.dtype == "float64") else x
     y = y.astype("float32") if (y.dtype == "float64") else y
@@ -94,7 +92,10 @@ def psnr(x: NDArray[np.uint8], y: NDArray[np.uint8], max_value: int=None) -> flo
             255.0 if (max_value == None) else float(max_value),
         )
 
-def ssim(x: NDArray[np.uint8], y: NDArray[np.uint8], max_value: int=None, win_size: int=7) -> float:
+
+def ssim(
+    x: NDArray[np.uint8], y: NDArray[np.uint8], max_value: int = None, win_size: int = 7
+) -> float:
     [h, w, c] = x.shape
     x = x.astype("float32") if (x.dtype == "float64") else x
     y = y.astype("float32") if (y.dtype == "float64") else y
@@ -118,4 +119,3 @@ def ssim(x: NDArray[np.uint8], y: NDArray[np.uint8], max_value: int=None, win_si
             win_size,
             255.0 if (max_value == None) else float(max_value),
         )
-    

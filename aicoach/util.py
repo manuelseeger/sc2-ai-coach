@@ -1,6 +1,5 @@
-from typing import Dict
-from config import config
 from os.path import join
+from typing import Dict
 
 
 def get_prompt(prompt_file: str, replacements: Dict) -> str:

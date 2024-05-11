@@ -1,6 +1,5 @@
 run.cmd
 .ipynb_checkpoints/
-.vscode/
 .pyc
 __pycache__/
 expetiment.ipynb
@@ -8,9 +7,10 @@ replays.csv
 *.csv
 .env*
 !.env.example
-config.*.yml
+*config.*.yml
 obs/
 deamon.cmd
 aicoach/assistant.json
 deploy.cmd
 logs/
+mongodb/mongo-seed/*.json

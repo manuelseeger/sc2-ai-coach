@@ -1,52 +1,80 @@
-from dotenv import load_dotenv
-
-load_dotenv()
-
-import glob
-import os
-import click
 import datetime
-from replays import ReplayReader, db
-from os.path import join, basename, getmtime
-from datetime import datetime
+import glob
 import logging
-import sys
+import os
+from datetime import date, datetime, timedelta
+from os.path import basename, getmtime, join
 from time import sleep
-from datetime import date
-from rich import print
-from replays.types import Replay
 
-from replays import replaydb
+import click
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.theme import Theme
 
 from config import config
+from replays import ReplayReader, replaydb
+
+custom_theme = Theme(
+    {
+        "on": "bold green",
+        "off": "bold red",
+    }
+)
+
+console = Console(theme=custom_theme)
 
 log = logging.getLogger()
-handler = logging.StreamHandler(sys.stdout)
-log.addHandler(handler)
+log.addHandler(RichHandler(show_time=False, rich_tracebacks=True))
 
 reader = ReplayReader()
 
+dformat = lambda x: datetime.fromtimestamp(x).strftime("%Y-%m-%d %H:%M:%S")
+
 
 @click.group()
-@click.option("--clean", is_flag=True, default=False, help="Delete filtered replays")
-@click.option("--debug", is_flag=True, default=False, help="Print debug messages")
+@click.option(
+    "--clean",
+    is_flag=True,
+    default=False,
+    help="Delete replays from instant-leave games",
+)
+@click.option(
+    "--debug",
+    is_flag=True,
+    default=False,
+    help="Print debug messages, including replay parser",
+)
+@click.option(
+    "--simulation",
+    is_flag=True,
+    default=False,
+    help="Run in simulation mode, don't actually insert to DB",
+)
 @click.pass_context
-def cli(ctx, clean, debug):
+def cli(ctx, clean, debug, simulation):
     ctx.ensure_object(dict)
     ctx.obj["CLEAN"] = clean
     ctx.obj["DEBUG"] = debug
+    ctx.obj["SIMULATION"] = simulation
 
-    print("Debug mode is %s" % ("on" if debug else "off"))
-    print("Clean mode is %s" % ("on" if clean else "off"))
+    console.print("Debug mode is %s" % ("[on]on[/on]" if debug else "[off]off[/off]"))
+    console.print("Clean mode is %s" % ("[on]on[/on]" if clean else "[off]off[/off]"))
+    console.print(
+        "Simulation mode is %s" % ("[on]on[/on]" if simulation else "[off]off[/off]")
+    )
 
-    log.setLevel(logging.DEBUG)
+    if debug:
+        log.setLevel(logging.DEBUG)
+    else:
+        logging.getLogger("sc2reader").setLevel(logging.CRITICAL)
 
 
 @cli.command()
 @click.pass_context
 def deamon(ctx):
-    print("Monitoring folder for new replays")
-    print("Press Ctrl+C to exit")
+    """Monitor replay folder, add new replays to MongoDB"""
+    console.print("Monitoring folder for new replays")
+    console.print("Press Ctrl+C to exit")
     list_of_files = glob.glob(join(config.replay_folder, "*.SC2Replay"))
 
     try:
@@ -57,54 +85,21 @@ def deamon(ctx):
                 sleep(5)
                 replay_raw = reader.load_replay_raw(file_path)
                 if reader.apply_filters(replay_raw):
-                    print(f"Adding {basename(file_path)}")
+                    console.print(f"Adding {basename(file_path)}")
                     replay = reader.to_typed_replay(replay_raw)
-                    db.save(replay)
+                    if ctx.obj["SIMULATION"]:
+                        console.print(f"Simulation, would add {replay}")
+                    else:
+                        replaydb.upsert(replay)
                 else:
-                    print(f"Filtered {basename(file_path)}")
+                    console.print(f"Filtered {basename(file_path)}")
                     if reader.is_instant_leave(replay_raw) and ctx.obj["CLEAN"]:
                         os.remove(file_path)
-                        print(f"Deleted {basename(file_path)}")
+                        console.print(f"Deleted {basename(file_path)}")
             list_of_files = new_list_of_files + list_of_files
             sleep(config.deamon_polling_rate)
     except KeyboardInterrupt:
-        print("Exiting")
-
-
-@cli.command()
-@click.pass_context
-@click.option(
-    "--delta", "-d", default=True, help="Only parse and push delta compared to upstream"
-)
-def sync(ctx, delta):
-    # most_recent: Replay = db.find_one(Model=Replay)
-    most_recent = replaydb.get_most_recent()
-    # most_recent = db._db.replays.find().sort("unix_timestamp", -1).limit(1)[0]
-    most_recent_date = most_recent.unix_timestamp
-
-    # get date from timestamp:
-    sync_date = datetime.fromtimestamp(most_recent_date).strftime("%Y-%m-%d %H:%M:%S")
-    print(f"Syncing from most recent replay in DB {sync_date}")
-
-    list_of_files = glob.glob(join(config.replay_folder, "*.SC2Replay"))
-    list_of_files = [f for f in list_of_files if most_recent_date <= getmtime(f)]
-
-    list_of_files.sort(key=getmtime)
-
-    print(f"Found {len(list_of_files)} replays to sync")
-
-    for file_path in list_of_files:
-        replay_raw = reader.load_replay_raw(file_path)
-        if reader.apply_filters(replay_raw):
-            print(f"Adding {basename(file_path)}")
-            replay = reader.to_typed_replay(replay_raw)
-            replaydb.upsert(replay)
-
-        else:
-            print(f"Filtered {basename(file_path)}")
-            if reader.is_instant_leave(replay_raw) and ctx.obj["CLEAN"]:
-                os.remove(file_path)
-                print(f"Deleted {basename(file_path)}")
+        console.print("Exiting")
 
 
 @cli.command()
@@ -116,6 +111,7 @@ def sync(ctx, delta):
     help="Start date for replay search",
     type=click.DateTime(formats=["%Y-%m-%d"]),
     default=str(date.today()),
+    show_default=True,
 )
 @click.option(
     "--to",
@@ -124,37 +120,70 @@ def sync(ctx, delta):
     help="End date for replay search",
     type=click.DateTime(formats=["%Y-%m-%d"]),
     default=str(date.today()),
+    show_default=True,
 )
-@click.argument("replay", type=click.Path(exists=True), required=False)
-def echo(ctx, from_: datetime, to_: datetime, replay: str):
-    print(f"Syncing from most recent replay in DB {from_}")
-
-    if replay:
-        list_of_files = [replay]
+@click.option(
+    "-fR",
+    "--from-most-recent",
+    is_flag=True,
+    help="Sync from the most recent replay in DB",
+    default=False,
+)
+@click.option(
+    "-d", "--delta", is_flag=True, help="Don't update existing replays", default=False
+)
+def sync(ctx, from_: datetime, to_: datetime, from_most_recent: bool, delta: bool):
+    """Sync replays from replay folder to MongoDB"""
+    if from_most_recent:
+        most_recent = replaydb.get_most_recent()
+        sync_from_date = most_recent.unix_timestamp
     else:
-        list_of_files = glob.glob(join(config.replay_folder, "*.SC2Replay"))
-        list_of_files = [
-            f
-            for f in list_of_files
-            if from_.timestamp() <= getmtime(f) and to_.timestamp() >= getmtime(f)
-        ]
+        sync_from_date = from_.timestamp()
+
+    sync_to_date = (to_ + timedelta(days=1)).timestamp()
+
+    console.print(f"Syncing from {dformat(sync_from_date)} to {dformat(sync_to_date)}")
+    list_of_files = glob.glob(join(config.replay_folder, "*.SC2Replay"))
+    list_of_files = [
+        f
+        for f in list_of_files
+        if sync_from_date <= getmtime(f) and sync_to_date > getmtime(f)
+    ]
 
     list_of_files.sort(key=getmtime)
 
-    print(f"Found {len(list_of_files)} replays to echo")
+    console.print("Delta mode is %s" % ("[on]on[/on]" if delta else "[off]off[/off]"))
+
+    console.print(f"Found {len(list_of_files)} potential replays to sync")
 
     for file_path in list_of_files:
-        replay = reader.load_replay_raw(file_path)
-        if reader.apply_filters(replay):
-            print(f"Adding {basename(file_path)}")
-            print(replay)
+        replay_raw = reader.load_replay_raw(file_path)
+        if reader.apply_filters(replay_raw):
+            console.print(f"Adding {basename(file_path)}")
+            replay = reader.to_typed_replay(replay_raw)
+            if delta:
+                existing = replaydb.find(replay)
+                if existing:
+                    console.print(f"Replay {replay} already exists in DB")
+                    continue
+            if ctx.obj["SIMULATION"]:
+                console.print(f"Simulation, would add {replay}")
+            else:
+                replaydb.upsert(replay)
+                console.print(f":white_heavy_check_mark: {replay} added to DB")
         else:
-            print(f"Filtered {basename(file_path)}")
+            console.print(f"Filtered {basename(file_path)}")
+            if reader.is_instant_leave(replay_raw) and ctx.obj["CLEAN"]:
+                os.remove(file_path)
+                console.print(f":zap: Deleted {basename(file_path)}")
 
 
 @cli.command()
-def clean():
-    pass
+@click.pass_context
+@click.argument("replay", type=click.Path(exists=True), required=True)
+def echo(ctx, replay):
+    """Echo pretty-printed parsed replay data from a .SC2Replay file"""
+    console.print(reader.load_replay(replay))
 
 
 if __name__ == "__main__":

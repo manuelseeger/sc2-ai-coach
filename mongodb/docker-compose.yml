@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  mongodb:
+    image: mongo
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./mongo-init/:/docker-entrypoint-initdb.d/:ro
+    ports:
+      - 27017:27017
+      - 9229:9229
+
+  mongo-seed:
+    image: mongo
+    links:
+      - mongodb
+    env_file:
+      - .env
+    volumes:
+      - ./mongo-seed:/mongo-seed
+    command:
+      /mongo-seed/import.sh

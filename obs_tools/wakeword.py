@@ -1,17 +1,20 @@
-import pyaudio
-import numpy as np
-from openwakeword.model import Model
-import threading
-from blinker import signal
-from config import config
 import logging
-from time import sleep
+import threading
 from datetime import datetime
+from time import sleep
+
+import numpy as np
 import onnxruntime
+import pyaudio
+from blinker import signal
+from openwakeword.model import Model
+
+from config import config
+
+from .types import WakeResult
 
 onnxruntime.set_default_logger_severity(3)
 
-log = logging.getLogger(config.name)
 log = logging.getLogger(f"{config.name}.{__name__}")
 
 FORMAT = pyaudio.paInt16
@@ -57,6 +60,6 @@ class WakeWordListener(threading.Thread):
                 if (datetime.now() - last_score_timestamp).seconds > 5:
                     last_score_timestamp = datetime.now()
                     log.info(f"Model woke up with a score of {score:.2f}")
-                    wakeup.send(self)
+                    wakeup.send(self, wakeresult=WakeResult(awake=True))
                     owwModel.reset()
                     sleep(5)

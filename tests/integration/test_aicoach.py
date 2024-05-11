@@ -11,8 +11,9 @@ def test_function_smurf_detection():
 
     aicoach.create_thread(message)
 
-    run = aicoach.evaluate_run()
-    response = aicoach.get_most_recent_message()
+    response = ""
+    for token in aicoach.stream_thread():
+        response += token
 
     assert isinstance(response, str)
     assert len(response) > 0
@@ -22,12 +23,13 @@ def test_function_smurf_detection():
 def test_function_query_build_order():
     aicoach = AICoach()
 
-    message = f"My player ID is 'zatic'. Get the build order of the opponent of the last 3 games I played against 'protoss' opponents."
+    message = f"My player ID is 'zatic'. Get the build order of the opponent of the last game I played against 'protoss' opponents."
 
     aicoach.create_thread(message)
 
-    run = aicoach.evaluate_run()
-    response = aicoach.get_most_recent_message()
+    response = ""
+    for token in aicoach.stream_thread():
+        response += token
 
     assert isinstance(response, str)
     assert len(response) > 0
@@ -43,11 +45,14 @@ def test_function_add_metadata():
 
     aicoach.create_thread(message)
 
-    run = aicoach.evaluate_run()
-    response = aicoach.get_most_recent_message()
+    response = ""
+    for token in aicoach.stream_thread():
+        response += token
 
     message = f"Can you please add the tag 'smurf' to the replay?"
-    response = aicoach.chat(message)
+    response = ""
+    for token in aicoach.chat(message):
+        response += token
 
     assert isinstance(response, str)
     assert len(response) > 0

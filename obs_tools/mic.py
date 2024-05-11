@@ -1,5 +1,6 @@
-import pyttsx3
 import sys
+
+import pyttsx3
 
 
 def init_voice_engine():
@@ -23,12 +24,14 @@ if __name__ == "__main__":
         print("Usage: python3 mic.py <text>")
 else:
 
-    import speech_recognition as sr
-    from typing import Dict
     import logging
-    from config import config
-    from subprocess import call, Popen
     import os
+    from subprocess import Popen, call
+    from typing import Dict
+
+    import speech_recognition as sr
+
+    from config import config
 
     log = logging.getLogger(f"{config.name}.{__name__}")
     log.setLevel(logging.DEBUG)

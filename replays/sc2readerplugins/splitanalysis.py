@@ -1,9 +1,10 @@
-import sc2reader
-import pandas as pd
+import datetime
 import glob
 import os
+
 import numpy as np
-import datetime
+import pandas as pd
+import sc2reader
 
 REPLAY_FOLDER = os.getenv("REPLAY_FOLDER")
 WORKERS = ["Drone", "Probe", "SCV"]
@@ -121,16 +122,22 @@ def player_worker_micro(replay):
             event.player.name if hasattr(event, "player") else np.nan,
             event.player.sid if hasattr(event, "player") else np.nan,
             event.name,
-            event.objects[0].name
-            if hasattr(event, "objects") and len(event.objects) > 0
-            else np.nan,
+            (
+                event.objects[0].name
+                if hasattr(event, "objects") and len(event.objects) > 0
+                else np.nan
+            ),
             event.ability_name if hasattr(event, "ability_name") else np.nan,
-            event.target.name
-            if hasattr(event, "target") and hasattr(event.target, "name")
-            else np.nan,
-            event.target.type
-            if hasattr(event, "target") and hasattr(event.target, "type")
-            else np.nan,
+            (
+                event.target.name
+                if hasattr(event, "target") and hasattr(event.target, "name")
+                else np.nan
+            ),
+            (
+                event.target.type
+                if hasattr(event, "target") and hasattr(event.target, "type")
+                else np.nan
+            ),
         ]
 
     ret = {}

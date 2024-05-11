@@ -1,22 +1,31 @@
 import logging
-from rich import print
-from logging import LogRecord, Filterer, NOTSET, _checkLevel, _addHandlerRef, Handler
-from time import sleep
+from logging import Handler, LogRecord
+from typing import Dict
+
 from rich.console import Console
 from rich.status import Status
+
 from config import config
-from typing import Dict
+from replays.types import Role
 
 console = Console()
 
 
-thinking_status = console.status("Thinking...", spinner="dots2")
-transcribing_status = console.status("Transcribing...", spinner="point")
+class LogStatus(Status):
+    name: str
+    buffer: str = ""
 
-STATUS_METHODS: Dict[str, Status] = {
-    "wait_on_run": thinking_status,
-    "transcribe": transcribing_status,
-}
+    def __init__(self, status: str = "", spinner: str = "dots", name: str = None):
+        self.name = name
+        self.buffer = status
+        super().__init__(status, console=console, spinner=spinner)
+
+    def stream(self, message: str):
+        self.buffer += message
+        self.update(self.buffer)
+
+
+STATUS_METHODS = ["converse", "transcribe", "playrich", "say"]
 
 
 class Emojis:
@@ -25,7 +34,7 @@ class Emojis:
     warning: str = ":warning:"
     error: str = ":x:"
     critical: str = ":skull:"
-    aicoach: str = ":alien_monster:"
+    aicoach: str = ":robot_face:"
     mic: str = ":microphone:"
     loading_screen: str = ":tv:"
     replay: str = ":videocassette:"
@@ -57,7 +66,9 @@ def get_emoji(name: str, funcName: str) -> str:
 
 
 class TwitchObsLogHandler(Handler):
-    
+
+    _status_methods: Dict[str, LogStatus] = {}
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._last = None
@@ -81,7 +92,11 @@ class TwitchObsLogHandler(Handler):
             else:
                 emoji = Emojis.mic
 
-        if self.is_status(record):
+        flush = getattr(record, "flush", False)
+
+        if self.check_stop(record):
+            self.stop_statuses()
+        elif self.is_status(record):
             self.set_status(record)
             self.fqn = self.get_fqn(record.name, record.funcName)
             return
@@ -94,41 +109,53 @@ class TwitchObsLogHandler(Handler):
         else:
             msg = record.msg
 
-        self.print(msg, emoji=emoji)
+        self.print(msg, emoji=emoji, flush=flush)
         self.fqn = self.get_fqn(record.name, record.funcName)
 
     def get_fqn(self, name: str, funcName: str):
         return f"{name}.{funcName}"
 
-    def print(self, message, emoji=Emojis.aicoach):
-        console.print(f"{emoji} {message}")
+    def print(self, message, emoji=Emojis.aicoach, flush: bool = False):
+        if flush:
+            console.print(f"{message}", end="")
+        else:
+            console.print(f"{emoji} {message}")
 
-    def set_status(self, record: LogRecord) -> None:
-        self.stop_statuses()
-        if self.fqn != self.get_fqn(record.name, record.funcName):
-            STATUS_METHODS[record.funcName].start()
-
-    def stop_statuses(self):
-        for status in STATUS_METHODS.values():
-            status.stop()
-
-    def get_status(self, record: LogRecord) -> Status:
-        if record.funcName in STATUS_METHODS.keys():
-            return STATUS_METHODS[record.funcName]
-        return None
-
-    def is_status(self, record: LogRecord) -> bool:
-        if record.funcName in STATUS_METHODS.keys():
-            return True
+    def check_stop(self, record: LogRecord) -> bool:
+        for status in self._status_methods.values():
+            if status.status == record.msg:
+                return True
         return False
 
+    def set_status(self, record: LogRecord) -> None:
+        if self.fqn != self.get_fqn(record.name, record.funcName):
+            self.stop_statuses()
+            # Recreate the status object. If we reuse the same object, the status will render at
+            # the position of the last status, overwriting lines printed between the two statuses.
+            self._status_methods[record.funcName] = LogStatus(name=record.funcName)
 
-if __name__ == "__main__":
-    log = logging.getLogger("twitch")
-    log.setLevel(logging.DEBUG)
-    log.addHandler(TwitchObsLogHandler())
+            self._status_methods[record.funcName].start()
+            self._status_methods[record.funcName].stream(record.msg)
+        else:
+            self._status_methods[record.funcName].stream(record.msg)
 
-    log.info("I am Thinking")
+    def stop_statuses(self):
+        for status in self._status_methods.values():
+            status.stop()
+            status.buffer = ""
 
-    sleep(4)
-    log.info("Stopped thinking")
+        self._status_methods = {}
+
+    def is_status(self, record: LogRecord) -> bool:
+        role = getattr(record, "role", None)
+        flush = getattr(record, "flush", False)
+
+        if flush == False:
+            return False
+
+        if record.funcName in STATUS_METHODS:
+            return True
+
+        if flush and role == Role.assistant:
+            return True
+        return False

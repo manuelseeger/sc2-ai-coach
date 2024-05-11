@@ -1,26 +1,35 @@
 from replays import ReplayReader, time2secs
-from os.path import join
+import pytest
 
 
-FIXTURE_DIR = "tests/fixtures"
-
-
-def test_replay_typing():
+@pytest.mark.parametrize(
+    "replay_file",
+    [
+        "Equilibrium LE (84).SC2Replay",
+    ],
+    indirect=True,
+)
+def test_replay_typing(replay_file):
     reader = ReplayReader()
 
-    raw_replay = reader.load_replay_raw("tests/fixtures/Equilibrium LE (84).SC2Replay")
+    raw_replay = reader.load_replay_raw(replay_file)
 
     replay = reader.to_typed_replay(raw_replay)
 
     assert replay.map_name == "Equilibrium LE"
 
 
-def test_default_projection_time():
+@pytest.mark.parametrize(
+    "replay_file",
+    [
+        "Equilibrium LE (84).SC2Replay",
+    ],
+    indirect=True,
+)
+def test_default_projection_time(replay_file):
     reader = ReplayReader()
 
-    fixture = "Equilibrium LE (84).SC2Replay"
-
-    raw_replay = reader.load_replay_raw(join(FIXTURE_DIR, fixture))
+    raw_replay = reader.load_replay_raw(replay_file)
 
     replay = reader.to_typed_replay(raw_replay)
 
@@ -38,11 +47,17 @@ def test_default_projection_time():
     )
 
 
-def test_default_projection_chrono():
-    fixture = "Radhuset Station LE (85) ZvP chrono.SC2Replay"
+@pytest.mark.parametrize(
+    "replay_file",
+    [
+        "Radhuset Station LE (85) ZvP chrono.SC2Replay",
+    ],
+    indirect=True,
+)
+def test_default_projection_chrono(replay_file):
 
     reader = ReplayReader()
-    raw_replay = reader.load_replay_raw(join(FIXTURE_DIR, fixture))
+    raw_replay = reader.load_replay_raw(replay_file)
 
     replay = reader.to_typed_replay(raw_replay)
 
@@ -54,13 +69,19 @@ def test_default_projection_chrono():
     )
 
 
-def test_default_projection_workers():
-    fixture = "Radhuset Station LE (85) ZvP chrono.SC2Replay"
+@pytest.mark.parametrize(
+    "replay_file",
+    [
+        "Radhuset Station LE (85) ZvP chrono.SC2Replay",
+    ],
+    indirect=True,
+)
+def test_default_projection_workers(replay_file):
 
     workers = ["Drone", "Probe", "SCV"]
 
     reader = ReplayReader()
-    raw_replay = reader.load_replay_raw(join(FIXTURE_DIR, fixture))
+    raw_replay = reader.load_replay_raw(replay_file)
 
     replay = reader.to_typed_replay(raw_replay)
 
@@ -71,4 +92,3 @@ def test_default_projection_workers():
         for bo in default_projection["players"][0]["build_order"]
     ]
     assert all(worker_in_bo)
-
