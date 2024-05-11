@@ -6,6 +6,7 @@ import requests
 import tiktoken
 from rich import print, print_json
 
+from aicoach import get_prompt
 from aicoach.functions import AIFunctions
 from config import config
 
@@ -28,10 +29,12 @@ def main(do_deploy):
     ]
     assistant = {"instructions": "", "tools": tools, "model": config.gpt_model}
 
-    with open(os.path.join("aicoach", "initial_instructions.txt"), "r") as f:
-        assistant["instructions"] = f.read()
-        tokens = encoding.encode(assistant["instructions"])
-        print(f"Current tokens in initial instructions: {len(tokens)}")
+    assistant["instructions"] = get_prompt(
+        "initial_instructions.txt", {"student": config.student.name}
+    )
+
+    tokens = encoding.encode(assistant["instructions"])
+    print(f"Current tokens in initial instructions: {len(tokens)}")
 
     assistant["tools"] = assistant["tools"] + [
         {"type": "function", "function": f.json()} for f in AIFunctions
