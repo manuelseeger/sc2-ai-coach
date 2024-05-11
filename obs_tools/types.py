@@ -62,3 +62,16 @@ class GameInfo(BaseModel):
     isReplay: bool
     displayTime: float
     players: List[Player]
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, GameInfo):
+            return (
+                self.isReplay == other.isReplay
+                and len(self.players) == len(other.players)
+                and all(
+                    self_player == other_player
+                    for self_player, other_player in zip(self.players, other.players)
+                )
+            )
+        else:
+            return False

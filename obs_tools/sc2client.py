@@ -68,6 +68,9 @@ sc2client = SC2Client()
 
 
 class ClientAPIScanner(threading.Thread):
+
+    last_gameinfo = None
+
     def __init__(self, name):
         super().__init__()
         self.name = name
@@ -93,6 +96,12 @@ class ClientAPIScanner(threading.Thread):
             gameinfo = sc2client.get_ongoing_gameinfo()
 
             if self.is_live_game(gameinfo):
+                if gameinfo == self.last_gameinfo:
+                    # same ongoing game, just later in time
+                    if gameinfo.displayTime > self.last_gameinfo.displayTime:
+                        continue
+
+                self.last_gameinfo = gameinfo
                 opponent = sc2client.get_opponent_name(gameinfo)
                 mapname = ""
 
