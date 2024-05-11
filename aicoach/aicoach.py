@@ -170,6 +170,12 @@ class AICoach:
         else:
             pass
 
+    def get_response(self, message) -> str:
+        buffer = ""
+        for response in self.chat(message):
+            buffer += response
+        return buffer
+
     def chat(self, text) -> Generator[str, None, None]:
         message = client.beta.threads.messages.create(
             thread_id=self.thread.id,
