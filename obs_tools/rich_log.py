@@ -9,10 +9,6 @@ from replays.types import Role
 console = Console()
 
 
-thinking_status = console.status("Thinking...", spinner="dots2")
-transcribing_status = console.status("Transcribing...", spinner="point")
-
-
 class LogStatus(Status):
     name: str
     buffer: str = ""
@@ -27,12 +23,7 @@ class LogStatus(Status):
         self.update(self.buffer)
 
 
-STATUS_METHODS: Dict[str, LogStatus] = {
-    "converse": LogStatus(name="converse"),
-    "transcribe": LogStatus(name="transcribe"),
-    "playrich": LogStatus(name="playrich"),
-    "say": LogStatus(name="play"),
-}
+STATUS_METHODS = ["converse", "transcribe", "playrich", "say"]
 
 
 class Emojis:
@@ -73,6 +64,8 @@ def get_emoji(name: str, funcName: str) -> str:
 
 
 class TwitchObsLogHandler(Handler):
+
+    _status_methods: Dict[str, LogStatus] = {}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -127,32 +120,32 @@ class TwitchObsLogHandler(Handler):
             console.print(f"{emoji} {message}")
 
     def check_stop(self, record: LogRecord) -> bool:
-        for status in STATUS_METHODS.values():
+        for status in self._status_methods.values():
             if status.status == record.msg:
                 return True
         return False
 
     def set_status(self, record: LogRecord) -> None:
-
         if self.fqn != self.get_fqn(record.name, record.funcName):
             self.stop_statuses()
-            STATUS_METHODS[record.funcName].start()
-            STATUS_METHODS[record.funcName].stream(record.msg)
+            # Recreate the status object. If we reuse the same object, the status will render at
+            # the position of the last status, overwriting lines printed between the two statuses.
+            self._status_methods[record.funcName] = LogStatus(name=record.funcName)
+
+            self._status_methods[record.funcName].start()
+            self._status_methods[record.funcName].stream(record.msg)
         else:
-            STATUS_METHODS[record.funcName].stream(record.msg)
+            self._status_methods[record.funcName].stream(record.msg)
 
     def stop_statuses(self):
-        for status in STATUS_METHODS.values():
+        for status in self._status_methods.values():
             status.stop()
             status.buffer = ""
 
-    def get_status(self, record: LogRecord) -> Status:
-        if record.funcName in STATUS_METHODS.keys():
-            return STATUS_METHODS[record.funcName]
-        return None
+        self._status_methods = {}
 
     def is_status(self, record: LogRecord) -> bool:
-        if record.funcName in STATUS_METHODS.keys():
+        if record.funcName in STATUS_METHODS:
             return True
 
         role = getattr(record, "role", None)
