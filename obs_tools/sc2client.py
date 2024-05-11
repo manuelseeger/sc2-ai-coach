@@ -32,7 +32,7 @@ class SC2Client:
                 except ValidationError as e:
                     log.warn(f"Invalid game data: {e}")
         except ConnectionError as e:
-            log.warn("Could not connect to SC2 game client, is it running?")
+            log.warn("Could not connect to SC2 game client, is SC2 running?")
         return None
 
     def get_opponent_name(self, gameinfo=None) -> str:
@@ -58,7 +58,7 @@ class SC2Client:
         if (
             gameinfo
             and gameinfo.displayTime > 0
-            and gameinfo.players[0].result != Result.undecided
+            and gameinfo.players[0].result == Result.undecided
         ):
             return gameinfo
         return None
