@@ -165,11 +165,6 @@ class AISession:
         self.coach.create_thread(prompt)
         self.thread_id = self.coach.current_thread_id
 
-        self.coach.stream_thread()
-        # log.info(message, extra={'role': Role.assistant})
-
-        return
-
     def converse(self):
         while True:
             if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
@@ -191,8 +186,11 @@ class AISession:
                 return True
 
     def stream_thread(self):
+        buffer = ""
         for message in self.coach.stream_thread():
+            buffer += message
             self.say(message)
+        return buffer
 
     def chat(self, message: str) -> str:
         buffer = ""
@@ -211,6 +209,7 @@ class AISession:
             tts.feed(message)
 
     def close(self):
+        log.info("Closing thread")
         self.thread_id = None
 
     def is_goodbye(self, response):
@@ -260,7 +259,8 @@ class AISession:
             self.initiate_from_scanner(
                 scanresult.mapname, scanresult.opponent, self.last_mmr
             )
-            self.stream_thread()
+            response = self.stream_thread()
+            log.info(response, extra={"role": Role.assistant})
             done = self.converse()
             if done:
                 self.close()
@@ -280,7 +280,8 @@ class AISession:
         if not self.is_active():
             log.debug("New replay detected")
             self.initiate_from_new_replay(replay)
-            self.stream_thread()
+            response = self.stream_thread()
+            log.info(response, extra={"role": Role.assistant})
             done = self.converse()
             if done:
                 self.say("I'll save a summary of the game.")
