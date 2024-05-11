@@ -37,13 +37,6 @@ if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
     mic = Microphone()
     transcriber = Transcriber()
 
-if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
-    from obs_tools.tts import tts as tts_engine
-
-    tts = tts_engine
-    tts.feed("")
-    tts.play_async()
-
 if config.obs_integration:
     from obs_tools.mapstats import get_map_stats
 
@@ -53,10 +46,12 @@ if not os.path.exists("logs"):
 handler = logging.FileHandler(
     os.path.join("logs", f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-obs_watcher.log"),
 )
+handler.setLevel(logging.DEBUG)
 one_file_handler = logging.FileHandler(
     mode="a",
     filename=os.path.join("logs", "_obs_watcher.log"),
 )
+one_file_handler.setLevel(logging.DEBUG)
 log.addHandler(handler)
 log.addHandler(one_file_handler)
 
@@ -73,17 +68,19 @@ log.addHandler(obs_handler)
     is_flag=True,
     help="Verbose mode: print voice input and responses to console",
 )
-@click.option(
-    "--audiomode",
-    type=click.Choice(AudioMode, case_sensitive=False),
-    help="Run with/without audio input/output",
-)
-def main(debug, verbose, audiomode):
+def main(debug, verbose):
     if debug:
         log.setLevel(logging.DEBUG)
         handler.setLevel(logging.DEBUG)
-        obs_handler.setLevel(logging.DEBUG)
         log.debug("debugging on")
+
+    if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
+        from obs_tools.tts import make_tts_stream
+
+    global tts
+    tts = make_tts_stream()
+    tts.feed("")
+    tts.play_async(buffer_threshold_seconds=2.8, fast_sentence_fragment=True)
 
     session = AISession()
 
@@ -125,6 +122,11 @@ def main(debug, verbose, audiomode):
                         ping_printed = True
                 else:
                     ping_printed = False
+            if config.audiomode in [AudioMode.full, AudioMode.voice_out]:
+                # trial and error: this seems to keep the audio-out thread alive, it
+                # otherwise dies if nothing is fed
+                tts.feed("")
+
             sleep(0.1)
         except KeyboardInterrupt:
             log.info("Exiting ...")
@@ -162,8 +164,7 @@ class AISession:
 
         prompt = get_prompt("prompt_scanner.txt", replacements)
 
-        self.coach.create_thread(prompt)
-        self.thread_id = self.coach.current_thread_id
+        self.thread_id = self.coach.create_thread(prompt)
 
     def converse(self):
         while True:
@@ -207,6 +208,7 @@ class AISession:
             if self.verbose:
                 log.info(message, extra={"role": Role.assistant, "flush": flush})
             tts.feed(message)
+            tts.resume()
 
     def close(self):
         log.info("Closing thread")
@@ -241,8 +243,7 @@ class AISession:
         ) as f:
             f.write(prompt)
 
-        self.coach.create_thread(prompt)
-        self.thread_id = self.coach.current_thread_id
+        self.thread_id = self.coach.create_thread(prompt)
 
     def is_active(self):
         return self.thread_id is not None
@@ -268,8 +269,7 @@ class AISession:
     def handle_wake(self, sender, wakeresult: WakeResult):
         log.debug(sender)
         if not self.is_active():
-            self.coach.create_thread()
-            self.thread_id = self.coach.current_thread_id
+            self.thread_id = self.coach.create_thread()
 
             done = self.converse()
             if done:
