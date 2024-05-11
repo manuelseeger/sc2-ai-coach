@@ -46,9 +46,9 @@ class AICoachMock(AICoach):
             yield token
 
     @override
-    def chat(self, text) -> Generator[str, None, None]:
+    def chat(self, text: str) -> Generator[str, None, None]:
         sleep(1)
-        if text == "done":
+        if text == "done" or "thank you" in text.lower():
             yield "Good luck, "
             yield "have fun"
             return
