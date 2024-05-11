@@ -1,21 +1,22 @@
-import os
-import click
-from time import sleep
-from datetime import datetime
 import logging
+import os
+from datetime import datetime
+from time import sleep
+
+import click
 from blinker import signal
-from aicoach import AICoach, get_prompt
-from config import config, AudioMode
 from Levenshtein import distance as levenshtein
-from replays import NewReplayScanner
-from replays.types import Replay
+from rich.prompt import Prompt
+
+from aicoach import AICoach, get_prompt
+from config import AudioMode, config
+from obs_tools import GameStartedScanner, WakeListener
 from obs_tools.rich_log import TwitchObsLogHandler
+from obs_tools.types import ScanResult, WakeResult
+from replays import NewReplayScanner
 from replays.db import replaydb
 from replays.metadata import safe_replay_summary
-from replays.types import Role
-from rich.prompt import Prompt
-from obs_tools import GameStartedScanner, WakeListener
-from obs_tools.types import ScanResult, WakeResult
+from replays.types import Replay, Role
 
 rootlogger = logging.getLogger()
 for handler in rootlogger.handlers.copy():
@@ -30,8 +31,8 @@ log.propagate = False
 log.setLevel(logging.INFO)
 
 if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
-    from obs_tools.mic import Microphone
     from aicoach.transcribe import Transcriber
+    from obs_tools.mic import Microphone
 
     mic = Microphone()
     transcriber = Transcriber()
@@ -198,6 +199,7 @@ class AISession:
         for response in self.coach.chat(message):
             buffer += response
             self.say(response)
+
         return buffer
 
     def say(self, message):

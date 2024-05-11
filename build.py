@@ -1,11 +1,13 @@
-from aicoach.functions import AIFunctions
-import os
 import json
+import os
+
+import click
+import requests
 import tiktoken
 from rich import print, print_json
+
+from aicoach.functions import AIFunctions
 from config import config
-import requests
-import click
 
 
 @click.command()

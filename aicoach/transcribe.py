@@ -1,13 +1,14 @@
-import torch
-from transformers.utils import is_flash_attn_2_available
+import io
+import logging
+
 import numpy as np
 import soundfile as sf
-import io
-from config import config
-import logging
 import torch
-from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 import transformers
+from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+from transformers.utils import is_flash_attn_2_available
+
+from config import config
 
 transformers.logging.set_verbosity_error()
 

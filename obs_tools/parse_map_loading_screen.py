@@ -1,18 +1,21 @@
+import logging
+import os
+import re
+import threading
+from datetime import datetime
+from os.path import join, split, splitext
+from time import sleep, time
+
 import cv2
 import numpy
-from Levenshtein import distance as levenstein
-import threading
-import os
-from os.path import split, splitext, join
-from time import sleep, time
-import re
-from datetime import datetime
-from blinker import signal
-from config import config
-import logging
-from obs_tools.sc2client import sc2client
 import tesserocr
+from blinker import signal
+from Levenshtein import distance as levenstein
 from PIL import Image
+
+from config import config
+from obs_tools.sc2client import sc2client
+
 from .types import ScanResult
 
 log = logging.getLogger(f"{config.name}.{__name__}")

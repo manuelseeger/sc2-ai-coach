@@ -1,4 +1,4 @@
-from RealtimeTTS import TextToAudioStream, SystemEngine
+from RealtimeTTS import SystemEngine, TextToAudioStream
 
-engine = SystemEngine() 
+engine = SystemEngine()
 tts = TextToAudioStream(engine)

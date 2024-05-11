@@ -1,8 +1,11 @@
-import threading
-from blinker import signal
-import keyboard
 import logging
+import threading
+
+import keyboard
+from blinker import signal
+
 from config import config
+
 from .types import WakeResult
 
 log = logging.getLogger(f"{config.name}.{__name__}")

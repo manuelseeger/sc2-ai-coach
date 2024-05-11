@@ -1,13 +1,16 @@
-import pyaudio
-import numpy as np
-from openwakeword.model import Model
-import threading
-from blinker import signal
-from config import config
 import logging
-from time import sleep
+import threading
 from datetime import datetime
+from time import sleep
+
+import numpy as np
 import onnxruntime
+import pyaudio
+from blinker import signal
+from openwakeword.model import Model
+
+from config import config
+
 from .types import WakeResult
 
 onnxruntime.set_default_logger_severity(3)

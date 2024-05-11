@@ -1,18 +1,18 @@
-from pydantic import BaseModel
-from typing import Dict, List, Type, Tuple
-from pydantic_settings import (
-    BaseSettings,
-    SettingsConfigDict,
-    YamlConfigSettingsSource,
-    PydanticBaseSettingsSource,
-    EnvSettingsSource,
-    DotEnvSettingsSource,
-)
-from typing import Annotated
+from enum import Enum
 from glob import glob
+from typing import Annotated, Dict, List, Tuple, Type
+
+from pydantic import BaseModel
 from pydantic.networks import UrlConstraints
 from pydantic_core import MultiHostUrl, Url
-from enum import Enum
+from pydantic_settings import (
+    BaseSettings,
+    DotEnvSettingsSource,
+    EnvSettingsSource,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+    YamlConfigSettingsSource,
+)
 
 # https://github.com/pydantic/pydantic/pull/7116
 MongoSRVDsn = Annotated[

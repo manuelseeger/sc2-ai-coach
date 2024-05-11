@@ -1,8 +1,10 @@
+import logging
+
+from rich import print
+
 from config import config
 from obs_tools.rich_log import TwitchObsLogHandler
-import logging
 from obs_tools.sc2client import SC2Client
-from rich import print
 from replays.util import is_barcode
 
 log = logging.getLogger("twitch")

@@ -1,11 +1,8 @@
-from config import config, AudioMode
-
+from config import AudioMode, config
 
 if config.obs_integration:
-    from .parse_map_loading_screen import (
-        LoadingScreenScanner as GameStartedScanner,
-    )
     from .mapstats import get_map_stats
+    from .parse_map_loading_screen import LoadingScreenScanner as GameStartedScanner
 else:
     from .sc2client import ClientAPIScanner as GameStartedScanner
 

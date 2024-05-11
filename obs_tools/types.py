@@ -1,14 +1,17 @@
+from enum import Enum
+from typing import List
 
 from pydantic import BaseModel
-from typing import List
-from enum import Enum
+
 
 class ScanResult(BaseModel):
     mapname: str
     opponent: str
-    
+
+
 class WakeResult(BaseModel):
     awake: bool
+
 
 class Race(str, Enum):
     terran = "Terr"

@@ -1,25 +1,26 @@
-from openai import OpenAI
-from openai.types.beta import Thread, Assistant
+import json
+import logging
+import time
+from typing import Callable, Dict, Generator
+
+from openai import AssistantEventHandler, OpenAI
+from openai.lib.streaming import AssistantStreamManager
+from openai.types.beta import Assistant, Thread
+from openai.types.beta.assistant_stream_event import (
+    ThreadMessageDelta,
+    ThreadRunRequiresAction,
+)
 from openai.types.beta.threads import (
-    Run,
     MessageDeltaEvent,
     RequiredActionFunctionToolCall,
+    Run,
 )
 from openai.types.beta.threads.runs import ToolCall
-from openai.types.beta.assistant_stream_event import (
-    ThreadRunRequiresAction,
-    ThreadMessageDelta,
-)
-import time
-import json
-from .functions import AIFunctions
-from config import config
-import logging
-from typing import Dict, Callable, Generator
-from openai import AssistantEventHandler
-from openai.lib.streaming import AssistantStreamManager
 from typing_extensions import override
 
+from config import config
+
+from .functions import AIFunctions
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 

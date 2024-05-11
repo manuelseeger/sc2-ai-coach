@@ -1,21 +1,25 @@
-import glob
-import os
-import click
 import datetime
-from replays import ReplayReader, replaydb
-from os.path import join, basename, getmtime
+import glob
 import logging
-from time import sleep
+import os
 from datetime import date, datetime, timedelta
+from os.path import basename, getmtime, join
+from time import sleep
+
+import click
 from rich.console import Console
-from config import config
 from rich.logging import RichHandler
 from rich.theme import Theme
 
-custom_theme = Theme({
-    "on": "bold green",
-    "off": "bold red",
-})
+from config import config
+from replays import ReplayReader, replaydb
+
+custom_theme = Theme(
+    {
+        "on": "bold green",
+        "off": "bold red",
+    }
+)
 
 console = Console(theme=custom_theme)
 
@@ -26,10 +30,26 @@ reader = ReplayReader()
 
 dformat = lambda x: datetime.fromtimestamp(x).strftime("%Y-%m-%d %H:%M:%S")
 
+
 @click.group()
-@click.option("--clean", is_flag=True, default=False, help="Delete replays from instant-leave games")
-@click.option("--debug", is_flag=True, default=False, help="Print debug messages, including replay parser")
-@click.option("--simulation", is_flag=True, default=False, help="Run in simulation mode, don't actually insert to DB")
+@click.option(
+    "--clean",
+    is_flag=True,
+    default=False,
+    help="Delete replays from instant-leave games",
+)
+@click.option(
+    "--debug",
+    is_flag=True,
+    default=False,
+    help="Print debug messages, including replay parser",
+)
+@click.option(
+    "--simulation",
+    is_flag=True,
+    default=False,
+    help="Run in simulation mode, don't actually insert to DB",
+)
 @click.pass_context
 def cli(ctx, clean, debug, simulation):
     ctx.ensure_object(dict)
@@ -37,20 +57,22 @@ def cli(ctx, clean, debug, simulation):
     ctx.obj["DEBUG"] = debug
     ctx.obj["SIMULATION"] = simulation
 
-    console.print("Debug mode is %s" % ("[on]on[/on]" if debug else "[off]off[/off]" ))
+    console.print("Debug mode is %s" % ("[on]on[/on]" if debug else "[off]off[/off]"))
     console.print("Clean mode is %s" % ("[on]on[/on]" if clean else "[off]off[/off]"))
-    console.print("Simulation mode is %s" % ("[on]on[/on]" if simulation else "[off]off[/off]"))
+    console.print(
+        "Simulation mode is %s" % ("[on]on[/on]" if simulation else "[off]off[/off]")
+    )
 
     if debug:
         log.setLevel(logging.DEBUG)
     else:
-        logging.getLogger('sc2reader').setLevel(logging.CRITICAL)
+        logging.getLogger("sc2reader").setLevel(logging.CRITICAL)
 
 
 @cli.command()
 @click.pass_context
 def deamon(ctx):
-    '''Monitor replay folder, add new replays to MongoDB'''
+    """Monitor replay folder, add new replays to MongoDB"""
     console.print("Monitoring folder for new replays")
     console.print("Press Ctrl+C to exit")
     list_of_files = glob.glob(join(config.replay_folder, "*.SC2Replay"))
@@ -89,7 +111,8 @@ def deamon(ctx):
     help="Start date for replay search",
     type=click.DateTime(formats=["%Y-%m-%d"]),
     default=str(date.today()),
-    show_default=True,)
+    show_default=True,
+)
 @click.option(
     "--to",
     "-t",
@@ -97,11 +120,20 @@ def deamon(ctx):
     help="End date for replay search",
     type=click.DateTime(formats=["%Y-%m-%d"]),
     default=str(date.today()),
-    show_default=True)
-@click.option("-fR", "--from-most-recent", is_flag=True, help="Sync from the most recent replay in DB", default=False)
-@click.option("-d", "--delta", is_flag=True, help="Don't update existing replays",  default=False)
+    show_default=True,
+)
+@click.option(
+    "-fR",
+    "--from-most-recent",
+    is_flag=True,
+    help="Sync from the most recent replay in DB",
+    default=False,
+)
+@click.option(
+    "-d", "--delta", is_flag=True, help="Don't update existing replays", default=False
+)
 def sync(ctx, from_: datetime, to_: datetime, from_most_recent: bool, delta: bool):
-    '''Sync replays from replay folder to MongoDB'''
+    """Sync replays from replay folder to MongoDB"""
     if from_most_recent:
         most_recent = replaydb.get_most_recent()
         sync_from_date = most_recent.unix_timestamp
@@ -110,10 +142,13 @@ def sync(ctx, from_: datetime, to_: datetime, from_most_recent: bool, delta: boo
 
     sync_to_date = (to_ + timedelta(days=1)).timestamp()
 
-    console.print(f"Syncing from {dformat(sync_from_date)} to {dformat(sync_to_date)}" )
+    console.print(f"Syncing from {dformat(sync_from_date)} to {dformat(sync_to_date)}")
     list_of_files = glob.glob(join(config.replay_folder, "*.SC2Replay"))
-    list_of_files = [f for f in list_of_files if sync_from_date <= getmtime(f)
-                     and sync_to_date > getmtime(f)]
+    list_of_files = [
+        f
+        for f in list_of_files
+        if sync_from_date <= getmtime(f) and sync_to_date > getmtime(f)
+    ]
 
     list_of_files.sort(key=getmtime)
 
@@ -147,8 +182,9 @@ def sync(ctx, from_: datetime, to_: datetime, from_most_recent: bool, delta: boo
 @click.pass_context
 @click.argument("replay", type=click.Path(exists=True), required=True)
 def echo(ctx, replay):
-    '''Echo pretty-printed parsed replay data from a .SC2Replay file'''
+    """Echo pretty-printed parsed replay data from a .SC2Replay file"""
     console.print(reader.load_replay(replay))
+
 
 if __name__ == "__main__":
     try:

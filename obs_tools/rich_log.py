@@ -1,9 +1,11 @@
 import logging
-from logging import LogRecord, Handler
+from logging import Handler, LogRecord
+from typing import Dict
+
 from rich.console import Console
 from rich.status import Status
+
 from config import config
-from typing import Dict
 from replays.types import Role
 
 console = Console()

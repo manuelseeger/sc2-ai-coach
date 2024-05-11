@@ -1,11 +1,10 @@
-from bson import Binary
-from replays.types import Metadata, PlayerInfo, AssistantMessage, Role
-from replays import replaydb, ReplayReader
-from os.path import join
 from datetime import datetime, timedelta
-import cv2
-from replays.db import eq
+
 import pytest
+
+from replays import ReplayReader, replaydb
+from replays.db import eq
+from replays.types import AssistantMessage, Metadata, Role
 
 
 def test_db_ready():

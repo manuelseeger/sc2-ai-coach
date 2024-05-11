@@ -1,7 +1,9 @@
-from bs4 import BeautifulSoup
-import requests
-from config import config
 import logging
+
+import requests
+from bs4 import BeautifulSoup
+
+from config import config
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 

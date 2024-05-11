@@ -1,12 +1,15 @@
-import requests
-from requests.exceptions import ConnectionError
-from pydantic_core import ValidationError
-from time import time, sleep
 import logging
-from config import config
 import threading
+from time import sleep, time
+
+import requests
 from blinker import signal
-from .types import ScanResult, GameInfo, Result
+from pydantic_core import ValidationError
+from requests.exceptions import ConnectionError
+
+from config import config
+
+from .types import GameInfo, Result, ScanResult
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 

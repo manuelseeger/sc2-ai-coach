@@ -1,11 +1,12 @@
 from threading import Thread
-from typing import Dict, Callable
-from .aicoach import AICoach
-from typing_extensions import override
-from typing import Dict, Callable, Generator
-import tiktoken
 from time import sleep
+from typing import Callable, Dict, Generator
 from uuid import uuid4
+
+import tiktoken
+from typing_extensions import override
+
+from .aicoach import AICoach
 
 data = [
     "The current supply count is not part of the game information provided. I can give insights based on replays on record but not from live games or current replays in progress. Would you like me to look up a recent replay instead?",
