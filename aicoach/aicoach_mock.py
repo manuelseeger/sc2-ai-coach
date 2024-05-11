@@ -13,12 +13,45 @@ data = [
     "The current supply count is not part of the game information provided. I can give insights based on replays on record but not from live games or current replays in progress. Would you like me to look up a recent replay instead?",
     "In the most recent replay involving zatic on the map Goldenaura LE, zatic played Zerg and won the game with a final supply count of 195.",
 ]
+data = [
+    {
+        "role": "assistant",
+        "text": "Congratulations on the win, zatic!\n\nIf you'd like, we can go through the replay together. Let me know if you have any questions about the replay or your opponent, RichieBravo.",
+    },
+    {
+        "role": "user",
+        "text": " Thank you.",
+    },
+    {
+        "role": "assistant",
+        "text": "Good luck, have fun.",
+    },
+    {
+        "role": "assistant",
+        "text": "In the game on Alcyone LE, you, zatic, executed a Zergling-Baneling focused aggressive strategy against RichieBravo, with an early Spawning Pool followed by quick Zergling pressure. You kept up continuous Zergling production and added a Baneling Nest to bolster your aggressive stance. RichieBravo opted for an earlier Hatchery before Spawning Pool, transitioning into Zerglings and a later Baneling Nest, aiming for a more economic opening. Your relentless aggression with Zerglings and Banelings, complemented by timely Evolution Chambers for upgrades, allowed you to maintain pressure and control the pace of the game. Despite initial economic disadvantage due to the quick tech, your aggression paid off, leading to a win with heavy Zergling-Baneling plays and superior APM.",
+    },
+    {
+        "role": "assistant",
+        "text": ", ".join(
+            [
+                "Spawning Pool first",
+                "Zergling-Baneling pressure",
+                "early Evolution Chambers",
+                "Zerg Melee Weapons Level 1",
+                "Zerg Ground Armor Level 1",
+                "Metabolic Boost",
+                "Baneling Nest",
+                "APM advantage",
+            ]
+        ),
+    },
+]
 
 encoding = tiktoken.get_encoding("cl100k_base")
 
 
 class AICoachMock(AICoach):
-    current_thread_id: str = None
+    thread_id: str = None
     threads: Dict[str, Thread] = {}
     thread: Thread = None
 
@@ -30,14 +63,13 @@ class AICoachMock(AICoach):
 
     def set_data(self, data):
         self._data = data
-        self._responses = iter(self._data)
+        self._responses = iter([d for d in self._data if d.get("role") == "assistant"])
 
-    # public
     @override
     def create_thread(self, message=None):
-        self.current_thread_id = uuid4().hex
+        self.thread_id = uuid4().hex
         sleep(0.5)
-        pass
+        return self.thread_id
 
     @override
     def stream_thread(self) -> Generator[str, None, None]:
@@ -60,22 +92,26 @@ class AICoachMock(AICoach):
         return [
             Message(
                 content=[
-                    TextContentBlock(text=Text(value=msg, annotations=[]), type="text")
+                    TextContentBlock(
+                        text=Text(value=msg.get("text"), annotations=[]), type="text"
+                    )
                 ],
                 id=uuid4().hex,
                 created_at=0,
                 file_ids=[],
                 object="thread.message",
-                role="assistant",
+                role=msg.get("role"),
                 status="completed",
-                thread_id=self.current_thread_id,
+                thread_id=self.thread_id,
             )
             for msg in self._data
         ]
 
     def generate_stream(self):
-        msg = next(self._responses, "I'm sorry, I don't have anything more to say")
-        tokens = encoding.encode(msg)
+        msg = next(
+            self._responses, {"text": "I'm sorry, I don't have anything more to say"}
+        )
+        tokens = encoding.encode(msg.get("text"))
         for token in tokens:
-            sleep(0.05)
+            sleep(0.03)
             yield encoding.decode([token])
