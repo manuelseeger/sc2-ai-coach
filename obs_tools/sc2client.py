@@ -22,7 +22,7 @@ class SC2Client:
 
     def get_gameinfo(self) -> GameInfo:
         try:
-            response = requests.get("http://127.0.0.1:6119/game")
+            response = requests.get(config.sc2_client_url + "/game")
             if response.status_code == 200:
                 try:
                     game = GameInfo.model_validate_json(response.text)

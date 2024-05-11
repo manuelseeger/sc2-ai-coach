@@ -15,7 +15,9 @@ from pydantic_core import MultiHostUrl, Url
 from enum import Enum
 
 # https://github.com/pydantic/pydantic/pull/7116
-MongoSRVDsn = Annotated[MultiHostUrl, UrlConstraints(allowed_schemes=["mongodb+srv", "mongodb"])]
+MongoSRVDsn = Annotated[
+    MultiHostUrl, UrlConstraints(allowed_schemes=["mongodb+srv", "mongodb"])
+]
 
 
 def sort_config_files(files):
@@ -33,12 +35,12 @@ env_files = sort_config_files(env_files)
 env_files.remove(".env.example")
 
 
-
 class AudioMode(str, Enum):
     text = "text"
     voice_in = "in"
     voice_out = "out"
     full = "fullaudio"
+
 
 class RecognizerConfig(BaseModel):
     energy_threshold: int = 400
@@ -85,6 +87,7 @@ class Config(BaseSettings):
     gpt_model: str = "gpt-3.5-turbo"
 
     obs_integration: bool = False
+    sc2_client_url: str = "http://127.0.0.1:6119"
     screenshot: str = "obs/screenshots/_maploading.png"
     tessdata_dir: str = "C:\\Program Files\\Tesseract-OCR\\tessdata"
 
