@@ -22,7 +22,6 @@ race_map = {
 
 
 class SC2Client:
-
     def get_gameinfo(self) -> GameInfo:
         try:
             response = requests.get(config.sc2_client_url + "/game")
