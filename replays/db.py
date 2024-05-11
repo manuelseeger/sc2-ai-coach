@@ -28,12 +28,16 @@ class ReplayDB:
             return None
 
     def get_most_recent(self) -> Replay:
-        most_recents = engine._db.replays.find().sort("unix_timestamp", -1).limit(1)
-        if most_recents.retrieved == 0:
+        most_recents = list(
+            engine._db.replays.find().sort("unix_timestamp", -1).limit(1)
+        )
+        if len(most_recents) == 0:
             raise ValueError("No replays found")
 
-        most_recent = list(most_recents)[0]
-        return Replay(**most_recent)
+        if len(most_recents) > 1:
+            raise ValueError("Multiple replays found")
+
+        return Replay(**most_recents[0])
 
     def find(self, model: SC2Model) -> SC2Model:
         ModelClass = model.__class__

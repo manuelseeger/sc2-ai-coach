@@ -43,7 +43,11 @@ class AICoachMock(AICoach):
     @override
     def chat(self, text) -> Generator[str, None, None]:
         sleep(1)
-        msg = self._data.pop()
+        msg = (
+            self._data.pop()
+            if self._data
+            else "I'm sorry, I don't have anything more to say"
+        )
         tokens = encoding.encode(msg)
         for token in tokens:
             sleep(0.05)
