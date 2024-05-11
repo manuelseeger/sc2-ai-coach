@@ -4,6 +4,7 @@ from typing import Callable, Dict, Generator
 from uuid import uuid4
 
 import tiktoken
+from openai.types.beta.threads import Message, Text, TextContentBlock
 from typing_extensions import override
 
 from .aicoach import AICoach
@@ -25,9 +26,11 @@ class AICoachMock(AICoach):
 
     def __init__(self):
         self._init_functions()
+        self.set_data(data)
 
-        # mock data in reverse
-        self._data = data[::-1]
+    def set_data(self, data):
+        self._data = data
+        self._responses = iter(self._data)
 
     # public
     @override
@@ -39,16 +42,39 @@ class AICoachMock(AICoach):
     @override
     def stream_thread(self) -> Generator[str, None, None]:
         sleep(1)
-        yield ""
+        for token in self.generate_stream():
+            yield token
 
     @override
     def chat(self, text) -> Generator[str, None, None]:
         sleep(1)
-        msg = (
-            self._data.pop()
-            if self._data
-            else "I'm sorry, I don't have anything more to say"
-        )
+        if text == "done":
+            yield "Good luck, "
+            yield "have fun"
+            return
+        for token in self.generate_stream():
+            yield token
+
+    @override
+    def get_conversation(self) -> list[Message]:
+        return [
+            Message(
+                content=[
+                    TextContentBlock(text=Text(value=msg, annotations=[]), type="text")
+                ],
+                id=uuid4().hex,
+                created_at=0,
+                file_ids=[],
+                object="thread.message",
+                role="assistant",
+                status="completed",
+                thread_id=self.current_thread_id,
+            )
+            for msg in self._data
+        ]
+
+    def generate_stream(self):
+        msg = next(self._responses, "I'm sorry, I don't have anything more to say")
         tokens = encoding.encode(msg)
         for token in tokens:
             sleep(0.05)
