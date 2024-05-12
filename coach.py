@@ -21,6 +21,7 @@ from replays.types import Replay, Role
 
 warnings.filterwarnings("ignore")
 
+
 rootlogger = logging.getLogger()
 for handler in rootlogger.handlers.copy():
     try:
@@ -129,12 +130,8 @@ def main(debug, verbose):
                         ping_printed = True
                 else:
                     ping_printed = False
-            if config.audiomode in [AudioMode.full, AudioMode.voice_out]:
-                # trial and error: this seems to keep the audio-out thread alive, it
-                # otherwise dies if nothing is fed
-                tts.feed("")
 
-            sleep(0.1)
+            sleep(1)
         except KeyboardInterrupt:
             log.info("Exiting ...")
             break
@@ -216,7 +213,10 @@ class AISession:
             if self.verbose:
                 log.info(message, extra={"role": Role.assistant, "flush": flush})
             tts.feed(message)
-            tts.resume()
+            if not tts.is_playing():
+                tts.play_async(
+                    buffer_threshold_seconds=2.8, fast_sentence_fragment=True
+                )
 
     def close(self):
         log.info("Closing thread")
@@ -261,8 +261,9 @@ class AISession:
 
         if scanresult.mapname and config.obs_integration:
             stats = get_map_stats(scanresult.mapname)
-            with open("obs/map_stats.html", "w") as f:
-                f.write(stats.prettify())
+            if stats is not None:
+                with open("obs/map_stats.html", "w") as f:
+                    f.write(stats.prettify())
 
         if not self.is_active():
             self.initiate_from_scanner(
