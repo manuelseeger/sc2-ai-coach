@@ -1,69 +1,84 @@
-import sys
+import logging
 
-import pyttsx3
+import numpy as np
+import speech_recognition as sr
+import webrtcvad
+from scipy.signal import resample
 
+from config import config
 
-def init_voice_engine():
-    engine = pyttsx3.init()
-    voices = engine.getProperty("voices")
-    engine.setProperty("voice", voices[3].id if len(voices) > 3 else voices[0].id)
-    return engine
+log = logging.getLogger(f"{config.name}.{__name__}")
 
-
-def say(s):
-    engine.say(s)
-    engine.runAndWait()  # In here the program will wait as if is in main file
+vad = webrtcvad.Vad()
 
 
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        engine = init_voice_engine()
+class Frame(object):
+    """Represents a "frame" of audio data."""
 
-        say(str(sys.argv[1]))
-    else:
-        print("Usage: python3 mic.py <text>")
-else:
+    def __init__(self, bytes, timestamp, duration):
+        self.bytes = bytes
+        self.timestamp = timestamp
+        self.duration = duration
 
-    import logging
-    import os
-    from subprocess import Popen, call
-    from typing import Dict
 
-    import speech_recognition as sr
+def frame_generator(frame_duration_ms, audio, sample_rate):
+    """Generates audio frames from PCM audio data.
 
-    from config import config
+    Takes the desired frame duration in milliseconds, the PCM data, and
+    the sample rate.
 
-    log = logging.getLogger(f"{config.name}.{__name__}")
-    log.setLevel(logging.DEBUG)
+    Yields Frames of the requested duration.
+    """
+    audio_array = np.frombuffer(audio, dtype=np.int16).astype(np.float32)
 
-    class Microphone:
-        def __init__(self, device_index=None):
-            if device_index is None:
-                device_index = config.microphone_index
-            self.device_index = device_index
+    # Downsample from 44100Hz to 16000Hz
+    original_rate = 44100
+    target_rate = 16000
+    downsampled_audio = resample(
+        audio_array, int(len(audio_array) * target_rate / original_rate)
+    )
 
-            self.recognizer = sr.Recognizer()
+    n = int(sample_rate * (frame_duration_ms / 1000.0) * 2)
+    offset = 0
+    timestamp = 0.0
+    duration = (float(n) / sample_rate) / 2.0
+    while offset + n < len(downsampled_audio):
+        yield Frame(audio[offset : offset + n], timestamp, duration)
+        timestamp += duration
+        offset += n
 
-            self.recognizer.energy_threshold = config.recognizer.energy_threshold
-            self.recognizer.pause_threshold = config.recognizer.pause_threshold
-            self.recognizer.phrase_threshold = config.recognizer.phrase_threshold
-            self.recognizer.non_speaking_duration = (
-                config.recognizer.non_speaking_duration
-            )
 
-            self.microphone = sr.Microphone(device_index=self.device_index)
+class Microphone:
+    def __init__(self, device_index=None):
+        if device_index is None:
+            device_index = config.microphone_index
+        self.device_index = device_index
 
-        def listen(self):
+        self.recognizer = sr.Recognizer()
+
+        self.recognizer.energy_threshold = config.recognizer.energy_threshold
+        self.recognizer.pause_threshold = config.recognizer.pause_threshold
+        self.recognizer.phrase_threshold = config.recognizer.phrase_threshold
+        self.recognizer.non_speaking_duration = config.recognizer.non_speaking_duration
+
+        self.microphone = sr.Microphone(device_index=self.device_index)
+
+    def listen(self):
+        while True:
             with self.microphone as source:
                 audio = self.recognizer.listen(source)
-            return audio
 
-        def say_(self, text):
-            self.voiceengine.say(text)
-            ret = self.voiceengine.runAndWait()
-            log.debug(f"Done speaking")
+            sample_rate = 16000
 
-        def say(self, text):
-            # runandwait is broken and hangs the program
-            # so we speak in a subprocess
-            Popen([sys.executable, "obs_tools/mic.py", text], cwd=os.getcwd())
+            frames = frame_generator(
+                audio=audio.frame_data, frame_duration_ms=30, sample_rate=sample_rate
+            )
+
+            is_speech_frames = [
+                vad.is_speech(frame.bytes, sample_rate) for frame in frames
+            ]
+
+            speech_indicator = sum(is_speech_frames) / len(is_speech_frames)
+
+            if speech_indicator > config.recognizer.speech_threshold:
+                return audio

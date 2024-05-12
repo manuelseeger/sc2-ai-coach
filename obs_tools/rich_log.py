@@ -39,6 +39,7 @@ class Emojis:
     loading_screen: str = ":tv:"
     replay: str = ":videocassette:"
     transcribe: str = ":keyboard:"
+    system: str = ":computer:"
 
 
 EMOJI_MAP = {
@@ -48,6 +49,7 @@ EMOJI_MAP = {
     "obs_tools.mic": Emojis.mic,
     "aicoach.transcribe": Emojis.transcribe,
     "converse": Emojis.mic,
+    "main": Emojis.system,
 }
 
 
@@ -66,6 +68,10 @@ def get_emoji(name: str, funcName: str) -> str:
 
 
 class TwitchObsLogHandler(Handler):
+    """Custom log handler for rich console output.
+
+    We are (mis)using the logging system to provide a pretty interface which can be embedded in OBS.
+    """
 
     _status_methods: Dict[str, LogStatus] = {}
 
@@ -109,17 +115,26 @@ class TwitchObsLogHandler(Handler):
         else:
             msg = record.msg
 
-        self.print(msg, emoji=emoji, flush=flush)
+        if emoji == Emojis.aicoach:
+            style = "bold blue"
+        elif emoji == Emojis.mic:
+            style = "bold green"
+        elif emoji == config.student.emoji:
+            style = "bold yellow"
+        else:
+            style = None
+
+        self.print(msg, emoji=emoji, style=style, flush=flush)
         self.fqn = self.get_fqn(record.name, record.funcName)
 
     def get_fqn(self, name: str, funcName: str):
         return f"{name}.{funcName}"
 
-    def print(self, message, emoji=Emojis.aicoach, flush: bool = False):
+    def print(self, message, emoji=Emojis.aicoach, style=None, flush: bool = False):
         if flush:
             console.print(f"{message}", end="")
         else:
-            console.print(f"{emoji} {message}")
+            console.print(f"{emoji}  {message}", style=style)
 
     def check_stop(self, record: LogRecord) -> bool:
         for status in self._status_methods.values():
@@ -130,12 +145,18 @@ class TwitchObsLogHandler(Handler):
     def set_status(self, record: LogRecord) -> None:
         if self.fqn != self.get_fqn(record.name, record.funcName):
             self.stop_statuses()
-            # Recreate the status object. If we reuse the same object, the status will render at
+            # Always recreate the status object. If we reuse the same object, the status will render at
             # the position of the last status, overwriting lines printed between the two statuses.
-            self._status_methods[record.funcName] = LogStatus(name=record.funcName)
+            if record.funcName == "transcribe":
+                self._status_methods[record.funcName] = console.status(
+                    record.msg, spinner="point"
+                )
+                self._status_methods[record.funcName].start()
+            else:
+                self._status_methods[record.funcName] = LogStatus(name=record.funcName)
 
-            self._status_methods[record.funcName].start()
-            self._status_methods[record.funcName].stream(record.msg)
+                self._status_methods[record.funcName].start()
+                self._status_methods[record.funcName].stream(record.msg)
         else:
             self._status_methods[record.funcName].stream(record.msg)
 

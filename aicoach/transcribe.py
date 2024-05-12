@@ -34,6 +34,9 @@ class Transcriber:
 
         processor = AutoProcessor.from_pretrained(model_id)
 
+        # don't let whisper halucinate, see https://github.com/openai/whisper/discussions/679
+        whisper_params = {"temperature": 0.2}
+
         self.pipe = pipeline(
             "automatic-speech-recognition",
             model=model,
@@ -44,13 +47,14 @@ class Transcriber:
             batch_size=16,
             torch_dtype=torch.float16,
             device=device,
+            model_kwargs=whisper_params,
         )
         log.debug(
             f"Transcriber initialized, Device: {device}, Flash-Attn-2: {is_flash_attn_2_available()}"
         )
 
-    def transcribe(self, audio):
-        log.info("Transcribing...")
+    def transcribe(self, audio) -> str:
+        log.info("Transcribing...", extra={"flush": True})
         wav_bytes = audio.get_wav_data(convert_rate=16000)
         wav_stream = io.BytesIO(wav_bytes)
         audio_array, sampling_rate = sf.read(wav_stream)
@@ -61,4 +65,8 @@ class Transcriber:
             chunk_length_s=30,
             batch_size=24,
         )
-        return outputs
+
+        if outputs and "text" in outputs and len(outputs["text"]) > 0:
+            output = str(outputs["text"]).strip()
+
+        return output

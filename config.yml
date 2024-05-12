@@ -13,19 +13,21 @@ microphone_index: 2
 # Which model to use from openwakeword
 oww_model: "hey_jarvis"
 # Sensitivity of the wake word
-oww_sensitivity: 0.7
+oww_sensitivity: 0.65
 # which speech recognition model to use from huggingface speech-to-text
 speech_recognition_model: "openai/whisper-large-v3"
 # Configure speech recognition from microphone
 recognizer:
   # minimum audio energy to consider for recording
-  energy_threshold: 400
+  energy_threshold: 500
   # seconds of non-speaking audio before a phrase is considered complete
-  pause_threshold: 0.5
+  pause_threshold: 0.3
   # minimum seconds of speaking audio before we consider the speaking audio a phrase - values below this are ignored (for filtering out clicks and pops)
   phrase_threshold: 0.3
   # seconds of non-speaking audio to keep on both sides of the recording
-  non_speaking_duration: 0.2
+  non_speaking_duration: 0.1
+  # how much of the captured audio must be detected as voice for transcribing to start
+  speech_threshold: 0.3
 # Hotkey to call up the AI coach prompt when run in text-in mode
 wake_key: "ctrl+alt+w"
 
@@ -42,6 +44,8 @@ student:
 obs_integration: False
 # Address of the SC2 game client server
 sc2_client_url: "http://127.0.0.1:6119"
+# AI coach backend
+aibackend: "OpenAI"
 # which GPT model to use for OpenAI Assistant API
 gpt_model: "gpt-4-turbo"
 # relative path to screenshot file which OBS takes when the map is loading

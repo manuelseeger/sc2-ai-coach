@@ -58,6 +58,7 @@ class SC2Client:
         if (
             gameinfo
             and gameinfo.displayTime > 0
+            and len(gameinfo.players) > 0
             and gameinfo.players[0].result == Result.undecided
         ):
             return gameinfo

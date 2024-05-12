@@ -1,5 +1,6 @@
 import logging
 import os
+import warnings
 from datetime import datetime
 from time import sleep
 
@@ -17,6 +18,9 @@ from replays import NewReplayScanner
 from replays.db import replaydb
 from replays.metadata import safe_replay_summary
 from replays.types import Replay, Role
+
+warnings.filterwarnings("ignore")
+
 
 rootlogger = logging.getLogger()
 for handler in rootlogger.handlers.copy():
@@ -37,12 +41,6 @@ if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
     mic = Microphone()
     transcriber = Transcriber()
 
-if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
-    from obs_tools.tts import tts as tts_engine
-
-    tts = tts_engine
-    tts.feed("")
-    tts.play_async()
 
 if config.obs_integration:
     from obs_tools.mapstats import get_map_stats
@@ -53,10 +51,12 @@ if not os.path.exists("logs"):
 handler = logging.FileHandler(
     os.path.join("logs", f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-obs_watcher.log"),
 )
+handler.setLevel(logging.DEBUG)
 one_file_handler = logging.FileHandler(
     mode="a",
     filename=os.path.join("logs", "_obs_watcher.log"),
 )
+one_file_handler.setLevel(logging.DEBUG)
 log.addHandler(handler)
 log.addHandler(one_file_handler)
 
@@ -73,17 +73,20 @@ log.addHandler(obs_handler)
     is_flag=True,
     help="Verbose mode: print voice input and responses to console",
 )
-@click.option(
-    "--audiomode",
-    type=click.Choice(AudioMode, case_sensitive=False),
-    help="Run with/without audio input/output",
-)
-def main(debug, verbose, audiomode):
+def main(debug, verbose):
     if debug:
         log.setLevel(logging.DEBUG)
         handler.setLevel(logging.DEBUG)
-        obs_handler.setLevel(logging.DEBUG)
         log.debug("debugging on")
+
+    if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
+        from obs_tools.tts import make_tts_stream
+
+        global tts
+
+        tts = make_tts_stream()
+        tts.feed("")
+        tts.play_async(buffer_threshold_seconds=2.8, fast_sentence_fragment=True)
 
     session = AISession()
 
@@ -107,9 +110,11 @@ def main(debug, verbose, audiomode):
     new_replay = signal("replay")
     new_replay.connect(session.handle_new_replay)
 
-    log.info("Starting main loop")
+    log.info(f"Audio mode: {str(config.audiomode)}")
+    log.info(f"OBS integration: {str(config.obs_integration)}")
+    log.info(f"AI Backend: {str(config.aibackend)}")
 
-    log.info("Audio mode: " + str(config.audiomode))
+    log.info("Starting main loop")
 
     ping_printed = False
     while True:
@@ -125,7 +130,8 @@ def main(debug, verbose, audiomode):
                         ping_printed = True
                 else:
                     ping_printed = False
-            sleep(0.1)
+
+            sleep(1)
         except KeyboardInterrupt:
             log.info("Exiting ...")
             break
@@ -162,24 +168,24 @@ class AISession:
 
         prompt = get_prompt("prompt_scanner.txt", replacements)
 
-        self.coach.create_thread(prompt)
-        self.thread_id = self.coach.current_thread_id
+        self.thread_id = self.coach.create_thread(prompt)
 
     def converse(self):
         while True:
             if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
                 audio = mic.listen()
                 log.debug("Got voice input")
-                prompt = transcriber.transcribe(audio)
-                if prompt is None or "text" not in prompt or len(prompt["text"]) < 7:
-                    continue
-                log.debug(prompt["text"])
-            else:
-                prompt = {"text": Prompt.ask(config.student.emoji)}
-            if self.verbose:
-                log.info(prompt["text"], extra={"role": Role.user})
 
-            response = self.chat(prompt["text"])
+                text = transcriber.transcribe(audio)
+                if len(text) < 7:
+                    continue
+                log.debug(text)
+            else:
+                text = Prompt.ask(config.student.emoji)
+            if self.verbose:
+                log.info(text, extra={"role": Role.user})
+
+            response = self.chat(text)
             log.info(response, extra={"role": Role.assistant})
 
             if self.is_goodbye(response):
@@ -207,6 +213,10 @@ class AISession:
             if self.verbose:
                 log.info(message, extra={"role": Role.assistant, "flush": flush})
             tts.feed(message)
+            if not tts.is_playing():
+                tts.play_async(
+                    buffer_threshold_seconds=2.8, fast_sentence_fragment=True
+                )
 
     def close(self):
         log.info("Closing thread")
@@ -241,8 +251,7 @@ class AISession:
         ) as f:
             f.write(prompt)
 
-        self.coach.create_thread(prompt)
-        self.thread_id = self.coach.current_thread_id
+        self.thread_id = self.coach.create_thread(prompt)
 
     def is_active(self):
         return self.thread_id is not None
@@ -252,8 +261,9 @@ class AISession:
 
         if scanresult.mapname and config.obs_integration:
             stats = get_map_stats(scanresult.mapname)
-            with open("obs/map_stats.html", "w") as f:
-                f.write(stats.prettify())
+            if stats is not None:
+                with open("obs/map_stats.html", "w") as f:
+                    f.write(stats.prettify())
 
         if not self.is_active():
             self.initiate_from_scanner(
@@ -268,8 +278,7 @@ class AISession:
     def handle_wake(self, sender, wakeresult: WakeResult):
         log.debug(sender)
         if not self.is_active():
-            self.coach.create_thread()
-            self.thread_id = self.coach.current_thread_id
+            self.thread_id = self.coach.create_thread()
 
             done = self.converse()
             if done:

@@ -2,6 +2,7 @@ import logging
 
 import requests
 from bs4 import BeautifulSoup
+from Levenshtein import distance as levenshtein
 
 from config import config
 
@@ -18,7 +19,7 @@ def get_map_stats(map):
             h2s = soup("h2")
 
             for h2 in h2s:
-                if h2.string.lower() == map:
+                if levenshtein(h2.string.lower(), map.lower()) < 5:
                     for sibling in h2.parent.next_siblings:
                         if sibling.name == "table":
                             return sibling

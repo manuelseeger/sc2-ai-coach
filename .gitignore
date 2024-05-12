@@ -14,3 +14,4 @@ aicoach/assistant.json
 deploy.cmd
 logs/
 mongodb/mongo-seed/*.json
+obs_tools/ttsmodels/
