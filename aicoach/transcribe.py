@@ -34,6 +34,9 @@ class Transcriber:
 
         processor = AutoProcessor.from_pretrained(model_id)
 
+        # don't let whisper halucinate, see https://github.com/openai/whisper/discussions/679
+        whisper_params = {"temperature": 0.2}
+
         self.pipe = pipeline(
             "automatic-speech-recognition",
             model=model,
@@ -44,6 +47,7 @@ class Transcriber:
             batch_size=16,
             torch_dtype=torch.float16,
             device=device,
+            model_kwargs=whisper_params,
         )
         log.debug(
             f"Transcriber initialized, Device: {device}, Flash-Attn-2: {is_flash_attn_2_available()}"

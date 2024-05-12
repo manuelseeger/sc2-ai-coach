@@ -119,7 +119,7 @@ class TwitchObsLogHandler(Handler):
         if flush:
             console.print(f"{message}", end="")
         else:
-            console.print(f"{emoji} {message}")
+            console.print(f"{emoji}  {message}")
 
     def check_stop(self, record: LogRecord) -> bool:
         for status in self._status_methods.values():
@@ -132,7 +132,12 @@ class TwitchObsLogHandler(Handler):
             self.stop_statuses()
             # Recreate the status object. If we reuse the same object, the status will render at
             # the position of the last status, overwriting lines printed between the two statuses.
-            self._status_methods[record.funcName] = LogStatus(name=record.funcName)
+            if record.funcName == "transcribe":
+                self._status_methods[record.funcName] = console.status(
+                    record.msg, spinner="point"
+                )
+            else:
+                self._status_methods[record.funcName] = LogStatus(name=record.funcName)
 
             self._status_methods[record.funcName].start()
             self._status_methods[record.funcName].stream(record.msg)
