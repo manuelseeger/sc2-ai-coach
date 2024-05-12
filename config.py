@@ -35,6 +35,11 @@ env_files = sort_config_files(env_files)
 env_files.remove(".env.example")
 
 
+class AIBackend(str, Enum):
+    openai = "OpenAI"
+    mocked = "Mocked"
+
+
 class AudioMode(str, Enum):
     text = "text"
     voice_in = "in"
@@ -82,6 +87,7 @@ class Config(BaseSettings):
 
     student: StudentConfig
 
+    aibackend: str = AIBackend
     openai_api_key: str
     openai_org_id: str
     assistant_id: str

@@ -44,6 +44,8 @@ student:
 obs_integration: False
 # Address of the SC2 game client server
 sc2_client_url: "http://127.0.0.1:6119"
+# AI coach backend
+aibackend: "OpenAI"
 # which GPT model to use for OpenAI Assistant API
 gpt_model: "gpt-4-turbo"
 # relative path to screenshot file which OBS takes when the map is loading
