@@ -19,13 +19,15 @@ speech_recognition_model: "openai/whisper-large-v3"
 # Configure speech recognition from microphone
 recognizer:
   # minimum audio energy to consider for recording
-  energy_threshold: 400
+  energy_threshold: 500
   # seconds of non-speaking audio before a phrase is considered complete
   pause_threshold: 0.5
   # minimum seconds of speaking audio before we consider the speaking audio a phrase - values below this are ignored (for filtering out clicks and pops)
   phrase_threshold: 0.3
   # seconds of non-speaking audio to keep on both sides of the recording
   non_speaking_duration: 0.2
+  # how much of the captured audio must be detected as voice for transcribing to start
+  speech_threshold: 0.2
 # Hotkey to call up the AI coach prompt when run in text-in mode
 wake_key: "ctrl+alt+w"
 

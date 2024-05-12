@@ -1,5 +1,6 @@
 import logging
 import os
+import warnings
 from datetime import datetime
 from time import sleep
 
@@ -17,6 +18,8 @@ from replays import NewReplayScanner
 from replays.db import replaydb
 from replays.metadata import safe_replay_summary
 from replays.types import Replay, Role
+
+warnings.filterwarnings("ignore")
 
 rootlogger = logging.getLogger()
 for handler in rootlogger.handlers.copy():
@@ -36,6 +39,8 @@ if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
 
     mic = Microphone()
     transcriber = Transcriber()
+
+
 
 if config.obs_integration:
     from obs_tools.mapstats import get_map_stats
@@ -77,10 +82,11 @@ def main(debug, verbose):
     if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
         from obs_tools.tts import make_tts_stream
 
-    global tts
-    tts = make_tts_stream()
-    tts.feed("")
-    tts.play_async(buffer_threshold_seconds=2.8, fast_sentence_fragment=True)
+        global tts
+
+        tts = make_tts_stream()
+        tts.feed("")
+        tts.play_async(buffer_threshold_seconds=2.8, fast_sentence_fragment=True)
 
     session = AISession()
 
@@ -171,6 +177,7 @@ class AISession:
             if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
                 audio = mic.listen()
                 log.debug("Got voice input")
+
                 prompt = transcriber.transcribe(audio)
                 if prompt is None or "text" not in prompt or len(prompt["text"]) < 7:
                     continue

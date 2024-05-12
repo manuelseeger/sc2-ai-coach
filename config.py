@@ -39,7 +39,7 @@ class AudioMode(str, Enum):
     text = "text"
     voice_in = "in"
     voice_out = "out"
-    full = "fullaudio"
+    full = "full"
 
 
 class RecognizerConfig(BaseModel):
@@ -47,6 +47,7 @@ class RecognizerConfig(BaseModel):
     pause_threshold: float = 0.5
     phrase_threshold: float = 0.3
     non_speaking_duration: float = 0.2
+    speech_threshold: float = 0.9
 
 
 class StudentConfig(BaseModel):
