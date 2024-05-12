@@ -2,7 +2,8 @@
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit"
+      "source.organizeImports": "explicit",
+      "editor.formatOnSave": "explicit"
     }
   },
   "python.testing.pytestArgs": ["tests", "-rP"],
