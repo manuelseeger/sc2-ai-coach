@@ -53,8 +53,8 @@ class Transcriber:
             f"Transcriber initialized, Device: {device}, Flash-Attn-2: {is_flash_attn_2_available()}"
         )
 
-    def transcribe(self, audio):
-        log.info("Transcribing...")
+    def transcribe(self, audio) -> str:
+        log.info("Transcribing...", extra={"flush": True})
         wav_bytes = audio.get_wav_data(convert_rate=16000)
         wav_stream = io.BytesIO(wav_bytes)
         audio_array, sampling_rate = sf.read(wav_stream)
@@ -65,4 +65,8 @@ class Transcriber:
             chunk_length_s=30,
             batch_size=24,
         )
-        return outputs
+
+        if outputs and "text" in outputs and len(outputs["text"]) > 0:
+            output = str(outputs["text"]).strip()
+
+        return output

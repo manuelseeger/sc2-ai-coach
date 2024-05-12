@@ -41,7 +41,6 @@ if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
     transcriber = Transcriber()
 
 
-
 if config.obs_integration:
     from obs_tools.mapstats import get_map_stats
 
@@ -110,9 +109,11 @@ def main(debug, verbose):
     new_replay = signal("replay")
     new_replay.connect(session.handle_new_replay)
 
-    log.info("Starting main loop")
+    log.info(f"Audio mode: {str(config.audiomode)}")
+    log.info(f"OBS integration: {str(config.obs_integration)}")
+    log.info(f"AI Backend: {str(config.aibackend)}")
 
-    log.info("Audio mode: " + str(config.audiomode))
+    log.info("Starting main loop")
 
     ping_printed = False
     while True:
@@ -178,16 +179,16 @@ class AISession:
                 audio = mic.listen()
                 log.debug("Got voice input")
 
-                prompt = transcriber.transcribe(audio)
-                if prompt is None or "text" not in prompt or len(prompt["text"]) < 7:
+                text = transcriber.transcribe(audio)
+                if len(text) < 7:
                     continue
-                log.debug(prompt["text"])
+                log.debug(text)
             else:
-                prompt = {"text": Prompt.ask(config.student.emoji)}
+                text = Prompt.ask(config.student.emoji)
             if self.verbose:
-                log.info(prompt["text"], extra={"role": Role.user})
+                log.info(text, extra={"role": Role.user})
 
-            response = self.chat(prompt["text"])
+            response = self.chat(text)
             log.info(response, extra={"role": Role.assistant})
 
             if self.is_goodbye(response):
