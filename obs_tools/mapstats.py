@@ -18,7 +18,7 @@ def get_map_stats(map):
             h2s = soup("h2")
 
             for h2 in h2s:
-                if h2.string.lower() == map:
+                if h2.string.lower() == map.lower():
                     for sibling in h2.parent.next_siblings:
                         if sibling.name == "table":
                             return sibling
