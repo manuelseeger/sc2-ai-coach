@@ -1,11 +1,17 @@
-from pydantic import BaseModel, Field
-from typing import List, Tuple, Dict, ClassVar, Annotated
 from datetime import datetime
-from config import config
-from .util import time2secs
 from enum import Enum
-from pyodmongo import DbModel
+from typing import Annotated, Any, ClassVar, Dict, List, Tuple
+
+import bson
+import pydantic
 from bson.binary import Binary
+from pydantic import BaseModel, Field
+from pyodmongo import DbModel
+from typing_extensions import Annotated
+
+from config import AIBackend, config
+
+from .util import time2secs
 
 
 def convert_to_nested_structure(d: dict):
@@ -246,12 +252,6 @@ class Metadata(DbModel):
     _collection: ClassVar = "replays.meta"
 
 
-from typing import Any
-import pydantic
-from typing_extensions import Annotated
-import bson
-
-
 def _to_bson_binary(value: Any) -> bson.Binary:
     return value if isinstance(value, bson.Binary) else bson.Binary(value)
 
@@ -264,3 +264,20 @@ class PlayerInfo(DbModel):
     toon_handle: str = None
     portrait: BsonBinary | None = None
     _collection: ClassVar = "replays.players"
+
+
+class Usage(BaseModel):
+    thread_id: str
+    completion_tokens: int = 0
+    prompt_tokens: int = 0
+    total_tokens: int = 0
+
+
+class Session(DbModel):
+    usages: list[Usage] = []
+    threads: list[str] = []
+    ai_backend: AIBackend
+    session_date: datetime
+    completion_pricing: float
+    prompt_pricing: float
+    _collection: ClassVar = "sessions"

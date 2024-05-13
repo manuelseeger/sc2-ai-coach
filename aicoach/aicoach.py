@@ -31,8 +31,6 @@ class AICoach:
 
     functions: Dict[str, Callable] = {}
 
-    usages: list[Usage] = []
-
     def __init__(self):
         self.assistant: Assistant = client.beta.assistants.retrieve(
             assistant_id=config.assistant_id
@@ -42,9 +40,16 @@ class AICoach:
     def _init_functions(self):
         self.functions = {f.__name__: f for f in AIFunctions}
 
-    @property
-    def usage(self) -> Usage:
-        return self.usages
+    def get_thread_usage(self, thread_id: str) -> Usage:
+        runs = client.beta.threads.runs.list(thread_id=thread_id)
+        thread_usage = Usage(completion_tokens=0, prompt_tokens=0, total_tokens=0)
+        for run in runs.data:
+            if run.status == "completed":
+                usage = run.usage
+                thread_usage.completion_tokens += usage.completion_tokens
+                thread_usage.prompt_tokens += usage.prompt_tokens
+                thread_usage.total_tokens += usage.total_tokens
+        return thread_usage
 
     def get_most_recent_message(self):
         messages = client.beta.threads.messages.list(
@@ -81,8 +86,6 @@ class AICoach:
             for event in stream:
                 for token in self._process_event(event):
                     yield token
-            run = stream.get_final_run()
-            self.usages.append(run.usage)
 
     def get_response(self, message) -> str:
         buffer = ""
@@ -104,9 +107,6 @@ class AICoach:
             for event in stream:
                 for token in self._process_event(event):
                     yield token
-
-            run = stream.get_final_run()
-            self.usages.append(run.usage)
 
     def _process_event(self, event) -> Generator[str, None, None]:
         if isinstance(event, ThreadMessageDelta):
