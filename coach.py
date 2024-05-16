@@ -17,7 +17,7 @@ from obs_tools.types import ScanResult, WakeResult
 from replays import NewReplayScanner
 from replays.db import replaydb
 from replays.metadata import safe_replay_summary
-from replays.types import Replay, Role
+from replays.types import Replay, Role, Session, Usage
 
 warnings.filterwarnings("ignore")
 
@@ -134,6 +134,8 @@ def main(debug, verbose):
             sleep(1)
         except KeyboardInterrupt:
             log.info("Exiting ...")
+            if session.is_active():
+                session.close()
             break
 
 
@@ -142,14 +144,34 @@ class AISession:
     last_map: str = None
     last_opponent: str = None
     last_mmr: int = 3900
-    thread_id: str = None
+    _thread_id: str = None
     last_rep_id: str = None
     verbose: bool = False
+    session: Session
 
     def __init__(self):
         last_replay = replaydb.get_most_recent()
         self.update_last_replay(last_replay)
         self.coach = AICoach()
+
+        self.session = Session(
+            session_date=datetime.now(),
+            completion_pricing=config.gpt_completion_pricing,
+            prompt_pricing=config.gpt_prompt_pricing,
+            ai_backend=config.aibackend,
+        )
+        replaydb.db.save(self.session)
+
+    @property
+    def thread_id(self):
+        return self._thread_id
+
+    @thread_id.setter
+    def thread_id(self, value):
+        self._thread_id = value
+        if value is not None:
+            self.session.threads.append(value)
+            replaydb.db.save(self.session)
 
     def update_last_replay(self, replay):
         replay = replaydb.get_most_recent()
@@ -210,10 +232,38 @@ class AISession:
 
     def close(self):
         log.info("Closing thread")
+        self.calculate_usage()
         self.thread_id = None
 
     def is_active(self):
         return self.thread_id is not None
+
+    def calculate_usage(self):
+        if not self.thread_id:
+            return
+        token_usage = self.coach.get_thread_usage(self.thread_id)
+
+        prompt_price = round(token_usage.prompt_tokens * config.gpt_prompt_pricing, 2)
+        completion_price = round(
+            token_usage.completion_tokens * config.gpt_completion_pricing, 2
+        )
+        prompt_price = prompt_price if prompt_price > 0 else 0.01
+        completion_price = completion_price if completion_price > 0 else 0.01
+
+        log.info(f"Prompt tokens: {token_usage.prompt_tokens} (~${(prompt_price):.2f})")
+        log.info(
+            f"Completion tokens: {token_usage.completion_tokens} (~${(completion_price):.2f})"
+        )
+        log.info(
+            f"Total tokens: {token_usage.total_tokens} (~${(prompt_price + completion_price):.2f})"
+        )
+        usage = Usage(
+            completion_tokens=token_usage.completion_tokens,
+            prompt_tokens=token_usage.prompt_tokens,
+            total_tokens=token_usage.total_tokens,
+            thread_id=self.thread_id,
+        )
+        self.session.usages.append(usage)
 
     def is_goodbye(self, response):
         if levenshtein(response[-20:].lower().strip(), "good luck, have fun") < 8:

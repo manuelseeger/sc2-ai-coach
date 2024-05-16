@@ -14,6 +14,7 @@ from openai.types.beta.threads import (
     RequiredActionFunctionToolCall,
     Run,
 )
+from openai.types.beta.threads.run import Usage
 
 from config import config
 
@@ -38,6 +39,17 @@ class AICoach:
 
     def _init_functions(self):
         self.functions = {f.__name__: f for f in AIFunctions}
+
+    def get_thread_usage(self, thread_id: str) -> Usage:
+        runs = client.beta.threads.runs.list(thread_id=thread_id)
+        thread_usage = Usage(completion_tokens=0, prompt_tokens=0, total_tokens=0)
+        for run in runs.data:
+            if run.status == "completed":
+                usage = run.usage
+                thread_usage.completion_tokens += usage.completion_tokens
+                thread_usage.prompt_tokens += usage.prompt_tokens
+                thread_usage.total_tokens += usage.total_tokens
+        return thread_usage
 
     def get_most_recent_message(self):
         messages = client.beta.threads.messages.list(
@@ -75,22 +87,6 @@ class AICoach:
                 for token in self._process_event(event):
                     yield token
 
-    def _process_event(self, event) -> Generator[str, None, None]:
-        if isinstance(event, ThreadMessageDelta):
-            deltaevent: MessageDeltaEvent = event.data
-            for text in deltaevent.delta.content:
-                yield text.text.value
-
-        elif isinstance(event, ThreadRunRequiresAction):
-            run: Run = event.data
-            tool_outputs = self._handle_tool_calls(run)
-            with self._submit_tool_outputs(run.id, tool_outputs) as stream:
-                for event in stream:
-                    for token in self._process_event(event):
-                        yield token
-        else:
-            pass
-
     def get_response(self, message) -> str:
         buffer = ""
         for response in self.chat(message):
@@ -107,9 +103,26 @@ class AICoach:
             thread_id=self.thread.id,
             assistant_id=self.assistant.id,
         ) as stream:
+
             for event in stream:
                 for token in self._process_event(event):
                     yield token
+
+    def _process_event(self, event) -> Generator[str, None, None]:
+        if isinstance(event, ThreadMessageDelta):
+            deltaevent: MessageDeltaEvent = event.data
+            for text in deltaevent.delta.content:
+                yield text.text.value
+
+        elif isinstance(event, ThreadRunRequiresAction):
+            run: Run = event.data
+            tool_outputs = self._handle_tool_calls(run)
+            with self._submit_tool_outputs(run.id, tool_outputs) as stream:
+                for event in stream:
+                    for token in self._process_event(event):
+                        yield token
+        else:
+            pass
 
     def _handle_tool_calls(self, run: Run) -> dict[str, str]:
         required_action = run.required_action

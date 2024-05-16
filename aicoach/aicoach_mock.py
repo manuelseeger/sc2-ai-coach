@@ -1,3 +1,4 @@
+import random
 from threading import Thread
 from time import sleep
 from typing import Callable, Dict, Generator
@@ -5,6 +6,7 @@ from uuid import uuid4
 
 import tiktoken
 from openai.types.beta.threads import Message, Text, TextContentBlock
+from openai.types.beta.threads.run import Usage
 from typing_extensions import override
 
 from .aicoach import AICoach
@@ -55,6 +57,8 @@ class AICoachMock(AICoach):
     threads: Dict[str, Thread] = {}
     thread: Thread = None
 
+    _usages: list[Usage] = []
+
     functions: Dict[str, Callable] = {}
 
     def __init__(self):
@@ -64,6 +68,15 @@ class AICoachMock(AICoach):
     def set_data(self, data):
         self._data = data
         self._responses = iter([d for d in self._data if d.get("role") == "assistant"])
+
+    @override
+    def get_thread_usage(self, thread_id: str) -> Usage:
+        thread_usage = Usage(completion_tokens=0, prompt_tokens=0, total_tokens=0)
+        for usage in self._usages:
+            thread_usage.completion_tokens += usage.completion_tokens
+            thread_usage.prompt_tokens += usage.prompt_tokens
+            thread_usage.total_tokens += usage.total_tokens
+        return thread_usage
 
     @override
     def create_thread(self, message=None):
@@ -115,3 +128,16 @@ class AICoachMock(AICoach):
         for token in tokens:
             sleep(0.03)
             yield encoding.decode([token])
+        self._add_usage()
+
+    def _add_usage(self):
+        completion_tokens = random.randint(10, 200)
+        prompt_tokens = random.randint(2400, 2700)
+        total_tokens = completion_tokens + prompt_tokens
+        self._usages.append(
+            Usage(
+                completion_tokens=completion_tokens,
+                prompt_tokens=prompt_tokens,
+                total_tokens=total_tokens,
+            )
+        )
