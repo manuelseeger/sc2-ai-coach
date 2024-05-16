@@ -52,6 +52,7 @@ EMOJI_MAP = {
     "aicoach.transcribe": Emojis.transcribe,
     "converse": Emojis.mic,
     "main": Emojis.system,
+    "close": Emojis.system,
     "calculate_usage": Emojis.pricing,
 }
 

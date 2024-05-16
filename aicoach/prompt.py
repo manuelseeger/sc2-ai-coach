@@ -9,6 +9,7 @@ class Jinja2Loader:
     new_replay: Template
     summary: Template
     initial_instructions: Template
+    additional_instructions: Template
 
     def __init__(self):
         self.env = Environment(loader=FileSystemLoader(searchpath="./aicoach/prompts/"))
@@ -17,6 +18,9 @@ class Jinja2Loader:
         self.new_replay = self.env.get_template("new_replay.jinja2")
         self.summary = self.env.get_template("summary.jinja2")
         self.initial_instructions = self.env.get_template("initial_instructions.jinja2")
+        self.additional_instructions = self.env.get_template(
+            "additional_instructions.jinja2"
+        )
 
     def render(self, template: str, replacements: Dict[str, str]) -> str:
         template = self.env.get_template(template)
