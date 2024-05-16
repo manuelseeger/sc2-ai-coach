@@ -17,6 +17,7 @@ dependencies:
   - rich
   - python-levenshtein
   - blinker
+  - jinja2
   - pip
   - pip:
       - sc2reader

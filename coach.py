@@ -9,7 +9,7 @@ from blinker import signal
 from Levenshtein import distance as levenshtein
 from rich.prompt import Prompt
 
-from aicoach import AICoach, get_prompt
+from aicoach import AICoach, Templates, get_prompt
 from config import AudioMode, config
 from obs_tools import GameStartedScanner, WakeListener
 from obs_tools.rich_log import TwitchObsLogHandler
@@ -158,18 +158,6 @@ class AISession:
         self.last_mmr = replay.get_player(config.student.name).scaled_rating
         self.last_rep_id = replay.id
 
-    def initiate_from_scanner(self, map, opponent, mmr) -> str:
-        replacements = {
-            "student": str(config.student.name),
-            "map": str(map),
-            "opponent": str(opponent),
-            "mmr": str(mmr),
-        }
-
-        prompt = get_prompt("prompt_scanner.txt", replacements)
-
-        self.thread_id = self.coach.create_thread(prompt)
-
     def converse(self):
         while True:
             if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
@@ -181,7 +169,9 @@ class AISession:
                     continue
                 log.debug(text)
             else:
-                text = Prompt.ask(config.student.emoji)
+                text = Prompt.ask(
+                    config.student.emoji,
+                )
             if self.verbose:
                 log.info(text, extra={"role": Role.user})
 
@@ -222,11 +212,26 @@ class AISession:
         log.info("Closing thread")
         self.thread_id = None
 
+    def is_active(self):
+        return self.thread_id is not None
+
     def is_goodbye(self, response):
         if levenshtein(response[-20:].lower().strip(), "good luck, have fun") < 8:
             return True
         else:
             return False
+
+    def initiate_from_scanner(self, map, opponent, mmr) -> str:
+        replacements = {
+            "student": str(config.student.name),
+            "map": str(map),
+            "opponent": str(opponent),
+            "mmr": str(mmr),
+        }
+
+        prompt = Templates.scanner.render(replacements)
+
+        self.thread_id = self.coach.create_thread(prompt)
 
     def initiate_from_new_replay(self, replay: Replay) -> str:
         opponent = (
@@ -242,19 +247,9 @@ class AISession:
                 replay.default_projection_json(limit=600, include_workers=False)
             ),
         }
-        prompt = get_prompt("prompt_new_replay.txt", replacements)
-
-        with open(
-            f"logs/{datetime.now().strftime('%Y%m%d-%H%M%S')}-new_replay.json",
-            "w",
-            encoding="utf-8",
-        ) as f:
-            f.write(prompt)
+        prompt = Templates.new_replay.render(replacements)
 
         self.thread_id = self.coach.create_thread(prompt)
-
-    def is_active(self):
-        return self.thread_id is not None
 
     def handle_scanner(self, sender, scanresult: ScanResult):
         log.debug(sender, scanresult)
