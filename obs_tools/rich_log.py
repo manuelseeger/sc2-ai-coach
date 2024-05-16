@@ -3,6 +3,7 @@ from logging import Handler, LogRecord
 from typing import Dict
 
 from rich.console import Console
+from rich.markdown import Markdown
 from rich.status import Status
 
 from config import config
@@ -94,6 +95,11 @@ class TwitchObsLogHandler(Handler):
 
         emoji = get_emoji(record.name, record.funcName)
 
+        if record.levelno == logging.WARN:
+            emoji = Emojis.warning
+        if record.levelno == logging.ERROR:
+            emoji = Emojis.error
+
         if hasattr(record, "role"):
             if record.role == "assistant":
                 emoji = Emojis.aicoach
@@ -109,22 +115,20 @@ class TwitchObsLogHandler(Handler):
             self.fqn = self.get_fqn(record.name, record.funcName)
             return
 
-        msg = ""
-        if record.levelno == logging.WARN:
-            msg = f":warning: [yellow]{record.msg}[/yellow]"
-        elif record.levelno == logging.ERROR:
-            msg = f":bomb: [red]{record.msg}[/red]"
-        else:
-            msg = record.msg
-
         if emoji == Emojis.aicoach:
-            style = "bold blue"
+            style = "blue"
         elif emoji == Emojis.mic:
-            style = "bold green"
+            style = "green"
         elif emoji == config.student.emoji:
-            style = "bold yellow"
+            style = "green"
+        elif emoji == Emojis.error:
+            style = "red"
+        elif emoji == Emojis.warning:
+            style = "yellow"
         else:
             style = None
+
+        msg = record.msg
 
         self.print(msg, emoji=emoji, style=style, flush=flush)
         self.fqn = self.get_fqn(record.name, record.funcName)
@@ -136,7 +140,12 @@ class TwitchObsLogHandler(Handler):
         if flush:
             console.print(f"{message}", end="")
         else:
-            console.print(f"{emoji}  {message}", style=style)
+            console.print(f"{emoji} ", end="", style=style)
+            if emoji == Emojis.aicoach:
+                msg = Markdown(message)
+            else:
+                msg = message
+            console.print(msg, style=style)
 
     def check_stop(self, record: LogRecord) -> bool:
         for status in self._status_methods.values():
