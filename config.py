@@ -87,11 +87,13 @@ class Config(BaseSettings):
 
     student: StudentConfig
 
-    aibackend: str = AIBackend
+    aibackend: AIBackend
     openai_api_key: str
     openai_org_id: str
     assistant_id: str
-    gpt_model: str = "gpt-3.5-turbo"
+    gpt_model: str
+    gpt_prompt_pricing: float
+    gpt_completion_pricing: float
 
     obs_integration: bool = False
     sc2_client_url: str = "http://127.0.0.1:6119"

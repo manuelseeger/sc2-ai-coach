@@ -40,6 +40,7 @@ class Emojis:
     replay: str = ":videocassette:"
     transcribe: str = ":keyboard:"
     system: str = ":computer:"
+    pricing: str = ":moneybag:"
 
 
 EMOJI_MAP = {
@@ -50,6 +51,7 @@ EMOJI_MAP = {
     "aicoach.transcribe": Emojis.transcribe,
     "converse": Emojis.mic,
     "main": Emojis.system,
+    "calculate_usage": Emojis.pricing,
 }
 
 

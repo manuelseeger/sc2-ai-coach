@@ -1,15 +1,18 @@
-from pyodmongo import DbEngine, DbModel
-from config import config
-from .types import Replay, Metadata
-from pyodmongo.queries import eq
+from typing import Union
+
 from pydantic_core import ValidationError
 from pymongo.collection import Collection
-from typing import Union
+from pyodmongo import DbEngine, DbModel
+from pyodmongo.queries import eq
+
+from config import config
+
+from .types import Metadata, Replay, Session
 
 # Initialize the database engine
 engine = DbEngine(mongo_uri=str(config.mongo_dsn), db_name=config.db_name)
 
-SC2Model = Union[Replay, Metadata]
+SC2Model = Union[Replay, Metadata, Session]
 
 
 class ReplayDB:
