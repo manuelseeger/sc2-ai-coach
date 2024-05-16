@@ -1,8 +1,9 @@
-from .base import AIFunction
 import logging
-from config import config
-from obs_tools.sc2client import sc2client, GameInfo
 
+from config import config
+from obs_tools.sc2client import GameInfo, sc2client
+
+from .base import AIFunction
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -21,28 +22,6 @@ def GetCurrentGameInfo() -> str:
         type: str, the player's type (user or computer)
         race: str, the player's race (Terr, Prot, Zerg, or random)
         result: str, the player's result (Victory, Defeat, Undecided, or Tie)
-
-    Example:
-    {
-    isReplay: false,
-    displayTime: 93,
-    players: [
-        {
-            id: 1,
-            name: "Owlrazum",
-            type: "user",
-            race: "Terr",
-            result: "Undecided"
-        },
-        {
-            id: 2,
-            name: "zatic",
-            type: "user",
-            race: "Zerg",
-            result: "Undecided"
-        }
-    ]
-    }
     """
     gameinfo: GameInfo = sc2client.get_gameinfo()
 

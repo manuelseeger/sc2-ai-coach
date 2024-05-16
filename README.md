@@ -15,9 +15,13 @@ New chat sessions with the AI coach are initiated when a new ladder game is star
 
 The GPT assistant behind AI coach can use mulitple high level capabilities like query a MongoDB replay database, lookup a player's battle net profile, or add data such as comments to a replay. The assistant decides autonomously without explicit programming when to employ a capability.
 
+This is my personal research project to explore the latest in LLM based agents.
+
 ![Alt text](archive/aicoach-replaydb-example.png "a title")
 
 ## Minimal Setup
+
+Instructions for a minimal setup without voice integration. Text only, "chat with your replays". Some Python experience required.
 
 ### Python environment
 
