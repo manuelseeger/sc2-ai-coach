@@ -6,7 +6,7 @@ import requests
 import tiktoken
 from rich import print, print_json
 
-from aicoach import Templates, get_prompt
+from aicoach import Templates
 from aicoach.functions import AIFunctions
 from config import config
 
