@@ -24,7 +24,7 @@ def clean_tag(tag: str) -> str:
 def AddMetadata(
     replay_id: Annotated[
         str,
-        "The unique 64-character identifier (ID) of a replay document. Also called the filehash of the replay. ",
+        "The unique 64-character ID of a replay. Also called the filehash of the replay.",
     ],
     tags: Annotated[
         str,
@@ -33,14 +33,6 @@ def AddMetadata(
 ) -> bool:
     """Adds metadata like tags to a replay for a given replay ID."""
 
-    try:
-        replay_id_typed: ReplayId = ReplayId(replay_id)
-    except ValidationError:
-        return False
-
-    if not replay_id_typed:
-        log.warning(f"Invalid replay ID: {replay_id}")
-
     tags_parsed = []
     try:
         tags_parsed = [clean_tag(t) for t in tags.split(",")]
@@ -48,12 +40,17 @@ def AddMetadata(
         log.error(f"Invalid tags: {tags}")
         return False
 
-    meta: Metadata = replaydb.db.find_one(
-        Model=Metadata, query=eq(Metadata.replay, replay_id_typed)
-    )
-    if not meta:
-        meta = Metadata(replay=replay_id_typed)
-        meta.tags = []
+    try:
+        meta: Metadata = replaydb.db.find_one(
+            Model=Metadata, query=eq(Metadata.replay, replay_id)
+        )
+        if not meta:
+            meta = Metadata(replay=replay_id)
+            meta.tags = []
+
+    except ValidationError:
+        log.warning(f"Invalid replay ID: {replay_id}")
+        return False
 
     if tags_parsed and tags_parsed != []:
         # remove potential duplicates
