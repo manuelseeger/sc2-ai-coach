@@ -1,18 +1,22 @@
-from .base import AIFunction
-from typing import Annotated
 import logging
-from config import config
-from replays.db import replaydb, eq
-from replays.types import Metadata
-import ast
-import json
 import re
+from typing import Annotated
+
+from pydantic import ValidationError
+
+from config import config
+from replays.db import eq, replaydb
+from replays.types import Metadata, ReplayId
+
+from .base import AIFunction
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
 
 def clean_tag(tag: str) -> str:
-    # regex remove quotes and spaces
+    # regex remove quotes and spaces, strip words at the beginning like "Keywords:"
+    if ":" in tag:
+        tag = tag.split(":")[-1]
     return re.sub(r"[\"\']", "", tag).strip()
 
 
@@ -20,7 +24,7 @@ def clean_tag(tag: str) -> str:
 def AddMetadata(
     replay_id: Annotated[
         str,
-        "The unique 64-character identifier (ID) of a replay document.",
+        "The unique 64-character identifier (ID) of a replay document. Also called the filehash of the replay. ",
     ],
     tags: Annotated[
         str,
@@ -28,6 +32,14 @@ def AddMetadata(
     ],
 ) -> bool:
     """Adds metadata like tags to a replay for a given replay ID."""
+
+    try:
+        replay_id_typed: ReplayId = ReplayId(replay_id)
+    except ValidationError:
+        return False
+
+    if not replay_id_typed:
+        log.warning(f"Invalid replay ID: {replay_id}")
 
     tags_parsed = []
     try:
@@ -37,12 +49,16 @@ def AddMetadata(
         return False
 
     meta: Metadata = replaydb.db.find_one(
-        Model=Metadata, query=eq(Metadata.replay, replay_id)
+        Model=Metadata, query=eq(Metadata.replay, replay_id_typed)
     )
+    if not meta:
+        meta = Metadata(replay=replay_id_typed)
+        meta.tags = []
 
     if tags_parsed and tags_parsed != []:
         # remove potential duplicates
         meta.tags = list(set(meta.tags + tags_parsed))
 
     replaydb.upsert(meta)
+
     return True

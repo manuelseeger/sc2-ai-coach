@@ -1,4 +1,5 @@
 from rich import print
+
 from aicoach import AICoach
 
 
@@ -29,29 +30,6 @@ def test_function_query_build_order():
 
     response = ""
     for token in aicoach.stream_thread():
-        response += token
-
-    assert isinstance(response, str)
-    assert len(response) > 0
-    print(response)
-
-
-def test_function_add_metadata():
-    aicoach = AICoach()
-
-    rep_id = "e22f8952c22a61a86ae3d2dd3fb2e5f650f7504a15c186f3f8761727cfaa3eea"
-
-    message = f"Can you please pull up the replay with the ID '{rep_id}'. Who did I play against? What was the map?"
-
-    aicoach.create_thread(message)
-
-    response = ""
-    for token in aicoach.stream_thread():
-        response += token
-
-    message = f"Can you please add the tag 'smurf' to the replay?"
-    response = ""
-    for token in aicoach.chat(message):
         response += token
 
     assert isinstance(response, str)

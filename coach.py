@@ -286,11 +286,7 @@ class AISession:
         self.thread_id = self.coach.create_thread(prompt)
 
     def initiate_from_new_replay(self, replay: Replay) -> str:
-        opponent = (
-            replay.players[0].name
-            if replay.players[1].name == config.student.name
-            else replay.players[1].name
-        )
+        opponent = replay.get_player(config.student.name, opponent=True).name
         replacements = {
             "student": str(config.student.name),
             "map": str(replay.map_name),
