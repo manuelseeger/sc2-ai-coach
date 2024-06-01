@@ -9,8 +9,8 @@ from blinker import signal
 from Levenshtein import distance as levenshtein
 from rich.prompt import Prompt
 
-from aicoach import AICoach, Templates, get_prompt
-from config import AudioMode, config
+from aicoach import AICoach, Templates
+from config import AIBackend, AudioMode, config
 from obs_tools import GameStartedScanner, WakeListener
 from obs_tools.rich_log import TwitchObsLogHandler
 from obs_tools.types import ScanResult, WakeResult
@@ -109,10 +109,12 @@ def main(debug, verbose):
 
     new_replay = signal("replay")
     new_replay.connect(session.handle_new_replay)
-
+    log.info("\n")
     log.info(f"Audio mode: {str(config.audiomode)}")
     log.info(f"OBS integration: {str(config.obs_integration)}")
-    log.info(f"AI Backend: {str(config.aibackend)}")
+    log.info(
+        f"AI Backend: {str(config.aibackend)} {config.gpt_model if config.aibackend == AIBackend.openai else ''}"
+    )
 
     log.info("Starting main loop")
 
@@ -338,6 +340,7 @@ class AISession:
             log.info(response, extra={"role": Role.assistant})
             done = self.converse()
             if done:
+                sleep(1)
                 self.say("I'll save a summary of the game.", flush=False)
                 self.update_last_replay(replay)
 

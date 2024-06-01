@@ -3,7 +3,7 @@ from datetime import datetime
 
 from openai.types.beta.threads import Message
 
-from aicoach import AICoach, Templates, get_prompt
+from aicoach import AICoach, Templates
 from config import config
 from replays.db import eq, replaydb
 from replays.types import AssistantMessage, Metadata, Replay
@@ -26,6 +26,7 @@ def safe_replay_summary(replay: Replay, coach: AICoach):
         log.warn("Assistant gave us invalid tags")
         tags = []
 
+    log.info(f"Added tags '{','.join(tags)} to replay'")
     meta: Metadata = Metadata(replay=replay.id, description=summary)
     meta.tags = tags
     meta.conversation = [
