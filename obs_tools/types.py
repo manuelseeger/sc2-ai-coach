@@ -75,3 +75,10 @@ class GameInfo(BaseModel):
             )
         else:
             return False
+
+    def is_decided(self) -> bool:
+        return (
+            self.displayTime > 0
+            and len(self.players) > 0
+            and all(player.result != Result.undecided for player in self.players)
+        )

@@ -44,10 +44,16 @@ class SC2Client:
                     return player.name
         return None
 
-    def wait_for_gameinfo(self, timeout: int = 20, delay: float = 0.5) -> GameInfo:
+    def wait_for_gameinfo(
+        self, timeout: int = 20, delay: float = 0.5, ongoing=False
+    ) -> GameInfo:
         start_time = time()
         while time() - start_time < timeout:
             gameinfo = self.get_gameinfo()
+            if ongoing:
+                gameinfo = self.get_ongoing_gameinfo()
+            else:
+                gameinfo = self.get_gameinfo()
             if gameinfo and gameinfo.displayTime > 0:
                 return gameinfo
             sleep(delay)
