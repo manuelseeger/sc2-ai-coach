@@ -61,6 +61,8 @@ Add your OpenAI organization, Assistant ID, and API key to the env variables, `A
 
 Note on cost: Long conversations can cost up to one dollar ($1.00) in OpenAI API usage. AICoach will not incur API costs until one of the wake events is triggered - see below.
 
+If you just want a database with your replays you can skip this step or do it later. 
+
 ### Build and deploy assistant
 
 ```sh
