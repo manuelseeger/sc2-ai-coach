@@ -10,6 +10,8 @@ log = logging.getLogger(f"{config.name}.{__name__}")
 
 
 def get_map_stats(map):
+    if config.student.sc2replaystats_map_url is None:
+        return None
     with requests.Session() as s:
         url = f"{config.student.sc2replaystats_map_url}/{config.season}/{config.student.race[0]}"
         try:
