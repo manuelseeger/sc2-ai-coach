@@ -1,13 +1,15 @@
-from .base import AIFunction
-from typing import Annotated
-from bson.json_util import loads, dumps
 import ast
 import json
 import logging
+from typing import Annotated
+
+from bson.json_util import dumps, loads
+
 from config import config
 from replays import replaydb
 from replays.types import Replay
 
+from .base import AIFunction
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -150,7 +152,7 @@ def QueryReplayDB(
     """
     # Force the arguments to be valid JSON
     if filter is None or filter == "{}":
-        filter = f'{{player.name: "{config.student.name}"}}'
+        filter = f'{{"player.name": "{config.student.name}"}}'
     filter = force_valid_json_string(filter)
     projection = force_valid_json_string(projection)
     sort = force_valid_json_string(sort)
