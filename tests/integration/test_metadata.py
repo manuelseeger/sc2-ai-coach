@@ -1,6 +1,7 @@
 import pytest
 
 from aicoach.aicoach_mock import AICoachMock as AICoach
+from aicoach.functions import AddMetadata
 from replays import ReplayReader
 from replays.metadata import safe_replay_summary
 
@@ -28,3 +29,17 @@ def test_save_replay_summary(replay_file):
     replay = reader.load_replay(replay_file)
 
     safe_replay_summary(replay, coach)
+
+
+@pytest.mark.parametrize(
+    "replay_id, tags",
+    [
+        (
+            "684ace3ae5e9e40efe50342b1f7ab15611a0bbdbcc03cfc4b2e2b908b35e0a70",
+            "2 rax reaper",
+        ),
+    ],
+)
+def test_function_meta_to_existing(replay_id, tags):
+    response = AddMetadata(replay_id=replay_id, tags=tags)
+    assert response is True

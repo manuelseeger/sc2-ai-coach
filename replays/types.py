@@ -246,7 +246,7 @@ class AssistantMessage(BaseModel):
 
 class Metadata(DbModel):
     replay: ReplayId
-    description: str = None
+    description: str | None = None
     tags: List[str] | None = None
     conversation: List[AssistantMessage] | None = None
     _collection: ClassVar = "replays.meta"

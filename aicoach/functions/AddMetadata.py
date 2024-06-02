@@ -33,6 +33,8 @@ def AddMetadata(
 ) -> bool:
     """Adds metadata like tags to a replay for a given replay ID."""
 
+
+
     tags_parsed = []
     try:
         tags_parsed = [clean_tag(t) for t in tags.split(",")]
@@ -40,14 +42,13 @@ def AddMetadata(
         log.error(f"Invalid tags: {tags}")
         return False
 
+    meta: Metadata = replaydb.db.find_one(
+        Model=Metadata, query=eq(Metadata.replay, replay_id)
+    )
     try:
-        meta: Metadata = replaydb.db.find_one(
-            Model=Metadata, query=eq(Metadata.replay, replay_id)
-        )
         if not meta:
             meta = Metadata(replay=replay_id)
             meta.tags = []
-
     except ValidationError:
         log.warning(f"Invalid replay ID: {replay_id}")
         return False
