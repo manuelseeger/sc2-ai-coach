@@ -1,7 +1,7 @@
 name: "AICoach"
 # Where to look for replays
 replay_folder: "C:\\Users\\student\\Documents\\StarCraft II\\Accounts\\1234567568\\2-S2-1-123456\\Replays\\Multiplayer"
-# Game shorter than this will be ignored and the replays deleted
+# Game shorter than this will be ignored and the replays deleted when the clean option is on
 instant_leave_max: 50
 # Look for new replays every X seconds
 deamon_polling_rate: 1
@@ -37,14 +37,13 @@ student:
   race: "Zerg"
   # Emoji to represent the student in output
   emoji: ":man_technologist:"
-  # URL pointing to your public sc2replaystats profile's map stats
-  sc2replaystats_map_url: "https://sc2replaystats.com/account/maps/12345/0/1234567/1v1/AutoMM"
+  # URL pointing to your public sc2replaystats profile's map stats (optional)
+  sc2replaystats_map_url:
 
-# Integration with OBS; Faster detection of new game started but requires manual OBS setup
-obs_integration: False
 # Address of the SC2 game client server
 sc2_client_url: "http://127.0.0.1:6119"
-# AI coach backend
+
+# AI coach backend, use "Mocked" for testing without an AI backend
 aibackend: "OpenAI"
 # which GPT model to use for OpenAI Assistant API
 gpt_model: "gpt-4o"
@@ -52,10 +51,14 @@ gpt_model: "gpt-4o"
 gpt_prompt_pricing: 0.000005
 # Cost per completion token
 gpt_completion_pricing: 0.000015
+
+# Integration with OBS; Faster detection of new game started but requires manual OBS setup
+obs_integration: False
 # relative path to screenshot file which OBS takes when the map is loading
 screenshot: "obs/screenshots/_maploading.png"
 # Where tesserocr should look for the tesseract data
 tessdata_dir: "C:\\Program Files\\Tesseract-OCR\\tessdata"
+
 # Current ladder season
 season: 59
 # Maps in the current ladder pool
@@ -69,6 +72,7 @@ ladder_maps:
   - Dynasty LE
   - Alcyone LE
   - Ghost River LE
+
 # Configure which replay fields to include per default when reading replays
 default_projection:
   _id: 1
@@ -93,5 +97,6 @@ default_projection:
   real_length: 1
   stats: 1
   unix_timestamp: 1
+
 # Name of the MongoDB database where the replay collection is stored
 db_name: "SC2"

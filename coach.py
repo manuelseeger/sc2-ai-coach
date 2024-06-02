@@ -9,8 +9,8 @@ from blinker import signal
 from Levenshtein import distance as levenshtein
 from rich.prompt import Prompt
 
-from aicoach import AICoach, get_prompt
-from config import AudioMode, config
+from aicoach import AICoach, Templates
+from config import AIBackend, AudioMode, config
 from obs_tools import GameStartedScanner, WakeListener
 from obs_tools.rich_log import TwitchObsLogHandler
 from obs_tools.types import ScanResult, WakeResult
@@ -109,10 +109,12 @@ def main(debug, verbose):
 
     new_replay = signal("replay")
     new_replay.connect(session.handle_new_replay)
-
+    log.info("\n")
     log.info(f"Audio mode: {str(config.audiomode)}")
     log.info(f"OBS integration: {str(config.obs_integration)}")
-    log.info(f"AI Backend: {str(config.aibackend)}")
+    log.info(
+        f"AI Backend: {str(config.aibackend)} {config.gpt_model if config.aibackend == AIBackend.openai else ''}"
+    )
 
     log.info("Starting main loop")
 
@@ -180,18 +182,6 @@ class AISession:
         self.last_mmr = replay.get_player(config.student.name).scaled_rating
         self.last_rep_id = replay.id
 
-    def initiate_from_scanner(self, map, opponent, mmr) -> str:
-        replacements = {
-            "student": str(config.student.name),
-            "map": str(map),
-            "opponent": str(opponent),
-            "mmr": str(mmr),
-        }
-
-        prompt = get_prompt("prompt_scanner.txt", replacements)
-
-        self.thread_id = self.coach.create_thread(prompt)
-
     def converse(self):
         while True:
             if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
@@ -203,7 +193,9 @@ class AISession:
                     continue
                 log.debug(text)
             else:
-                text = Prompt.ask(config.student.emoji)
+                text = Prompt.ask(
+                    config.student.emoji,
+                )
             if self.verbose:
                 log.info(text, extra={"role": Role.user})
 
@@ -245,6 +237,9 @@ class AISession:
         self.calculate_usage()
         self.thread_id = None
 
+    def is_active(self):
+        return self.thread_id is not None
+
     def calculate_usage(self):
         if not self.thread_id:
             return
@@ -278,12 +273,20 @@ class AISession:
         else:
             return False
 
+    def initiate_from_scanner(self, map, opponent, mmr) -> str:
+        replacements = {
+            "student": str(config.student.name),
+            "map": str(map),
+            "opponent": str(opponent),
+            "mmr": str(mmr),
+        }
+
+        prompt = Templates.scanner.render(replacements)
+
+        self.thread_id = self.coach.create_thread(prompt)
+
     def initiate_from_new_replay(self, replay: Replay) -> str:
-        opponent = (
-            replay.players[0].name
-            if replay.players[1].name == config.student.name
-            else replay.players[1].name
-        )
+        opponent = replay.get_player(config.student.name, opponent=True).name
         replacements = {
             "student": str(config.student.name),
             "map": str(replay.map_name),
@@ -292,19 +295,9 @@ class AISession:
                 replay.default_projection_json(limit=600, include_workers=False)
             ),
         }
-        prompt = get_prompt("prompt_new_replay.txt", replacements)
-
-        with open(
-            f"logs/{datetime.now().strftime('%Y%m%d-%H%M%S')}-new_replay.json",
-            "w",
-            encoding="utf-8",
-        ) as f:
-            f.write(prompt)
+        prompt = Templates.new_replay.render(replacements)
 
         self.thread_id = self.coach.create_thread(prompt)
-
-    def is_active(self):
-        return self.thread_id is not None
 
     def handle_scanner(self, sender, scanresult: ScanResult):
         log.debug(sender, scanresult)
@@ -343,6 +336,7 @@ class AISession:
             log.info(response, extra={"role": Role.assistant})
             done = self.converse()
             if done:
+                sleep(1)
                 self.say("I'll save a summary of the game.", flush=False)
                 self.update_last_replay(replay)
 

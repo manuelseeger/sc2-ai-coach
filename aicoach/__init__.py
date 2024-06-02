@@ -1,6 +1,6 @@
 from config import config
 
-from .util import get_prompt
+from .prompt import Templates
 
 if config.aibackend == "Mocked":
     from .aicoach_mock import AICoachMock as AICoach

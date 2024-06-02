@@ -6,7 +6,7 @@ import requests
 import tiktoken
 from rich import print, print_json
 
-from aicoach import get_prompt
+from aicoach import Templates
 from aicoach.functions import AIFunctions
 from config import config
 
@@ -29,16 +29,19 @@ def main(do_deploy):
     ]
     assistant = {"instructions": "", "tools": tools, "model": config.gpt_model}
 
-    assistant["instructions"] = get_prompt(
-        "initial_instructions.txt", {"student": config.student.name}
+    assistant["instructions"] = Templates.initial_instructions.render(
+        {"student": config.student.name}
     )
 
     tokens = encoding.encode(assistant["instructions"])
-    print(f"Current tokens in initial instructions: {len(tokens)}")
 
     assistant["tools"] = assistant["tools"] + [
         {"type": "function", "function": f.json()} for f in AIFunctions
     ]
+
+    tokens += encoding.encode(json.dumps(assistant["tools"]))
+
+    print(f"Current tokens in initial instructions: {len(tokens)}")
 
     with open(os.path.join("aicoach", "assistant.json"), "w") as f:
         f.write(json.dumps(assistant, indent=2))
@@ -54,7 +57,7 @@ def deploy(assistant):
             url,
             headers={
                 "Content-Type": "application/json",
-                "OpenAI-Beta": "assistants=v1",
+                "OpenAI-Beta": "assistants=v2",
                 "Authorization": f"Bearer {config.openai_api_key}",
             },
             data=json.dumps(assistant, indent=2),

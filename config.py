@@ -48,17 +48,17 @@ class AudioMode(str, Enum):
 
 
 class RecognizerConfig(BaseModel):
-    energy_threshold: int = 400
-    pause_threshold: float = 0.5
-    phrase_threshold: float = 0.3
-    non_speaking_duration: float = 0.2
-    speech_threshold: float = 0.9
+    energy_threshold: int
+    pause_threshold: float
+    phrase_threshold: float
+    non_speaking_duration: float
+    speech_threshold: float
 
 
 class StudentConfig(BaseModel):
     name: str
     race: str
-    sc2replaystats_map_url: Url
+    sc2replaystats_map_url: Url = None
     emoji: str = ":man_technologist:"
 
     def __repr__(self) -> str:
@@ -74,16 +74,16 @@ class Config(BaseSettings):
     )
     name: str = "AICoach"
     replay_folder: str
-    instant_leave_max: int = 60
-    deamon_polling_rate: int = 10
+    instant_leave_max: int
+    deamon_polling_rate: int
 
     audiomode: AudioMode = AudioMode.full
-    microphone_index: int = 2
-    oww_model: str = "hey_jarvis"
-    oww_sensitivity: float = 0.7
+    microphone_index: int
+    oww_model: str
+    oww_sensitivity: float
     speech_recognition_model: str
-    recognizer: RecognizerConfig = RecognizerConfig()
-    wake_key: str = "ctrl+alt+w"
+    recognizer: RecognizerConfig
+    wake_key: str
 
     student: StudentConfig
 
@@ -95,24 +95,14 @@ class Config(BaseSettings):
     gpt_prompt_pricing: float
     gpt_completion_pricing: float
 
-    obs_integration: bool = False
+    obs_integration: bool
     sc2_client_url: str = "http://127.0.0.1:6119"
-    screenshot: str = "obs/screenshots/_maploading.png"
-    tessdata_dir: str = "C:\\Program Files\\Tesseract-OCR\\tessdata"
+    screenshot: str
+    tessdata_dir: str
 
-    season: int = 57
+    season: int
 
-    ladder_maps: List[str] = [
-        "hecate le",
-        "oceanborn le",
-        "solaris le",
-        "hard lead le",
-        "radhuset station le",
-        "site delta le",
-        "equilibrium le",
-        "goldenaura le",
-        "alcyone le",
-    ]
+    ladder_maps: List[str]
 
     default_projection: Dict[str, int] = {
         "_id": 1,

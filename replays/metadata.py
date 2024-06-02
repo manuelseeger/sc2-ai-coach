@@ -3,7 +3,7 @@ from datetime import datetime
 
 from openai.types.beta.threads import Message
 
-from aicoach import AICoach, get_prompt
+from aicoach import AICoach, Templates
 from config import config
 from replays.db import eq, replaydb
 from replays.types import AssistantMessage, Metadata, Replay
@@ -16,13 +16,9 @@ def safe_replay_summary(replay: Replay, coach: AICoach):
 
     messages: list[Message] = coach.get_conversation()
 
-    summary = coach.get_response(
-        "Can you please summarize the game in one paragraph? Make sure to mention tech choices, timings, but keep it short."
-    )
+    summary = coach.get_response(Templates.summary.render())
 
-    prompt = get_prompt("prompt_tags.txt", {})
-
-    tags_raw = coach.get_response(prompt)
+    tags_raw = coach.get_response(Templates.tags.render())
 
     try:
         tags = [t.strip() for t in tags_raw.split(",")]
@@ -30,6 +26,7 @@ def safe_replay_summary(replay: Replay, coach: AICoach):
         log.warn("Assistant gave us invalid tags")
         tags = []
 
+    log.info(f"Added tags '{','.join(tags)} to replay'")
     meta: Metadata = Metadata(replay=replay.id, description=summary)
     meta.tags = tags
     meta.conversation = [

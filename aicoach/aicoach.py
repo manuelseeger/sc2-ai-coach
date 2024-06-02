@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime
 from typing import Callable, Dict, Generator
 
 from openai import AssistantEventHandler, OpenAI
@@ -19,6 +20,7 @@ from openai.types.beta.threads.run import Usage
 from config import config
 
 from .functions import AIFunctions
+from .prompt import Templates
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -31,9 +33,14 @@ class AICoach:
 
     functions: Dict[str, Callable] = {}
 
+    additional_instructions: str = ""
+
     def __init__(self):
         self.assistant: Assistant = client.beta.assistants.retrieve(
             assistant_id=config.assistant_id
+        )
+        self.additional_instructions = Templates.additional_instructions.render(
+            {"today": datetime.now().strftime("%Y-%m-%d")}
         )
         self._init_functions()
 
@@ -82,6 +89,7 @@ class AICoach:
         with client.beta.threads.runs.create_and_stream(
             thread_id=self.thread.id,
             assistant_id=self.assistant.id,
+            additional_instructions=self.additional_instructions,
         ) as stream:
             for event in stream:
                 for token in self._process_event(event):
@@ -102,6 +110,7 @@ class AICoach:
         with client.beta.threads.runs.create_and_stream(
             thread_id=self.thread.id,
             assistant_id=self.assistant.id,
+            additional_instructions=self.additional_instructions,
         ) as stream:
 
             for event in stream:
