@@ -1,6 +1,7 @@
 import pytest
 
 from aicoach.functions import AddMetadata, AIFunctions
+from aicoach.functions.AddMetadata import clean_tag
 from aicoach.functions.QueryReplayDB import force_valid_json_string
 
 
@@ -31,3 +32,17 @@ def test_function_meta_wrong_input():
 
     response = AddMetadata(replay_id=wrong_id, tags=tags)
     assert response is False
+
+
+@pytest.mark.parametrize(
+    ("tags", "expected"),
+    [
+        ("smurf,cheese,proxy", ["smurf", "cheese", "proxy"]),
+        ("smurf          ,       cheese,proxy", ["smurf", "cheese", "proxy"]),
+        ("Keywords: smurf", ["smurf"]),
+        ("Keywords: smurf, cheese, proxy", ["smurf", "cheese", "proxy"]),
+    ],
+)
+def test_clean_tag(tags, expected):
+    result = [clean_tag(tag) for tag in tags.split(",")]
+    assert result == expected

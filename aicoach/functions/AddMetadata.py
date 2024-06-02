@@ -33,8 +33,6 @@ def AddMetadata(
 ) -> bool:
     """Adds metadata like tags to a replay for a given replay ID."""
 
-
-
     tags_parsed = []
     try:
         tags_parsed = [clean_tag(t) for t in tags.split(",")]
