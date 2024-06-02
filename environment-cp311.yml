@@ -26,6 +26,7 @@ dependencies:
   - jupyter
   - conda-forge::matplotlib
   - jinja2
+  - pillow
   - pip
   - pip:
       - pyaudio
