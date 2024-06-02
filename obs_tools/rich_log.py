@@ -102,8 +102,10 @@ class TwitchObsLogHandler(Handler):
             emoji = Emojis.error
 
         if hasattr(record, "role"):
-            if record.role == "assistant":
+            if record.role == Role.assistant:
                 emoji = Emojis.aicoach
+            if record.role == Role.user:
+                emoji = config.student.emoji
             else:
                 emoji = Emojis.mic
 

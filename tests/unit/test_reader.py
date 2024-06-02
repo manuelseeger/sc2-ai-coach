@@ -1,5 +1,7 @@
-from replays import ReplayReader, time2secs
 import pytest
+
+from replays import ReplayReader, time2secs
+from replays.sc2readerplugins.statistics import loserDoesGG
 
 
 @pytest.mark.parametrize(
@@ -92,3 +94,64 @@ def test_default_projection_workers(replay_file):
         for bo in default_projection["players"][0]["build_order"]
     ]
     assert all(worker_in_bo)
+
+
+@pytest.mark.parametrize(
+    ("rep", "expected", "util"),
+    [
+        (
+            {
+                "players": [
+                    {"sid": 1, "result": "Loss"},
+                ],
+                "messages": [
+                    {"pid": 1, "text": "ggwp"},
+                ],
+            },
+            True,
+            None,
+        ),
+        (
+            {
+                "players": [
+                    {"sid": 1, "result": "Loss"},
+                ],
+                "messages": [
+                    {"pid": 1, "text": "fu"},
+                ],
+            },
+            False,
+            None,
+        ),
+        (
+            {
+                "players": [
+                    {"sid": 1, "result": "Loss"},
+                ],
+                "messages": [
+                    {"pid": 1, "text": "ggggg"},
+                ],
+            },
+            True,
+            None,
+        ),
+        (
+            {
+                "players": [
+                    {"sid": 1, "result": "Loss"},
+                ],
+                "messages": [
+                    {"pid": 1, "text": "bg"},
+                ],
+            },
+            False,
+            None,
+        ),
+    ],
+    indirect=["util"],
+)
+def test_loser_does_gg(rep, expected, util):
+    replay = util.make_replay_mock(rep)
+
+    result = loserDoesGG(replay)
+    assert result == expected

@@ -1,20 +1,21 @@
+import os
+import shutil
+from glob import glob
+from os.path import exists, join
+from time import sleep, time
+
+import cv2
 import pytest
+from blinker import signal
+
+from config import config
+from external.fast_ssim.ssim import ssim
 from obs_tools.parse_map_loading_screen import (
     LoadingScreenScanner,
-    rename_file,
-    get_map_stats,
     parse_map_loading_screen,
+    rename_file,
     split_clan_tag,
 )
-import os
-from time import sleep, time
-import shutil
-from os.path import join, exists
-from config import config
-from blinker import signal
-from glob import glob
-from external.fast_ssim.ssim import ssim
-import cv2
 
 FIXTURE_DIR = "tests/fixtures"
 
