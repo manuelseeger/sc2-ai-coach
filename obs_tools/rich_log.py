@@ -101,10 +101,11 @@ class TwitchObsLogHandler(Handler):
         if record.levelno == logging.ERROR:
             emoji = Emojis.error
 
-        if hasattr(record, "role"):
+        role = getattr(record, "role", None)
+        if role is not None:
             if record.role == Role.assistant:
                 emoji = Emojis.aicoach
-            if record.role == Role.user:
+            elif record.role == Role.user:
                 emoji = config.student.emoji
             else:
                 emoji = Emojis.mic
@@ -154,6 +155,9 @@ class TwitchObsLogHandler(Handler):
         for status in self._status_methods.values():
             if status.status == record.msg:
                 return True
+        role = getattr(record, "role", None)
+        if role == Role.user:
+            return True
         return False
 
     def set_status(self, record: LogRecord) -> None:
