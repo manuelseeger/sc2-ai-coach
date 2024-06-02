@@ -12,7 +12,7 @@ log = logging.getLogger(f"{config.name}.{__name__}")
 log.setLevel(logging.INFO)
 
 
-def safe_replay_summary(replay: Replay, coach: AICoach):
+def save_replay_summary(replay: Replay, coach: AICoach):
 
     messages: list[Message] = coach.get_conversation()
 

@@ -12,11 +12,12 @@ from rich.prompt import Prompt
 from aicoach import AICoach, Templates
 from config import AIBackend, AudioMode, config
 from obs_tools import GameStartedScanner, WakeListener
+from obs_tools.playerinfo import save_player_info
 from obs_tools.rich_log import TwitchObsLogHandler
 from obs_tools.types import ScanResult, WakeResult
 from replays import NewReplayScanner
 from replays.db import replaydb
-from replays.metadata import safe_replay_summary
+from replays.metadata import save_replay_summary
 from replays.types import Replay, Role, Session, Usage
 
 warnings.filterwarnings("ignore")
@@ -252,10 +253,10 @@ class AISession:
         prompt_price = prompt_price if prompt_price > 0 else 0.01
         completion_price = completion_price if completion_price > 0 else 0.01
 
-        log.info(f"Prompt tokens: {token_usage.prompt_tokens} (~${(prompt_price):.2f})")
-        log.info(
-            f"Completion tokens: {token_usage.completion_tokens} (~${(completion_price):.2f})"
-        )
+        # log.info(f"Prompt tokens: {token_usage.prompt_tokens} (~${(prompt_price):.2f})")
+        # log.info(
+        #    f"Completion tokens: {token_usage.completion_tokens} (~${(completion_price):.2f})"
+        # )
         log.info(
             f"Total tokens: {token_usage.total_tokens} (~${(prompt_price + completion_price):.2f})"
         )
@@ -266,6 +267,7 @@ class AISession:
             thread_id=self.thread_id,
         )
         self.session.usages.append(usage)
+        replaydb.db.save(self.session)
 
     def is_goodbye(self, response):
         if levenshtein(response[-20:].lower().strip(), "good luck, have fun") < 8:
@@ -340,7 +342,8 @@ class AISession:
                 self.say("I'll save a summary of the game.", flush=False)
                 self.update_last_replay(replay)
 
-                safe_replay_summary(replay, self.coach)
+                save_replay_summary(replay, self.coach)
+                save_player_info(replay)
 
                 self.close()
 

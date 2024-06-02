@@ -16,6 +16,11 @@ def screenshot_file(request):
 
 
 @pytest.fixture
+def portrait_file(request):
+    return join(TESTDATA_DIR, "portraits", request.param)
+
+
+@pytest.fixture
 def reference_file(request):
     return join(TESTDATA_DIR, "screenshots", request.param)
 

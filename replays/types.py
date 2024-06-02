@@ -50,6 +50,7 @@ wrap_all_fields(include_keys)
 
 
 ReplayId = Annotated[str, Field(max_length=64, min_length=64)]
+ToonHandle = Annotated[str, Field(max_length=13, min_length=13)]
 
 
 class AbilityUsed(BaseModel):
@@ -260,8 +261,9 @@ BsonBinary = Annotated[bson.Binary, pydantic.PlainValidator(_to_bson_binary)]
 
 
 class PlayerInfo(DbModel):
+    id: ToonHandle
     name: str = None
-    toon_handle: str = None
+    toon_handle: ToonHandle = None
     portrait: BsonBinary | None = None
     _collection: ClassVar = "replays.players"
 

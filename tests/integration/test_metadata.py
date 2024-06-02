@@ -3,7 +3,7 @@ import pytest
 from aicoach.aicoach_mock import AICoachMock as AICoach
 from aicoach.functions import AddMetadata
 from replays import ReplayReader
-from replays.metadata import safe_replay_summary
+from replays.metadata import save_replay_summary
 
 
 @pytest.mark.parametrize(
@@ -28,7 +28,7 @@ def test_save_replay_summary(replay_file):
 
     replay = reader.load_replay(replay_file)
 
-    safe_replay_summary(replay, coach)
+    save_replay_summary(replay, coach)
 
 
 @pytest.mark.parametrize(

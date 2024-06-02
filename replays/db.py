@@ -7,12 +7,12 @@ from pyodmongo.queries import eq
 
 from config import config
 
-from .types import Metadata, Replay, Session
+from .types import Metadata, PlayerInfo, Replay, Session
 
 # Initialize the database engine
 engine = DbEngine(mongo_uri=str(config.mongo_dsn), db_name=config.db_name)
 
-SC2Model = Union[Replay, Metadata, Session]
+SC2Model = Union[Replay, Metadata, Session, PlayerInfo]
 
 
 class ReplayDB:
