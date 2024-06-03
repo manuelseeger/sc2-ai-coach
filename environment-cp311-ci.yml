@@ -1,4 +1,4 @@
-name: aicoach311-minimal
+name: aicoach311-ci
 channels:
   - conda-forge
 dependencies:
@@ -8,16 +8,16 @@ dependencies:
   - pyyaml
   - requests
   - click
-  - pymongo
   - conda-forge::openai
-  - tiktoken
-  - rich
+  - pytest
+  - pytest-mock
+  - pytest-cov
   - python-levenshtein
   - blinker
   - jinja2
   - pip
   - pip:
+      - opencv-python
       - sc2reader
       - spawningtool
       - pyodmongo
-      - keyboard

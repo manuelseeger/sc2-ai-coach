@@ -9,7 +9,8 @@ from blinker import signal
 from Levenshtein import distance as levenshtein
 from rich.prompt import Prompt
 
-from aicoach import AICoach, Templates
+from aicoach import AICoach
+from aicoach.prompt import Templates
 from config import AIBackend, AudioMode, config
 from obs_tools import GameStartedScanner, WakeListener
 from obs_tools.playerinfo import save_player_info

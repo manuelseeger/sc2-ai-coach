@@ -1,18 +1,21 @@
-from .sc2readerplugins.statistics import ReplayStats
-from .sc2readerplugins.SpawningTool import SpawningTool
-import sc2reader
-from sc2reader.factories.plugins.replay import APMTracker as APMTrackerBroken
-from .sc2readerplugins.APMTracker import APMTracker
+import logging
+
 import sc2reader
 from sc2reader.engine.plugins import CreepTracker
-import logging
+
 from config import config
+
+from .sc2readerplugins.APMTracker import APMTracker
+from .sc2readerplugins.ReplayStats import ReplayStats
+from .sc2readerplugins.SpawningTool import SpawningTool
 from .types import Replay
+
+# from sc2reader.factories.plugins.replay import APMTracker as APMTrackerBroken
+
 
 log = logging.getLogger(config.name)
 
 sc2reader.engine.register_plugin(CreepTracker())
-
 
 factory = sc2reader.factories.SC2Factory()
 factory.register_plugin("Replay", ReplayStats())
