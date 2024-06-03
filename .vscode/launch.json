@@ -17,6 +17,20 @@
       }
     },
     {
+      "name": "AI Coach Text only",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "coach.py",
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/.env",
+      "args": ["--verbose"],
+      "env": {
+        "PYDEVD_DISABLE_FILE_VALIDATION": "1",
+        "AICOACH_audiomode": "text",
+        "AICOACH_obs_integration": "False"
+      }
+    },
+    {
       "name": "AI Coach Mocked",
       "type": "debugpy",
       "request": "launch",
