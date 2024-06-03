@@ -25,6 +25,8 @@ dependencies:
   #- pytorch # conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
   - jupyter
   - conda-forge::matplotlib
+  - conda-forge::webrtcvad
+  - scipy
   - jinja2
   - pillow
   - pip
