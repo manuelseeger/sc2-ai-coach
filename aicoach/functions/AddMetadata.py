@@ -39,17 +39,18 @@ def AddMetadata(
     except:
         log.error(f"Invalid tags: {tags}")
         return False
+    try:
+        metatry = Metadata(replay=replay_id)
+    except ValidationError:
+        log.warning(f"Invalid replay ID: {replay_id}")
+        return False
 
     meta: Metadata = replaydb.db.find_one(
         Model=Metadata, query=eq(Metadata.replay, replay_id)
     )
-    try:
-        if not meta:
-            meta = Metadata(replay=replay_id)
-            meta.tags = []
-    except ValidationError:
-        log.warning(f"Invalid replay ID: {replay_id}")
-        return False
+    if not meta:
+        meta = Metadata(replay=replay_id)
+        meta.tags = []
 
     if tags_parsed and tags_parsed != []:
         # remove potential duplicates
