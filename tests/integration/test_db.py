@@ -4,7 +4,7 @@ import pytest
 
 from replays import ReplayReader, replaydb
 from replays.db import eq
-from replays.types import AssistantMessage, Metadata, Role
+from replays.types import AssistantMessage, Metadata, Replay, Role
 
 
 def test_db_ready():
@@ -44,3 +44,8 @@ def test_add_metadata(replay_file):
     meta.tags = ["test", "zvz", "muta"]
 
     replaydb.db.save(meta, query=eq(Metadata.replay, replay.id))
+
+
+def test_get_most_recent():
+    replay: Replay = replaydb.get_most_recent()
+    assert replay is not None

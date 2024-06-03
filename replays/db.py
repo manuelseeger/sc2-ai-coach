@@ -3,7 +3,7 @@ from typing import Union
 from pydantic_core import ValidationError
 from pymongo.collection import Collection
 from pyodmongo import DbEngine, DbModel
-from pyodmongo.queries import eq
+from pyodmongo.queries import eq, sort
 
 from config import config
 
@@ -31,16 +31,13 @@ class ReplayDB:
             return None
 
     def get_most_recent(self) -> Replay:
-        most_recents = list(
-            engine._db.replays.find().sort("unix_timestamp", -1).limit(1)
+        most_recent = self.db.find_one(
+            Model=Replay, sort=sort((Replay.unix_timestamp, -1))
         )
-        if len(most_recents) == 0:
+        if most_recent is None:
             raise ValueError("No replays found")
 
-        if len(most_recents) > 1:
-            raise ValueError("Multiple replays found")
-
-        return Replay(**most_recents[0])
+        return most_recent
 
     def find(self, model: SC2Model) -> SC2Model:
         ModelClass = model.__class__

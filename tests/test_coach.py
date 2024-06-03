@@ -1,7 +1,9 @@
+from os.path import join
+
 from rich import print
+
 from coach import AISession
 from replays import ReplayReader, time2secs
-from os.path import join
 
 pin = lambda x: print(f">>> {x}\n\n")
 pout = lambda x: print(f"<<< {x}\n\n")
