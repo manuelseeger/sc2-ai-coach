@@ -3,7 +3,8 @@ from datetime import datetime
 
 from openai.types.beta.threads import Message
 
-from aicoach import AICoach, Templates
+from aicoach import AICoach
+from aicoach.prompt import Templates
 from config import config
 from replays.db import eq, replaydb
 from replays.types import AssistantMessage, Metadata, Replay
