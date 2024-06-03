@@ -58,7 +58,7 @@ class RecognizerConfig(BaseModel):
 class StudentConfig(BaseModel):
     name: str
     race: str
-    sc2replaystats_map_url: Url = None
+    sc2replaystats_map_url: Url | None = None
     emoji: str = ":man_technologist:"
 
     def __repr__(self) -> str:

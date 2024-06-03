@@ -1,0 +1,26 @@
+name: Lint
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: aicoach311-ci
+          environment-file: environment-cp311-ci.yml
+          python-version: 3.11
+          auto-activate-base: false
+      - name: Test with pytest
+        run: |
+          pytest tests/unit --doctest-modules --junitxml=tests/test-results.xml --cov=. --cov-report=xml --cov-report=html
+        env:
+          AICOACH_MONGO_DSN: mongodb://localhost:27017
+          AICOACH_ASSISTANT_ID: "XXX"
+          AICOACH_OPENAI_API_KEY: "YYY"
+          AICOACH_OPENAI_ORG_ID: "ZZZ"
