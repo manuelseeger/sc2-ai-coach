@@ -189,6 +189,8 @@ This is invoked at the very start of an SC2 game (when the in-game clock hits 1 
 
 You can configure which events AICoach should react to with the `coach_events` option.
 
+### Configure coach events
+
 ```yaml
 # config.yourname.yml
 
