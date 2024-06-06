@@ -6,6 +6,7 @@ import speech_recognition as sr
 import webrtcvad
 from pydantic.dataclasses import dataclass
 from scipy.signal import resample
+from speech_recognition.audio import AudioData
 
 from config import config
 
@@ -67,7 +68,7 @@ class Microphone:
 
         self.microphone = sr.Microphone(device_index=self.device_index)
 
-    def listen(self):
+    def listen(self) -> AudioData:
         while True:
             with self.microphone as source:
                 audio = self.recognizer.listen(source)
