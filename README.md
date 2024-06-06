@@ -187,6 +187,24 @@ This is invoked at the very start of an SC2 game (when the in-game clock hits 1 
 - Summarize past strategies of the opponent
 - Ask for follow up questions
 
+You can configure which events AICoach should react to with the `coach_events` option.
+
+```yaml
+# config.yourname.yml
+
+replay_folder: "C:\\Users\\yourname\\MyReplays"
+student:
+  name: "yourname"
+  race: "Terran"
+  emoji: ":woman_student:"
+db_name: "YOURDB"
+wake_key: "ctrl+alt+w"
+coach_events:
+  - game_start
+  - wake
+  - new_replay
+```
+
 ## Advanced setup
 
 Please understand that this is a hobby project and not ready to run without some technical setup. You will need Python experience to get this running. This code is presented as-is and I can't provide support for it.

@@ -11,7 +11,7 @@ from rich.prompt import Prompt
 
 from aicoach import AICoach
 from aicoach.prompt import Templates
-from config import AIBackend, AudioMode, config
+from config import AIBackend, AudioMode, CoachEvent, config
 from obs_tools import GameStartedScanner, WakeListener
 from obs_tools.playerinfo import save_player_info
 from obs_tools.rich_log import TwitchObsLogHandler
@@ -93,29 +93,34 @@ def main(debug, verbose):
 
     session.verbose = verbose
 
-    listener = WakeListener(name="listener")
-    listener.start()
+    if CoachEvent.wake in config.coach_events:
+        listener = WakeListener(name="listener")
+        listener.start()
 
-    scanner = GameStartedScanner(name="scanner")
-    scanner.start()
+        wake = signal("wakeup")
+        wake.connect(session.handle_wake)
 
-    replay_scanner = NewReplayScanner(name="replay_scanner")
-    replay_scanner.start()
+    if CoachEvent.game_start in config.coach_events:
+        scanner = GameStartedScanner(name="scanner")
+        scanner.start()
 
-    wake = signal("wakeup")
-    wake.connect(session.handle_wake)
+        loading_screen = signal("loading_screen")
+        loading_screen.connect(session.handle_scanner)
 
-    loading_screen = signal("loading_screen")
-    loading_screen.connect(session.handle_scanner)
+    if CoachEvent.new_replay in config.coach_events:
+        replay_scanner = NewReplayScanner(name="replay_scanner")
+        replay_scanner.start()
 
-    new_replay = signal("replay")
-    new_replay.connect(session.handle_new_replay)
+        new_replay = signal("replay")
+        new_replay.connect(session.handle_new_replay)
+
     log.info("\n")
     log.info(f"Audio mode: {str(config.audiomode)}")
     log.info(f"OBS integration: {str(config.obs_integration)}")
     log.info(
         f"AI Backend: {str(config.aibackend)} {config.gpt_model if config.aibackend == AIBackend.openai else ''}"
     )
+    log.info(f"Coach events enabled: {', '.join(config.coach_events)}")
 
     log.info("Starting main loop")
 

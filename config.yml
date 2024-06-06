@@ -52,6 +52,12 @@ gpt_prompt_pricing: 0.000005
 # Cost per completion token
 gpt_completion_pricing: 0.000015
 
+# Which events should the AI coach react to
+coach_events:
+  - game_start
+  - wake
+  - new_replay
+
 # Integration with OBS; Faster detection of new game started but requires manual OBS setup
 obs_integration: False
 # relative path to screenshot file which OBS takes when the map is loading
