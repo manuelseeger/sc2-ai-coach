@@ -46,6 +46,44 @@ def test_add_metadata(replay_file):
     replaydb.db.save(meta, query=eq(Metadata.replay, replay.id))
 
 
+@pytest.mark.parametrize(
+    "replay_file",
+    [
+        "Site Delta LE (106) ZvZ 2base Muta into mass muta chaotic win.SC2Replay",
+    ],
+    indirect=True,
+)
+def test_upsert_existing_replay(replay_file):
+    reader = ReplayReader()
+
+    replay = reader.load_replay(replay_file)
+
+    result = replaydb.upsert(replay)
+    assert result.acknowledged
+
+
+def test_upsert_new_replay():
+    # random 64 character id
+    new_id = "a" * 64
+
+    replay = Replay(
+        id=new_id,
+        date=datetime.now(),
+        map_name="test_map",
+        game_length=1000,
+        players=[],
+    )
+
+    result = replaydb.upsert(replay)
+    assert result.acknowledged
+    assert result.upserted_id == new_id
+
+    del_result = replaydb.db.delete_one(Replay, query=eq(Replay.id, new_id))
+
+    assert del_result.deleted_count == 1
+    assert del_result.acknowledged
+
+
 def test_get_most_recent():
     replay: Replay = replaydb.get_most_recent()
     assert replay is not None

@@ -3,7 +3,9 @@ from typing import Union
 from pydantic_core import ValidationError
 from pymongo.collection import Collection
 from pyodmongo import DbEngine, DbModel
+from pyodmongo.models.responses import SaveResponse
 from pyodmongo.queries import eq, sort
+from typing_extensions import override
 
 from config import config
 
@@ -21,18 +23,27 @@ class ReplayDB:
         self.replays: Collection = self.db._db["replays"]
         self.meta: Collection = self.db._db["replays.meta"]
 
-    def upsert(self, model: SC2Model):
+    def upsert(self, model: SC2Model) -> SaveResponse:
         ModelClass = model.__class__
         try:
             return self.db.save(model, query=eq(ModelClass.id, model.id))
         except ValidationError as e:
-            # pyodm forces the returned ID into mongo ObjectId and throws
-            # since we use a custom ID field
-            return None
+            # On INSERT, pyodm forces the returned ID into mongo ObjectId and throws since we use a custom ID field
+            # Return SaveResponse without validation instead
+            return SaveResponse.model_construct(
+                **{
+                    "acknowledged": True,
+                    "upserted_id": model.id,
+                    "matched_count": 0,
+                    "modified_count": 0,
+                }
+            )
 
     def get_most_recent(self) -> Replay:
         most_recent = self.db.find_one(
-            Model=Replay, sort=sort((Replay.unix_timestamp, -1))
+            Model=Replay,
+            raw_query={"players.name": config.student.name},
+            sort=sort((Replay.unix_timestamp, -1)),
         )
         if most_recent is None:
             raise ValueError("No replays found")

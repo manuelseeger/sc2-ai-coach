@@ -88,7 +88,6 @@ def main(debug, verbose):
 
         tts = make_tts_stream()
         tts.feed("")
-        tts.play_async(buffer_threshold_seconds=2.8, fast_sentence_fragment=True)
 
     session = AISession()
 
@@ -154,8 +153,8 @@ class AISession:
     session: Session
 
     def __init__(self):
-        last_replay = replaydb.get_most_recent()
-        self.update_last_replay(last_replay)
+
+        self.update_last_replay()
         self.coach = AICoach()
 
         self.session = Session(
@@ -177,8 +176,13 @@ class AISession:
             self.session.threads.append(value)
             replaydb.db.save(self.session)
 
-    def update_last_replay(self, replay):
+    def update_last_replay(self):
         replay = replaydb.get_most_recent()
+        if replay is None:
+            log.warning(
+                f"Can't find most recent replay for student '{config.student.name}'"
+            )
+            return
         self.last_map = replay.map_name
         self.last_opponent = replay.get_player(config.student.name, opponent=True).name
         self.last_mmr = replay.get_player(config.student.name).scaled_rating
@@ -229,10 +233,6 @@ class AISession:
             if self.verbose:
                 log.info(message, extra={"role": Role.assistant, "flush": flush})
             tts.feed(message)
-            if not tts.is_playing():
-                tts.play_async(
-                    buffer_threshold_seconds=2.8, fast_sentence_fragment=True
-                )
 
     def close(self):
         log.info("Closing thread")

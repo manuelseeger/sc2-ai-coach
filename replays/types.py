@@ -49,8 +49,14 @@ include_keys = convert_to_nested_structure(config.default_projection)
 wrap_all_fields(include_keys)
 
 
-ReplayId = Annotated[str, Field(max_length=64, min_length=64)]
-ToonHandle = Annotated[str, Field(max_length=13, min_length=13)]
+ReplayId = Annotated[str, Field(min_length=64, max_length=64)]
+ToonHandle = Annotated[str, Field(min_length=13, max_length=15)]
+BsonBinary = Annotated[
+    bson.Binary,
+    pydantic.PlainValidator(
+        lambda x: x if isinstance(x, bson.Binary) else bson.Binary(x)
+    ),
+]
 
 
 class AbilityUsed(BaseModel):
@@ -251,13 +257,6 @@ class Metadata(DbModel):
     tags: List[str] | None = None
     conversation: List[AssistantMessage] | None = None
     _collection: ClassVar = "replays.meta"
-
-
-def _to_bson_binary(value: Any) -> bson.Binary:
-    return value if isinstance(value, bson.Binary) else bson.Binary(value)
-
-
-BsonBinary = Annotated[bson.Binary, pydantic.PlainValidator(_to_bson_binary)]
 
 
 class PlayerInfo(DbModel):
