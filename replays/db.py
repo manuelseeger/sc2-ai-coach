@@ -3,7 +3,7 @@ from typing import Union
 from pydantic_core import ValidationError
 from pymongo.collection import Collection
 from pyodmongo import DbEngine, DbModel
-from pyodmongo.models.responses import SaveResponse
+from pyodmongo.models.responses import DbResponse
 from pyodmongo.queries import eq, sort
 from typing_extensions import override
 
@@ -23,17 +23,17 @@ class ReplayDB:
         self.replays: Collection = self.db._db["replays"]
         self.meta: Collection = self.db._db["replays.meta"]
 
-    def upsert(self, model: SC2Model) -> SaveResponse:
+    def upsert(self, model: SC2Model) -> DbResponse:
         ModelClass = model.__class__
         try:
             return self.db.save(model, query=eq(ModelClass.id, model.id))
         except ValidationError as e:
             # On INSERT, pyodm forces the returned ID into mongo ObjectId and throws since we use a custom ID field
             # Return SaveResponse without validation instead
-            return SaveResponse.model_construct(
+            return DbResponse.model_construct(
                 **{
                     "acknowledged": True,
-                    "upserted_id": model.id,
+                    "upserted_ids": {0: model.id},
                     "matched_count": 0,
                     "modified_count": 0,
                 }

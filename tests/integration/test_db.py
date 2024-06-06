@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
+from config import config
 from replays import ReplayReader, replaydb
 from replays.db import eq
 from replays.types import AssistantMessage, Metadata, Replay, Role
@@ -63,8 +64,8 @@ def test_upsert_existing_replay(replay_file):
 
 
 def test_upsert_new_replay():
-    # random 64 character id
-    new_id = "a" * 64
+
+    new_id = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
     replay = Replay(
         id=new_id,
@@ -76,9 +77,9 @@ def test_upsert_new_replay():
 
     result = replaydb.upsert(replay)
     assert result.acknowledged
-    assert result.upserted_id == new_id
+    assert any(new_id == v for k, v in result.upserted_ids.items())
 
-    del_result = replaydb.db.delete_one(Replay, query=eq(Replay.id, new_id))
+    del_result = replaydb.db.delete(Replay, query=eq(Replay.id, new_id))
 
     assert del_result.deleted_count == 1
     assert del_result.acknowledged
@@ -86,4 +87,5 @@ def test_upsert_new_replay():
 
 def test_get_most_recent():
     replay: Replay = replaydb.get_most_recent()
+    assert any(config.student.name in player.name for player in replay.players)
     assert replay is not None

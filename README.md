@@ -187,9 +187,9 @@ This is invoked at the very start of an SC2 game (when the in-game clock hits 1 
 - Summarize past strategies of the opponent
 - Ask for follow up questions
 
-You can configure which events AICoach should react to with the `coach_events` option.
-
 ### Configure coach events
+
+You can configure which events AICoach should react to with the `coach_events` option.
 
 ```yaml
 # config.yourname.yml
