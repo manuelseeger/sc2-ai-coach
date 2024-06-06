@@ -1,10 +1,12 @@
 import glob
-import os
+import logging
 from os.path import getmtime, join
 
 from config import config
 from replays import replaydb
 from replays.types import PlayerInfo, Replay
+
+log = logging.getLogger(f"{config.name}.{__name__}")
 
 
 def get_most_recent_portrait():
@@ -37,4 +39,11 @@ def save_player_info(replay: Replay):
         portrait=portrait,
     )
 
-    return replaydb.upsert(player_info)
+    result = replaydb.upsert(player_info)
+
+    if result.acknowledged:
+        log.info(
+            f"Saved player info for opponent {player_info.name}, {player_info.toon_handle}"
+        )
+
+    return result
