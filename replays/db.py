@@ -29,7 +29,7 @@ class ReplayDB:
             return self.db.save(model, query=eq(ModelClass.id, model.id))
         except ValidationError as e:
             # On INSERT, pyodm forces the returned ID into mongo ObjectId and throws since we use a custom ID field
-            # Return SaveResponse without validation instead
+            # Return DbResponse without validation instead
             return DbResponse.model_construct(
                 **{
                     "acknowledged": True,

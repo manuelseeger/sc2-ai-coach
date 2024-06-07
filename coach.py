@@ -12,11 +12,9 @@ from rich.prompt import Prompt
 from aicoach import AICoach
 from aicoach.prompt import Templates
 from config import AIBackend, AudioMode, CoachEvent, config
-from obs_tools import GameStartedScanner, WakeListener
 from obs_tools.playerinfo import save_player_info
 from obs_tools.rich_log import TwitchObsLogHandler
 from obs_tools.types import ScanResult, WakeResult
-from replays import NewReplayScanner
 from replays.db import replaydb
 from replays.metadata import save_replay_summary
 from replays.types import Replay, Role, Session, Usage
@@ -94,23 +92,26 @@ def main(debug, verbose):
     session.verbose = verbose
 
     if CoachEvent.wake in config.coach_events:
+        from obs_tools import WakeListener
+
         listener = WakeListener(name="listener")
         listener.start()
-
         wake = signal("wakeup")
         wake.connect(session.handle_wake)
 
     if CoachEvent.game_start in config.coach_events:
+        from obs_tools import GameStartedScanner
+
         scanner = GameStartedScanner(name="scanner")
         scanner.start()
-
         loading_screen = signal("loading_screen")
         loading_screen.connect(session.handle_scanner)
 
     if CoachEvent.new_replay in config.coach_events:
+        from replays import NewReplayScanner
+
         replay_scanner = NewReplayScanner(name="replay_scanner")
         replay_scanner.start()
-
         new_replay = signal("replay")
         new_replay.connect(session.handle_new_replay)
 
@@ -259,10 +260,6 @@ class AISession:
         prompt_price = prompt_price if prompt_price > 0 else 0.01
         completion_price = completion_price if completion_price > 0 else 0.01
 
-        # log.info(f"Prompt tokens: {token_usage.prompt_tokens} (~${(prompt_price):.2f})")
-        # log.info(
-        #    f"Completion tokens: {token_usage.completion_tokens} (~${(completion_price):.2f})"
-        # )
         log.info(
             f"Total tokens: {token_usage.total_tokens} (~${(prompt_price + completion_price):.2f})"
         )
@@ -344,7 +341,7 @@ class AISession:
             log.info(response, extra={"role": Role.assistant})
             done = self.converse()
             if done:
-                sleep(1)
+                sleep(2)
                 self.say("I'll save a summary of the game.", flush=False)
                 self.update_last_replay(replay)
 
