@@ -182,8 +182,9 @@ class AISession:
             self.session.threads.append(value)
             replaydb.db.save(self.session)
 
-    def update_last_replay(self):
-        replay = replaydb.get_most_recent()
+    def update_last_replay(self, replay: Replay = None):
+        if replay is None:
+            replay = replaydb.get_most_recent()
         if replay is None:
             log.warning(
                 f"Can't find most recent replay for student '{config.student.name}'"

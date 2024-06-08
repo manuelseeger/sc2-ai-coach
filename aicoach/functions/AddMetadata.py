@@ -1,5 +1,4 @@
 import logging
-import re
 from typing import Annotated
 
 from pydantic import ValidationError
@@ -12,21 +11,7 @@ from .base import AIFunction
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
-
-def get_clean_tags(tags: str) -> list[str]:
-    """Extracts comma separated tags from a string and returns a list of cleaned tags."""
-    if "," in tags:
-        match = re.search(r"((?:[\w\s]+,)+(?:[\w\s]+)+)", tags)
-    elif ": " in tags:
-        match = re.search(r":\W?([\w\s]+)", tags)
-    else:
-        match = None
-
-    if match:
-        result = match.group(1)
-    else:
-        result = ""
-    return [t.strip() for t in result.split(",")]
+from ..utils import get_clean_tags
 
 
 @AIFunction

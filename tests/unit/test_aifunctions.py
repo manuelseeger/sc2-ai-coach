@@ -1,8 +1,7 @@
 import pytest
 
 from aicoach.functions import AddMetadata, AIFunctions
-from aicoach.functions.AddMetadata import get_clean_tags
-from aicoach.functions.QueryReplayDB import force_valid_json_string
+from aicoach.utils import force_valid_json_string, get_clean_tags
 
 
 @pytest.mark.parametrize(

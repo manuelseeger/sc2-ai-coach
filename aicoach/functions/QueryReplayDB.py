@@ -1,5 +1,3 @@
-import ast
-import json
 import logging
 from typing import Annotated
 
@@ -9,6 +7,7 @@ from config import config
 from replays import replaydb
 from replays.types import Replay
 
+from ..utils import force_valid_json_string
 from .base import AIFunction
 
 log = logging.getLogger(f"{config.name}.{__name__}")
@@ -112,13 +111,6 @@ default_projection = {
     "stats": 1,
     "unix_timestamp": 1,
 }
-
-
-def force_valid_json_string(obj) -> str:
-    if isinstance(obj, str):
-        return json.dumps(ast.literal_eval(obj))
-    elif isinstance(obj, dict):
-        return json.dumps(obj)
 
 
 @AIFunction

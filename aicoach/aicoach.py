@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 from typing import Callable, Dict, Generator
 
-from openai import AssistantEventHandler, OpenAI
+from openai import APIError, AssistantEventHandler, OpenAI
 from openai.lib.streaming import AssistantStreamManager
 from openai.types.beta import Assistant, Thread
 from openai.types.beta.assistant_stream_event import (
@@ -96,14 +96,18 @@ class AICoach:
 
     def stream_thread(self):
         """Create a new run for the current thread and stream the response from the assistant."""
-        with client.beta.threads.runs.create_and_stream(
+        with client.beta.threads.runs.stream(
             thread_id=self.thread.id,
             assistant_id=self.assistant.id,
             additional_instructions=self.additional_instructions,
         ) as stream:
-            for event in stream:
-                for token in self._process_event(event):
-                    yield token
+            try:
+                for event in stream:
+                    for token in self._process_event(event):
+                        yield token
+            except APIError as e:
+                log.error(f"API Error: {e}")
+                yield ""
 
     def get_response(self, message) -> str:
         """Get the response from the assistant for a given message.
@@ -125,7 +129,7 @@ class AICoach:
             role="user",
             content=text,
         )
-        with client.beta.threads.runs.create_and_stream(
+        with client.beta.threads.runs.stream(
             thread_id=self.thread.id,
             assistant_id=self.assistant.id,
             additional_instructions=self.additional_instructions,
