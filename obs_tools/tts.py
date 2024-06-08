@@ -12,6 +12,7 @@ class TTS:
 
     def feed(self, text: str):
         # strip emojies but only emojis from text
+        text = "".join(char for char in text if char.isprintable())
 
         self.tts.feed(text)
         if not self.tts.is_playing():
