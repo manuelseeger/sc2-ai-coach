@@ -262,8 +262,10 @@ class Metadata(DbModel):
 class PlayerInfo(DbModel):
     id: ToonHandle
     name: str = None
+    aliases: List[str] = []
     toon_handle: ToonHandle = None
     portrait: BsonBinary | None = None
+    portraits: List[BsonBinary] = []
     _collection: ClassVar = "replays.players"
 
 
