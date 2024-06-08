@@ -67,13 +67,7 @@ log.addHandler(obs_handler)
 
 @click.command()
 @click.option("--debug", is_flag=True, help="Debug mode")
-@click.option(
-    "-v",
-    "--verbose",
-    is_flag=True,
-    help="Verbose mode: print voice input and responses to console",
-)
-def main(debug, verbose):
+def main(debug):
     if debug:
         log.setLevel(logging.DEBUG)
         handler.setLevel(logging.DEBUG)
@@ -88,8 +82,6 @@ def main(debug, verbose):
         tts.feed("")
 
     session = AISession()
-
-    session.verbose = verbose
 
     if CoachEvent.wake in config.coach_events:
         from obs_tools import WakeListener
@@ -155,7 +147,7 @@ class AISession:
     last_mmr: int = 3900
     _thread_id: str = None
     last_rep_id: str = None
-    verbose: bool = False
+
     session: Session
 
     def __init__(self):
@@ -209,8 +201,7 @@ class AISession:
                 text = Prompt.ask(
                     config.student.emoji,
                 )
-            if self.verbose:
-                log.info(text, extra={"role": Role.user})
+            log.info(text, extra={"role": Role.user})
 
             response = self.chat(text)
             log.info(response, extra={"role": Role.assistant})
@@ -237,8 +228,7 @@ class AISession:
         if config.audiomode in [AudioMode.text, AudioMode.voice_in]:
             log.info(message, extra={"role": Role.assistant, "flush": flush})
         else:
-            if self.verbose:
-                log.info(message, extra={"role": Role.assistant, "flush": flush})
+            log.info(message, extra={"role": Role.assistant, "flush": flush})
             tts.feed(message)
 
     def close(self):
