@@ -12,6 +12,7 @@ from rich.logging import RichHandler
 from rich.theme import Theme
 
 from config import config
+from obs_tools.playerinfo import save_player_info
 from replays import ReplayReader, replaydb
 
 custom_theme = Theme(
@@ -100,6 +101,66 @@ def deamon(ctx):
             sleep(config.deamon_polling_rate)
     except KeyboardInterrupt:
         console.print("Exiting")
+
+
+@cli.command()
+@click.pass_context
+@click.option(
+    "--from",
+    "-f",
+    "from_",
+    help="Start date for replay search",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    default=str(date.today()),
+    show_default=True,
+)
+@click.option(
+    "--to",
+    "-t",
+    "to_",
+    help="End date for replay search",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    default=str(date.today()),
+    show_default=True,
+)
+def addplayers(ctx, from_: datetime, to_: datetime):
+    """Add player from repays to DB"""
+
+    sync_from_date = from_.timestamp()
+
+    sync_to_date = (to_ + timedelta(days=1)).timestamp()
+
+    console.print(f"Syncing from {dformat(sync_from_date)} to {dformat(sync_to_date)}")
+    list_of_files = glob.glob(join(config.replay_folder, "*.SC2Replay"))
+    list_of_files = [
+        f
+        for f in list_of_files
+        if sync_from_date <= getmtime(f) and sync_to_date > getmtime(f)
+    ]
+
+    list_of_files.sort(key=getmtime)
+
+    console.print(f"Found {len(list_of_files)} potential replays to sync")
+
+    for file_path in list_of_files:
+        replay = reader.load_replay(file_path)
+
+        opponent = replay.get_player(name=config.student.name, opponent=True)
+
+        if ctx.obj["SIMULATION"]:
+            console.print(
+                f"Simulation, would add {opponent.name} ({opponent.toon_handle})"
+            )
+        else:
+            result = save_player_info(replay)
+            if result.acknowledged:
+                console.print(
+                    f":white_heavy_check_mark: {opponent.name} ({opponent.toon_handle}) added to DB"
+                )
+            else:
+                console.print(
+                    f":x: {opponent.name} ({opponent.toon_handle}) not added to DB"
+                )
 
 
 @cli.command()
