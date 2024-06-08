@@ -13,11 +13,20 @@ from .base import AIFunction
 log = logging.getLogger(f"{config.name}.{__name__}")
 
 
-def clean_tag(tag: str) -> str:
-    # regex remove quotes and spaces, strip words at the beginning like "Keywords:"
-    if ":" in tag:
-        tag = tag.split(":")[-1]
-    return re.sub(r"[\"\']", "", tag).strip()
+def get_clean_tags(tags: str) -> list[str]:
+    """Extracts comma separated tags from a string and returns a list of cleaned tags."""
+    if "," in tags:
+        match = re.search(r"((?:[\w\s]+,)+(?:[\w\s]+)+)", tags)
+    elif ": " in tags:
+        match = re.search(r":\W?([\w\s]+)", tags)
+    else:
+        match = None
+
+    if match:
+        result = match.group(1)
+    else:
+        result = ""
+    return [t.strip() for t in result.split(",")]
 
 
 @AIFunction
@@ -35,7 +44,7 @@ def AddMetadata(
 
     tags_parsed = []
     try:
-        tags_parsed = [clean_tag(t) for t in tags.split(",")]
+        tags_parsed = get_clean_tags(tags)
     except:
         log.error(f"Invalid tags: {tags}")
         return False

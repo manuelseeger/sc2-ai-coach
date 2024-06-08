@@ -1,7 +1,7 @@
 import pytest
 
 from aicoach.functions import AddMetadata, AIFunctions
-from aicoach.functions.AddMetadata import clean_tag
+from aicoach.functions.AddMetadata import get_clean_tags
 from aicoach.functions.QueryReplayDB import force_valid_json_string
 
 
@@ -41,8 +41,20 @@ def test_function_meta_wrong_input():
         ("smurf          ,       cheese,proxy", ["smurf", "cheese", "proxy"]),
         ("Keywords: smurf", ["smurf"]),
         ("Keywords: smurf, cheese, proxy", ["smurf", "cheese", "proxy"]),
+        (
+            'The essential keywords for this game are: "void ray,charge,colossus,immortal,roach,corruptor,timing". to replay',
+            [
+                "void ray",
+                "charge",
+                "colossus",
+                "immortal",
+                "roach",
+                "corruptor",
+                "timing",
+            ],
+        ),
     ],
 )
 def test_clean_tag(tags, expected):
-    result = [clean_tag(tag) for tag in tags.split(",")]
+    result = get_clean_tags(tags)
     assert result == expected
