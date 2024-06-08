@@ -4,7 +4,6 @@ from typing import Annotated, Any, ClassVar, Dict, List, Tuple
 
 import bson
 import pydantic
-from bson.binary import Binary
 from pydantic import BaseModel, Field
 from pyodmongo import DbModel
 from typing_extensions import Annotated
@@ -45,6 +44,12 @@ def wrap_all_fields(d: dict):
             wrap_all_fields(value)
 
 
+def to_bson_binary(x: Any) -> bson.Binary:
+    if isinstance(x, bson.Binary):
+        return x
+    return bson.Binary(x)
+
+
 include_keys = convert_to_nested_structure(config.default_projection)
 wrap_all_fields(include_keys)
 
@@ -53,9 +58,7 @@ ReplayId = Annotated[str, Field(min_length=64, max_length=64)]
 ToonHandle = Annotated[str, Field(min_length=13, max_length=15)]
 BsonBinary = Annotated[
     bson.Binary,
-    pydantic.PlainValidator(
-        lambda x: x if isinstance(x, bson.Binary) else bson.Binary(x)
-    ),
+    pydantic.PlainValidator(to_bson_binary),
 ]
 
 
@@ -140,6 +143,7 @@ class Replay(DbModel):
     build: int = None
     category: str = None
     date: datetime = None
+    """The date the replay was played. This is the end date of the game in UTC time."""
     expansion: str = None
     filehash: str = None
     filename: str = None

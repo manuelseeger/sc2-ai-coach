@@ -24,10 +24,10 @@ from replays.types import PlayerInfo
 )
 def test_save_player_info(replay_file, portrait_file, monkeypatch):
 
-    def get_portrait_mocked():
+    def get_portrait_mocked(replay):
         return open(portrait_file, "rb").read()
 
-    monkeypatch.setattr(playerinfo, "get_most_recent_portrait", get_portrait_mocked)
+    monkeypatch.setattr(playerinfo, "get_matching_portrait", get_portrait_mocked)
 
     reader = ReplayReader()
     replay = reader.load_replay(replay_file)
@@ -49,7 +49,7 @@ def test_save_player_without_obs_integration(replay_file):
     replay = reader.load_replay(replay_file)
     result = save_player_info(replay)
 
-    assert result is None
+    assert result.acknowledged
 
 
 @pytest.mark.parametrize(
