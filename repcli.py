@@ -144,24 +144,26 @@ def addplayers(ctx, from_: datetime, to_: datetime):
     console.print(f"Found {len(list_of_files)} potential replays to sync")
 
     for file_path in list_of_files:
-        replay = reader.load_replay(file_path)
+        replay_raw = reader.load_replay_raw(file_path)
+        if reader.apply_filters(replay_raw):
 
-        opponent = replay.get_player(name=config.student.name, opponent=True)
+            replay = reader.to_typed_replay(replay_raw)
+            opponent = replay.get_player(name=config.student.name, opponent=True)
 
-        if ctx.obj["SIMULATION"]:
-            console.print(
-                f"Simulation, would add {opponent.name} ({opponent.toon_handle})"
-            )
-        else:
-            result = save_player_info(replay)
-            if result.acknowledged:
+            if ctx.obj["SIMULATION"]:
                 console.print(
-                    f":white_heavy_check_mark: {opponent.name} ({opponent.toon_handle}) added to DB"
+                    f"Simulation, would add {opponent.name} ({opponent.toon_handle})"
                 )
             else:
-                console.print(
-                    f":x: {opponent.name} ({opponent.toon_handle}) not added to DB"
-                )
+                result = save_player_info(replay)
+                if result.acknowledged:
+                    console.print(
+                        f":white_heavy_check_mark: {opponent.name} ({opponent.toon_handle}) added to DB from {replay}"
+                    )
+                else:
+                    console.print(
+                        f":x: {opponent.name} ({opponent.toon_handle}) not added to DB"
+                    )
 
 
 @cli.command()
