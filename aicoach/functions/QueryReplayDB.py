@@ -4,7 +4,7 @@ from typing import Annotated
 from bson.json_util import dumps, loads
 
 from config import config
-from replays import replaydb
+from replays.db import replaydb
 from replays.types import Replay
 
 from ..utils import force_valid_json_string
@@ -138,9 +138,14 @@ def QueryReplayDB(
 ) -> list:
     """Query the replay database and return JSON representation of all matching replays.
 
-    The replay DB is a MongoDB database. The collection you will query contains replays in the format given in your instructions.
+    The replay DB is a MongoDB database. Query this according to your instructions. Here are a few examples of how to translate questions to query filters, assuming the student talking to you is called "Johnny":
 
-    Query and projection documents need to be compatible with MongoDB version 4.4 and up.
+    Q: Get replays of player Driftoss on the map Hecate LE
+    F: {"players.name": "Driftoss", "map_name": "Hecate LE"}
+    Q: Get replays against my Protoss opponents
+    F: {"players": {$elemMatch: {"play_race": "Protoss", "name": {$ne: "Johnny"}}}}
+    Q: Get replays against my Protoss opponents who build an oracle
+    F: {"players.build_order": {$elemMatch: {"name": "Oracle"}} ,"players": {$elemMatch: {"play_race": "Protoss", "name": {$ne: "Johnny"}}}}
     """
     # Force the arguments to be valid JSON
     if filter is None or filter == "{{}}":
@@ -169,3 +174,16 @@ def QueryReplayDB(
         result_replay.default_projection(limit=limit_time)
         for result_replay in result_replays
     ]
+
+
+QueryReplayDB.__doc__ = f"""Query the replay database and return JSON representation of all matching replays.
+
+    The replay DB is a MongoDB database. Query this according to your instructions. Here are a few examples of how to translate questions to query filters:
+
+    Q: Get replays of player Driftoss on the map Hecate LE
+    F: {{"players.name": "Driftoss", "map_name": "Hecate LE"}}
+    Q: Get replays against my Protoss opponents
+    F: {{"players": {{$elemMatch: {{"play_race": "Protoss", "name": {{$ne: "{config.student.name}"}}}}}}}}
+    Q: Get replays against my Protoss opponents who build an oracle
+    F: {{"players.build_order": {{$elemMatch: {{"name": "Oracle"}}}} ,"players": {{$elemMatch: {{"play_race": "Protoss", "name": {{$ne: "{config.student.name}"}}}}}}}}
+    """
