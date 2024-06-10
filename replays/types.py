@@ -55,7 +55,8 @@ wrap_all_fields(include_keys)
 
 
 ReplayId = Annotated[str, Field(min_length=64, max_length=64)]
-ToonHandle = Annotated[str, Field(min_length=13, max_length=15)]
+# 2-S2-2-9562
+ToonHandle = Annotated[str, Field(min_length=11, max_length=15)]
 BsonBinary = Annotated[
     bson.Binary,
     pydantic.PlainValidator(to_bson_binary),

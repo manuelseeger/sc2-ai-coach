@@ -1,5 +1,5 @@
-from spawningtool.parser import GameParser
 from sc2reader.factories.plugins.utils import plugin
+from spawningtool.parser import GameParser
 
 
 class GameParserFromParserReplay(GameParser):
@@ -23,5 +23,5 @@ def SpawningTool(replay):
         player.supply = sp["players"][player.pid]["supply"]
         player.abilities_used = sp["players"][player.pid]["abilities"]
         player.clock_position = sp["players"][player.pid]["clock_position"]
-    replay.map_details = sp["map_details"]
+    replay.map_details = getattr(sp, "map_details", None)
     return replay

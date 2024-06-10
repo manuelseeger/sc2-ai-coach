@@ -193,8 +193,12 @@ def replay_to_dict(replay) -> dict:
         "is_private": getattr(replay, "is_private", False),
         "map_name": getattr(replay, "map_name", None),
         "map_size": (
-            getattr(replay, "map_details", None)["width"],
-            getattr(replay, "map_details", None)["height"],
+            (
+                replay.map_details["width"],
+                replay.map_details["height"],
+            )
+            if hasattr(replay, "map_details") and replay.map_details
+            else (0, 0)
         ),
         "observers": observers,
         "players": players,

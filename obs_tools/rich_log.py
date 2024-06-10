@@ -56,7 +56,7 @@ EMOJI_MAP = {
     "main": Emojis.system,
     "close": Emojis.system,
     "calculate_usage": Emojis.pricing,
-    "save_player_info": Emojis.player_info,
+    "obs_tools.playerinfo.save_player_info": Emojis.player_info,
 }
 
 
