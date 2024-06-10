@@ -100,6 +100,8 @@ def save_player_info(replay: Replay):
     if existing_player_info:
         player_info = existing_player_info
 
+    player_info.name = opponent.name
+
     # add name to aliases if it's not already there
     if player_info.name not in player_info.aliases:
         player_info.aliases.append(player_info.name)
@@ -111,7 +113,7 @@ def save_player_info(replay: Replay):
 
     if result.acknowledged:
         log.info(
-            f"Saved player info for opponent {player_info.name}, {player_info.toon_handle}"
+            f"Saved player info for opponent {player_info.name}, Aliases: {player_info.aliases}"
         )
 
     return result
