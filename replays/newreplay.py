@@ -9,7 +9,8 @@ from blinker import signal
 
 from config import config
 from obs_tools.playerinfo import save_player_info
-from replays import ReplayReader, replaydb
+from replays.db import replaydb
+from replays.reader import ReplayReader
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 log.setLevel(logging.INFO)

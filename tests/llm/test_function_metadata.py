@@ -3,7 +3,7 @@ from rich import print
 
 from aicoach import AICoach, Templates
 from config import config
-from replays import ReplayReader
+from replays.reader import ReplayReader
 
 
 def test_function_add_metadata():

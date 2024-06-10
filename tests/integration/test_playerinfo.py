@@ -8,7 +8,8 @@ from config import config
 from external.fast_ssim.ssim import ssim
 from obs_tools import playerinfo
 from obs_tools.playerinfo import save_player_info
-from replays import ReplayReader, replaydb
+from replays.db import replaydb
+from replays.reader import ReplayReader
 from replays.types import PlayerInfo
 
 

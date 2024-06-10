@@ -12,7 +12,6 @@ from rich.prompt import Prompt
 from aicoach import AICoach
 from aicoach.prompt import Templates
 from config import AIBackend, AudioMode, CoachEvent, config
-from obs_tools.playerinfo import save_player_info
 from obs_tools.rich_log import TwitchObsLogHandler
 from obs_tools.types import ScanResult, WakeResult
 from replays.db import replaydb

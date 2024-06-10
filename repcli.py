@@ -13,7 +13,8 @@ from rich.theme import Theme
 
 from config import config
 from obs_tools.playerinfo import save_player_info
-from replays import ReplayReader, replaydb
+from replays.db import replaydb
+from replays.reader import ReplayReader
 
 custom_theme = Theme(
     {

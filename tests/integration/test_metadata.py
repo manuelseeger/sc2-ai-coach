@@ -2,8 +2,8 @@ import pytest
 
 from aicoach.aicoach_mock import AICoachMock as AICoach
 from aicoach.functions import AddMetadata
-from replays import ReplayReader
 from replays.metadata import save_replay_summary
+from replays.reader import ReplayReader
 
 
 @pytest.mark.parametrize(

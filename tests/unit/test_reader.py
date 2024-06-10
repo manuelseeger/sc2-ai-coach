@@ -1,8 +1,9 @@
 import pytest
 import sc2reader
 
-from replays import ReplayReader, time2secs
+from replays.reader import ReplayReader
 from replays.sc2readerplugins.ReplayStats import is_gg, player_worker_micro
+from replays.util import time2secs
 
 
 @pytest.mark.parametrize(

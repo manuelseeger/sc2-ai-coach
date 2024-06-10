@@ -3,8 +3,8 @@ from datetime import datetime, timedelta
 import pytest
 
 from config import config
-from replays import ReplayReader, replaydb
-from replays.db import eq
+from replays.db import eq, replaydb
+from replays.reader import ReplayReader
 from replays.types import AssistantMessage, Metadata, Replay, Role
 
 

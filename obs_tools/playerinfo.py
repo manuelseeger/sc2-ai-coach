@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from os.path import getmtime, join
 
 from config import config
-from replays import replaydb
+from replays.db import replaydb
 from replays.types import PlayerInfo, Replay, to_bson_binary
 from replays.util import is_barcode
 
