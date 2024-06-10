@@ -48,12 +48,17 @@ if not os.path.exists("logs"):
     os.makedirs("logs")
 
 handler = logging.FileHandler(
-    os.path.join("logs", f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-obs_watcher.log"),
+    os.path.join(
+        "logs",
+        f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-obs_watcher.log",
+    ),
+    encoding="utf-8",
 )
 handler.setLevel(logging.DEBUG)
 one_file_handler = logging.FileHandler(
     mode="a",
     filename=os.path.join("logs", "_obs_watcher.log"),
+    encoding="utf-8",
 )
 one_file_handler.setLevel(logging.DEBUG)
 log.addHandler(handler)
@@ -99,7 +104,7 @@ def main(debug):
         loading_screen.connect(session.handle_scanner)
 
     if CoachEvent.new_replay in config.coach_events:
-        from replays import NewReplayScanner
+        from replays.newreplay import NewReplayScanner
 
         replay_scanner = NewReplayScanner(name="replay_scanner")
         replay_scanner.start()
