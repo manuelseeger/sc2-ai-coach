@@ -236,7 +236,12 @@ def sync(ctx, from_: datetime, to_: datetime, from_most_recent: bool, delta: boo
             console.print(f"Filtered {basename(file_path)}")
             if reader.is_instant_leave(replay_raw) and ctx.obj["CLEAN"]:
                 os.remove(file_path)
-                console.print(f":zap: Deleted {basename(file_path)}")
+                console.print(f":litter_in_bin_sign: Deleted {basename(file_path)}")
+                continue
+            if reader.has_afk_player(replay_raw) and ctx.obj["CLEAN"]:
+                os.remove(file_path)
+                console.print(f":litter_in_bin_sign: Deleted {basename(file_path)}")
+                continue
 
 
 @cli.command()

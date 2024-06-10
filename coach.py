@@ -337,7 +337,6 @@ class AISession:
                 self.update_last_replay(replay)
 
                 save_replay_summary(replay, self.coach)
-                save_player_info(replay)
 
                 self.close()
 
