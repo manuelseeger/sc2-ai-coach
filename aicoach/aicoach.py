@@ -8,6 +8,7 @@ from openai.lib.streaming import AssistantStreamManager
 from openai.types.beta import Assistant, Thread
 from openai.types.beta.assistant_stream_event import (
     ThreadMessageDelta,
+    ThreadRunFailed,
     ThreadRunRequiresAction,
 )
 from openai.types.beta.threads import (
@@ -152,8 +153,10 @@ class AICoach:
                 for event in stream:
                     for token in self._process_event(event):
                         yield token
+        elif isinstance(event, ThreadRunFailed):
+            log.error(f"Run failed: {event.data.last_error}")
         else:
-            pass
+            log.warn(f"Unhandled event: {event}")
 
     def _handle_tool_calls(self, run: Run) -> dict[str, str]:
         required_action = run.required_action
