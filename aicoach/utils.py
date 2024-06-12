@@ -21,6 +21,9 @@ def get_clean_tags(tags: str) -> list[str]:
 
 def force_valid_json_string(obj) -> str:
     if isinstance(obj, str):
+        # edge cases
+        if obj == "-unix_timestamp":
+            return '{"unix_timestamp": -1}'
         return json.dumps(ast.literal_eval(obj))
     elif isinstance(obj, dict):
         return json.dumps(obj)

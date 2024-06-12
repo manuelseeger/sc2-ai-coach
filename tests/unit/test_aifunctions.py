@@ -10,6 +10,7 @@ from aicoach.utils import force_valid_json_string, get_clean_tags
         ("{'game_length': -1}", '{"game_length": -1}'),
         ({"game_length": -1}, '{"game_length": -1}'),
         ('{"game_length": -1}', '{"game_length": -1}'),
+        ("-unix_timestamp", '{"unix_timestamp": -1}'),
     ],
 )
 def test_force_valid_json_string(json_input, expected):
