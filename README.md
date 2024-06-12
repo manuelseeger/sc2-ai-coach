@@ -11,13 +11,23 @@
 
 The AI coach is embedded with a voice engine and can be interacted with live during gameplay via microphone.
 
-New chat sessions with the AI coach are initiated when a new ladder game is starting ([obs_tools/](obs_tools/)), when a game just finished, or on voice command ("hey jarvis").
-
-The GPT assistant behind AI coach can use mulitple high level capabilities like query a MongoDB replay database, lookup a player's battle net profile, or add data such as comments to a replay. The assistant decides autonomously without explicit programming when to employ a capability.
+New chat sessions with the AI coach are initiated when a new ladder game is starting, when a game just finished, or on voice command ("hey jarvis"). The GPT assistant behind AI coach can use mulitple high level capabilities like query a MongoDB replay database, lookup a player's battle net profile, or add data such as comments to a replay. The assistant decides autonomously without explicit programming when to employ a capability.
 
 This is my personal research project to explore the latest in LLM based agents.
 
-![Alt text](archive/aicoach-replaydb-example.png "a title")
+### Examples
+
+Looking up past games when a new game is being played:
+
+![Example new game](archive/aicoach-scanner-example.png "New game started")
+
+Analyzing a replay after a game just finished:
+
+![Example replay](archive/aicoach-newreplay-manners.png "New Replay, discussing player's manners")
+
+Answering arbitrary questions on SC2:
+
+![Example replay](archive/aicoach-hey-goat.png "Weighing in on the GOAT debate")
 
 ## Minimal Setup
 
@@ -213,7 +223,7 @@ Please understand that this is a hobby project and not ready to run without some
 
 Prerequisites:
 
-- (all from minimal setup)
+- all from minimal setup
 - NVidia GPU
 - Microphone
 
@@ -227,9 +237,9 @@ The OBS setup is not documented here and you can skip this part by keeping `obs_
 
 Probably a lot...
 
-This is meant for competitives 1v1 ladder. Team games, arcade, customs are not supported and explicidely excluded from all replay processing.
-
-This has only been tested with replays starting from early 2023. Much older replays will likely throw errors.
+- This is meant for competitives 1v1 ladder. Team games, arcade, customs are not supported and either explicidely excluded from replay processing or may cause unexpected behavior.
+- Most of the internal logic relies on the name of a player(s) and thus won't work properly for a student who changes their name from season to season.
+- This has only been tested with replays starting from early 2023. Much older replays will likely throw errors.
 
 ## SC2 map stats
 
