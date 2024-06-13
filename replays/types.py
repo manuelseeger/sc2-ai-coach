@@ -264,13 +264,30 @@ class Metadata(DbModel):
     _collection: ClassVar = "replays.meta"
 
 
+class Alias(BaseModel):
+    name: str
+    portrait: BsonBinary | None = None
+    seen_on: datetime | None = None
+
+    def __str__(self) -> str:
+        return f"{self.name}"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Alias):
+            return self.name == other.name and self.portrait == other.portrait
+        else:
+            return False
+
+
 class PlayerInfo(DbModel):
     id: ToonHandle
     name: str = None
-    aliases: List[str] = []
+    aliases: List[Alias] = []
     toon_handle: ToonHandle = None
     portrait: BsonBinary | None = None
-    portraits: List[BsonBinary] = []
     _collection: ClassVar = "replays.players"
 
 

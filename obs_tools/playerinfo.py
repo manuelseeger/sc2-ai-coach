@@ -4,9 +4,11 @@ import re
 from datetime import datetime, timedelta, timezone
 from os.path import getmtime, join
 
+import numpy as np
+
 from config import config
 from replays.db import replaydb
-from replays.types import PlayerInfo, Replay, to_bson_binary
+from replays.types import Alias, PlayerInfo, Replay, to_bson_binary
 from replays.util import is_barcode
 
 log = logging.getLogger(f"{config.name}.{__name__}")
@@ -102,12 +104,12 @@ def save_player_info(replay: Replay):
 
     player_info.name = opponent.name
 
-    # add name to aliases if it's not already there
-    if player_info.name not in player_info.aliases:
-        player_info.aliases.append(player_info.name)
+    alias = Alias(
+        name=opponent.name, portrait=to_bson_binary(portrait), seen_on=replay.date
+    )
 
-    if portrait is not None and to_bson_binary(portrait) not in player_info.portraits:
-        player_info.portraits.append(portrait)
+    if alias not in player_info.aliases:
+        player_info.aliases.append(alias)
 
     result = replaydb.upsert(player_info)
 
@@ -117,3 +119,17 @@ def save_player_info(replay: Replay):
         )
 
     return result
+
+
+def resolve_player(name: str, portrait: np.ndarray) -> PlayerInfo:
+
+    q = {"aliases": name}
+    candidates = replaydb.db.find_many(PlayerInfo, query=q)
+
+    player_info = PlayerInfo(name=name, portrait=portrait)
+    existing_player_info: PlayerInfo = replaydb.find(player_info)
+
+    if existing_player_info:
+        return existing_player_info
+    else:
+        return player_info
