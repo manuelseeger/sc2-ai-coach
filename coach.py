@@ -2,7 +2,7 @@ import logging
 import os
 import warnings
 from datetime import datetime
-from time import sleep
+from time import sleep, time
 
 import click
 from blinker import signal
@@ -192,9 +192,15 @@ class AISession:
         self.last_rep_id = replay.id
 
     def converse(self):
+        start_time = time()
         while True:
+            if time() - start_time > 60 * 3:
+                log.info("No input, closing thread")
+                return True
             if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
                 audio = mic.listen()
+                if audio is None:
+                    continue
                 log.debug("Got voice input")
 
                 text = transcriber.transcribe(audio)
@@ -267,7 +273,7 @@ class AISession:
         self.session.usages.append(usage)
         replaydb.db.save(self.session)
 
-    def is_goodbye(self, response):
+    def is_goodbye(self, response: str):
         if levenshtein(response[-20:].lower().strip(), "good luck, have fun") < 8:
             return True
         else:
