@@ -10,7 +10,7 @@ from obs_tools import playerinfo
 from obs_tools.playerinfo import save_player_info
 from replays.db import replaydb
 from replays.reader import ReplayReader
-from replays.types import PlayerInfo
+from replays.types import PlayerInfo, to_bson_binary
 
 
 @pytest.mark.parametrize(
@@ -23,7 +23,7 @@ from replays.types import PlayerInfo
     ],
     indirect=["replay_file", "portrait_file"],
 )
-def test_save_player_info(replay_file, portrait_file, monkeypatch):
+def test_save_existing_player_info(replay_file, portrait_file, monkeypatch):
 
     def get_portrait_mocked(replay):
         return open(portrait_file, "rb").read()
@@ -36,6 +36,36 @@ def test_save_player_info(replay_file, portrait_file, monkeypatch):
 
     assert result.acknowledged
     assert result.modified_count == 1
+
+
+@pytest.mark.parametrize(
+    "replay_file,portrait_file",
+    [
+        (
+            "Goldenaura LE (282) 2 base Terran tank allin.SC2Replay",
+            "Oceanborn LE - LightHood vs zatic 2024-06-15 12-27-13_portrait.png",
+        )
+    ],
+    indirect=["replay_file", "portrait_file"],
+)
+def test_existing_player_info_update_alias(replay_file, portrait_file, monkeypatch):
+
+    def get_portrait_mocked(replay):
+        return open(portrait_file, "rb").read()
+
+    monkeypatch.setattr(playerinfo, "get_matching_portrait", get_portrait_mocked)
+
+    player_info = replaydb.db.find_one(PlayerInfo, raw_query={"_id": "2-S2-2-504151"})
+
+    reader = ReplayReader()
+    replay = reader.load_replay(replay_file)
+    result = save_player_info(replay)
+
+    assert result.acknowledged
+    assert result.modified_count == 1
+
+    # Undo the alias update
+    result = replaydb.upsert(player_info)
 
 
 @pytest.mark.parametrize(

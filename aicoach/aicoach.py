@@ -156,7 +156,8 @@ class AICoach:
         elif isinstance(event, ThreadRunFailed):
             log.error(f"Run failed: {event.data.last_error}")
         else:
-            log.warn(f"Unhandled event: {event}")
+            # run in progress etc
+            pass
 
     def _handle_tool_calls(self, run: Run) -> dict[str, str]:
         required_action = run.required_action

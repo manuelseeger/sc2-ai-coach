@@ -179,6 +179,9 @@ class Replay(DbModel):
             if player.name != name and opponent:
                 return player
 
+    def get_opponent_of(self, name: str) -> Player:
+        return self.get_player(name, opponent=True)
+
     def _exclude_keys_for_build_order(self, limit, include_workers) -> dict:
         """Generate all keys which should be excluded from the replay on model_dump"""
         exclude_keys = {}
@@ -266,7 +269,7 @@ class Metadata(DbModel):
 
 class Alias(BaseModel):
     name: str
-    portrait: BsonBinary | None = None
+    portraits: list[BsonBinary] = []
     seen_on: datetime | None = None
 
     def __str__(self) -> str:
@@ -277,18 +280,48 @@ class Alias(BaseModel):
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Alias):
-            return self.name == other.name and self.portrait == other.portrait
+            return self.name == other.name
+        elif isinstance(other, PlayerInfo):
+            if other.portrait is None:
+                return self.name == other.name
+            else:
+                return (
+                    self.name == other.name
+                    and to_bson_binary(other.portrait) in self.portraits
+                )
         else:
             return False
+
+
+AliasList = List[Alias]
+AliasList.__contains__ = lambda self, x: any(x == alias for alias in self)
+AliasList.__getitem__ = lambda self, x: next(alias for alias in self if alias == x)
 
 
 class PlayerInfo(DbModel):
     id: ToonHandle
     name: str = None
-    aliases: List[Alias] = []
+    aliases: AliasList = []
     toon_handle: ToonHandle = None
     portrait: BsonBinary | None = None
     _collection: ClassVar = "replays.players"
+
+    def update_aliases(self, seen_on: datetime = None):
+        seen_on = seen_on or datetime.now()
+        if self in self.aliases:
+            return
+        for alias in self.aliases:
+            if alias.name == self.name and self.portrait not in alias.portraits:
+                alias.portraits.append(self.portrait)
+                alias.seen_on = seen_on
+                return
+        self.aliases.append(
+            Alias(
+                name=self.name,
+                portraits=[self.portrait] if self.portrait else [],
+                seen_on=seen_on,
+            )
+        )
 
 
 class Usage(BaseModel):

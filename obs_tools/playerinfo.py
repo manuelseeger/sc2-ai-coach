@@ -88,7 +88,10 @@ def save_player_info(replay: Replay):
     else:
         portrait = None
 
-    opponent = replay.get_player(name=config.student.name, opponent=True)
+    if portrait is not None:
+        portrait = to_bson_binary(portrait)
+
+    opponent = replay.get_opponent_of(config.student.name)
 
     player_info = PlayerInfo(
         id=opponent.toon_handle,
@@ -103,13 +106,9 @@ def save_player_info(replay: Replay):
         player_info = existing_player_info
 
     player_info.name = opponent.name
+    player_info.portrait = portrait
 
-    alias = Alias(
-        name=opponent.name, portrait=to_bson_binary(portrait), seen_on=replay.date
-    )
-
-    if alias not in player_info.aliases:
-        player_info.aliases.append(alias)
+    player_info.update_aliases(seen_on=replay.date)
 
     result = replaydb.upsert(player_info)
 
