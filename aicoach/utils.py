@@ -24,6 +24,8 @@ def force_valid_json_string(obj) -> str:
         # edge cases
         if obj == "-unix_timestamp":
             return '{"unix_timestamp": -1}'
+        elif obj == "unix_timestamp":
+            return '{"unix_timestamp": 1}'
         return json.dumps(ast.literal_eval(obj))
     elif isinstance(obj, dict):
         return json.dumps(obj)
