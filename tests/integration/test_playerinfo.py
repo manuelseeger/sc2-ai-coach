@@ -98,3 +98,22 @@ def test_read_player_portrait(portrait_file):
 
     assert playerinfo is not None
     assert score == 1.0
+
+
+# Goldenaura LE - zatic vs Fifou 2024-06-10 13-18-35_portrait.png
+@pytest.mark.parametrize(
+    "portrait_file",
+    ["Goldenaura LE - zatic vs Fifou 2024-06-10 13-18-35_portrait.png"],
+    indirect=True,
+)
+def test_resolve_barcode_player(portrait_file):
+
+    barcode = "IIIIIIIIIIII"
+    barcode1 = "2-S2-1-10088973"
+
+    portrait = Image.open(portrait_file)
+
+    player_info = playerinfo.resolve_player(barcode, portrait=np.array(portrait))
+
+    assert player_info.id == barcode1
+    # barcode2 = "2-S2-1-10766210"

@@ -2,11 +2,15 @@ import glob
 import logging
 import re
 from datetime import datetime, timedelta, timezone
+from io import BytesIO
 from os.path import getmtime, join
 
 import numpy as np
+from PIL import Image
+from pyodmongo.queries import elem_match
 
 from config import config
+from external.fast_ssim.ssim import ssim
 from replays.db import replaydb
 from replays.types import Alias, PlayerInfo, Replay, to_bson_binary
 from replays.util import is_barcode
@@ -122,13 +126,23 @@ def save_player_info(replay: Replay):
 
 def resolve_player(name: str, portrait: np.ndarray) -> PlayerInfo:
 
-    q = {"aliases": name}
+    q = elem_match(Alias.name == name, field=PlayerInfo.aliases)
+
     candidates = replaydb.db.find_many(PlayerInfo, query=q)
 
-    player_info = PlayerInfo(name=name, portrait=portrait)
-    existing_player_info: PlayerInfo = replaydb.find(player_info)
+    # player_info = PlayerInfo(name=name, portrait=portrait)
 
-    if existing_player_info:
-        return existing_player_info
-    else:
-        return player_info
+    scores = []
+    for candidate in candidates:
+        for alias in candidate.aliases:
+            if alias.name != name:
+                continue
+            for alias_portrait in alias.portraits:
+                img = Image.open(BytesIO(alias_portrait))
+                score = ssim(np.array(img), portrait)
+                scores.append((score, candidate))
+
+    best_score, best_candidate = max(scores, key=lambda x: x[0])
+
+    if best_score > 0.8:
+        return best_candidate

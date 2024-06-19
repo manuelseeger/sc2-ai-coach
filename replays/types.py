@@ -5,7 +5,7 @@ from typing import Annotated, Any, ClassVar, Dict, List, Tuple
 import bson
 import pydantic
 from pydantic import BaseModel, Field
-from pyodmongo import DbModel
+from pyodmongo import DbModel, MainBaseModel
 from typing_extensions import Annotated
 
 from config import AIBackend, config
@@ -267,7 +267,7 @@ class Metadata(DbModel):
     _collection: ClassVar = "replays.meta"
 
 
-class Alias(BaseModel):
+class Alias(MainBaseModel):
     name: str
     portraits: list[BsonBinary] = []
     seen_on: datetime | None = None
@@ -322,6 +322,23 @@ class PlayerInfo(DbModel):
                 seen_on=seen_on,
             )
         )
+
+    def __str__(self) -> str:
+        exclude = {
+            "portrait": 1,
+            "aliases.portraits": 1,
+        }
+
+        exclude_keys = convert_to_nested_structure(exclude)
+
+        wrap_all_fields(exclude_keys)
+        return self.model_dump_json(
+            exclude_unset=True,
+            exclude=exclude_keys,
+        )
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 class Usage(BaseModel):
