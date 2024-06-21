@@ -76,7 +76,7 @@ class Color(BaseModel):
     r: int = None
 
 
-class AssistantMessage(BaseModel):
+class ReplayMessage(BaseModel):
     pid: int = None
     second: int = None
     text: str = None
@@ -120,7 +120,7 @@ class Player(BaseModel):
     highest_league: int = None
     name: str = None
     max_creep_spread: Tuple[int, float] | None = None
-    messages: List[AssistantMessage] = None
+    messages: List[ReplayMessage] = None
     pick_race: str = None
     pid: int = None
     play_race: str = None
