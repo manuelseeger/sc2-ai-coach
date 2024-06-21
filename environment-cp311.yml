@@ -45,3 +45,4 @@ dependencies:
       - pyodmongo
       #- RealtimeTTS # install manually as it downgrades openai
       - keyboard
+      - climage

@@ -21,3 +21,4 @@ dependencies:
       - spawningtool
       - pyodmongo
       - keyboard
+      - climage

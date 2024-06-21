@@ -1,20 +1,27 @@
 import datetime
 import glob
+import json
 import logging
 import os
 from datetime import date, datetime, timedelta
+from io import BytesIO
 from os.path import basename, getmtime, join
 from time import sleep
 
 import click
+import climage
+import numpy as np
+from PIL import Image
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.theme import Theme
 
+from aicoach.utils import force_valid_json_string
 from config import config
 from obs_tools.playerinfo import save_player_info
 from replays.db import replaydb
 from replays.reader import ReplayReader
+from replays.types import Alias, PlayerInfo, Replay
 
 custom_theme = Theme(
     {
@@ -245,6 +252,31 @@ def sync(ctx, from_: datetime, to_: datetime, from_most_recent: bool, delta: boo
                 os.remove(file_path)
                 console.print(f":litter_in_bin_sign: Deleted {basename(file_path)}")
                 continue
+
+
+@cli.group()
+@click.pass_context
+def query(ctx):
+    pass
+
+
+@query.command()
+@click.pass_context
+@click.argument("query", type=str, required=True)
+def players(ctx, query):
+    """Query the DB for players"""
+    query = force_valid_json_string(query)
+    query = json.loads(query)
+
+    players = replaydb.db.find_many(PlayerInfo, raw_query=query)
+    for player in players:
+        console.print_json(str(player))
+        if player.portrait:
+            img = Image.open(BytesIO(player.portrait)).convert("RGB").resize((40, 40))
+            arr = np.array(img)
+            output = climage.convert_array(arr, is_unicode=True)
+
+            print(output)
 
 
 @cli.command()
