@@ -9,7 +9,7 @@ from requests.exceptions import ConnectionError
 
 from config import config
 
-from .types import GameInfo, Result, ScanResult
+from .types import GameInfo, Result, ScanResult, UIInfo, Screen
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -42,6 +42,19 @@ class SC2Client:
             for player in gameinfo.players:
                 if player.name != config.student.name:
                     return player.name
+        return None
+    
+    def get_screens(self) -> UIInfo:
+        try:
+            response = requests.get(config.sc2_client_url + "/ui")
+            if response.status_code == 200:
+                try: 
+                    ui = UIInfo.model_validate_json(response.text)
+                    return ui
+                except ValidationError as e:
+                    log.warn(f"Invalid UI data: {e}")
+        except ConnectionError as e:
+            log.warn("Could not connect to SC2 game client, is SC2 running?")
         return None
 
     def wait_for_gameinfo(

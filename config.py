@@ -99,6 +99,7 @@ class Config(BaseSettings):
     sc2_client_url: str = "http://127.0.0.1:6119"
     screenshot: str
     tessdata_dir: str
+    obs_ws_pw: str | None
 
     season: int
 
