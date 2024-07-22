@@ -8,9 +8,12 @@ from config import config
 from obs_tools.types import UIInfo, Screen
 from rich import print
 
+
 @click.command()
 def main():
-    with obs.ReqClient(host='localhost', port=4455, password=config.obs_ws_pw, timeout=3) as cl:
+    with obs.ReqClient(
+        host="localhost", port=4455, password=config.obs_ws_pw, timeout=3
+    ) as cl:
         resp = cl.get_version()
         print(f"OBS Version: {resp.obs_version}")
 
@@ -19,12 +22,14 @@ def main():
 
             if len(ui.activeScreens) and Screen.loading in ui.activeScreens:
                 print(Screen.loading)
-    
-                data = {
-                    "message": Screen.loading
-                }
 
-                cl.call_vendor_request(vendor_name="AdvancedSceneSwitcher", request_type="AdvancedSceneSwitcherMessage", request_data=data)
+                data = {"message": Screen.loading}
+
+                cl.call_vendor_request(
+                    vendor_name="AdvancedSceneSwitcher",
+                    request_type="AdvancedSceneSwitcherMessage",
+                    request_data=data,
+                )
                 sleep(5)
             elif len(ui.activeScreens) == 0:
                 print("In game")
@@ -33,5 +38,5 @@ def main():
                 sleep(0.25)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
