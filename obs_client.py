@@ -21,6 +21,11 @@ def main():
         while True:
             ui = sc2client.get_screens()
 
+            if ui is None:
+                print("SC2 not running?")
+                sleep(5)
+                continue
+
             if len(ui.activeScreens) and Screen.loading in ui.activeScreens:
                 print(Screen.loading)
 
