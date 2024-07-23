@@ -65,46 +65,46 @@ BsonBinary = Annotated[
 
 class AbilityUsed(MainBaseModel):
     frame: int
-    time: str 
-    name: str 
+    time: str
+    name: str
 
 
 class Color(MainBaseModel):
-    a: int 
-    b: int 
-    g: int 
-    r: int 
+    a: int
+    b: int
+    g: int
+    r: int
 
 
 class ReplayMessage(MainBaseModel):
-    pid: int 
-    second: int 
-    text: str 
+    pid: int
+    second: int
+    text: str
     is_public: bool = True
 
 
 class PlayerStats(MainBaseModel):
-    worker_split: int 
-    worker_micro: int 
+    worker_split: int
+    worker_micro: int
 
 
 class ReplayStats(MainBaseModel):
-    loserDoesGG: bool 
+    loserDoesGG: bool
 
 
 class UnitLoss(MainBaseModel):
-    frame: int 
-    time: str 
-    name: str 
+    frame: int
+    time: str
+    name: str
     killer: int | None = None
-    clock_position: int 
+    clock_position: int
 
 
 class BuildOrder(MainBaseModel):
     frame: float
-    time: str 
-    name: str 
-    supply: int 
+    time: str
+    name: str
+    supply: int
     clock_position: int | None = None
     is_chronoboosted: bool | None = None
     is_worker: bool = False
@@ -112,27 +112,27 @@ class BuildOrder(MainBaseModel):
 
 class Player(MainBaseModel):
     abilities_used: List[AbilityUsed] = []
-    avg_apm: float 
+    avg_apm: float
     build_order: List[BuildOrder] = []
-    clan_tag: str 
-    color: Color 
+    clan_tag: str
+    color: Color
     creep_spread_by_minute: Dict[str, float] | None = None
-    highest_league: int 
-    name: str 
+    highest_league: int
+    name: str
     max_creep_spread: Tuple[int, float] | None = None
     messages: List[ReplayMessage] = []
-    pick_race: str 
-    pid: int 
-    play_race: str 
+    pick_race: str
+    pid: int
+    play_race: str
     result: str
-    scaled_rating: int 
-    stats: PlayerStats 
+    scaled_rating: int
+    stats: PlayerStats
     supply: List[Tuple[int, int]] = []
-    toon_handle: str 
-    toon_id: int 
-    uid: int 
-    units_lost: List[UnitLoss] 
-    url: str 
+    toon_handle: str
+    toon_id: int
+    uid: int
+    units_lost: List[UnitLoss]
+    url: str
 
 
 class Observer(MainBaseModel):
@@ -142,31 +142,31 @@ class Observer(MainBaseModel):
 class Replay(DbModel):
     id: ReplayId
     build: int
-    category: str 
-    date: datetime 
+    category: str
+    date: datetime
     """The date the replay was played. This is the end date of the game in UTC time."""
-    expansion: str 
-    filehash: str 
-    filename: str 
-    frames: int 
-    game_fps: int 
-    game_length: int 
+    expansion: str
+    filehash: str
+    filename: str
+    frames: int
+    game_fps: int
+    game_length: int
     game_type: str
     is_ladder: bool = True
     is_private: bool = False
-    map_name: str 
+    map_name: str
     map_size: Tuple[int, int] = (0, 0)
     observers: List[Observer] = []
     players: List[Player]
     region: str
-    release: str 
-    real_length: int 
-    real_type: str 
-    release_string: str 
-    speed: str 
-    stats: ReplayStats 
-    time_zone: float 
-    type: str 
+    release: str
+    real_length: int
+    real_type: str
+    release_string: str
+    speed: str
+    stats: ReplayStats
+    time_zone: float
+    type: str
     unix_timestamp: int
     versions: List[int] = []
 
@@ -254,8 +254,8 @@ class Role(str, Enum):
 
 
 class AssistantMessage(MainBaseModel):
-    created_at: datetime 
-    role: Role 
+    created_at: datetime
+    role: Role
     text: str
 
 
@@ -300,9 +300,9 @@ AliasList.__getitem__ = lambda self, x: next(alias for alias in self if alias ==
 
 class PlayerInfo(DbModel):
     id: ToonHandle
-    name: str 
+    name: str
     aliases: AliasList = []
-    toon_handle: ToonHandle 
+    toon_handle: ToonHandle
     portrait: BsonBinary | None = None
     _collection: ClassVar = "replays.players"
 
