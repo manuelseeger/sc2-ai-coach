@@ -1,18 +1,15 @@
 # -*- coding: utf-8 -*-
 # Simplified wrapper for Fast-SSIM: https://github.com/chinue/Fast-SSIM
-import numpy as np
 import ctypes
 import os
+
+import numpy as np
 from numpy.typing import NDArray
 
 ssim_dll_path = os.path.split(os.path.realpath(__file__))[0]
-ssim_dll_name = "ssim.dll" if (os.name == "nt") else "libssim.so"
+ssim_dll_name = "ssim"
 
-dll = None
-if os.path.exists(os.path.join(ssim_dll_path, ssim_dll_name)):
-    dll = np.ctypeslib.load_library(ssim_dll_name, ssim_dll_path)
-else:
-    raise FileNotFoundError(f"Fast-SSIM library {ssim_dll_name} not found")
+dll = np.ctypeslib.load_library(ssim_dll_name, ssim_dll_path)
 
 type_dict = {
     "int": ctypes.c_int,

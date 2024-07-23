@@ -63,36 +63,36 @@ BsonBinary = Annotated[
 ]
 
 
-class AbilityUsed(BaseModel):
+class AbilityUsed(MainBaseModel):
     frame: int
     time: str 
     name: str 
 
 
-class Color(BaseModel):
+class Color(MainBaseModel):
     a: int 
     b: int 
     g: int 
     r: int 
 
 
-class ReplayMessage(BaseModel):
+class ReplayMessage(MainBaseModel):
     pid: int 
     second: int 
     text: str 
     is_public: bool = True
 
 
-class PlayerStats(BaseModel):
+class PlayerStats(MainBaseModel):
     worker_split: int 
     worker_micro: int 
 
 
-class ReplayStats(BaseModel):
+class ReplayStats(MainBaseModel):
     loserDoesGG: bool 
 
 
-class UnitLoss(BaseModel):
+class UnitLoss(MainBaseModel):
     frame: int 
     time: str 
     name: str 
@@ -100,7 +100,7 @@ class UnitLoss(BaseModel):
     clock_position: int 
 
 
-class BuildOrder(BaseModel):
+class BuildOrder(MainBaseModel):
     frame: float
     time: str 
     name: str 
@@ -110,7 +110,7 @@ class BuildOrder(BaseModel):
     is_worker: bool = False
 
 
-class Player(BaseModel):
+class Player(MainBaseModel):
     abilities_used: List[AbilityUsed] = []
     avg_apm: float 
     build_order: List[BuildOrder] = []
@@ -135,7 +135,7 @@ class Player(BaseModel):
     url: str 
 
 
-class Observer(BaseModel):
+class Observer(MainBaseModel):
     pass
 
 
@@ -253,7 +253,7 @@ class Role(str, Enum):
     assistant = "assistant"
 
 
-class AssistantMessage(BaseModel):
+class AssistantMessage(MainBaseModel):
     created_at: datetime 
     role: Role 
     text: str
@@ -341,7 +341,7 @@ class PlayerInfo(DbModel):
         return self.__str__()
 
 
-class Usage(BaseModel):
+class Usage(MainBaseModel):
     thread_id: str
     completion_tokens: int = 0
     prompt_tokens: int = 0
