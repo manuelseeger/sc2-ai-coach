@@ -1,6 +1,7 @@
 import logging
 import threading
 from time import sleep, time
+from urllib.parse import urljoin
 
 import requests
 from blinker import signal
@@ -24,7 +25,7 @@ race_map = {
 class SC2Client:
     def get_gameinfo(self) -> GameInfo:
         try:
-            response = requests.get(config.sc2_client_url + "/game")
+            response = requests.get(urljoin(config.sc2_client_url, "/game"))
             if response.status_code == 200:
                 try:
                     game = GameInfo.model_validate_json(response.text)
@@ -46,7 +47,7 @@ class SC2Client:
 
     def get_screens(self) -> UIInfo:
         try:
-            response = requests.get(config.sc2_client_url + "/ui")
+            response = requests.get(urljoin(config.sc2_client_url, "/ui"))
             if response.status_code == 200:
                 try:
                     ui = UIInfo.model_validate_json(response.text)

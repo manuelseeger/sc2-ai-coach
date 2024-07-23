@@ -42,6 +42,6 @@ dependencies:
       - SpeechRecognition
       #- flash_attn # https://pypi.org/project/flash-attn/
       - pyodmongo
-      #- RealtimeTTS # install manually as it downgrades openai
+      - realtimetts[system,coqui]
       - keyboard
       - obsws-python

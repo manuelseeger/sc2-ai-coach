@@ -102,4 +102,4 @@ class GameInfo(BaseModel):
 
 
 class UIInfo(BaseModel):
-    activeScreens: List[Screen]
+    activeScreens: set[Screen]
