@@ -64,75 +64,75 @@ BsonBinary = Annotated[
 
 
 class AbilityUsed(BaseModel):
-    frame: int = None
-    time: str = None
-    name: str = None
+    frame: int
+    time: str 
+    name: str 
 
 
 class Color(BaseModel):
-    a: int = None
-    b: int = None
-    g: int = None
-    r: int = None
+    a: int 
+    b: int 
+    g: int 
+    r: int 
 
 
 class ReplayMessage(BaseModel):
-    pid: int = None
-    second: int = None
-    text: str = None
+    pid: int 
+    second: int 
+    text: str 
     is_public: bool = True
 
 
 class PlayerStats(BaseModel):
-    worker_split: int = None
-    worker_micro: int = None
+    worker_split: int 
+    worker_micro: int 
 
 
 class ReplayStats(BaseModel):
-    loserDoesGG: bool = None
+    loserDoesGG: bool 
 
 
 class UnitLoss(BaseModel):
-    frame: int = None
-    time: str = None
-    name: str = None
+    frame: int 
+    time: str 
+    name: str 
     killer: int | None = None
-    clock_position: int = None
+    clock_position: int 
 
 
 class BuildOrder(BaseModel):
-    frame: float = None
-    time: str = None
-    name: str = None
-    supply: int = None
+    frame: float
+    time: str 
+    name: str 
+    supply: int 
     clock_position: int | None = None
     is_chronoboosted: bool | None = None
-    is_worker: bool = None
+    is_worker: bool = False
 
 
 class Player(BaseModel):
-    abilities_used: List[AbilityUsed] = None
-    avg_apm: float = None
-    build_order: List[BuildOrder] = None
-    clan_tag: str = None
-    color: Color = None
+    abilities_used: List[AbilityUsed] = []
+    avg_apm: float 
+    build_order: List[BuildOrder] = []
+    clan_tag: str 
+    color: Color 
     creep_spread_by_minute: Dict[str, float] | None = None
-    highest_league: int = None
-    name: str = None
+    highest_league: int 
+    name: str 
     max_creep_spread: Tuple[int, float] | None = None
-    messages: List[ReplayMessage] = None
-    pick_race: str = None
-    pid: int = None
-    play_race: str = None
-    result: str = None
-    scaled_rating: int = None
-    stats: PlayerStats = None
-    supply: List[Tuple[int, int]] = None
-    toon_handle: str = None
-    toon_id: int = None
-    uid: int = None
-    units_lost: List[UnitLoss] = None
-    url: str = None
+    messages: List[ReplayMessage] = []
+    pick_race: str 
+    pid: int 
+    play_race: str 
+    result: str
+    scaled_rating: int 
+    stats: PlayerStats 
+    supply: List[Tuple[int, int]] = []
+    toon_handle: str 
+    toon_id: int 
+    uid: int 
+    units_lost: List[UnitLoss] 
+    url: str 
 
 
 class Observer(BaseModel):
@@ -141,34 +141,34 @@ class Observer(BaseModel):
 
 class Replay(DbModel):
     id: ReplayId
-    build: int = None
-    category: str = None
-    date: datetime = None
+    build: int
+    category: str 
+    date: datetime 
     """The date the replay was played. This is the end date of the game in UTC time."""
-    expansion: str = None
-    filehash: str = None
-    filename: str = None
-    frames: int = None
-    game_fps: int = None
-    game_length: int = None
-    game_type: str = None
+    expansion: str 
+    filehash: str 
+    filename: str 
+    frames: int 
+    game_fps: int 
+    game_length: int 
+    game_type: str
     is_ladder: bool = True
     is_private: bool = False
-    map_name: str = None
-    map_size: Tuple[int, int] = None
-    observers: List[Observer] = None
-    players: List[Player] = None
-    region: str = None
-    release: str = None
-    real_length: int = None
-    real_type: str = None
-    release_string: str = None
-    speed: str = None
-    stats: ReplayStats = None
-    time_zone: float = None
-    type: str = None
-    unix_timestamp: int = None
-    versions: List[int] = None
+    map_name: str 
+    map_size: Tuple[int, int] = (0, 0)
+    observers: List[Observer] = []
+    players: List[Player]
+    region: str
+    release: str 
+    real_length: int 
+    real_type: str 
+    release_string: str 
+    speed: str 
+    stats: ReplayStats 
+    time_zone: float 
+    type: str 
+    unix_timestamp: int
+    versions: List[int] = []
 
     _collection: ClassVar = "replays"
 
@@ -254,9 +254,9 @@ class Role(str, Enum):
 
 
 class AssistantMessage(BaseModel):
-    created_at: datetime = None
-    role: Role = None
-    text: str = None
+    created_at: datetime 
+    role: Role 
+    text: str
 
 
 class Metadata(DbModel):
@@ -300,9 +300,9 @@ AliasList.__getitem__ = lambda self, x: next(alias for alias in self if alias ==
 
 class PlayerInfo(DbModel):
     id: ToonHandle
-    name: str = None
+    name: str 
     aliases: AliasList = []
-    toon_handle: ToonHandle = None
+    toon_handle: ToonHandle 
     portrait: BsonBinary | None = None
     _collection: ClassVar = "replays.players"
 

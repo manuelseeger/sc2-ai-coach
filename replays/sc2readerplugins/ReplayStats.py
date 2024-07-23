@@ -27,7 +27,7 @@ def ReplayStats(replay):
 
 def is_gg(message: str):
     # check if message contains only g characters:
-    if all(c == "g" for c in message.lower()):
+    if set((message.lower())) - set("g") == set():
         return True
 
     return any(
