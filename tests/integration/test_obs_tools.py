@@ -26,5 +26,3 @@ def test_sc2client_get_opponent():
     print(f"Is barcode: {barcode}")
 
     assert opponent is not None
-
-

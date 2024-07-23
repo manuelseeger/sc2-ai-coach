@@ -27,7 +27,8 @@ def loserDoesGG(replay):
     loser_sids = [p.sid for p in replay.players if p.result == "Loss"]
     loser_messages = [m for m in replay.messages if m.pid in loser_sids]
     return any(
-        levenshtein(m.text.lower(), g) < 2 and m.text.lower() != "bg"
+        set((m.text.lower())) - set("g") == set()
+        or (levenshtein(m.text.lower(), g) < 2 and m.text.lower() != "bg")
         for g in GGS
         for m in loser_messages
     )
