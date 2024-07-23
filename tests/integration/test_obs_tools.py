@@ -12,9 +12,7 @@ log.addHandler(TwitchObsLogHandler())
 
 
 # SC2 must be running and a game must be in progress or have been played recently
-# or use https://github.com/leigholiver/sc2apiemulator
-# SC2 must not be running:
-# docker run -d --rm -p6119:80 --name sc2api leigholiver/sc2api
+# or use https://github.com/manuelseeger/sc2apiemulator
 def test_sc2client_get_opponent():
 
     client = SC2Client()

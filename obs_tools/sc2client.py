@@ -1,6 +1,7 @@
 import logging
 import threading
 from time import sleep, time
+from urllib.parse import urljoin
 
 import requests
 from blinker import signal
@@ -9,7 +10,7 @@ from requests.exceptions import ConnectionError
 
 from config import config
 
-from .types import GameInfo, Result, ScanResult
+from .types import GameInfo, Result, ScanResult, Screen, UIInfo
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -24,15 +25,20 @@ race_map = {
 class SC2Client:
     def get_gameinfo(self) -> GameInfo:
         try:
-            response = requests.get(config.sc2_client_url + "/game")
-            if response.status_code == 200:
-                try:
-                    game = GameInfo.model_validate_json(response.text)
-                    return game
-                except ValidationError as e:
-                    log.warn(f"Invalid game data: {e}")
-        except ConnectionError as e:
-            log.warn("Could not connect to SC2 game client, is SC2 running?")
+            game = self._get_info("/game")
+            gameinfo = GameInfo.model_validate_json(game)
+            return gameinfo
+        except ValidationError as e:
+            log.warn(f"Invalid game data: {e}")
+        return None
+
+    def get_uiinfo(self) -> UIInfo:
+        try:
+            ui = self._get_info("/ui")
+            uiinfo = UIInfo.model_validate_json(ui)
+            return uiinfo
+        except ValidationError as e:
+            log.warn(f"Invalid UI data: {e}")
         return None
 
     def get_opponent_name(self, gameinfo=None) -> str:
@@ -44,12 +50,20 @@ class SC2Client:
                     return player.name
         return None
 
+    def _get_info(self, path) -> str:
+        try:
+            response = requests.get(urljoin(config.sc2_client_url, path))
+            if response.status_code == 200:
+                return response.text
+        except ConnectionError as e:
+            log.warn("Could not connect to SC2 game client, is SC2 running?")
+        return None
+
     def wait_for_gameinfo(
         self, timeout: int = 20, delay: float = 0.5, ongoing=False
     ) -> GameInfo:
         start_time = time()
         while time() - start_time < timeout:
-            gameinfo = self.get_gameinfo()
             if ongoing:
                 gameinfo = self.get_ongoing_gameinfo()
             else:
@@ -102,7 +116,7 @@ class ClientAPIScanner(threading.Thread):
 
             gameinfo = sc2client.get_ongoing_gameinfo()
 
-            if self.is_live_game(gameinfo):
+            if is_live_game(gameinfo):
                 if gameinfo == self.last_gameinfo:
                     # same ongoing game, just later in time
                     if gameinfo.displayTime >= self.last_gameinfo.displayTime:
@@ -117,13 +131,14 @@ class ClientAPIScanner(threading.Thread):
                 loading_screen.send(self, scanresult=scanresult)
             sleep(1)
 
-    def is_live_game(self, gameinfo):
-        return (
-            gameinfo
-            and gameinfo.displayTime > 0
-            and gameinfo.players[0].result == Result.undecided
-            and not gameinfo.isReplay
-        )
+
+def is_live_game(gameinfo: GameInfo) -> bool:
+    return (
+        gameinfo
+        and gameinfo.displayTime > 0
+        and gameinfo.players[0].result == Result.undecided
+        and not gameinfo.isReplay
+    )
 
 
 if __name__ == "__main__":

@@ -4,6 +4,23 @@ from typing import List
 from pydantic import BaseModel
 
 
+class Screen(str, Enum):
+    loading = "ScreenLoading/ScreenLoading"
+    score = "ScreenScore/ScreenScore"
+    home = "ScreenHome/ScreenHome"
+    background = "ScreenBackgroundSC2/ScreenBackgroundSC2"
+    foreground = "ScreenForegroundSC2/ScreenForegroundSC2"
+    navigation = "ScreenNavigationSC2/ScreenNavigationSC2"
+    userprofile = "ScreenUserProfile/ScreenUserProfile"
+    multiplayer = "ScreenMultiplayer/ScreenMultiplayer"
+    single = "ScreenSingle/ScreenSingle"
+    collection = "ScreenCollection/ScreenCollection"
+    coopcampaign = "ScreenCoopCampaign/ScreenCoopCampaign"
+    custom = "ScreenCustom/ScreenCustom"
+    replay = "ScreenReplay/ScreenReplay"
+    battlelobby = "ScreenBattleLobby/ScreenBattleLobby"
+
+
 class ScanResult(BaseModel):
     mapname: str
     opponent: str
@@ -82,3 +99,7 @@ class GameInfo(BaseModel):
             and len(self.players) > 0
             and all(player.result != Result.undecided for player in self.players)
         )
+
+
+class UIInfo(BaseModel):
+    activeScreens: set[Screen]
