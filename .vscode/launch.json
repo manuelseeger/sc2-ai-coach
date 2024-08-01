@@ -78,6 +78,15 @@
       "console": "integratedTerminal",
       "envFile": "${workspaceFolder}/.env",
       "args": ["--debug", "--clean", "deamon"]
+    },
+    {
+      "name": "OBS client",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "obs_client.py",
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/.env",
+      "args": []
     }
   ]
 }

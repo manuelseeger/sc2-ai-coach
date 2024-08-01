@@ -21,60 +21,65 @@ def main(verbose):
 
     menu_screens = set([Screen.background, Screen.foreground, Screen.navigation])
 
-    with obsws.ReqClient(
-        host="localhost", port=4455, password=config.obs_ws_pw, timeout=3
-    ) as obs:
-        resp = obs.get_version()
-        print(f"OBS Version: {resp.obs_version}")
+    try:
+        with obsws.ReqClient(
+            host="localhost", port=4455, password=config.obs_ws_pw, timeout=3
+        ) as obs:
+            resp = obs.get_version()
+            print(f"OBS Version: {resp.obs_version}")
 
-        last_ui = None
-        while True:
-            ui = sc2client.get_uiinfo()
+            last_ui = None
+            while True:
+                ui = sc2client.get_uiinfo()
 
-            if ui is None:
-                print(":warning: SC2 not running?")
-                sleep(5)
-                continue
+                if ui is None:
+                    print(":warning: SC2 not running?")
+                    sleep(5)
+                    continue
 
-            if ui == last_ui:
-                # only notify OBS on changes
-                sleep(0.5)
-                continue
+                if ui == last_ui:
+                    # only notify OBS on changes
+                    sleep(0.5)
+                    continue
 
-            if verbose:
-                print(ui.activeScreens)
+                if verbose:
+                    print(ui.activeScreens)
 
-            if len(ui.activeScreens) == 0:
-                print("In game")
-                data = {"message": "In game"}
-                obs.call_vendor_request(
-                    vendor_name="AdvancedSceneSwitcher",
-                    request_type="AdvancedSceneSwitcherMessage",
-                    request_data=data,
-                )
-            elif Screen.loading in ui.activeScreens:
-                print(Screen.loading)
+                if len(ui.activeScreens) == 0:
+                    print("In game")
+                    data = {"message": "In game"}
+                    obs.call_vendor_request(
+                        vendor_name="AdvancedSceneSwitcher",
+                        request_type="AdvancedSceneSwitcherMessage",
+                        request_data=data,
+                    )
+                elif Screen.loading in ui.activeScreens:
+                    print(Screen.loading)
 
-                data = {"message": Screen.loading}
-                obs.call_vendor_request(
-                    vendor_name="AdvancedSceneSwitcher",
-                    request_type="AdvancedSceneSwitcherMessage",
-                    request_data=data,
-                )
-            elif menu_screens < ui.activeScreens:
-                menues = ui.activeScreens - menu_screens
-                print("In menues " + str(menues))
-                data = {"message": "\n".join(sorted(menues))}
-                obs.call_vendor_request(
-                    vendor_name="AdvancedSceneSwitcher",
-                    request_type="AdvancedSceneSwitcherMessage",
-                    request_data=data,
-                )
-            else:
-                pass
+                    data = {"message": Screen.loading}
+                    obs.call_vendor_request(
+                        vendor_name="AdvancedSceneSwitcher",
+                        request_type="AdvancedSceneSwitcherMessage",
+                        request_data=data,
+                    )
+                elif menu_screens < ui.activeScreens:
+                    menues = ui.activeScreens - menu_screens
+                    print("In menues " + str(menues))
+                    data = {"message": "\n".join(sorted(menues))}
+                    obs.call_vendor_request(
+                        vendor_name="AdvancedSceneSwitcher",
+                        request_type="AdvancedSceneSwitcherMessage",
+                        request_data=data,
+                    )
+                else:
+                    pass
 
-            last_ui = ui
-
+                last_ui = ui
+    
+    except (ConnectionRefusedError, ConnectionError) as e:
+        print(":x: Can't connect to OBS; Not running or web sockets off?")
+    except Exception as e:
+        print(":x: " + str(e))
 
 if __name__ == "__main__":
     main()
