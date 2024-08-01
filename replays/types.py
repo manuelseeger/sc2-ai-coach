@@ -49,10 +49,10 @@ def to_bson_binary(x: Any) -> bson.Binary:
         return x
     return bson.Binary(x)
 
-
-include_keys = convert_to_nested_structure(config.default_projection)
-wrap_all_fields(include_keys)
-
+def convert_projection(projection: dict) -> dict:
+    keys = convert_to_nested_structure(projection)
+    wrap_all_fields(keys)
+    return keys
 
 ReplayId = Annotated[str, Field(min_length=64, max_length=64)]
 # 2-S2-2-9562
@@ -155,7 +155,7 @@ class Replay(DbModel):
     is_ladder: bool = True
     is_private: bool = False
     map_name: str
-    map_size: Tuple[int, int] = (0, 0)
+    map_size: Tuple[int, int] | None = (0, 0) # we have legacy replays without map_size
     observers: List[Observer] = []
     players: List[Player]
     region: str
@@ -211,9 +211,15 @@ class Replay(DbModel):
 
     def default_projection(self, limit=450, include_workers=True) -> dict:
         """Return a dictionary of replay limited to the default projection fields"""
+        return self.projection(config.default_projection, limit, include_workers)
+    
+    def projection(self, projection: dict, limit=450, include_workers=True) -> dict:
+        """Return a dictionary of replay limited to the given projection fields"""
         exclude_keys = self._exclude_keys_for_build_order(
             limit=limit, include_workers=include_workers
         )
+        include_keys = convert_projection(projection)
+        
         return self.model_dump(
             include=include_keys, exclude=exclude_keys, exclude_unset=True
         )
@@ -226,6 +232,7 @@ class Replay(DbModel):
         exclude_keys = self._exclude_keys_for_build_order(
             limit=limit, include_workers=include_workers
         )
+        include_keys = convert_projection(config.default_projection)
         return self.model_dump_json(
             include=include_keys, exclude=exclude_keys, exclude_unset=True
         )
@@ -329,9 +336,8 @@ class PlayerInfo(DbModel):
             "aliases.portraits": 1,
         }
 
-        exclude_keys = convert_to_nested_structure(exclude)
+        exclude_keys = convert_projection(exclude_keys)
 
-        wrap_all_fields(exclude_keys)
         return self.model_dump_json(
             exclude_unset=True,
             exclude=exclude_keys,

@@ -160,7 +160,6 @@ def QueryReplayDB(
     try:
         cursor = replaydb.replays.find(
             filter=loads(str(filter)),
-            projection=loads(str(projection)),
             sort=loads(str(sort)),
             limit=limit,
         )
@@ -171,7 +170,7 @@ def QueryReplayDB(
         return []
 
     return [
-        result_replay.default_projection(limit=limit_time)
+        result_replay.projection(limit=limit_time, projection=loads(projection))
         for result_replay in result_replays
     ]
 
