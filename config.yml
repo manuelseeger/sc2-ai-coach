@@ -30,6 +30,8 @@ recognizer:
   speech_threshold: 0.3
 # Hotkey to call up the AI coach prompt when run in text-in mode
 wake_key: "ctrl+alt+w"
+# Determines whether you can interact with AI coach; if False, AI coach will handle replays but won't wait for your input
+interactive: True
 
 # Configure the "student" - the player using AI coach
 student:

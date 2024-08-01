@@ -192,6 +192,13 @@ class AISession:
         self.last_rep_id = replay.id
 
     def converse(self):
+        
+        if not config.interactive: 
+            sleep(1)
+            log.info("No input, closing thread")
+            sleep(1)
+            return True
+        
         start_time = time()
         while True:
             if time() - start_time > 60 * 3:

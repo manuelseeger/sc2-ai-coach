@@ -90,6 +90,7 @@ class Config(BaseSettings):
     speech_recognition_model: str
     recognizer: RecognizerConfig
     wake_key: str
+    interactive: bool = True
 
     student: StudentConfig
 
