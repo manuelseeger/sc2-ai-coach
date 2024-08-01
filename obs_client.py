@@ -16,10 +16,18 @@ from obs_tools.types import Screen
 # AdvancedSceneSwitcher can use these messages in macro conditions
 @click.command()
 @click.option("--verbose", is_flag=True)
-def main(verbose):
+@click.option("--debug", is_flag=True)
+def main(verbose, debug):
     """Monitor SC2 UI through client API and let OBS know when loading screen is active"""
 
     menu_screens = set([Screen.background, Screen.foreground, Screen.navigation])
+
+    if debug: 
+        while True:
+            ui = sc2client.get_uiinfo()
+            print(ui.activeScreens)
+            sleep(1)
+
 
     try:
         with obsws.ReqClient(
@@ -39,7 +47,7 @@ def main(verbose):
 
                 if ui == last_ui:
                     # only notify OBS on changes
-                    sleep(0.5)
+                    sleep(1)
                     continue
 
                 if verbose:
