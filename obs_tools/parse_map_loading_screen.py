@@ -90,7 +90,7 @@ def clean_map_name(map, ladder_maps):
     map = map.strip().lower()
     if map not in ladder_maps:
         for ladder_map in ladder_maps:
-            if levenstein(map, ladder_map) < 5:
+            if levenstein(map, ladder_map) < 8:
                 map = ladder_map
                 break
     return map
