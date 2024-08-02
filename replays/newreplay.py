@@ -25,6 +25,13 @@ class NewReplayScanner(threading.Thread):
         super().__init__()
         self.name = name
         self.daemon = True
+        self._stop_event = threading.Event()
+
+    def stop(self):
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
 
     def run(self):
         self.replay_scanner()
@@ -34,6 +41,9 @@ class NewReplayScanner(threading.Thread):
         list_of_files = glob.glob(join(config.replay_folder, "*.SC2Replay"))
 
         while True:
+            if self.stopped():
+                log.debug("Stopping replay scanner")
+                break
             new_list_of_files = glob.glob(join(config.replay_folder, "*.SC2Replay"))
             new_list_of_files = [f for f in new_list_of_files if f not in list_of_files]
             for file_path in new_list_of_files:

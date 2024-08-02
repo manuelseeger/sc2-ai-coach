@@ -42,6 +42,13 @@ class WakeWordListener(threading.Thread):
         super().__init__()
         self.name = name
         self.daemon = True
+        self._stop_event = threading.Event()
+
+    def stop(self):
+        self._stop_event.set()
+
+    def stopped(self):
+        return self._stop_event.is_set()
 
     def run(self):
         self.listen_for_wake_word()
@@ -50,6 +57,9 @@ class WakeWordListener(threading.Thread):
         log.debug("Starting wakeword listener")
         last_score_timestamp = datetime.now()
         while True:
+            if self.stopped():
+                log.debug("Stopping wakeword listener")
+                break
             audio = np.frombuffer(mic_stream.read(CHUNK), dtype=np.int16)
 
             prediction = owwModel.predict(audio)

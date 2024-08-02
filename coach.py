@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import warnings
 from datetime import datetime
 from time import sleep, time
@@ -138,10 +139,18 @@ def main(debug):
 
             sleep(1)
         except KeyboardInterrupt:
-            log.info("Exiting ...")
+            log.info("Shutting down ...")
+            
             if session.is_active():
                 session.close()
-            break
+                
+            replay_scanner.stop()
+            replay_scanner.join()
+            listener.stop()
+            listener.join()
+            scanner.stop()
+            scanner.join()
+            sys.exit(0)
 
 
 class AISession:
