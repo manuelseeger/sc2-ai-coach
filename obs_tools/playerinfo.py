@@ -110,7 +110,8 @@ def save_player_info(replay: Replay):
         player_info = existing_player_info
 
     player_info.name = opponent.name
-    player_info.portrait = portrait
+    if portrait:
+        player_info.portrait = portrait
 
     player_info.update_aliases(seen_on=replay.date)
 
