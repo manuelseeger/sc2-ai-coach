@@ -200,3 +200,5 @@ class LoadingScreenScanner(threading.Thread):
 
                 scanresult = ScanResult(mapname=map, opponent=opponent)
                 loading_screen.send(self, scanresult=scanresult)
+            sleep(config.deamon_polling_rate)
+            
