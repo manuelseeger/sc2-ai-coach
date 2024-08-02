@@ -28,6 +28,8 @@ class WakeKeyListener(threading.Thread):
 
     def run(self):
         keyboard.add_hotkey(config.wake_key, self.listen_for_wake_key)
+        self._stop_event.wait()
+        
         
 
     def listen_for_wake_key(self):

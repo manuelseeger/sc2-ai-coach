@@ -240,6 +240,7 @@ Probably a lot...
 - This is meant for competitives 1v1 ladder. Team games, arcade, customs are not supported and either explicidely excluded from replay processing or may cause unexpected behavior.
 - Most of the internal logic relies on the name of a player(s) and thus won't work properly for a student who changes their name from season to season.
 - This has only been tested with replays starting from early 2023. Much older replays will likely throw errors.
+- Text mode wake event interferes with SC2 causing lag. Don't use suring gaming sessions.
 
 ## SC2 map stats
 
