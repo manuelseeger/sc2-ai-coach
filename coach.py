@@ -144,12 +144,15 @@ def main(debug):
             if session.is_active():
                 session.close()
                 
-            replay_scanner.stop()
-            replay_scanner.join()
-            listener.stop()
-            listener.join()
-            scanner.stop()
-            scanner.join()
+            if CoachEvent.wake in config.coach_events:
+                listener.stop()
+                listener.join()
+            if CoachEvent.game_start in config.coach_events:
+                scanner.stop()
+                scanner.join()
+            if CoachEvent.new_replay in config.coach_events:
+                replay_scanner.stop()
+                replay_scanner.join()
             sys.exit(0)
 
 
