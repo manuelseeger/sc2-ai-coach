@@ -10,6 +10,7 @@ class Jinja2Loader:
     summary: Template
     initial_instructions: Template
     additional_instructions: Template
+    scanner_empty: Template
 
     def __init__(self):
         self.env = Environment(loader=FileSystemLoader(searchpath="./aicoach/prompts/"))
@@ -21,6 +22,7 @@ class Jinja2Loader:
         self.additional_instructions = self.env.get_template(
             "additional_instructions.jinja2"
         )
+        self.scanner_empty = self.env.get_template("scanner_empty.jinja2")
 
     def render(self, template: str, replacements: Dict[str, str]) -> str:
         template = self.env.get_template(template)
