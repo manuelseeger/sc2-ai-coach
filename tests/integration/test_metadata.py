@@ -19,8 +19,14 @@ def test_save_replay_summary(replay_file):
     coach.create_thread()
 
     data = [
-        "On a 2 player map, the Zerg player opened with a 2 base Muta build, transitioning into mass Mutas. The game was chaotic, but the Zerg player won.",
-        "2 player map, ZvZ, 2 base Muta, mass Muta, chaotic win",
+        {
+            "role": "assistant",
+            "text": "On a 2 player map, the Zerg player opened with a 2 base Muta build, transitioning into mass Mutas. The game was chaotic, but the Zerg player won.",
+        },
+        {
+            "role": "assistant",
+            "text": "2 player map, ZvZ, 2 base Muta, mass Muta, chaotic win",
+        },
     ]
     coach.set_data(data)
 

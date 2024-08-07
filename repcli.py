@@ -155,7 +155,7 @@ def addplayers(ctx, from_: datetime, to_: datetime):
         if reader.apply_filters(replay_raw):
 
             replay = reader.to_typed_replay(replay_raw)
-            opponent = replay.get_player(name=config.student.name, opponent=True)
+            opponent = replay.get_opponent_of(config.student.name)
 
             if ctx.obj["SIMULATION"]:
                 console.print(
