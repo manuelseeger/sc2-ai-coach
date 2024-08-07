@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 import warnings
-from datetime import datetime
+from datetime import datetime, timezone
 from time import sleep, time
 
 import click
@@ -13,11 +13,12 @@ from rich.prompt import Prompt
 from aicoach import AICoach
 from aicoach.prompt import Templates
 from config import AIBackend, AudioMode, CoachEvent, config
+from obs_tools.playerinfo import resolve_replays_from_current_opponent
 from obs_tools.rich_log import TwitchObsLogHandler
 from obs_tools.types import ScanResult, WakeResult
 from replays.db import replaydb
 from replays.metadata import save_replay_summary
-from replays.types import Replay, Role, Session, Usage
+from replays.types import Player, Replay, Role, Session, Usage
 
 warnings.filterwarnings("ignore")
 
@@ -120,7 +121,7 @@ def main(debug):
     )
     log.info(f"Coach events enabled: {', '.join(config.coach_events)}")
 
-    log.info("Starting main loop")
+    log.info(f"Starting { 'non-' * ( not config.interactive ) }interactive session")
 
     ping_printed = False
     while True:
@@ -160,7 +161,7 @@ class AISession:
     coach: AICoach = None
     last_map: str = None
     last_opponent: str = None
-    last_mmr: int = 3900
+    last_mmr: int = 4000
     _thread_id: str = None
     last_rep_id: str = None
 
@@ -306,12 +307,18 @@ class AISession:
             "mmr": str(mmr),
         }
 
-        prompt = Templates.scanner.render(replacements)
+        opponent, past_replays = resolve_replays_from_current_opponent(opponent, map, datetime.now(tz=timezone.utc))
 
-        self.thread_id = self.coach.create_thread(prompt)
+        if len(past_replays) > 0:
+            replacements['replays'] = [r.default_projection_json(limit=300) for r in past_replays[:5]]
+            prompt = Templates.scanner.render(replacements)
+            self.thread_id = self.coach.create_thread(prompt)
+        else:
+            self.say(Templates.scanner_empty.render(replacements), flush=False)
+
 
     def initiate_from_new_replay(self, replay: Replay) -> str:
-        opponent = replay.get_player(config.student.name, opponent=True).name
+        opponent = replay.get_opponent_of(config.student.name).name
         replacements = {
             "student": str(config.student.name),
             "map": str(replay.map_name),
@@ -337,11 +344,12 @@ class AISession:
             self.initiate_from_scanner(
                 scanresult.mapname, scanresult.opponent, self.last_mmr
             )
-            response = self.stream_thread()
-            log.info(response, extra={"role": Role.assistant})
-            done = self.converse()
-            if done:
-                self.close()
+            if self.is_active():
+                response = self.stream_thread()
+                log.info(response, extra={"role": Role.assistant})
+                done = self.converse()
+                if done:
+                    self.close()
 
     def handle_wake(self, sender, wakeresult: WakeResult):
         log.debug(sender)
@@ -368,6 +376,7 @@ class AISession:
                 save_replay_summary(replay, self.coach)
 
                 self.close()
+
 
 
 if __name__ == "__main__":
