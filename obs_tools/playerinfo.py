@@ -4,34 +4,33 @@ import re
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from os.path import getmtime, join
+from typing import List, Tuple
 
 import numpy as np
 from PIL import Image
 from pyodmongo.queries import elem_match
+from pyodmongo.queries import sort as od_sort
 
 from config import config
 from external.fast_ssim.ssim import ssim
+from obs_tools.sc2client import sc2client
 from replays.db import replaydb
 from replays.types import Alias, PlayerInfo, Replay, to_bson_binary
-from replays.util import is_barcode
+from replays.util import is_aware, is_barcode
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
+PORTRAIT_DIR = "obs/screenshots/portraits"
 
-def match_portrait_filename(
-    portrait_file: str, map_name: str, opponent_name: str, replay_date: datetime
+def is_portrait_match(
+    portrait_file: str, map_name: str, reference_date: datetime
 ) -> bool:
     """Check if the filename of a portrait file matches the map name, opponent name, and replay date.
 
     We need to correct for timezone differences between the replay date and the portrait file date.
     """
     map_name = map_name.lower()
-    opponent_name = opponent_name.lower()
     portrait_file = portrait_file.lower()
-
-    if is_barcode(opponent_name):
-        # not ideal since this would get messed up by players literally named "barcode"
-        opponent_name = "barcode"
 
     match = re.search(r"(\d{4}-\d{2}-\d{2} \d{2}-\d{2}-\d{2})", portrait_file)
     if match:
@@ -40,55 +39,56 @@ def match_portrait_filename(
         return False
 
     portrait_file_date = datetime.strptime(matched_date, "%Y-%m-%d %H-%M-%S")
-    tzinfo = datetime.now().astimezone().tzinfo
-    portrait_file_date_tz = portrait_file_date.replace(tzinfo=tzinfo)
-    replay_date_tz = replay_date.replace(tzinfo=timezone.utc)
+    
+    if is_aware(reference_date):
+        tzinfo = datetime.now().astimezone().tzinfo
+        portrait_file_date = portrait_file_date.replace(tzinfo=tzinfo)    
 
     if (
         map_name in portrait_file
-        and opponent_name in portrait_file
-        and abs(replay_date_tz - portrait_file_date_tz).seconds < 200
+        and abs(reference_date - portrait_file_date).seconds < 200
     ):
         return True
     else:
         return False
 
 
-def get_matching_portrait(replay: Replay):
-    opponent = replay.get_player(name=config.student.name, opponent=True)
-    if is_barcode(opponent.name):
+def get_matching_portrait_from_replay(replay: Replay) -> bytes:
+    opponent = replay.get_opponent_of(config.student.name)
+    reference_date = replay.date - timedelta(seconds=replay.real_length)
+    reference_date = reference_date.replace(tzinfo=timezone.utc)
+    return get_matching_portrait(opponent.name, replay.map_name, reference_date)
+
+
+def get_matching_portrait(opponent: str, map_name: str, reference_date: datetime) -> bytes:
+    if is_barcode(opponent):
         # not ideal since this would get messed up by players literally named "barcode"
         # but we have legacy files with "BARCODE" in the name
         opponent_name = "BARCODE"
     else:
-        opponent_name = opponent.name
+        opponent_name = opponent
 
-    portrait_dir = "obs/screenshots/portraits"
     portrait_files = sorted(
-        glob.glob(f"{portrait_dir}/*{opponent_name}*.png"), key=getmtime, reverse=False
+        glob.glob(f"{PORTRAIT_DIR}/*{opponent_name}*.png"), key=getmtime, reverse=False
     )
     if not portrait_files:
         return None
 
     for portrait_file in portrait_files:
         # subtract game length from end date to get start date
-        game_start_date = replay.date - timedelta(seconds=replay.real_length)
-        if match_portrait_filename(
+        game_start_date = reference_date
+        if is_portrait_match(
             portrait_file,
-            replay.map_name,
-            opponent.name,
+            map_name,
             game_start_date,
         ):
-            with open(portrait_file, "rb") as f:
-                portrait = f.read()
-
-            return portrait
+            return open(portrait_file, "rb").read()
 
 
 def save_player_info(replay: Replay):
 
     if config.obs_integration:
-        portrait = get_matching_portrait(replay)
+        portrait = get_matching_portrait_from_replay(replay)
     else:
         portrait = None
 
@@ -131,7 +131,8 @@ def resolve_player(name: str, portrait: np.ndarray) -> PlayerInfo:
 
     candidates = replaydb.db.find_many(PlayerInfo, query=q)
 
-    # player_info = PlayerInfo(name=name, portrait=portrait)
+    if len(candidates) == 1:
+        return candidates[0]
 
     scores = []
     for candidate in candidates:
@@ -141,9 +142,38 @@ def resolve_player(name: str, portrait: np.ndarray) -> PlayerInfo:
             for alias_portrait in alias.portraits:
                 img = Image.open(BytesIO(alias_portrait))
                 score = ssim(np.array(img), portrait)
+                if score > 0.99: # perfect match
+                    return candidate
                 scores.append((score, candidate))
 
     best_score, best_candidate = max(scores, key=lambda x: x[0])
 
     if best_score > 0.8:
         return best_candidate
+    else:
+        log.info(f"Could not resolve player {name}")
+
+
+
+def resolve_replays_from_current_opponent(opponent: str, mapname: str) -> Tuple[str, List[Replay]]:
+
+    gameinfo = sc2client.wait_for_gameinfo()
+    if gameinfo:
+        opponent = sc2client.get_opponent_name(gameinfo)
+
+    portrait_bytes = get_matching_portrait(opponent, mapname, datetime.now(tz=timezone.utc))
+    if portrait_bytes: 
+        portrait = Image.open(BytesIO(portrait_bytes))
+    else: 
+        portrait = None
+
+    playerinfo = resolve_player(opponent, np.array(portrait))
+
+    if playerinfo:
+        q =  {"players.toon_handle": playerinfo.toon_handle}
+        sort = od_sort((Replay.unix_timestamp, -1))
+        past_replays = replaydb.db.find_many(Replay, raw_query=q, sort=sort)
+        return opponent, past_replays
+    else:
+        return opponent, []
+    
