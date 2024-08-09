@@ -135,23 +135,29 @@ def resolve_player(name: str, portrait: np.ndarray) -> PlayerInfo:
         return candidates[0]
 
     scores = []
-    for candidate in candidates:
-        for alias in candidate.aliases:
-            if alias.name != name:
-                continue
-            for alias_portrait in alias.portraits:
-                img = Image.open(BytesIO(alias_portrait))
-                score = ssim(np.array(img), portrait)
-                if score > 0.99: # perfect match
-                    return candidate
-                scores.append((score, candidate))
+    class BreakDeep(Exception): pass
+    try:
+        for candidate in candidates:
+            for alias in candidate.aliases:
+                if alias.name != name:
+                    continue
+                for alias_portrait in alias.portraits:
+                    img = Image.open(BytesIO(alias_portrait))
+                    score = ssim(np.array(img), portrait)
+                    if score: 
+                        scores.append((score, candidate))                    
+                        if score > 0.99: # perfect match
+                            raise BreakDeep
+    except BreakDeep:
+        pass
 
-    best_score, best_candidate = max(scores, key=lambda x: x[0])
+    if len(scores):
+        best_score, best_candidate = max(scores, key=lambda x: x[0])
 
-    if best_score > 0.8:
-        return best_candidate
-    else:
-        log.info(f"Could not resolve player {name}")
+        if best_score > 0.8:
+            return best_candidate
+    
+    log.info(f"Could not resolve player {name}")
 
 
 
@@ -159,7 +165,7 @@ def resolve_replays_from_current_opponent(opponent: str, mapname: str) -> Tuple[
 
     gameinfo = sc2client.wait_for_gameinfo()
     if gameinfo:
-        opponent = sc2client.get_opponent_name(gameinfo)
+        opponent, race = sc2client.get_opponent(gameinfo)
 
     portrait_bytes = get_matching_portrait(opponent, mapname, datetime.now(tz=timezone.utc))
     if portrait_bytes: 

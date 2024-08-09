@@ -192,7 +192,7 @@ class LoadingScreenScanner(threading.Thread):
                     log.info("Barcode detected, trying to get exact barcode")
                     gameinfo = sc2client.wait_for_gameinfo(ongoing=True)
 
-                    opponent = sc2client.get_opponent_name(gameinfo)
+                    opponent, race = sc2client.get_opponent(gameinfo)
                     log.info(f"Barcode resolved to {opponent}")
 
                 rename_file(config.screenshot, new_name)
