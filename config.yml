@@ -6,7 +6,7 @@ instant_leave_max: 50
 # Look for new replays every X seconds
 deamon_polling_rate: 1
 
-# Audiomode, one of "fullaudio", "text", "in", "out"
+# Audiomode, one of "full", "text", "in", "out"
 audiomode: "text"
 # Index of the audio device as returned by pyaudio
 microphone_index: 2
