@@ -144,7 +144,8 @@ def main(debug):
 
             if session.is_active():
                 session.close()
-
+            if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
+                tts.stop()
             if CoachEvent.wake in config.coach_events:
                 listener.stop()
                 listener.join()

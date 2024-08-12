@@ -20,6 +20,9 @@ class TTS:
                 buffer_threshold_seconds=2.8, fast_sentence_fragment=True
             )
 
+    def stop(self):
+        self.tts.stop()
+
 
 def make_tts_stream():
     # engine = CoquiEngine(local_models_path=join("obs_tools", "ttsmodels"), speed=1.3)
