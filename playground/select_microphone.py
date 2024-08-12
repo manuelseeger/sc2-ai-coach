@@ -1,17 +1,13 @@
-import whisper
-import torch
-import datetime
-import pyaudio
 import wave
+from io import BytesIO
 
-pyaudio = pyaudio.PyAudio()
+import pyaudio
 import speech_recognition as sr
 
-from io import BytesIO
+pyaudio = pyaudio.PyAudio()
 
 
 def playback(audio):
-    # open stream based on the wave object which has been input.
     stream = pyaudio.open(
         format=pyaudio.get_format_from_width(audio.getsampwidth()),
         channels=audio.getnchannels(),
@@ -19,49 +15,15 @@ def playback(audio):
         output=True,
     )
 
-    # read data (based on the chunk size)
     data = audio.readframes(1024)
 
-    # play stream (looping from beginning of file to the end)
     while data:
-        # writing to the stream is what *actually* plays the sound.
         stream.write(data)
         data = audio.readframes(1024)
 
-    # cleanup stuff.
     audio.close()
     stream.close()
-    # pyaudio.terminate()
 
-
-"""
-if torch.cuda.is_available():
-    device = torch.device("cuda:0")
-    print("GPU")
-    print(torch.cuda.current_device())
-    print(torch.cuda.device(0))
-    print(torch.cuda.get_device_name(0))
-else:
-    device = torch.device("cpu")
-    print("CPU")
-
-t0 = datetime.datetime.now()
-print(f"Load Model at  {t0}")
-model = whisper.load_model("base.en").to(device)
-t1 = datetime.datetime.now()
-print(f"Loading took {t1-t0}")
-print(f"started at {t1}")
-
-# do the transcription
-output = model.transcribe("obs/harstem samples/harstem sample 02.ogg")
-
-# show time elapsed after transcription is complete.
-t2 = datetime.datetime.now()
-print(f"ended at {t2}")
-print(f"time elapsed: {t2 - t1}")
-
-print(output["text"])
-"""
 
 print("Available audio input devices:")
 input_devices = []
@@ -101,7 +63,5 @@ while True:
         wfile = BytesIO(audio.get_wav_data())
 
         wf = wave.open(wfile, "rb")
-
-        # prompt = self.transcribe(audio)
 
         playback(wf)
