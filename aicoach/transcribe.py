@@ -5,6 +5,7 @@ import numpy as np
 import soundfile as sf
 import torch
 import transformers
+from speech_recognition.audio import AudioData
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 from transformers.utils import is_flash_attn_2_available
 
@@ -53,12 +54,14 @@ class Transcriber:
             f"Transcriber initialized, Device: {device}, Flash-Attn-2: {is_flash_attn_2_available()}"
         )
 
-    def transcribe(self, audio) -> str:
+    def transcribe(self, audio: AudioData) -> str:
         log.info("Transcribing...", extra={"flush": True})
         wav_bytes = audio.get_wav_data(convert_rate=16000)
         wav_stream = io.BytesIO(wav_bytes)
         audio_array, sampling_rate = sf.read(wav_stream)
         audio_array = audio_array.astype(np.float16)
+
+        length = len(audio_array) / sampling_rate
 
         outputs = self.pipe(
             audio_array,
@@ -68,5 +71,9 @@ class Transcriber:
 
         if outputs and "text" in outputs and len(outputs["text"]) > 0:
             output = str(outputs["text"]).strip()
+
+        # Finally discard halucinated 'thank you's on clicks and pops
+        if output.lower() == "thank you" and length < 0.7:
+            output = ""
 
         return output

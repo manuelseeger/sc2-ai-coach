@@ -6,7 +6,7 @@ instant_leave_max: 50
 # Look for new replays every X seconds
 deamon_polling_rate: 1
 
-# Audiomode, one of "fullaudio", "text", "in", "out"
+# Audiomode, one of "full", "text", "in", "out"
 audiomode: "text"
 # Index of the audio device as returned by pyaudio
 microphone_index: 2
@@ -30,6 +30,8 @@ recognizer:
   speech_threshold: 0.3
 # Hotkey to call up the AI coach prompt when run in text-in mode
 wake_key: "ctrl+alt+w"
+# Determines whether you can interact with AI coach; if False, AI coach will handle replays but won't wait for your input
+interactive: True
 
 # Configure the "student" - the player using AI coach
 student:
@@ -51,6 +53,12 @@ gpt_model: "gpt-4o"
 gpt_prompt_pricing: 0.000005
 # Cost per completion token
 gpt_completion_pricing: 0.000015
+
+# Which events should the AI coach react to
+coach_events:
+  - game_start
+  - wake
+  - new_replay
 
 # Integration with OBS; Faster detection of new game started but requires manual OBS setup
 obs_integration: False

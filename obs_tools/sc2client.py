@@ -10,7 +10,7 @@ from requests.exceptions import ConnectionError
 
 from config import config
 
-from .types import GameInfo, Result, ScanResult, Screen, UIInfo
+from .types import GameInfo, Race, Result, ScanResult, Screen, UIInfo
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -41,14 +41,14 @@ class SC2Client:
             log.warn(f"Invalid UI data: {e}")
         return None
 
-    def get_opponent_name(self, gameinfo=None) -> str:
+    def get_opponent(self, gameinfo=None) -> tuple[str, Race]:
         if gameinfo is None:
             gameinfo = self.get_gameinfo()
         if gameinfo:
             for player in gameinfo.players:
                 if player.name != config.student.name:
-                    return player.name
-        return None
+                    return player.name, player.race
+        return (None, None)
 
     def _get_info(self, path) -> str:
         try:
@@ -123,7 +123,7 @@ class ClientAPIScanner(threading.Thread):
                         continue
 
                 self.last_gameinfo = gameinfo
-                opponent = sc2client.get_opponent_name(gameinfo)
+                opponent, race = sc2client.get_opponent(gameinfo)
                 mapname = ""
 
                 scanresult = ScanResult(mapname=mapname, opponent=opponent)

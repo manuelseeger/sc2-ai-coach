@@ -40,3 +40,16 @@ Notes:
 
 Install tesseract with language data. (Windows: https://github.com/UB-Mannheim/tesseract/wiki).
 If installed to non-default location adjust tessdata_dir in config.
+
+
+## Fast-SSIM 
+
+[external/fast_ssim](external/fast_ssim) requires the Microsoft Visual C++ Redistributable packages for Visual Studio 2013.
+
+https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170
+
+## Realtime-TTS
+
+Install with your preferred engine, for example realtimetts[system,coqui]
+
+Requires C++ redistributable

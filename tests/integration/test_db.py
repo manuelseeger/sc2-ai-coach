@@ -2,9 +2,10 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from replays import ReplayReader, replaydb
-from replays.db import eq
-from replays.types import AssistantMessage, Metadata, Role
+from config import config
+from replays.db import eq, replaydb
+from replays.reader import ReplayReader
+from replays.types import AssistantMessage, Metadata, Replay, Role
 
 
 def test_db_ready():
@@ -44,3 +45,67 @@ def test_add_metadata(replay_file):
     meta.tags = ["test", "zvz", "muta"]
 
     replaydb.db.save(meta, query=eq(Metadata.replay, replay.id))
+
+
+@pytest.mark.parametrize(
+    "replay_file",
+    [
+        "Site Delta LE (106) ZvZ 2base Muta into mass muta chaotic win.SC2Replay",
+    ],
+    indirect=True,
+)
+def test_upsert_existing_replay(replay_file):
+    reader = ReplayReader()
+
+    replay = reader.load_replay(replay_file)
+
+    result = replaydb.upsert(replay)
+    assert result.acknowledged
+
+
+def test_upsert_new_replay():
+
+    new_id = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+    replay = Replay(
+        id=new_id,
+        date=datetime.now(),
+        map_name="test_map",
+        game_length=1000,
+        players=[],
+        build=5678,
+        category="ladderr",
+        expansion="lotv",
+        filehash=new_id,
+        filename="test.SC2Replay",
+        frames=4444,
+        game_fps=22,
+        game_type="1v1",
+        region="us",
+        release="5.0.0",
+        real_length=1000,
+        real_type="1v1",
+        release_string="5.0.0",
+        speed="faster",
+        stats={
+            "loserDoesGG": False,
+        },
+        time_zone=0,
+        type="ladder",
+        unix_timestamp=1000,
+    )
+
+    result = replaydb.upsert(replay)
+    assert result.acknowledged
+    assert any(new_id == v for k, v in result.upserted_ids.items())
+
+    del_result = replaydb.db.delete(Replay, query=eq(Replay.id, new_id))
+
+    assert del_result.deleted_count == 1
+    assert del_result.acknowledged
+
+
+def test_get_most_recent():
+    replay: Replay = replaydb.get_most_recent()
+    assert any(config.student.name in player.name for player in replay.players)
+    assert replay is not None

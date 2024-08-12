@@ -1,4 +1,5 @@
 import logging
+from time import time
 from typing import Generator
 
 import numpy as np
@@ -6,6 +7,7 @@ import speech_recognition as sr
 import webrtcvad
 from pydantic.dataclasses import dataclass
 from scipy.signal import resample
+from speech_recognition.audio import AudioData
 
 from config import config
 
@@ -67,7 +69,8 @@ class Microphone:
 
         self.microphone = sr.Microphone(device_index=self.device_index)
 
-    def listen(self):
+    def listen(self) -> AudioData:
+        start_time = time()
         while True:
             with self.microphone as source:
                 audio = self.recognizer.listen(source)
@@ -91,3 +94,6 @@ class Microphone:
 
             if speech_indicator > config.recognizer.speech_threshold:
                 return audio
+
+            if time() - start_time > 60 * 3:
+                return None

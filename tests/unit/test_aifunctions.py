@@ -1,7 +1,7 @@
 import pytest
 
 from aicoach.functions import AddMetadata, AIFunctions
-from aicoach.functions.QueryReplayDB import force_valid_json_string
+from aicoach.utils import force_valid_json_string, get_clean_tags
 
 
 @pytest.mark.parametrize(
@@ -10,6 +10,9 @@ from aicoach.functions.QueryReplayDB import force_valid_json_string
         ("{'game_length': -1}", '{"game_length": -1}'),
         ({"game_length": -1}, '{"game_length": -1}'),
         ('{"game_length": -1}', '{"game_length": -1}'),
+        ("-unix_timestamp", '{"unix_timestamp": -1}'),
+        ("unix_timestamp", '{"unix_timestamp": 1}'),
+        ('{"player.name": "corcki"}', '{"player.name": "corcki"}'),
     ],
 )
 def test_force_valid_json_string(json_input, expected):
@@ -31,3 +34,29 @@ def test_function_meta_wrong_input():
 
     response = AddMetadata(replay_id=wrong_id, tags=tags)
     assert response is False
+
+
+@pytest.mark.parametrize(
+    ("tags", "expected"),
+    [
+        ("smurf,cheese,proxy", ["smurf", "cheese", "proxy"]),
+        ("smurf          ,       cheese,proxy", ["smurf", "cheese", "proxy"]),
+        ("Keywords: smurf", ["smurf"]),
+        ("Keywords: smurf, cheese, proxy", ["smurf", "cheese", "proxy"]),
+        (
+            'The essential keywords for this game are: "void ray,charge,colossus,immortal,roach,corruptor,timing". to replay',
+            [
+                "void ray",
+                "charge",
+                "colossus",
+                "immortal",
+                "roach",
+                "corruptor",
+                "timing",
+            ],
+        ),
+    ],
+)
+def test_clean_tag(tags, expected):
+    result = get_clean_tags(tags)
+    assert result == expected

@@ -28,6 +28,7 @@ dependencies:
   - conda-forge::webrtcvad
   - scipy
   - jinja2
+  - pillow
   - pip
   - pip:
       - pyaudio
@@ -44,4 +45,5 @@ dependencies:
       - pyodmongo
       - realtimetts[system,coqui]
       - keyboard
+      - climage
       - obsws-python

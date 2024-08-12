@@ -3,16 +3,18 @@ from typing import Union
 from pydantic_core import ValidationError
 from pymongo.collection import Collection
 from pyodmongo import DbEngine, DbModel
-from pyodmongo.queries import eq
+from pyodmongo.models.responses import DbResponse
+from pyodmongo.queries import eq, sort
+from typing_extensions import override
 
 from config import config
 
-from .types import Metadata, Replay, Session
+from .types import Metadata, PlayerInfo, Replay, Session
 
 # Initialize the database engine
 engine = DbEngine(mongo_uri=str(config.mongo_dsn), db_name=config.db_name)
 
-SC2Model = Union[Replay, Metadata, Session]
+SC2Model = Union[Replay, Metadata, Session, PlayerInfo]
 
 
 class ReplayDB:
@@ -21,26 +23,32 @@ class ReplayDB:
         self.replays: Collection = self.db._db["replays"]
         self.meta: Collection = self.db._db["replays.meta"]
 
-    def upsert(self, model: SC2Model):
+    def upsert(self, model: SC2Model) -> DbResponse:
         ModelClass = model.__class__
         try:
             return self.db.save(model, query=eq(ModelClass.id, model.id))
         except ValidationError as e:
-            # pyodm forces the returned ID into mongo ObjectId and throws
-            # since we use a custom ID field
-            return None
+            # On INSERT, pyodm forces the returned ID into mongo ObjectId and throws since we use a custom ID field
+            # Return DbResponse without validation instead
+            return DbResponse.model_construct(
+                **{
+                    "acknowledged": True,
+                    "upserted_ids": {0: model.id},
+                    "matched_count": 0,
+                    "modified_count": 0,
+                }
+            )
 
     def get_most_recent(self) -> Replay:
-        most_recents = list(
-            engine._db.replays.find().sort("unix_timestamp", -1).limit(1)
+        most_recent = self.db.find_one(
+            Model=Replay,
+            raw_query={"players.name": config.student.name},
+            sort=sort((Replay.unix_timestamp, -1)),
         )
-        if len(most_recents) == 0:
+        if most_recent is None:
             raise ValueError("No replays found")
 
-        if len(most_recents) > 1:
-            raise ValueError("Multiple replays found")
-
-        return Replay(**most_recents[0])
+        return most_recent
 
     def find(self, model: SC2Model) -> SC2Model:
         ModelClass = model.__class__

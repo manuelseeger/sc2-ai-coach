@@ -15,3 +15,6 @@ deploy.cmd
 logs/
 mongodb/mongo-seed/*.json
 obs_tools/ttsmodels/
+tests/coverage/
+.coverage
+tests/test-results.xml

@@ -6,9 +6,15 @@
       "editor.formatOnSave": "explicit"
     }
   },
-  "python.testing.pytestArgs": ["tests", "-rP"],
+  "editor.formatOnSave": true,
+  "python.testing.pytestArgs": [
+    "tests",
+    "-rP"
+  ],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
-
-  "isort.args": ["--profile", "black"]
+  "isort.args": [
+    "--profile",
+    "black"
+  ]
 }

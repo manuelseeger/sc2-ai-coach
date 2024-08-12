@@ -1,23 +1,24 @@
 import logging
 import os
+import sys
 import warnings
-from datetime import datetime
-from time import sleep
+from datetime import datetime, timezone
+from time import sleep, time
 
 import click
 from blinker import signal
 from Levenshtein import distance as levenshtein
 from rich.prompt import Prompt
 
-from aicoach import AICoach, Templates
-from config import AIBackend, AudioMode, config
-from obs_tools import GameStartedScanner, WakeListener
+from aicoach import AICoach
+from aicoach.prompt import Templates
+from config import AIBackend, AudioMode, CoachEvent, config
+from obs_tools.playerinfo import resolve_replays_from_current_opponent
 from obs_tools.rich_log import TwitchObsLogHandler
 from obs_tools.types import ScanResult, WakeResult
-from replays import NewReplayScanner
 from replays.db import replaydb
-from replays.metadata import safe_replay_summary
-from replays.types import Replay, Role, Session, Usage
+from replays.metadata import save_replay_summary
+from replays.types import Player, Replay, Role, Session, Usage
 
 warnings.filterwarnings("ignore")
 
@@ -49,12 +50,17 @@ if not os.path.exists("logs"):
     os.makedirs("logs")
 
 handler = logging.FileHandler(
-    os.path.join("logs", f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-obs_watcher.log"),
+    os.path.join(
+        "logs",
+        f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-obs_watcher.log",
+    ),
+    encoding="utf-8",
 )
 handler.setLevel(logging.DEBUG)
 one_file_handler = logging.FileHandler(
     mode="a",
     filename=os.path.join("logs", "_obs_watcher.log"),
+    encoding="utf-8",
 )
 one_file_handler.setLevel(logging.DEBUG)
 log.addHandler(handler)
@@ -67,13 +73,7 @@ log.addHandler(obs_handler)
 
 @click.command()
 @click.option("--debug", is_flag=True, help="Debug mode")
-@click.option(
-    "-v",
-    "--verbose",
-    is_flag=True,
-    help="Verbose mode: print voice input and responses to console",
-)
-def main(debug, verbose):
+def main(debug):
     if debug:
         log.setLevel(logging.DEBUG)
         handler.setLevel(logging.DEBUG)
@@ -86,37 +86,42 @@ def main(debug, verbose):
 
         tts = make_tts_stream()
         tts.feed("")
-        tts.play_async(buffer_threshold_seconds=2.8, fast_sentence_fragment=True)
 
     session = AISession()
 
-    session.verbose = verbose
+    if CoachEvent.wake in config.coach_events:
+        from obs_tools import WakeListener
 
-    listener = WakeListener(name="listener")
-    listener.start()
+        listener = WakeListener(name="listener")
+        listener.start()
+        wake = signal("wakeup")
+        wake.connect(session.handle_wake)
 
-    scanner = GameStartedScanner(name="scanner")
-    scanner.start()
+    if CoachEvent.game_start in config.coach_events:
+        from obs_tools import GameStartedScanner
 
-    replay_scanner = NewReplayScanner(name="replay_scanner")
-    replay_scanner.start()
+        scanner = GameStartedScanner(name="scanner")
+        scanner.start()
+        loading_screen = signal("loading_screen")
+        loading_screen.connect(session.handle_game_start)
 
-    wake = signal("wakeup")
-    wake.connect(session.handle_wake)
+    if CoachEvent.new_replay in config.coach_events:
+        from replays.newreplay import NewReplayScanner
 
-    loading_screen = signal("loading_screen")
-    loading_screen.connect(session.handle_scanner)
+        replay_scanner = NewReplayScanner(name="replay_scanner")
+        replay_scanner.start()
+        new_replay = signal("replay")
+        new_replay.connect(session.handle_new_replay)
 
-    new_replay = signal("replay")
-    new_replay.connect(session.handle_new_replay)
     log.info("\n")
     log.info(f"Audio mode: {str(config.audiomode)}")
     log.info(f"OBS integration: {str(config.obs_integration)}")
     log.info(
         f"AI Backend: {str(config.aibackend)} {config.gpt_model if config.aibackend == AIBackend.openai else ''}"
     )
+    log.info(f"Coach events enabled: {', '.join(config.coach_events)}")
 
-    log.info("Starting main loop")
+    log.info(f"Starting { 'non-' * ( not config.interactive ) }interactive session")
 
     ping_printed = False
     while True:
@@ -135,25 +140,37 @@ def main(debug, verbose):
 
             sleep(1)
         except KeyboardInterrupt:
-            log.info("Exiting ...")
+            log.info("Shutting down ...")
+
             if session.is_active():
                 session.close()
-            break
+            if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
+                tts.stop()
+            if CoachEvent.wake in config.coach_events:
+                listener.stop()
+                listener.join()
+            if CoachEvent.game_start in config.coach_events:
+                scanner.stop()
+                scanner.join()
+            if CoachEvent.new_replay in config.coach_events:
+                replay_scanner.stop()
+                replay_scanner.join()
+            sys.exit(0)
 
 
 class AISession:
     coach: AICoach = None
     last_map: str = None
     last_opponent: str = None
-    last_mmr: int = 3900
+    last_mmr: int = 4000
     _thread_id: str = None
     last_rep_id: str = None
-    verbose: bool = False
+
     session: Session
 
     def __init__(self):
-        last_replay = replaydb.get_most_recent()
-        self.update_last_replay(last_replay)
+
+        self.update_last_replay()
         self.coach = AICoach()
 
         self.session = Session(
@@ -175,17 +192,36 @@ class AISession:
             self.session.threads.append(value)
             replaydb.db.save(self.session)
 
-    def update_last_replay(self, replay):
-        replay = replaydb.get_most_recent()
+    def update_last_replay(self, replay: Replay = None):
+        if replay is None:
+            replay = replaydb.get_most_recent()
+        if replay is None:
+            log.warning(
+                f"Can't find most recent replay for student '{config.student.name}'"
+            )
+            return
         self.last_map = replay.map_name
         self.last_opponent = replay.get_player(config.student.name, opponent=True).name
         self.last_mmr = replay.get_player(config.student.name).scaled_rating
         self.last_rep_id = replay.id
 
     def converse(self):
+
+        if not config.interactive:
+            sleep(1)
+            log.info("No input, closing thread")
+            sleep(1)
+            return True
+
+        start_time = time()
         while True:
+            if time() - start_time > 60 * 3:
+                log.info("No input, closing thread")
+                return True
             if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
                 audio = mic.listen()
+                if audio is None:
+                    continue
                 log.debug("Got voice input")
 
                 text = transcriber.transcribe(audio)
@@ -196,8 +232,7 @@ class AISession:
                 text = Prompt.ask(
                     config.student.emoji,
                 )
-            if self.verbose:
-                log.info(text, extra={"role": Role.user})
+            log.info(text, extra={"role": Role.user})
 
             response = self.chat(text)
             log.info(response, extra={"role": Role.assistant})
@@ -224,13 +259,8 @@ class AISession:
         if config.audiomode in [AudioMode.text, AudioMode.voice_in]:
             log.info(message, extra={"role": Role.assistant, "flush": flush})
         else:
-            if self.verbose:
-                log.info(message, extra={"role": Role.assistant, "flush": flush})
+            log.info(message, extra={"role": Role.assistant, "flush": flush})
             tts.feed(message)
-            if not tts.is_playing():
-                tts.play_async(
-                    buffer_threshold_seconds=2.8, fast_sentence_fragment=True
-                )
 
     def close(self):
         log.info("Closing thread")
@@ -252,10 +282,6 @@ class AISession:
         prompt_price = prompt_price if prompt_price > 0 else 0.01
         completion_price = completion_price if completion_price > 0 else 0.01
 
-        log.info(f"Prompt tokens: {token_usage.prompt_tokens} (~${(prompt_price):.2f})")
-        log.info(
-            f"Completion tokens: {token_usage.completion_tokens} (~${(completion_price):.2f})"
-        )
         log.info(
             f"Total tokens: {token_usage.total_tokens} (~${(prompt_price + completion_price):.2f})"
         )
@@ -266,14 +292,15 @@ class AISession:
             thread_id=self.thread_id,
         )
         self.session.usages.append(usage)
+        replaydb.db.save(self.session)
 
-    def is_goodbye(self, response):
+    def is_goodbye(self, response: str):
         if levenshtein(response[-20:].lower().strip(), "good luck, have fun") < 8:
             return True
         else:
             return False
 
-    def initiate_from_scanner(self, map, opponent, mmr) -> str:
+    def initiate_from_game_start(self, map, opponent, mmr) -> str:
         replacements = {
             "student": str(config.student.name),
             "map": str(map),
@@ -281,12 +308,19 @@ class AISession:
             "mmr": str(mmr),
         }
 
-        prompt = Templates.scanner.render(replacements)
+        opponent, past_replays = resolve_replays_from_current_opponent(opponent, map)
 
-        self.thread_id = self.coach.create_thread(prompt)
+        if len(past_replays) > 0:
+            replacements["replays"] = [
+                r.default_projection_json(limit=300) for r in past_replays[:5]
+            ]
+            prompt = Templates.scanner.render(replacements)
+            self.thread_id = self.coach.create_thread(prompt)
+        else:
+            self.say(Templates.scanner_empty.render(replacements), flush=False)
 
     def initiate_from_new_replay(self, replay: Replay) -> str:
-        opponent = replay.get_player(config.student.name, opponent=True).name
+        opponent = replay.get_opponent_of(config.student.name).name
         replacements = {
             "student": str(config.student.name),
             "map": str(replay.map_name),
@@ -299,7 +333,7 @@ class AISession:
 
         self.thread_id = self.coach.create_thread(prompt)
 
-    def handle_scanner(self, sender, scanresult: ScanResult):
+    def handle_game_start(self, sender, scanresult: ScanResult):
         log.debug(sender, scanresult)
 
         if scanresult.mapname and config.obs_integration:
@@ -309,14 +343,15 @@ class AISession:
                     f.write(stats.prettify())
 
         if not self.is_active():
-            self.initiate_from_scanner(
+            self.initiate_from_game_start(
                 scanresult.mapname, scanresult.opponent, self.last_mmr
             )
-            response = self.stream_thread()
-            log.info(response, extra={"role": Role.assistant})
-            done = self.converse()
-            if done:
-                self.close()
+            if self.is_active():
+                response = self.stream_thread()
+                log.info(response, extra={"role": Role.assistant})
+                done = self.converse()
+                if done:
+                    self.close()
 
     def handle_wake(self, sender, wakeresult: WakeResult):
         log.debug(sender)
@@ -336,11 +371,11 @@ class AISession:
             log.info(response, extra={"role": Role.assistant})
             done = self.converse()
             if done:
-                sleep(1)
+                sleep(2)
                 self.say("I'll save a summary of the game.", flush=False)
                 self.update_last_replay(replay)
 
-                safe_replay_summary(replay, self.coach)
+                save_replay_summary(replay, self.coach)
 
                 self.close()
 

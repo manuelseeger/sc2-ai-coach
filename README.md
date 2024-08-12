@@ -11,13 +11,23 @@
 
 The AI coach is embedded with a voice engine and can be interacted with live during gameplay via microphone.
 
-New chat sessions with the AI coach are initiated when a new ladder game is starting ([obs_tools/](obs_tools/)), when a game just finished, or on voice command ("hey jarvis").
-
-The GPT assistant behind AI coach can use mulitple high level capabilities like query a MongoDB replay database, lookup a player's battle net profile, or add data such as comments to a replay. The assistant decides autonomously without explicit programming when to employ a capability.
+New chat sessions with the AI coach are initiated when a new ladder game is starting, when a game just finished, or on voice command ("hey jarvis"). The GPT assistant behind AI coach can use mulitple high level capabilities like query a MongoDB replay database, lookup a player's battle net profile, or add data such as comments to a replay. The assistant decides autonomously without explicit programming when to employ a capability.
 
 This is my personal research project to explore the latest in LLM based agents.
 
-![Alt text](archive/aicoach-replaydb-example.png "a title")
+### Examples
+
+Looking up past games when a new game is being played:
+
+![Example new game](archive/aicoach-scanner-example.png "New game started")
+
+Analyzing a replay after a game just finished:
+
+![Example replay](archive/aicoach-newreplay-manners.png "New Replay, discussing player's manners")
+
+Answering arbitrary questions on SC2:
+
+![Example replay](archive/aicoach-hey-goat.png "Weighing in on the GOAT debate")
 
 ## Minimal Setup
 
@@ -65,7 +75,7 @@ Add your OpenAI organization, Assistant ID, and API key to the env variables, `A
 
 Note on cost: Long conversations can cost up to one dollar ($1.00) in OpenAI API usage. AICoach will not incur API costs until one of the wake events is triggered - see below.
 
-If you just want a database with your replays you can skip this step or do it later. 
+If you just want a database with your replays you can skip this step and the next or do it later.
 
 ### Build and deploy assistant
 
@@ -187,13 +197,33 @@ This is invoked at the very start of an SC2 game (when the in-game clock hits 1 
 - Summarize past strategies of the opponent
 - Ask for follow up questions
 
+### Configure coach events
+
+You can configure which events AICoach should react to with the `coach_events` option.
+
+```yaml
+# config.yourname.yml
+
+replay_folder: "C:\\Users\\yourname\\MyReplays"
+student:
+  name: "yourname"
+  race: "Terran"
+  emoji: ":woman_student:"
+db_name: "YOURDB"
+wake_key: "ctrl+alt+w"
+coach_events:
+  - game_start
+  - wake
+  - new_replay
+```
+
 ## Advanced setup
 
 Please understand that this is a hobby project and not ready to run without some technical setup. You will need Python experience to get this running. This code is presented as-is and I can't provide support for it.
 
 Prerequisites:
 
-- (all from minimal setup)
+- all from minimal setup
 - NVidia GPU
 - Microphone
 
@@ -207,9 +237,10 @@ The OBS setup is not documented here and you can skip this part by keeping `obs_
 
 Probably a lot...
 
-This is meant for competitives 1v1 ladder. Team games, arcade, customs are not supported and explicidely excluded from all replay processing.
-
-This has only been tested with replays starting from early 2023. Much older replays will likely throw errors.
+- This is meant for competitives 1v1 ladder. Team games, arcade, customs are not supported and either explicidely excluded from replay processing or may cause unexpected behavior.
+- Most of the internal logic relies on the name of a player(s) and thus won't work properly for a student who changes their name from season to season.
+- This has only been tested with replays starting from early 2023. Much older replays will likely throw errors.
+- Text mode wake event interferes with SC2 causing lag. Don't use suring gaming sessions.
 
 ## SC2 map stats
 

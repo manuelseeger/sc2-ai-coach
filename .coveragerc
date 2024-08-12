@@ -1,0 +1,12 @@
+[run]
+omit=
+    tests/*
+    playground/*
+    external/*
+    archive/*
+
+[html]
+directory=tests/coverage/htmlcov
+
+[xml]
+output=tests/coverage/coverage.xml

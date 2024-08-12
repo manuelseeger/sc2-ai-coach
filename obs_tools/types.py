@@ -36,6 +36,22 @@ class Race(str, Enum):
     zerg = "Zerg"
     random = "random"
 
+    normal_map = {
+        "Terr": "Terran",
+        "Prot": "Protoss",
+        "Zerg": "Zerg",
+        "random": "Random",
+    }
+
+    def normalize(self):
+        return self.normal_map[self.value]
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, str):
+            return self.value == other or self.normalize() == other
+        else:
+            return self == other
+
 
 class Result(str, Enum):
     win = "Victory"

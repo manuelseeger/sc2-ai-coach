@@ -17,7 +17,7 @@ def test_sc2client_get_opponent():
 
     client = SC2Client()
 
-    opponent = client.get_opponent_name()
+    opponent, race = client.get_opponent()
 
     print(f"Opponent: {opponent}")
 

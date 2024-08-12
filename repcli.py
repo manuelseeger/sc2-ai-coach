@@ -1,18 +1,27 @@
 import datetime
 import glob
+import json
 import logging
 import os
 from datetime import date, datetime, timedelta
+from io import BytesIO
 from os.path import basename, getmtime, join
 from time import sleep
 
 import click
+import climage
+import numpy as np
+from PIL import Image
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.theme import Theme
 
+from aicoach.utils import force_valid_json_string
 from config import config
-from replays import ReplayReader, replaydb
+from obs_tools.playerinfo import save_player_info
+from replays.db import replaydb
+from replays.reader import ReplayReader
+from replays.types import Alias, PlayerInfo, Replay
 
 custom_theme = Theme(
     {
@@ -122,6 +131,68 @@ def deamon(ctx):
     default=str(date.today()),
     show_default=True,
 )
+def addplayers(ctx, from_: datetime, to_: datetime):
+    """Add player from repays to DB"""
+
+    sync_from_date = from_.timestamp()
+
+    sync_to_date = (to_ + timedelta(days=1)).timestamp()
+
+    console.print(f"Syncing from {dformat(sync_from_date)} to {dformat(sync_to_date)}")
+    list_of_files = glob.glob(join(config.replay_folder, "*.SC2Replay"))
+    list_of_files = [
+        f
+        for f in list_of_files
+        if sync_from_date <= getmtime(f) and sync_to_date > getmtime(f)
+    ]
+
+    list_of_files.sort(key=getmtime)
+
+    console.print(f"Found {len(list_of_files)} potential replays to sync")
+
+    for file_path in list_of_files:
+        replay_raw = reader.load_replay_raw(file_path)
+        if reader.apply_filters(replay_raw):
+
+            replay = reader.to_typed_replay(replay_raw)
+            opponent = replay.get_opponent_of(config.student.name)
+
+            if ctx.obj["SIMULATION"]:
+                console.print(
+                    f"Simulation, would add {opponent.name} ({opponent.toon_handle})"
+                )
+            else:
+                result = save_player_info(replay)
+                if result.acknowledged:
+                    console.print(
+                        f":white_heavy_check_mark: {opponent.name} ({opponent.toon_handle}) added to DB from {replay}"
+                    )
+                else:
+                    console.print(
+                        f":x: {opponent.name} ({opponent.toon_handle}) not added to DB"
+                    )
+
+
+@cli.command()
+@click.pass_context
+@click.option(
+    "--from",
+    "-f",
+    "from_",
+    help="Start date for replay search",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    default=str(date.today()),
+    show_default=True,
+)
+@click.option(
+    "--to",
+    "-t",
+    "to_",
+    help="End date for replay search",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    default=str(date.today()),
+    show_default=True,
+)
 @click.option(
     "-fR",
     "--from-most-recent",
@@ -175,7 +246,37 @@ def sync(ctx, from_: datetime, to_: datetime, from_most_recent: bool, delta: boo
             console.print(f"Filtered {basename(file_path)}")
             if reader.is_instant_leave(replay_raw) and ctx.obj["CLEAN"]:
                 os.remove(file_path)
-                console.print(f":zap: Deleted {basename(file_path)}")
+                console.print(f":litter_in_bin_sign: Deleted {basename(file_path)}")
+                continue
+            if reader.has_afk_player(replay_raw) and ctx.obj["CLEAN"]:
+                os.remove(file_path)
+                console.print(f":litter_in_bin_sign: Deleted {basename(file_path)}")
+                continue
+
+
+@cli.group()
+@click.pass_context
+def query(ctx):
+    pass
+
+
+@query.command()
+@click.pass_context
+@click.argument("query", type=str, required=True)
+def players(ctx, query):
+    """Query the DB for players"""
+    query = force_valid_json_string(query)
+    query = json.loads(query)
+
+    players = replaydb.db.find_many(PlayerInfo, raw_query=query)
+    for player in players:
+        console.print_json(str(player))
+        if player.portrait:
+            img = Image.open(BytesIO(player.portrait)).convert("RGB").resize((40, 40))
+            arr = np.array(img)
+            output = climage.convert_array(arr, is_unicode=True)
+
+            print(output)
 
 
 @cli.command()

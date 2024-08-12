@@ -3,11 +3,12 @@ import logging
 from datetime import datetime
 from typing import Callable, Dict, Generator
 
-from openai import AssistantEventHandler, OpenAI
+from openai import APIError, AssistantEventHandler, OpenAI
 from openai.lib.streaming import AssistantStreamManager
 from openai.types.beta import Assistant, Thread
 from openai.types.beta.assistant_stream_event import (
     ThreadMessageDelta,
+    ThreadRunFailed,
     ThreadRunRequiresAction,
 )
 from openai.types.beta.threads import (
@@ -31,16 +32,21 @@ class AICoach:
     threads: Dict[str, Thread] = {}
     thread: Thread = None
 
+    # A dictionary of function names to their respective functions
+    # Functions need to be annotated with @AIFunction
     functions: Dict[str, Callable] = {}
 
     additional_instructions: str = ""
 
     def __init__(self):
+        """Initializes the AICoach object with the assistant and additional instructions."""
         self.assistant: Assistant = client.beta.assistants.retrieve(
             assistant_id=config.assistant_id
         )
+
         self.additional_instructions = Templates.additional_instructions.render(
-            {"today": datetime.now().strftime("%Y-%m-%d")}
+            # Monday, January 01, 2021
+            {"today": datetime.now().strftime("%A, %B %d, %Y")}
         )
         self._init_functions()
 
@@ -48,6 +54,7 @@ class AICoach:
         self.functions = {f.__name__: f for f in AIFunctions}
 
     def get_thread_usage(self, thread_id: str) -> Usage:
+        """Returns the accumulated usages of all runs of the current thread."""
         runs = client.beta.threads.runs.list(thread_id=thread_id)
         thread_usage = Usage(completion_tokens=0, prompt_tokens=0, total_tokens=0)
         for run in runs.data:
@@ -59,6 +66,7 @@ class AICoach:
         return thread_usage
 
     def get_most_recent_message(self):
+        """Return the most recent message sent by the assistant."""
         messages = client.beta.threads.messages.list(
             thread_id=self.thread.id, order="desc", limit=1
         )
@@ -68,10 +76,12 @@ class AICoach:
         return messages.data[0].content[0].text.value
 
     def get_conversation(self):
+        """Returns the conversation history of the current thread."""
         messages = client.beta.threads.messages.list(thread_id=self.thread.id)
         return messages.data
 
     def create_thread(self, message=None) -> str:
+        """Create a new thread and return the thread id. Optionally, add a text message to the thread."""
         self.thread: Thread = client.beta.threads.create()
 
         log.debug(f"Created thread {self.thread.id}")
@@ -86,28 +96,41 @@ class AICoach:
         return self.thread.id
 
     def stream_thread(self):
-        with client.beta.threads.runs.create_and_stream(
+        """Create a new run for the current thread and stream the response from the assistant."""
+        with client.beta.threads.runs.stream(
             thread_id=self.thread.id,
             assistant_id=self.assistant.id,
             additional_instructions=self.additional_instructions,
         ) as stream:
-            for event in stream:
-                for token in self._process_event(event):
-                    yield token
+            try:
+                for event in stream:
+                    for token in self._process_event(event):
+                        yield token
+            except APIError as e:
+                log.error(f"API Error: {e}")
+                yield ""
 
     def get_response(self, message) -> str:
+        """Get the response from the assistant for a given message.
+
+        This function will wait for the assistant to finish streaming the response before returning the full response
+        """
         buffer = ""
         for response in self.chat(message):
             buffer += response
         return buffer
 
     def chat(self, text) -> Generator[str, None, None]:
+        """Send a message to the assistant and stream the response.
+
+        This creates a new run for the current thread and streams the response from the assistant.
+        """
         message = client.beta.threads.messages.create(
             thread_id=self.thread.id,
             role="user",
             content=text,
         )
-        with client.beta.threads.runs.create_and_stream(
+        with client.beta.threads.runs.stream(
             thread_id=self.thread.id,
             assistant_id=self.assistant.id,
             additional_instructions=self.additional_instructions,
@@ -130,7 +153,10 @@ class AICoach:
                 for event in stream:
                     for token in self._process_event(event):
                         yield token
+        elif isinstance(event, ThreadRunFailed):
+            log.error(f"Run failed: {event.data.last_error}")
         else:
+            # run in progress etc
             pass
 
     def _handle_tool_calls(self, run: Run) -> dict[str, str]:

@@ -1,7 +1,9 @@
 import pytest
+import sc2reader
 
-from replays import ReplayReader, time2secs
-from replays.sc2readerplugins.statistics import loserDoesGG
+from replays.reader import ReplayReader
+from replays.sc2readerplugins.ReplayStats import is_gg, player_worker_micro
+from replays.util import time2secs
 
 
 @pytest.mark.parametrize(
@@ -97,61 +99,32 @@ def test_default_projection_workers(replay_file):
 
 
 @pytest.mark.parametrize(
-    ("rep", "expected", "util"),
+    "message,expected",
+    [
+        ("ggwp", True),
+        ("fu", False),
+        ("ggggg", True),
+        ("bg", False),
+        ("gg", True),
+        ("GG", True),
+    ],
+)
+def test_is_gg(message, expected):
+    result = is_gg(message)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "replay_file,expected",
     [
         (
-            {
-                "players": [
-                    {"sid": 1, "result": "Loss"},
-                ],
-                "messages": [
-                    {"pid": 1, "text": "ggwp"},
-                ],
-            },
-            True,
-            None,
-        ),
-        (
-            {
-                "players": [
-                    {"sid": 1, "result": "Loss"},
-                ],
-                "messages": [
-                    {"pid": 1, "text": "fu"},
-                ],
-            },
-            False,
-            None,
-        ),
-        (
-            {
-                "players": [
-                    {"sid": 1, "result": "Loss"},
-                ],
-                "messages": [
-                    {"pid": 1, "text": "ggggg"},
-                ],
-            },
-            True,
-            None,
-        ),
-        (
-            {
-                "players": [
-                    {"sid": 1, "result": "Loss"},
-                ],
-                "messages": [
-                    {"pid": 1, "text": "bg"},
-                ],
-            },
-            False,
-            None,
-        ),
+            "Goldenaura LE (282) 2 base Terran tank allin.SC2Replay",
+            {0: (1, 1), 1: (0, 0)},
+        )
     ],
-    indirect=["util"],
+    indirect=["replay_file"],
 )
-def test_loser_does_gg(rep, expected, util):
-    replay = util.make_replay_mock(rep)
-
-    result = loserDoesGG(replay)
-    assert result == expected
+def test_replaystats_worker_micro(replay_file, expected):
+    replay = sc2reader.load_replay(replay_file)
+    micro = player_worker_micro(replay)
+    assert micro == expected

@@ -35,6 +35,12 @@ env_files = sort_config_files(env_files)
 env_files.remove(".env.example")
 
 
+class CoachEvent(str, Enum):
+    wake = "wake"
+    game_start = "game_start"
+    new_replay = "new_replay"
+
+
 class AIBackend(str, Enum):
     openai = "OpenAI"
     mocked = "Mocked"
@@ -58,7 +64,7 @@ class RecognizerConfig(BaseModel):
 class StudentConfig(BaseModel):
     name: str
     race: str
-    sc2replaystats_map_url: Url = None
+    sc2replaystats_map_url: Url | None = None
     emoji: str = ":man_technologist:"
 
     def __repr__(self) -> str:
@@ -84,6 +90,7 @@ class Config(BaseSettings):
     speech_recognition_model: str
     recognizer: RecognizerConfig
     wake_key: str
+    interactive: bool = True
 
     student: StudentConfig
 
@@ -95,11 +102,17 @@ class Config(BaseSettings):
     gpt_prompt_pricing: float
     gpt_completion_pricing: float
 
+    coach_events: List[CoachEvent] = [
+        CoachEvent.wake,
+        CoachEvent.game_start,
+        CoachEvent.new_replay,
+    ]
+
     obs_integration: bool
     sc2_client_url: str = "http://127.0.0.1:6119"
     screenshot: str
     tessdata_dir: str
-    obs_ws_pw: str | None
+    obs_ws_pw: str | None = None
 
     season: int
 

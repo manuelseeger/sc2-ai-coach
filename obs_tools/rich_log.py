@@ -1,4 +1,5 @@
 import logging
+import time
 from logging import Handler, LogRecord
 from typing import Dict
 
@@ -42,6 +43,7 @@ class Emojis:
     transcribe: str = ":keyboard:"
     system: str = ":computer:"
     pricing: str = ":moneybag:"
+    player_info: str = ":bust_in_silhouette:"
 
 
 EMOJI_MAP = {
@@ -54,6 +56,7 @@ EMOJI_MAP = {
     "main": Emojis.system,
     "close": Emojis.system,
     "calculate_usage": Emojis.pricing,
+    "obs_tools.playerinfo.save_player_info": Emojis.player_info,
 }
 
 
@@ -150,6 +153,9 @@ class TwitchObsLogHandler(Handler):
             else:
                 msg = message
             console.print(msg, style=style)
+
+        with open("logs/time.log", "w") as f:
+            f.write(f"{time.time()}")
 
     def check_stop(self, record: LogRecord) -> bool:
         for status in self._status_methods.values():

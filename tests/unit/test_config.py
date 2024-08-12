@@ -1,6 +1,4 @@
-from rich import print
-from config import Config
-from config import StudentConfig
+from config import Config, StudentConfig
 
 
 def test_load_config():

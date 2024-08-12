@@ -90,7 +90,7 @@ def clean_map_name(map, ladder_maps):
     map = map.strip().lower()
     if map not in ladder_maps:
         for ladder_map in ladder_maps:
-            if levenstein(map, ladder_map) < 5:
+            if levenstein(map, ladder_map) < 8:
                 map = ladder_map
                 break
     return map
@@ -192,7 +192,7 @@ class LoadingScreenScanner(threading.Thread):
                     log.info("Barcode detected, trying to get exact barcode")
                     gameinfo = sc2client.wait_for_gameinfo(ongoing=True)
 
-                    opponent = sc2client.get_opponent_name(gameinfo)
+                    opponent, race = sc2client.get_opponent(gameinfo)
                     log.info(f"Barcode resolved to {opponent}")
 
                 rename_file(config.screenshot, new_name)
@@ -200,3 +200,4 @@ class LoadingScreenScanner(threading.Thread):
 
                 scanresult = ScanResult(mapname=map, opponent=opponent)
                 loading_screen.send(self, scanresult=scanresult)
+            sleep(config.deamon_polling_rate)

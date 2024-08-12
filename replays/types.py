@@ -4,9 +4,8 @@ from typing import Annotated, Any, ClassVar, Dict, List, Tuple
 
 import bson
 import pydantic
-from bson.binary import Binary
 from pydantic import BaseModel, Field
-from pyodmongo import DbModel
+from pyodmongo import DbModel, MainBaseModel
 from typing_extensions import Annotated
 
 from config import AIBackend, config
@@ -45,118 +44,133 @@ def wrap_all_fields(d: dict):
             wrap_all_fields(value)
 
 
-include_keys = convert_to_nested_structure(config.default_projection)
-wrap_all_fields(include_keys)
+def to_bson_binary(x: Any) -> bson.Binary:
+    if isinstance(x, bson.Binary):
+        return x
+    return bson.Binary(x)
 
 
-ReplayId = Annotated[str, Field(max_length=64, min_length=64)]
+def convert_projection(projection: dict) -> dict:
+    keys = convert_to_nested_structure(projection)
+    wrap_all_fields(keys)
+    return keys
 
 
-class AbilityUsed(BaseModel):
-    frame: int = None
-    time: str = None
-    name: str = None
+ReplayId = Annotated[str, Field(min_length=64, max_length=64)]
+# 2-S2-2-9562
+ToonHandle = Annotated[str, Field(min_length=11, max_length=15)]
+BsonBinary = Annotated[
+    bson.Binary,
+    pydantic.PlainValidator(to_bson_binary),
+]
 
 
-class Color(BaseModel):
-    a: int = None
-    b: int = None
-    g: int = None
-    r: int = None
+class AbilityUsed(MainBaseModel):
+    frame: int
+    time: str
+    name: str
 
 
-class AssistantMessage(BaseModel):
-    pid: int = None
-    second: int = None
-    text: str = None
+class Color(MainBaseModel):
+    a: int
+    b: int
+    g: int
+    r: int
+
+
+class ReplayMessage(MainBaseModel):
+    pid: int
+    second: int
+    text: str
     is_public: bool = True
 
 
-class PlayerStats(BaseModel):
-    worker_split: int = None
-    worker_micro: int = None
+class PlayerStats(MainBaseModel):
+    worker_split: int
+    worker_micro: int
 
 
-class ReplayStats(BaseModel):
-    loserDoesGG: bool = None
+class ReplayStats(MainBaseModel):
+    loserDoesGG: bool
 
 
-class UnitLoss(BaseModel):
-    frame: int = None
-    time: str = None
-    name: str = None
+class UnitLoss(MainBaseModel):
+    frame: int
+    time: str
+    name: str
     killer: int | None = None
-    clock_position: int = None
+    clock_position: int
 
 
-class BuildOrder(BaseModel):
-    frame: float = None
-    time: str = None
-    name: str = None
-    supply: int = None
+class BuildOrder(MainBaseModel):
+    frame: float
+    time: str
+    name: str
+    supply: int
     clock_position: int | None = None
     is_chronoboosted: bool | None = None
-    is_worker: bool = None
+    is_worker: bool = False
 
 
-class Player(BaseModel):
-    abilities_used: List[AbilityUsed] = None
-    avg_apm: float = None
-    build_order: List[BuildOrder] = None
-    clan_tag: str = None
-    color: Color = None
+class Player(MainBaseModel):
+    abilities_used: List[AbilityUsed] = []
+    avg_apm: float
+    build_order: List[BuildOrder] = []
+    clan_tag: str
+    color: Color
     creep_spread_by_minute: Dict[str, float] | None = None
-    highest_league: int = None
-    name: str = None
+    highest_league: int
+    name: str
     max_creep_spread: Tuple[int, float] | None = None
-    messages: List[AssistantMessage] = None
-    pick_race: str = None
-    pid: int = None
-    play_race: str = None
-    result: str = None
-    scaled_rating: int = None
-    stats: PlayerStats = None
-    supply: List[Tuple[int, int]] = None
-    toon_handle: str = None
-    toon_id: int = None
-    uid: int = None
-    units_lost: List[UnitLoss] = None
-    url: str = None
+    messages: List[ReplayMessage] = []
+    pick_race: str
+    pid: int
+    play_race: str
+    result: str
+    scaled_rating: int
+    stats: PlayerStats
+    supply: List[Tuple[int, int]] = []
+    toon_handle: str
+    toon_id: int
+    uid: int
+    units_lost: List[UnitLoss]
+    url: str
 
 
-class Observer(BaseModel):
+class Observer(MainBaseModel):
     pass
 
 
 class Replay(DbModel):
     id: ReplayId
-    build: int = None
-    category: str = None
-    date: datetime = None
-    expansion: str = None
-    filehash: str = None
-    filename: str = None
-    frames: int = None
-    game_fps: int = None
-    game_length: int = None
-    game_type: str = None
+    build: int
+    category: str
+    date: datetime
+    """The date the replay was played. This is the end date of the game in UTC time."""
+    expansion: str
+    filehash: str
+    filename: str
+    frames: int
+    game_fps: int
+    game_length: int
+    game_type: str
     is_ladder: bool = True
     is_private: bool = False
-    map_name: str = None
-    map_size: Tuple[int, int] = None
-    observers: List[Observer] = None
-    players: List[Player] = None
-    region: str = None
-    release: str = None
-    real_length: int = None
-    real_type: str = None
-    release_string: str = None
-    speed: str = None
-    stats: ReplayStats = None
-    time_zone: float = None
-    type: str = None
-    unix_timestamp: int = None
-    versions: List[int] = None
+    map_name: str
+    map_size: Tuple[int, int] | None = (0, 0)  # we have legacy replays without map_size
+    observers: List[Observer] = []
+    players: List[Player]
+    region: str
+    release: str
+    real_length: int
+    real_type: str
+    release_string: str
+    speed: str
+    stats: ReplayStats
+    time_zone: float
+    type: str
+    unix_timestamp: int
+    versions: List[int] = []
 
     _collection: ClassVar = "replays"
 
@@ -166,6 +180,9 @@ class Replay(DbModel):
                 return player
             if player.name != name and opponent:
                 return player
+
+    def get_opponent_of(self, name: str) -> Player:
+        return self.get_player(name, opponent=True)
 
     def _exclude_keys_for_build_order(self, limit, include_workers) -> dict:
         """Generate all keys which should be excluded from the replay on model_dump"""
@@ -196,9 +213,15 @@ class Replay(DbModel):
 
     def default_projection(self, limit=450, include_workers=True) -> dict:
         """Return a dictionary of replay limited to the default projection fields"""
+        return self.projection(config.default_projection, limit, include_workers)
+
+    def projection(self, projection: dict, limit=450, include_workers=True) -> dict:
+        """Return a dictionary of replay limited to the given projection fields"""
         exclude_keys = self._exclude_keys_for_build_order(
             limit=limit, include_workers=include_workers
         )
+        include_keys = convert_projection(projection)
+
         return self.model_dump(
             include=include_keys, exclude=exclude_keys, exclude_unset=True
         )
@@ -211,6 +234,7 @@ class Replay(DbModel):
         exclude_keys = self._exclude_keys_for_build_order(
             limit=limit, include_workers=include_workers
         )
+        include_keys = convert_projection(config.default_projection)
         return self.model_dump_json(
             include=include_keys, exclude=exclude_keys, exclude_unset=True
         )
@@ -238,35 +262,94 @@ class Role(str, Enum):
     assistant = "assistant"
 
 
-class AssistantMessage(BaseModel):
-    created_at: datetime = None
-    role: Role = None
-    text: str = None
+class AssistantMessage(MainBaseModel):
+    created_at: datetime
+    role: Role
+    text: str
 
 
 class Metadata(DbModel):
     replay: ReplayId
-    description: str = None
+    description: str | None = None
     tags: List[str] | None = None
     conversation: List[AssistantMessage] | None = None
     _collection: ClassVar = "replays.meta"
 
 
-def _to_bson_binary(value: Any) -> bson.Binary:
-    return value if isinstance(value, bson.Binary) else bson.Binary(value)
+class Alias(MainBaseModel):
+    name: str
+    portraits: list[BsonBinary] = []
+    seen_on: datetime | None = None
+
+    def __str__(self) -> str:
+        return f"{self.name}"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Alias):
+            return self.name == other.name
+        elif isinstance(other, PlayerInfo):
+            if other.portrait is None:
+                return self.name == other.name
+            else:
+                return (
+                    self.name == other.name
+                    and to_bson_binary(other.portrait) in self.portraits
+                )
+        else:
+            return False
 
 
-BsonBinary = Annotated[bson.Binary, pydantic.PlainValidator(_to_bson_binary)]
+AliasList = List[Alias]
+AliasList.__contains__ = lambda self, x: any(x == alias for alias in self)
+AliasList.__getitem__ = lambda self, x: next(alias for alias in self if alias == x)
 
 
 class PlayerInfo(DbModel):
-    name: str = None
-    toon_handle: str = None
+    id: ToonHandle
+    name: str
+    aliases: AliasList = []
+    toon_handle: ToonHandle
     portrait: BsonBinary | None = None
     _collection: ClassVar = "replays.players"
 
+    def update_aliases(self, seen_on: datetime = None):
+        seen_on = seen_on or datetime.now()
+        if self in self.aliases:
+            return
+        for alias in self.aliases:
+            if alias.name == self.name and self.portrait not in alias.portraits:
+                alias.portraits.append(self.portrait)
+                alias.seen_on = seen_on
+                return
+        self.aliases.append(
+            Alias(
+                name=self.name,
+                portraits=[self.portrait] if self.portrait else [],
+                seen_on=seen_on,
+            )
+        )
 
-class Usage(BaseModel):
+    def __str__(self) -> str:
+        exclude = {
+            "portrait": 1,
+            "aliases.portraits": 1,
+        }
+
+        exclude_keys = convert_projection(exclude)
+
+        return self.model_dump_json(
+            exclude_unset=True,
+            exclude=exclude_keys,
+        )
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+
+class Usage(MainBaseModel):
     thread_id: str
     completion_tokens: int = 0
     prompt_tokens: int = 0

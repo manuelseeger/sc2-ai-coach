@@ -16,64 +16,77 @@ from obs_tools.types import Screen
 # AdvancedSceneSwitcher can use these messages in macro conditions
 @click.command()
 @click.option("--verbose", is_flag=True)
-def main(verbose):
+@click.option("--debug", is_flag=True)
+def main(verbose, debug):
     """Monitor SC2 UI through client API and let OBS know when loading screen is active"""
 
     menu_screens = set([Screen.background, Screen.foreground, Screen.navigation])
 
-    with obsws.ReqClient(
-        host="localhost", port=4455, password=config.obs_ws_pw, timeout=3
-    ) as obs:
-        resp = obs.get_version()
-        print(f"OBS Version: {resp.obs_version}")
-
-        last_ui = None
+    if debug:
         while True:
             ui = sc2client.get_uiinfo()
+            print(ui.activeScreens)
+            sleep(1)
 
-            if ui is None:
-                print(":warning: SC2 not running?")
-                sleep(5)
-                continue
+    try:
+        with obsws.ReqClient(
+            host="localhost", port=4455, password=config.obs_ws_pw, timeout=3
+        ) as obs:
+            resp = obs.get_version()
+            print(f"OBS Version: {resp.obs_version}")
 
-            if ui == last_ui:
-                # only notify OBS on changes
-                sleep(0.5)
-                continue
+            last_ui = None
+            while True:
+                ui = sc2client.get_uiinfo()
 
-            if verbose:
-                print(ui.activeScreens)
+                if ui is None:
+                    print(":warning: SC2 not running?")
+                    sleep(5)
+                    continue
 
-            if len(ui.activeScreens) == 0:
-                print("In game")
-                data = {"message": "In game"}
-                obs.call_vendor_request(
-                    vendor_name="AdvancedSceneSwitcher",
-                    request_type="AdvancedSceneSwitcherMessage",
-                    request_data=data,
-                )
-            elif Screen.loading in ui.activeScreens:
-                print(Screen.loading)
+                if ui == last_ui:
+                    # only notify OBS on changes
+                    sleep(1)
+                    continue
 
-                data = {"message": Screen.loading}
-                obs.call_vendor_request(
-                    vendor_name="AdvancedSceneSwitcher",
-                    request_type="AdvancedSceneSwitcherMessage",
-                    request_data=data,
-                )
-            elif menu_screens < ui.activeScreens:
-                menues = ui.activeScreens - menu_screens
-                print("In menues " + str(menues))
-                data = {"message": "\n".join(sorted(menues))}
-                obs.call_vendor_request(
-                    vendor_name="AdvancedSceneSwitcher",
-                    request_type="AdvancedSceneSwitcherMessage",
-                    request_data=data,
-                )
-            else:
-                pass
+                if verbose:
+                    print(ui.activeScreens)
 
-            last_ui = ui
+                if len(ui.activeScreens) == 0:
+                    print("In game")
+                    data = {"message": "In game"}
+                    obs.call_vendor_request(
+                        vendor_name="AdvancedSceneSwitcher",
+                        request_type="AdvancedSceneSwitcherMessage",
+                        request_data=data,
+                    )
+                elif Screen.loading in ui.activeScreens:
+                    print(Screen.loading)
+
+                    data = {"message": Screen.loading}
+                    obs.call_vendor_request(
+                        vendor_name="AdvancedSceneSwitcher",
+                        request_type="AdvancedSceneSwitcherMessage",
+                        request_data=data,
+                    )
+                elif menu_screens < ui.activeScreens:
+                    menues = ui.activeScreens - menu_screens
+                    print("In menues " + str(menues))
+                    data = {"message": "\n".join(sorted(menues))}
+                    obs.call_vendor_request(
+                        vendor_name="AdvancedSceneSwitcher",
+                        request_type="AdvancedSceneSwitcherMessage",
+                        request_data=data,
+                    )
+                else:
+                    pass
+
+                last_ui = ui
+
+    except (ConnectionRefusedError, ConnectionError) as e:
+        print(":x: Can't connect to OBS; Not running or web sockets off?")
+    except Exception as e:
+        print(":x: " + str(e))
 
 
 if __name__ == "__main__":
