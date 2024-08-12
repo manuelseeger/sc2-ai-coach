@@ -73,6 +73,26 @@ def test_upsert_new_replay():
         map_name="test_map",
         game_length=1000,
         players=[],
+        build=5678,
+        category="ladderr",
+        expansion="lotv",
+        filehash=new_id,
+        filename="test.SC2Replay",
+        frames=4444,
+        game_fps=22,
+        game_type="1v1",
+        region="us",
+        release="5.0.0",
+        real_length=1000,
+        real_type="1v1",
+        release_string="5.0.0",
+        speed="faster",
+        stats={
+            "loserDoesGG": False,
+        },
+        time_zone=0,
+        type="ladder",
+        unix_timestamp=1000,
     )
 
     result = replaydb.upsert(replay)
