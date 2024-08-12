@@ -103,7 +103,7 @@ def main(debug):
         scanner = GameStartedScanner(name="scanner")
         scanner.start()
         loading_screen = signal("loading_screen")
-        loading_screen.connect(session.handle_scanner)
+        loading_screen.connect(session.handle_game_start)
 
     if CoachEvent.new_replay in config.coach_events:
         from replays.newreplay import NewReplayScanner
@@ -141,10 +141,10 @@ def main(debug):
             sleep(1)
         except KeyboardInterrupt:
             log.info("Shutting down ...")
-            
+
             if session.is_active():
                 session.close()
-                
+
             if CoachEvent.wake in config.coach_events:
                 listener.stop()
                 listener.join()
@@ -205,13 +205,13 @@ class AISession:
         self.last_rep_id = replay.id
 
     def converse(self):
-        
-        if not config.interactive: 
+
+        if not config.interactive:
             sleep(1)
             log.info("No input, closing thread")
             sleep(1)
             return True
-        
+
         start_time = time()
         while True:
             if time() - start_time > 60 * 3:
@@ -299,7 +299,7 @@ class AISession:
         else:
             return False
 
-    def initiate_from_scanner(self, map, opponent, mmr) -> str:
+    def initiate_from_game_start(self, map, opponent, mmr) -> str:
         replacements = {
             "student": str(config.student.name),
             "map": str(map),
@@ -307,15 +307,16 @@ class AISession:
             "mmr": str(mmr),
         }
 
-        opponent, past_replays = resolve_replays_from_current_opponent(opponent, map, datetime.now(tz=timezone.utc))
+        opponent, past_replays = resolve_replays_from_current_opponent(opponent, map)
 
         if len(past_replays) > 0:
-            replacements['replays'] = [r.default_projection_json(limit=300) for r in past_replays[:5]]
+            replacements["replays"] = [
+                r.default_projection_json(limit=300) for r in past_replays[:5]
+            ]
             prompt = Templates.scanner.render(replacements)
             self.thread_id = self.coach.create_thread(prompt)
         else:
             self.say(Templates.scanner_empty.render(replacements), flush=False)
-
 
     def initiate_from_new_replay(self, replay: Replay) -> str:
         opponent = replay.get_opponent_of(config.student.name).name
@@ -331,7 +332,7 @@ class AISession:
 
         self.thread_id = self.coach.create_thread(prompt)
 
-    def handle_scanner(self, sender, scanresult: ScanResult):
+    def handle_game_start(self, sender, scanresult: ScanResult):
         log.debug(sender, scanresult)
 
         if scanresult.mapname and config.obs_integration:
@@ -341,7 +342,7 @@ class AISession:
                     f.write(stats.prettify())
 
         if not self.is_active():
-            self.initiate_from_scanner(
+            self.initiate_from_game_start(
                 scanresult.mapname, scanresult.opponent, self.last_mmr
             )
             if self.is_active():
@@ -376,7 +377,6 @@ class AISession:
                 save_replay_summary(replay, self.coach)
 
                 self.close()
-
 
 
 if __name__ == "__main__":

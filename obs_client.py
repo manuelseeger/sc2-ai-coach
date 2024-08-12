@@ -22,12 +22,11 @@ def main(verbose, debug):
 
     menu_screens = set([Screen.background, Screen.foreground, Screen.navigation])
 
-    if debug: 
+    if debug:
         while True:
             ui = sc2client.get_uiinfo()
             print(ui.activeScreens)
             sleep(1)
-
 
     try:
         with obsws.ReqClient(
@@ -83,11 +82,12 @@ def main(verbose, debug):
                     pass
 
                 last_ui = ui
-    
+
     except (ConnectionRefusedError, ConnectionError) as e:
         print(":x: Can't connect to OBS; Not running or web sockets off?")
     except Exception as e:
         print(":x: " + str(e))
+
 
 if __name__ == "__main__":
     main()

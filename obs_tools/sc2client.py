@@ -41,7 +41,7 @@ class SC2Client:
             log.warn(f"Invalid UI data: {e}")
         return None
 
-    def get_opponent(self, gameinfo=None) -> tuple[str,Race]:
+    def get_opponent(self, gameinfo=None) -> tuple[str, Race]:
         if gameinfo is None:
             gameinfo = self.get_gameinfo()
         if gameinfo:

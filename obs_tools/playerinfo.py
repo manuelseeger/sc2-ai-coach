@@ -22,6 +22,7 @@ log = logging.getLogger(f"{config.name}.{__name__}")
 
 PORTRAIT_DIR = "obs/screenshots/portraits"
 
+
 def is_portrait_match(
     portrait_file: str, map_name: str, reference_date: datetime
 ) -> bool:
@@ -39,10 +40,10 @@ def is_portrait_match(
         return False
 
     portrait_file_date = datetime.strptime(matched_date, "%Y-%m-%d %H-%M-%S")
-    
+
     if is_aware(reference_date):
         tzinfo = datetime.now().astimezone().tzinfo
-        portrait_file_date = portrait_file_date.replace(tzinfo=tzinfo)    
+        portrait_file_date = portrait_file_date.replace(tzinfo=tzinfo)
 
     if (
         map_name in portrait_file
@@ -60,7 +61,9 @@ def get_matching_portrait_from_replay(replay: Replay) -> bytes:
     return get_matching_portrait(opponent.name, replay.map_name, reference_date)
 
 
-def get_matching_portrait(opponent: str, map_name: str, reference_date: datetime) -> bytes:
+def get_matching_portrait(
+    opponent: str, map_name: str, reference_date: datetime
+) -> bytes:
     if is_barcode(opponent):
         # not ideal since this would get messed up by players literally named "barcode"
         # but we have legacy files with "BARCODE" in the name
@@ -135,7 +138,10 @@ def resolve_player(name: str, portrait: np.ndarray) -> PlayerInfo:
         return candidates[0]
 
     scores = []
-    class BreakDeep(Exception): pass
+
+    class BreakDeep(Exception):
+        pass
+
     try:
         for candidate in candidates:
             for alias in candidate.aliases:
@@ -144,9 +150,9 @@ def resolve_player(name: str, portrait: np.ndarray) -> PlayerInfo:
                 for alias_portrait in alias.portraits:
                     img = Image.open(BytesIO(alias_portrait))
                     score = ssim(np.array(img), portrait)
-                    if score: 
-                        scores.append((score, candidate))                    
-                        if score > 0.99: # perfect match
+                    if score:
+                        scores.append((score, candidate))
+                        if score > 0.99:  # perfect match
                             raise BreakDeep
     except BreakDeep:
         pass
@@ -156,30 +162,32 @@ def resolve_player(name: str, portrait: np.ndarray) -> PlayerInfo:
 
         if best_score > 0.8:
             return best_candidate
-    
+
     log.info(f"Could not resolve player {name}")
 
 
-
-def resolve_replays_from_current_opponent(opponent: str, mapname: str) -> Tuple[str, List[Replay]]:
+def resolve_replays_from_current_opponent(
+    opponent: str, mapname: str
+) -> Tuple[str, List[Replay]]:
 
     gameinfo = sc2client.wait_for_gameinfo()
     if gameinfo:
         opponent, race = sc2client.get_opponent(gameinfo)
 
-    portrait_bytes = get_matching_portrait(opponent, mapname, datetime.now(tz=timezone.utc))
-    if portrait_bytes: 
+    portrait_bytes = get_matching_portrait(
+        opponent, mapname, datetime.now(tz=timezone.utc)
+    )
+    if portrait_bytes:
         portrait = Image.open(BytesIO(portrait_bytes))
-    else: 
+    else:
         portrait = None
 
     playerinfo = resolve_player(opponent, np.array(portrait))
 
     if playerinfo:
-        q =  {"players.toon_handle": playerinfo.toon_handle}
+        q = {"players.toon_handle": playerinfo.toon_handle}
         sort = od_sort((Replay.unix_timestamp, -1))
         past_replays = replaydb.db.find_many(Replay, raw_query=q, sort=sort)
         return opponent, past_replays
     else:
         return opponent, []
-    
