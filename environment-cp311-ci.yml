@@ -15,6 +15,7 @@ dependencies:
   - python-levenshtein
   - blinker
   - jinja2
+  - pillow
   - pip
   - pip:
       - opencv-python
