@@ -33,7 +33,8 @@ rootlogger.addHandler(logging.NullHandler())
 
 log = logging.getLogger(config.name)
 log.propagate = False
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
+
 
 if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
     from aicoach.transcribe import Transcriber
@@ -49,6 +50,14 @@ if config.obs_integration:
 if not os.path.exists("logs"):
     os.makedirs("logs")
 
+
+class FlushFilter(logging.Filter):
+    def filter(self, record):
+        return not hasattr(record, "flush")
+
+
+flush_filter = FlushFilter()
+
 handler = logging.FileHandler(
     os.path.join(
         "logs",
@@ -57,17 +66,22 @@ handler = logging.FileHandler(
     encoding="utf-8",
 )
 handler.setLevel(logging.DEBUG)
+handler.addFilter(flush_filter)
+
 one_file_handler = logging.FileHandler(
     mode="a",
     filename=os.path.join("logs", "_obs_watcher.log"),
     encoding="utf-8",
 )
 one_file_handler.setLevel(logging.DEBUG)
+one_file_handler.addFilter(flush_filter)
+
 log.addHandler(handler)
 log.addHandler(one_file_handler)
 
 obs_handler = TwitchObsLogHandler()
 obs_handler.setLevel(logging.INFO)
+
 log.addHandler(obs_handler)
 
 
@@ -334,7 +348,7 @@ class AISession:
         self.thread_id = self.coach.create_thread(prompt)
 
     def handle_game_start(self, sender, scanresult: ScanResult):
-        log.debug(sender, scanresult)
+        log.debug(f"{sender} {scanresult}")
 
         if scanresult.mapname and config.obs_integration:
             stats = get_map_stats(scanresult.mapname)

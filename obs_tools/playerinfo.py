@@ -183,6 +183,7 @@ def resolve_replays_from_current_opponent(
         portrait = None
 
     playerinfo = resolve_player(opponent, np.array(portrait))
+    log.debug(f"Resolved player info: {playerinfo}")
 
     if playerinfo:
         q = {"players.toon_handle": playerinfo.toon_handle}
