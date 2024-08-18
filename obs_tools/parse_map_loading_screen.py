@@ -195,9 +195,10 @@ class LoadingScreenScanner(threading.Thread):
                     opponent, race = sc2client.get_opponent(gameinfo)
                     log.info(f"Barcode resolved to {opponent}")
 
-                rename_file(config.screenshot, new_name)
-                save_portrait(opponent_portrait, new_name)
+                if opponent is not None:
+                    rename_file(config.screenshot, new_name)
+                    save_portrait(opponent_portrait, new_name)
 
-                scanresult = ScanResult(mapname=map, opponent=opponent)
-                loading_screen.send(self, scanresult=scanresult)
+                    scanresult = ScanResult(mapname=map, opponent=opponent)
+                    loading_screen.send(self, scanresult=scanresult)
             sleep(config.deamon_polling_rate)
