@@ -47,3 +47,4 @@ dependencies:
       - keyboard
       - climage
       - obsws-python
+      - blizzapi2

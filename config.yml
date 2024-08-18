@@ -67,8 +67,15 @@ screenshot: "obs/screenshots/_maploading.png"
 # Where tesserocr should look for the tesseract data
 tessdata_dir: "C:\\Program Files\\Tesseract-OCR\\tessdata"
 
+# The battle.net region we play on
+blizzard_region: "eu"
+# delta in MMR between player and potential opponent to consider opponent for barcode unmasking
+rating_delta_max: 600
+# maximum time since last played game to consider opponent for barcode unmasking in seconds
+last_played_ago_max: 2400
+
 # Current ladder season
-season: 59
+season: 60
 # Maps in the current ladder pool
 ladder_maps:
   - Goldenaura LE

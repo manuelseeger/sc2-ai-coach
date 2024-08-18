@@ -110,6 +110,14 @@ class Config(BaseSettings):
 
     obs_integration: bool
     sc2_client_url: str = "http://127.0.0.1:6119"
+
+    blizzard_client_id: str
+    blizzard_client_secret: str
+    blizzard_region: str
+
+    rating_delta_max: int
+    last_played_ago_max: int
+
     screenshot: str
     tessdata_dir: str
     obs_ws_pw: str | None = None

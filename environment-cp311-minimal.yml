@@ -22,3 +22,4 @@ dependencies:
       - pyodmongo
       - keyboard
       - climage
+      - blizzapi2
