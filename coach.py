@@ -45,7 +45,7 @@ if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
 
 
 if config.obs_integration:
-    from obs_tools.mapstats import get_map_stats
+    from obs_tools.mapstats import update_map_stats
 
 if not os.path.exists("logs"):
     os.makedirs("logs")
@@ -309,10 +309,7 @@ class AISession:
         replaydb.db.save(self.session)
 
     def is_goodbye(self, response: str):
-        if levenshtein(response[-20:].lower().strip(), "good luck, have fun") < 8:
-            return True
-        else:
-            return False
+        return levenshtein(response[-20:].lower().strip(), "good luck, have fun") < 8
 
     def initiate_from_game_start(self, map, opponent, mmr) -> str:
         replacements = {
@@ -351,10 +348,7 @@ class AISession:
         log.debug(f"{sender} {scanresult}")
 
         if scanresult.mapname and config.obs_integration:
-            stats = get_map_stats(scanresult.mapname)
-            if stats is not None:
-                with open("obs/map_stats.html", "w") as f:
-                    f.write(stats.prettify())
+            update_map_stats(scanresult.mapname)
 
         if not self.is_active():
             self.initiate_from_game_start(
