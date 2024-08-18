@@ -10,7 +10,7 @@ from typing_extensions import Annotated
 
 from config import AIBackend, config
 
-from .util import time2secs
+from .util import splittoon, time2secs
 
 
 def convert_to_nested_structure(d: dict):
@@ -347,6 +347,9 @@ class PlayerInfo(DbModel):
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    def split_profile_id(self) -> Tuple[int, int, int]:
+        return splittoon(self.toon_handle)
 
 
 class Usage(MainBaseModel):

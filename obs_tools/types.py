@@ -3,6 +3,8 @@ from typing import List
 
 from pydantic import BaseModel
 
+from replays.util import convert_enum
+
 
 class Screen(str, Enum):
     loading = "ScreenLoading/ScreenLoading"
@@ -51,6 +53,9 @@ class Race(str, Enum):
             return self.value == other or self.normalize() == other
         else:
             return self == other
+
+    def convert(self, other: Enum):
+        return convert_enum(self, other)
 
 
 class Result(str, Enum):
