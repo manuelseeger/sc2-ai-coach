@@ -1,6 +1,6 @@
-from .LookupPlayer import LookupPlayer
-from .QueryReplayDB import QueryReplayDB
 from .AddMetadata import AddMetadata
 from .GetCurrentGameInfo import GetCurrentGameInfo
+from .LookupPlayer import LookupPlayer
+from .QueryReplayDB import QueryReplayDB
 
-AIFunctions = [LookupPlayer, QueryReplayDB, AddMetadata, GetCurrentGameInfo]
+AIFunctions = [QueryReplayDB, AddMetadata, GetCurrentGameInfo]
