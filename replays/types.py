@@ -247,8 +247,7 @@ class Replay(DbModel):
             "players.name": 1,
             "players.play_race": 1,
         }
-        include_keys = convert_to_nested_structure(projection)
-        wrap_all_fields(include_keys)
+        include_keys = convert_projection(projection)
         return self.model_dump_json(
             include=include_keys, exclude_unset=True, exclude_defaults=True
         )

@@ -170,9 +170,11 @@ def resolve_replays_from_current_opponent(
     opponent: str, mapname: str
 ) -> Tuple[str, List[Replay]]:
 
-    gameinfo = sc2client.wait_for_gameinfo()
+    log.debug(f"Resolving replays for opponent {opponent}")
+    gameinfo = sc2client.wait_for_gameinfo(ongoing=True)
     if gameinfo:
         opponent, race = sc2client.get_opponent(gameinfo)
+        log.debug(f"Client gave us opponent {opponent}")
 
     portrait_bytes = get_matching_portrait(
         opponent, mapname, datetime.now(tz=timezone.utc)
