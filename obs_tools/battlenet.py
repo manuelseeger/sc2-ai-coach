@@ -17,6 +17,11 @@ REGION_MAP = {
 }
 
 
+def toon_handle_from_id(toon_id: str, region: str) -> str:
+    region_id, realm_id = REGION_MAP[region.lower()]
+    return f"{region_id}-S2-{realm_id}-{toon_id}"
+
+
 class BattlenetProfileSummary(BaseModel):
     id: str
     realm: int

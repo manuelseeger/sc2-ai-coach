@@ -13,7 +13,10 @@ from pyodmongo.queries import sort as od_sort
 
 from config import config
 from external.fast_ssim.ssim import ssim
+from obs_tools.battlenet import toon_handle_from_id
 from obs_tools.sc2client import sc2client
+from obs_tools.sc2pulse import SC2PulseClient
+from obs_tools.types import Race as GameInfoRace
 from replays.db import replaydb
 from replays.types import Alias, PlayerInfo, Replay, to_bson_binary
 from replays.util import is_aware, is_barcode
@@ -21,6 +24,10 @@ from replays.util import is_aware, is_barcode
 log = logging.getLogger(f"{config.name}.{__name__}")
 
 PORTRAIT_DIR = "obs/screenshots/portraits"
+
+KAT_PORTRAIT = Image.open("assets/katchinsky_portrait.png")
+
+sc2pulse = SC2PulseClient()
 
 
 def is_portrait_match(
@@ -128,7 +135,7 @@ def save_player_info(replay: Replay):
     return result
 
 
-def resolve_player(name: str, portrait: np.ndarray) -> PlayerInfo:
+def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo:
 
     q = elem_match(Alias.name == name, field=PlayerInfo.aliases)
 
@@ -138,6 +145,11 @@ def resolve_player(name: str, portrait: np.ndarray) -> PlayerInfo:
         return candidates[0]
 
     scores = []
+
+    # can't match barcode with kat portrait
+    if is_barcode(name) and ssim(np.array(KAT_PORTRAIT), portrait) > 0.8:
+        log.debug("Barcode with Kat portrait")
+        return None
 
     class BreakDeep(Exception):
         pass
@@ -152,39 +164,74 @@ def resolve_player(name: str, portrait: np.ndarray) -> PlayerInfo:
                     score = ssim(np.array(img), portrait)
                     if score:
                         scores.append((score, candidate))
-                        if score > 0.99:  # perfect match
+                        if score > 0.99:
                             raise BreakDeep
     except BreakDeep:
         pass
 
     if len(scores):
         best_score, best_candidate = max(scores, key=lambda x: x[0])
+        log.debug(
+            f"Best score, best candidate: {best_score}, {best_candidate.name} ({best_candidate.toon_handle})"
+        )
 
         if best_score > 0.8:
             return best_candidate
 
-    log.info(f"Could not resolve player {name}")
+    log.info(f"Could not resolve player {name} by portrait")
 
 
 def resolve_replays_from_current_opponent(
-    opponent: str, mapname: str
+    opponent: str, mapname: str, mmr: int
 ) -> Tuple[str, List[Replay]]:
 
+    playerinfo = None
+
     log.debug(f"Resolving replays for opponent {opponent}")
-    gameinfo = sc2client.wait_for_gameinfo(ongoing=True)
-    if gameinfo:
-        opponent, race = sc2client.get_opponent(gameinfo)
-        log.debug(f"Client gave us opponent {opponent}")
 
-    portrait_bytes = get_matching_portrait(
-        opponent, mapname, datetime.now(tz=timezone.utc)
-    )
-    if portrait_bytes:
-        portrait = Image.open(BytesIO(portrait_bytes))
-    else:
-        portrait = None
+    if not is_barcode(opponent):
+        q = PlayerInfo.name == opponent
+        playerinfos = replaydb.db.find_many(PlayerInfo, q)
 
-    playerinfo = resolve_player(opponent, np.array(portrait))
+        if len(playerinfos) == 1:
+            playerinfo = playerinfos[0]
+
+    if not playerinfo:
+        gameinfo = sc2client.wait_for_gameinfo(timeout=30, ongoing=True)
+        if gameinfo:
+            opponent, race = sc2client.get_opponent(gameinfo)
+            log.debug(f"Client gave us opponent {opponent}")
+        else:
+            log.debug("Could not get gameinfo from client (timeout?)")
+
+        portrait_bytes = get_matching_portrait(
+            opponent, mapname, datetime.now(tz=timezone.utc)
+        )
+        if portrait_bytes:
+            portrait = Image.open(BytesIO(portrait_bytes))
+        else:
+            portrait = None
+
+        # 1 look through DB and see if we played this name + portrait before
+        playerinfo = resolve_player_with_portrait(opponent, np.array(portrait))
+
+    if not playerinfo:
+
+        # 2 query sc2pulse for player info
+        pulse_players = sc2pulse.get_unmasked_players(
+            opponent=opponent, race=race, mmr=mmr
+        )
+
+        if pulse_players:
+            log.debug(
+                f"Trying with closest player from SC2Pulse: {pulse_players[0].toon_handle}"
+            )
+            playerinfo = PlayerInfo(
+                id=pulse_players[0].toon_handle,
+                name=opponent,
+                toon_handle=pulse_players[0].toon_handle,
+            )
+
     log.debug(f"Resolved player info: {playerinfo}")
 
     if playerinfo:

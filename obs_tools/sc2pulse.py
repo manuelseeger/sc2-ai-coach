@@ -10,6 +10,8 @@ from httpx import Client
 from pydantic import BaseModel
 
 from config import config
+from obs_tools.battlenet import toon_handle_from_id
+from obs_tools.types import Race as GameInfoRace
 from replays.util import convert_enum
 
 
@@ -79,6 +81,12 @@ class SC2PulseTeam(BaseModel):
     lastPlayed: datetime
     members: List[SC2PulseMember]
 
+    @property
+    def toon_handle(self) -> str:
+        return toon_handle_from_id(
+            self.members[0].character.battlenetId, config.blizzard_region
+        )
+
 
 class SC2PulseClient:
 
@@ -105,7 +113,7 @@ class SC2PulseClient:
         self.season = config.season
         self.rating_delta_max = config.rating_delta_max
         self.last_played_ago_max = config.last_played_ago_max
-        self.region = config.blizzard_region
+        self.region = convert_enum(config.blizzard_region, SC2PulseRegion)
 
     def character_search_advanced(self, name, caseSensitive=False) -> List[int]:
         response = self.client.get(
@@ -118,21 +126,28 @@ class SC2PulseClient:
                 "caseSensitive": caseSensitive,
             },
         )
+        if response.status_code == 404:
+            return []
+        response.raise_for_status()
         return [int(c) for c in response.json()]
 
-    def get_teams(self, character_ids: List[int], race: str) -> List[SC2PulseTeam]:
+    def get_teams(
+        self, character_ids: List[int], race: SC2PulseRace
+    ) -> List[SC2PulseTeam]:
+
         teams = []
         for batch in [
             character_ids[i : i + self.team_batch_size]
             for i in range(0, len(character_ids), self.team_batch_size)
         ]:
+            # can't get random teams?
             response = self.client.get(
                 f"/group/team",
                 params={
                     "characterId": ",".join(map(str, batch)),
                     "season": self.season,
                     "queue": self.queue,
-                    "race": race,
+                    "race": race.value,
                 },
             )
             response.raise_for_status()
@@ -141,7 +156,14 @@ class SC2PulseClient:
 
         return teams
 
-    def get_unmasked_players(self, opponent: str, race: str, mmr: int):
+    def get_unmasked_players(
+        self, opponent: str, race: str | Enum, mmr: int
+    ) -> List[SC2PulseTeam]:
+
+        if isinstance(race, GameInfoRace):
+            race = race.convert(SC2PulseRace)
+        if isinstance(race, str):
+            race = SC2PulseRace(race)
 
         char_ids = self.character_search_advanced(opponent)
 
