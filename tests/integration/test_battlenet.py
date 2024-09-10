@@ -8,7 +8,7 @@ from obs_tools.sc2pulse import SC2PulseClient, SC2PulseRace, SC2PulseRegion
 def test_get_barcode_character_ids():
     barcode = "IIIIIIIIIIII"
 
-    sc2pulse = SC2PulseClient(season=config.season, region=SC2PulseRegion.EU)
+    sc2pulse = SC2PulseClient()
 
     chars = sc2pulse.character_search_advanced(name=barcode)
 
@@ -19,7 +19,7 @@ def test_get_barcode_character_ids():
 def test_get_unmasked_player():
     barcode = "IIIIIIIIIIII"
 
-    sc2pulse = SC2PulseClient(season=config.season, region=SC2PulseRegion.EU)
+    sc2pulse = SC2PulseClient()
 
     players = sc2pulse.get_unmasked_players(
         opponent=barcode, race=SC2PulseRace.zerg.value, mmr=4000

@@ -18,3 +18,4 @@ obs_tools/ttsmodels/
 tests/coverage/
 .coverage
 tests/test-results.xml
+report.html

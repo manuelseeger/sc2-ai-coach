@@ -116,32 +116,45 @@ def test_resolve_barcode_player(portrait_file):
 
     portrait = Image.open(portrait_file)
 
-    player_info = playerinfo.resolve_player(barcode, portrait=np.array(portrait))
+    player_info = playerinfo.resolve_player_with_portrait(
+        barcode, portrait=np.array(portrait)
+    )
 
     assert player_info.id == barcode1
 
 
 # requires sc2client to connect to the game
 @pytest.mark.parametrize(
-    "portrait_file",
-    ["Post-Youth LE - BARCODE vs zatic 2024-08-05 16-32-48_portrait.png"],
+    "portrait_file, opponent, num_replays",
+    [
+        (
+            "Post-Youth LE - BARCODE vs zatic 2024-08-05 16-32-48_portrait.png",
+            "lllllllllllI",
+            4,
+        ),
+        (
+            "Post-Youth LE - BARCODE vs zatic 2024-08-05 16-32-48_portrait.png",
+            "hobgoblindoesntexist",
+            0,
+        ),
+    ],
     indirect=["portrait_file"],
 )
-def test_resolve_current_player(portrait_file, monkeypatch):
+def test_resolve_current_player(portrait_file, opponent, num_replays, monkeypatch):
 
     def get_portrait_mocked(o, m, r):
         return open(portrait_file, "rb").read()
 
     monkeypatch.setattr(playerinfo, "get_matching_portrait", get_portrait_mocked)
 
-    bc = "lllllllllllI"
     mapname = "Post-Youth LE"
-    opponent, replays = resolve_replays_from_current_opponent(
-        opponent=bc, mapname=mapname
+    mmr = 4000
+    resolved_opponent, replays = resolve_replays_from_current_opponent(
+        opponent=opponent, mapname=mapname, mmr=mmr
     )
 
-    assert opponent == bc
-    assert len(replays) > 0
+    assert resolved_opponent == opponent
+    assert len(replays) == num_replays
 
 
 # requires sc2client to connect to the game
@@ -157,8 +170,9 @@ def test_resolve_current_barcode_player(portrait_file, monkeypatch):
     monkeypatch.setattr(playerinfo, "get_matching_portrait", get_portrait_mocked)
     bc = "IIIIIIIIIIII"
     mapname = "Post-Youth LE"
+    mmr = 4000
     opponent, replays = resolve_replays_from_current_opponent(
-        opponent=bc, mapname=mapname
+        opponent=bc, mapname=mapname, mmr=mmr
     )
 
     assert opponent == bc
@@ -229,3 +243,14 @@ def test_get_matching_portrait(portrait_file):
 )
 def test_match_portrait_filename(portrait_file, map_name, replay_date, expected):
     assert is_portrait_match(portrait_file, map_name, replay_date) == expected
+
+
+# @pytest.mark.parametrize("portrait_file", "kat_diamond.png")
+def test_match_kat_portrait():
+    name = "IIIIIIIIIIII"
+    portrait = Image.open("tests/testdata/portraits/kat_diamond.png")
+    kat = Image.open("tests/testdata/portraits/katchinsky_portrait.png")
+
+    score = ssim(np.array(kat), np.array(portrait))
+
+    assert score > 0.8
