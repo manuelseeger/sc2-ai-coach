@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import datetime
-from typing import Callable, Dict, Generator
+from typing import Callable, Dict, Generator, Generic, Type, TypeVar
 
 from openai import APIError, AssistantEventHandler, OpenAI
 from openai.lib.streaming import AssistantStreamManager
@@ -17,6 +17,7 @@ from openai.types.beta.threads import (
     Run,
 )
 from openai.types.beta.threads.run import Usage
+from pydantic import BaseModel
 
 from config import config
 
@@ -26,6 +27,8 @@ from .prompt import Templates
 log = logging.getLogger(f"{config.name}.{__name__}")
 
 client = OpenAI(api_key=config.openai_api_key, organization=config.openai_org_id)
+
+TBaseModel = TypeVar("T", bound=BaseModel)
 
 
 class AICoach:
@@ -120,6 +123,30 @@ class AICoach:
             buffer += response
         return buffer
 
+    def get_structured_response(self, message, schema: Type[TBaseModel]) -> TBaseModel:
+        """Get the structured response from the assistant for a given message."""
+        message = client.beta.threads.messages.create(
+            thread_id=self.thread.id,
+            role="user",
+            content=message,
+        )
+        new_run = client.beta.threads.runs.create_and_poll(
+            thread_id=self.thread.id,
+            assistant_id=self.assistant.id,
+            tools=[],  # structured output requires no tools
+            model=config.gpt_model,
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": schema.__name__,
+                    "schema": schema.model_json_schema(),
+                },
+            },
+        )
+
+        if new_run.status == "completed":
+            return schema(**json.loads(self.get_most_recent_message()))
+
     def chat(self, text) -> Generator[str, None, None]:
         """Send a message to the assistant and stream the response.
 
@@ -172,9 +199,6 @@ class AICoach:
     def _handle_tool_call(
         self, tool_call: RequiredActionFunctionToolCall
     ) -> tuple[str, str]:
-        if tool_call.type != "function":
-            return (None, None)
-
         args = json.loads(tool_call.function.arguments)
         name = tool_call.function.name
         log.info(f"Calling function {name} with args: {args}")

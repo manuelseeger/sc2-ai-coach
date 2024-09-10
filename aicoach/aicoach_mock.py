@@ -1,7 +1,7 @@
 import random
 from threading import Thread
 from time import sleep
-from typing import Callable, Dict, Generator
+from typing import Callable, Dict, Generator, Type
 from uuid import uuid4
 
 import tiktoken
@@ -9,7 +9,7 @@ from openai.types.beta.threads import Message, Text, TextContentBlock
 from openai.types.beta.threads.run import Usage
 from typing_extensions import override
 
-from .aicoach import AICoach
+from .aicoach import AICoach, TBaseModel
 
 data = [
     "The current supply count is not part of the game information provided. I can give insights based on replays on record but not from live games or current replays in progress. Would you like me to look up a recent replay instead?",
@@ -99,6 +99,10 @@ class AICoachMock(AICoach):
             return
         for token in self.generate_stream():
             yield token
+
+    @override
+    def get_structured_response(self, message, schema: type[TBaseModel]) -> TBaseModel:
+        raise NotImplementedError
 
     @override
     def get_conversation(self) -> list[Message]:
