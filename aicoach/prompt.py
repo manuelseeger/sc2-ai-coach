@@ -12,7 +12,7 @@ log.setLevel(logging.DEBUG)
 class LoggingTemplate(Template):
     def render(self, *args, **kwargs):
         r = super().render(*args, **kwargs)
-        log.debug(f"Rendered template: {r}")
+        # log.debug(f"Rendered template: {r}")
         return r
 
 
@@ -44,8 +44,8 @@ class Jinja2Loader:
         )
         self.scanner_empty = self.env.get_template("scanner_empty.jinja2")
 
-    def render(self, template: str, replacements: Dict[str, str]) -> str:
-        template = self.env.get_template(template)
+    def render(self, template_name: str, replacements: Dict[str, str]) -> str:
+        template = self.env.get_template(template_name)
         return template.render(replacements)
 
 

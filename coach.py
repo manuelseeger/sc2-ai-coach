@@ -125,12 +125,12 @@ def main(debug):
 
 
 class AISession:
-    coach: AICoach = None
-    last_map: str = None
-    last_opponent: str = None
+    coach: AICoach
+    last_map: str
+    last_opponent: str
     last_mmr: int = 4000
-    _thread_id: str = None
-    last_rep_id: str = None
+    _thread_id: str
+    last_rep_id: str
 
     session: Session
 
@@ -158,14 +158,9 @@ class AISession:
             self.session.threads.append(value)
             replaydb.db.save(self.session)
 
-    def update_last_replay(self, replay: Replay = None):
+    def update_last_replay(self, replay: Replay | None = None):
         if replay is None:
             replay = replaydb.get_most_recent()
-        if replay is None:
-            log.warning(
-                f"Can't find most recent replay for student '{config.student.name}'"
-            )
-            return
         self.last_map = replay.map_name
         self.last_opponent = replay.get_player(config.student.name, opponent=True).name
         self.last_mmr = replay.get_player(config.student.name).scaled_rating
@@ -263,12 +258,13 @@ class AISession:
     def is_goodbye(self, response: str):
         return levenshtein(response[-20:].lower().strip(), "good luck, have fun") < 8
 
-    def initiate_from_game_start(self, map, opponent, mmr) -> str:
+    def initiate_from_game_start(self, map, opponent, mmr):
         replacements = {
             "student": str(config.student.name),
             "map": str(map),
             "opponent": str(opponent),
             "mmr": str(mmr),
+            "replays": [],
         }
 
         opponent, past_replays = resolve_replays_from_current_opponent(
@@ -284,7 +280,7 @@ class AISession:
         else:
             self.say(Templates.scanner_empty.render(replacements), flush=False)
 
-    def initiate_from_new_replay(self, replay: Replay) -> str:
+    def initiate_from_new_replay(self, replay: Replay):
         opponent = replay.get_opponent_of(config.student.name).name
         replacements = {
             "student": str(config.student.name),

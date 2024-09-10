@@ -75,7 +75,7 @@ class BattleNet:
         self.region_id = REGION_MAP[config.blizzard_region][0]
         self.realm_id = REGION_MAP[config.blizzard_region][1]
 
-    def get_profile(self, profile_id: str) -> BattlenetProfile:
+    def get_profile(self, profile_id: int) -> BattlenetProfile:
         p = self.api_client.starcraft2.community.get_profile(
             region=config.blizzard_region,
             region_id=self.region_id,

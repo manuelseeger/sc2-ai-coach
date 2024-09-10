@@ -61,7 +61,7 @@ def is_portrait_match(
         return False
 
 
-def get_matching_portrait_from_replay(replay: Replay) -> bytes:
+def get_matching_portrait_from_replay(replay: Replay) -> bytes | None:
     opponent = replay.get_opponent_of(config.student.name)
     reference_date = replay.date - timedelta(seconds=replay.real_length)
     reference_date = reference_date.replace(tzinfo=timezone.utc)
@@ -70,7 +70,7 @@ def get_matching_portrait_from_replay(replay: Replay) -> bytes:
 
 def get_matching_portrait(
     opponent: str, map_name: str, reference_date: datetime
-) -> bytes:
+) -> bytes | None:
     if is_barcode(opponent):
         # not ideal since this would get messed up by players literally named "barcode"
         # but we have legacy files with "BARCODE" in the name
@@ -135,7 +135,7 @@ def save_player_info(replay: Replay):
     return result
 
 
-def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo:
+def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo | None:
 
     q = elem_match(Alias.name == name, field=PlayerInfo.aliases)
 

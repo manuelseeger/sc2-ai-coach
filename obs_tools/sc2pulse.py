@@ -84,7 +84,7 @@ class SC2PulseTeam(BaseModel):
     @property
     def toon_handle(self) -> str:
         return toon_handle_from_id(
-            self.members[0].character.battlenetId, config.blizzard_region
+            str(self.members[0].character.battlenetId), config.blizzard_region
         )
 
 
