@@ -13,28 +13,13 @@ from rich.prompt import Prompt
 from aicoach import AICoach
 from aicoach.prompt import Templates
 from config import AIBackend, AudioMode, CoachEvent, config
+from log import log
 from obs_tools.playerinfo import resolve_replays_from_current_opponent
 from obs_tools.rich_log import TwitchObsLogHandler
 from obs_tools.types import ScanResult, WakeResult
 from replays.db import replaydb
 from replays.metadata import save_replay_summary
 from replays.types import Player, Replay, Role, Session, Usage
-
-warnings.filterwarnings("ignore")
-
-
-rootlogger = logging.getLogger()
-for handler in rootlogger.handlers.copy():
-    try:
-        rootlogger.removeHandler(handler)
-    except ValueError:
-        pass
-rootlogger.addHandler(logging.NullHandler())
-
-log = logging.getLogger(config.name)
-log.propagate = False
-log.setLevel(logging.DEBUG)
-
 
 if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
     from aicoach.transcribe import Transcriber
@@ -43,41 +28,9 @@ if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
     mic = Microphone()
     transcriber = Transcriber()
 
-
 if config.obs_integration:
     from obs_tools.mapstats import update_map_stats
 
-if not os.path.exists("logs"):
-    os.makedirs("logs")
-
-
-class FlushFilter(logging.Filter):
-    def filter(self, record):
-        return not hasattr(record, "flush")
-
-
-flush_filter = FlushFilter()
-
-handler = logging.FileHandler(
-    os.path.join(
-        "logs",
-        f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-obs_watcher.log",
-    ),
-    encoding="utf-8",
-)
-handler.setLevel(logging.DEBUG)
-handler.addFilter(flush_filter)
-
-one_file_handler = logging.FileHandler(
-    mode="a",
-    filename=os.path.join("logs", "_obs_watcher.log"),
-    encoding="utf-8",
-)
-one_file_handler.setLevel(logging.DEBUG)
-one_file_handler.addFilter(flush_filter)
-
-log.addHandler(handler)
-log.addHandler(one_file_handler)
 
 obs_handler = TwitchObsLogHandler()
 obs_handler.setLevel(logging.INFO)
@@ -90,7 +43,6 @@ log.addHandler(obs_handler)
 def main(debug):
     if debug:
         log.setLevel(logging.DEBUG)
-        handler.setLevel(logging.DEBUG)
         log.debug("debugging on")
 
     if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
@@ -319,7 +271,9 @@ class AISession:
             "mmr": str(mmr),
         }
 
-        opponent, past_replays = resolve_replays_from_current_opponent(opponent, map)
+        opponent, past_replays = resolve_replays_from_current_opponent(
+            opponent, map, mmr
+        )
 
         if len(past_replays) > 0:
             replacements["replays"] = [
