@@ -19,15 +19,15 @@ This is my personal research project to explore the latest in LLM based agents.
 
 Looking up past games when a new game is being played:
 
-![Example new game](archive/aicoach-scanner-example.png "New game started")
+![Example new game](assets/aicoach-scanner-example.png "New game started")
 
 Analyzing a replay after a game just finished:
 
-![Example replay](archive/aicoach-newreplay-manners.png "New Replay, discussing player's manners")
+![Example replay](assets/aicoach-newreplay-manners.png "New Replay, discussing player's manners")
 
 Answering arbitrary questions on SC2:
 
-![Example replay](archive/aicoach-hey-goat.png "Weighing in on the GOAT debate")
+![Example replay](assets/aicoach-hey-goat.png "Weighing in on the GOAT debate")
 
 ## Minimal Setup
 
