@@ -28,6 +28,12 @@ if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
     mic = Microphone()
     transcriber = Transcriber()
 
+if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
+    from obs_tools.tts import make_tts_stream
+
+    tts = make_tts_stream()
+    tts.feed("")
+
 if config.obs_integration:
     from obs_tools.mapstats import update_map_stats
 
@@ -44,14 +50,6 @@ def main(debug):
     if debug:
         log.setLevel(logging.DEBUG)
         log.debug("debugging on")
-
-    if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
-        from obs_tools.tts import make_tts_stream
-
-        global tts
-
-        tts = make_tts_stream()
-        tts.feed("")
 
     session = AISession()
 
@@ -129,7 +127,7 @@ class AISession:
     last_map: str
     last_opponent: str
     last_mmr: int = 4000
-    _thread_id: str
+    _thread_id: str | None = None
     last_rep_id: str
 
     session: Session
