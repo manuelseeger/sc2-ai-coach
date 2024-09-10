@@ -8,7 +8,7 @@ dependencies:
   - conda-forge::pydantic-settings
   - pyyaml
   - pandas
-  - requests
+  - conda-forge::httpx
   - click
   - pymongo
   - numpy
