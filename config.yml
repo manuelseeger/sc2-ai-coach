@@ -30,13 +30,13 @@ recognizer:
   speech_threshold: 0.3
 # Hotkey to call up the AI coach prompt when run in text-in mode
 wake_key: "ctrl+alt+w"
-# Determines whether you can interact with AI coach; if False, AI coach will handle replays but won't wait for your input
+# Determines whether you can interact with AI coach; if False, AI coach will handle replays but won't ask for your input
 interactive: True
 
 # Configure the "student" - the player using AI coach
 student:
   name: "studentname"
-  race: "Zerg"
+  race: "Terran"
   # Emoji to represent the student in output
   emoji: ":man_technologist:"
   # URL pointing to your public sc2replaystats profile's map stats (optional)
@@ -68,9 +68,9 @@ screenshot: "obs/screenshots/_maploading.png"
 tessdata_dir: "C:\\Program Files\\Tesseract-OCR\\tessdata"
 
 # The battle.net region we play on
-blizzard_region: "eu"
+blizzard_region: "EU"
 # delta in MMR between player and potential opponent to consider opponent for barcode unmasking
-rating_delta_max: 600
+rating_delta_max: 500
 # maximum time since last played game to consider opponent for barcode unmasking in seconds
 last_played_ago_max: 2400
 

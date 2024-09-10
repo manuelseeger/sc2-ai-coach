@@ -35,6 +35,13 @@ env_files = sort_config_files(env_files)
 env_files.remove(".env.example")
 
 
+class SC2Region(str, Enum):
+    US = "US"
+    EU = "EU"
+    KR = "KR"
+    CN = "CN"
+
+
 class CoachEvent(str, Enum):
     wake = "wake"
     game_start = "game_start"
@@ -113,7 +120,7 @@ class Config(BaseSettings):
 
     blizzard_client_id: str
     blizzard_client_secret: str
-    blizzard_region: str
+    blizzard_region: SC2Region
 
     rating_delta_max: int
     last_played_ago_max: int
