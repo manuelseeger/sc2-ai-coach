@@ -3,10 +3,10 @@ import threading
 from time import sleep, time
 from urllib.parse import urljoin
 
-import requests
+import httpx
 from blinker import signal
+from httpx import ConnectError
 from pydantic_core import ValidationError
-from requests.exceptions import ConnectionError
 
 from config import config
 
@@ -52,11 +52,11 @@ class SC2Client:
 
     def _get_info(self, path) -> str:
         try:
-            response = requests.get(urljoin(config.sc2_client_url, path))
+            response = httpx.get(urljoin(config.sc2_client_url, path))
             if response.status_code == 200:
                 return response.text
-        except ConnectionError as e:
-            log.warn("Could not connect to SC2 game client, is SC2 running?")
+        except ConnectError as e:
+            log.warning("Could not connect to SC2 game client, is SC2 running?")
         return None
 
     def wait_for_gameinfo(
