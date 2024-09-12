@@ -14,7 +14,7 @@ DB_NAME="MyReplays"
 
 Startup local DB with 
 
-```seh
+```sh
 dockercompose up
 ```
 This will set up a locally running MongoDB with database $DB_NAME and the credentials from the .env file. Populate it by importing from an existing DB or import replays with [../repcli.py](../repcli.py).

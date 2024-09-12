@@ -1,8 +1,11 @@
-from .base import AIFunction
-from typing import Annotated
-import requests
 import logging
+from typing import Annotated
+
+import httpx
+
 from config import config
+
+from .base import AIFunction
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -24,13 +27,14 @@ def LookupPlayer(
 
     Only call this function with valid toon handles in the format 2-S2-1-1849098.
     """
+    raise NotImplementedError("This function is not implemented yet.")
     summary = {}
     try:
         handle = toon_handle.replace("-S2-", "/").replace("-", "/")
 
         api_url = API_BASE + handle
 
-        with requests.Session() as s:
+        with httpx.Client() as s:
             r = s.get(api_url, timeout=10)
 
             if r.status_code != 200:
