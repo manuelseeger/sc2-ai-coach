@@ -50,9 +50,9 @@ aibackend: "OpenAI"
 # which GPT model to use for OpenAI Assistant API
 gpt_model: "gpt-4o-2024-08-06"
 # Cost per prompt token
-gpt_prompt_pricing: 0.000005
+gpt_prompt_pricing: 0.0000025
 # Cost per completion token
-gpt_completion_pricing: 0.000015
+gpt_completion_pricing: 0.000010
 
 # Which events should the AI coach react to
 coach_events:

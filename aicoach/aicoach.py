@@ -134,7 +134,6 @@ class AICoach:
             thread_id=self.thread.id,
             assistant_id=self.assistant.id,
             tools=[],  # structured output requires no tools
-            model=config.gpt_model,
             response_format={
                 "type": "json_schema",
                 "json_schema": {
@@ -162,10 +161,13 @@ class AICoach:
             assistant_id=self.assistant.id,
             additional_instructions=self.additional_instructions,
         ) as stream:
-
-            for event in stream:
-                for token in self._process_event(event):
-                    yield token
+            try:
+                for event in stream:
+                    for token in self._process_event(event):
+                        yield token
+            except APIError as e:
+                log.error(f"API Error: {e}")
+                yield ""
 
     def _process_event(self, event) -> Generator[str, None, None]:
         if isinstance(event, ThreadMessageDelta):
