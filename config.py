@@ -1,6 +1,6 @@
 from enum import Enum
 from glob import glob
-from typing import Annotated, Dict, List, Tuple, Type
+from typing import Annotated, Dict, List, Optional, Tuple, Type
 
 from pydantic import BaseModel
 from pydantic.networks import UrlConstraints
@@ -118,8 +118,8 @@ class Config(BaseSettings):
     obs_integration: bool
     sc2_client_url: str = "http://127.0.0.1:6119"
 
-    blizzard_client_id: str
-    blizzard_client_secret: str
+    blizzard_client_id: Optional[str] = None
+    blizzard_client_secret: Optional[str] = None
     blizzard_region: SC2Region
 
     rating_delta_max: int

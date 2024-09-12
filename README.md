@@ -63,41 +63,11 @@ The rest of the settings will be taken from `config.yml`.
 
 Secrets are configured with environment variables. Either provide them at runtime or put them in a dotenv file, like [.env.example](.env.example). (But copy to `.env` since the example file is ignored).
 
-### OpenAI
-
-Prerequisites:
-
-- Setup an OpenAI account and fund with credits
-- Create an OpenAI Assistant
-- Create an API key.
-
-Add your OpenAI organization, Assistant ID, and API key to the env variables, `AICOACH_ASSISTANT_ID`, `AICOACH_OPENAI_API_KEY`, `AICOACH_OPENAI_ORG_ID`.
-
-Note on cost: Long conversations can cost up to one dollar ($1.00) in OpenAI API usage. AICoach will not incur API costs until one of the wake events is triggered - see below.
-
-If you just want a database with your replays you can skip this step and the next or do it later.
-
-### Build and deploy assistant
-
-```sh
-> python build.py
-```
-
-to build the assistant. You should have a new file [aicoach/assistant.json](aicoach/assistant.json).
-
-```sh
-> python build.py --deploy
-```
-
-to deploy the assistant to OpenAI. Check on https://platform.openai.com/playground if the assistant is initialized with tools and instructions.
-
 ### Database
 
 Any MongoDB > 4.5 will do. Either setup one by yourself, or follow the instructions in [mongodb/](mongodb/README.md) on how to setup a local database for dev/testing.
 
-If you setup your own MongoDB, create a database, and add 3 collections `replays`, `replays.meta`, `replays.players`.
-
-Add the DB name to settings:
+If you setup your own MongoDB, create a database and add the DB name to settings:
 
 ```yaml
 # config.yourname.yml
@@ -145,6 +115,35 @@ to read all 1v1 ladder replays from beginning of 2024. With the `--simulation` f
 The `replays` collection of the DB should now be populated with replay documents.
 
 See `python repcli.py sync --help` for more options. You can always repopulate the DB from replay files without destroying anything. AICoach does not change anything on the replay data in the DB.
+
+### OpenAI
+
+Prerequisites:
+
+- Setup an OpenAI account and fund with credits
+- Create an OpenAI Assistant
+- Create an API key.
+
+Add your OpenAI organization, Assistant ID, and API key to the env variables, `AICOACH_ASSISTANT_ID`, `AICOACH_OPENAI_API_KEY`, `AICOACH_OPENAI_ORG_ID`.
+
+Note on cost: Long conversations can cost up to one dollar ($1.00) in OpenAI API usage. AICoach will not incur API costs until one of the wake events is triggered - see below.
+
+If you just want a database with your replays you can skip this step and the next or do it later.
+
+### Build and deploy assistant
+
+```sh
+> python build.py
+```
+
+to build the assistant. You should have a new file [aicoach/assistant.json](aicoach/assistant.json).
+
+```sh
+> python build.py --deploy
+```
+
+to deploy the assistant to OpenAI. Check on https://platform.openai.com/playground if the assistant is initialized with tools and instructions.
+
 
 ### (Optional) Additional settings
 
