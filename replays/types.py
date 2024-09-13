@@ -312,6 +312,7 @@ class PlayerInfo(DbModel):
     aliases: AliasList = []
     toon_handle: ToonHandle
     portrait: BsonBinary | None = None
+    portrait_constructed: BsonBinary | None = None
     _collection: ClassVar = "replays.players"
 
     def update_aliases(self, seen_on: datetime = None):
@@ -319,21 +320,26 @@ class PlayerInfo(DbModel):
         if self in self.aliases:
             return
         for alias in self.aliases:
-            if alias.name == self.name and self.portrait not in alias.portraits:
-                alias.portraits.append(self.portrait)
-                alias.seen_on = seen_on
+            if alias.name == self.name:
+                if self.portrait and self.portrait not in alias.portraits:
+                    alias.portraits.append(self.portrait)
+                    alias.seen_on = seen_on
                 return
+
+        portraits = [self.portrait] if self.portrait else []
+
         self.aliases.append(
             Alias(
                 name=self.name,
-                portraits=[self.portrait] if self.portrait else [],
                 seen_on=seen_on,
+                portraits=portraits,
             )
         )
 
     def __str__(self) -> str:
         exclude = {
             "portrait": 1,
+            "portrait_constructed": 1,
             "aliases.portraits": 1,
         }
 

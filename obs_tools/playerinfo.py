@@ -6,14 +6,16 @@ from io import BytesIO
 from os.path import getmtime, join
 from typing import List, Tuple
 
+import httpx
 import numpy as np
 from PIL import Image
+from pyodmongo.models.responses import DbResponse
 from pyodmongo.queries import elem_match
 from pyodmongo.queries import sort as od_sort
 
 from config import config
 from external.fast_ssim.ssim import ssim
-from obs_tools.battlenet import toon_handle_from_id
+from obs_tools.battlenet import BattleNet, toon_id_from_toon_handle
 from obs_tools.sc2client import sc2client
 from obs_tools.sc2pulse import SC2PulseClient
 from obs_tools.types import Race as GameInfoRace
@@ -28,6 +30,8 @@ PORTRAIT_DIR = "obs/screenshots/portraits"
 KAT_PORTRAIT = Image.open("assets/katchinsky_portrait.png")
 
 sc2pulse = SC2PulseClient()
+
+battlenet = BattleNet()
 
 
 def is_portrait_match(
@@ -95,15 +99,54 @@ def get_matching_portrait(
             return open(portrait_file, "rb").read()
 
 
-def save_player_info(replay: Replay):
+def portrait_construct_from_bnet(toon_id: int) -> bytes | None:
+    if not battlenet.bnet_integration:
+        return
+
+    try:
+        profile = battlenet.get_profile(toon_id)
+    except:
+        log.warning(f"Bnet refused profile portrait for toon_id {toon_id}")
+        return
+
+    if profile:
+        r = httpx.get(str(profile.summary.portrait))
+        if r.status_code != 200:
+            log.warning(f"Bnet refused profile portrait for toon_id {toon_id}")
+            return
+        bnet_portrait = Image.open(BytesIO(r.content)).resize(
+            (105, 105), Image.Resampling.BICUBIC
+        )
+        diamond_frame = Image.open("assets/diamond_frame.png")
+
+        new = Image.new("RGB", (105, 105), (255, 255, 255))
+
+        new.paste(bnet_portrait, (5, 6))
+        new.paste(diamond_frame, (0, 0), diamond_frame)
+        mem = BytesIO()
+        new.save(mem, format="PNG")
+        return mem.getvalue()
+
+
+def save_player_info(replay: Replay) -> Tuple[DbResponse, PlayerInfo]:
+
+    portrait = None
+    portrait_constructed = None
 
     if config.obs_integration:
         portrait = get_matching_portrait_from_replay(replay)
     else:
         portrait = None
 
+    portrait_constructed = portrait_construct_from_bnet(
+        replay.get_opponent_of(config.student.name).toon_id
+    )
+
     if portrait is not None:
         portrait = to_bson_binary(portrait)
+
+    if portrait_constructed is not None:
+        portrait_constructed = to_bson_binary(portrait_constructed)
 
     opponent = replay.get_opponent_of(config.student.name)
 
@@ -112,6 +155,7 @@ def save_player_info(replay: Replay):
         name=opponent.name,
         toon_handle=opponent.toon_handle,
         portrait=portrait,
+        portrait_constructed=portrait_constructed,
     )
 
     existing_player_info: PlayerInfo = replaydb.find(player_info)
@@ -123,6 +167,9 @@ def save_player_info(replay: Replay):
     if portrait:
         player_info.portrait = portrait
 
+    if portrait_constructed:
+        player_info.portrait_constructed = portrait_constructed
+
     player_info.update_aliases(seen_on=replay.date)
 
     result = replaydb.upsert(player_info)
@@ -131,8 +178,7 @@ def save_player_info(replay: Replay):
         log.info(
             f"Saved player info for opponent {player_info.name}, Aliases: {player_info.aliases}"
         )
-
-    return result
+    return result, player_info
 
 
 def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo | None:
@@ -147,7 +193,7 @@ def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo 
     scores = []
 
     # can't match barcode with kat portrait
-    if is_barcode(name) and ssim(np.array(KAT_PORTRAIT), portrait) > 0.8:
+    if is_barcode(name) and ssim(np.array(KAT_PORTRAIT), portrait) > 0.2:
         log.debug("Barcode with Kat portrait")
         return None
 
@@ -175,7 +221,7 @@ def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo 
             f"Best score, best candidate: {best_score}, {best_candidate.name} ({best_candidate.toon_handle})"
         )
 
-        if best_score > 0.8:
+        if best_score > 0.2:
             return best_candidate
 
     log.info(f"Could not resolve player {name} by portrait")

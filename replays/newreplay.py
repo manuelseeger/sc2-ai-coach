@@ -55,7 +55,7 @@ class NewReplayScanner(threading.Thread):
                     result = replaydb.upsert(replay)
                     if not result.acknowledged:
                         log.error(f"Failed to save {replay}")
-                    result = save_player_info(replay)
+                    result, player_info = save_player_info(replay)
                     if not result.acknowledged:
                         log.error(f"Failed to save player info for {replay}")
                     newreplay.send(self, replay=replay)

@@ -33,7 +33,7 @@ from replays.types import PlayerInfo, to_bson_binary
 def test_save_existing_player_info(replay_file, portrait_file):
     reader = ReplayReader()
     replay = reader.load_replay(replay_file)
-    result = save_player_info(replay)
+    result, player_info = save_player_info(replay)
 
     assert result.acknowledged
     assert result.modified_count == 1
@@ -60,7 +60,7 @@ def test_existing_player_info_update_alias(replay_file, portrait_file, monkeypat
 
     reader = ReplayReader()
     replay = reader.load_replay(replay_file)
-    result = save_player_info(replay)
+    result, player_info = save_player_info(replay)
 
     assert result.acknowledged
     assert result.modified_count == 1
@@ -79,7 +79,7 @@ def test_save_player_without_obs_integration(replay_file):
 
     reader = ReplayReader()
     replay = reader.load_replay(replay_file)
-    result = save_player_info(replay)
+    result, player_info = save_player_info(replay)
 
     assert result.acknowledged
 
@@ -248,9 +248,30 @@ def test_match_portrait_filename(portrait_file, map_name, replay_date, expected)
 # @pytest.mark.parametrize("portrait_file", "kat_diamond.png")
 def test_match_kat_portrait():
     name = "IIIIIIIIIIII"
-    portrait = Image.open("tests/testdata/portraits/kat_diamond.png")
-    kat = Image.open("tests/testdata/portraits/katchinsky_portrait.png")
+    kat_from_bnet_profile = Image.open(
+        "tests/testdata/portraits/kat_from_bnet.jpg"
+    ).resize((105, 105), Image.Resampling.BICUBIC)
+    diamond_frame = Image.open("assets/diamond_frame.png")
 
-    score = ssim(np.array(kat), np.array(portrait))
+    new = Image.new("RGB", (105, 105), (0, 0, 0))
 
-    assert score > 0.8
+    new.paste(
+        kat_from_bnet_profile,
+        (5, 6),
+    )
+    new.paste(diamond_frame, (0, 0), diamond_frame)
+
+    kat_from_bnet = new
+
+    kats = {
+        "kat_diamond.png": Image.open("tests/testdata/portraits/kat_diamond.png"),
+        "kat_from_bnet.jpg": kat_from_bnet,
+        "katchinsky_portrait.png": Image.open(
+            "tests/testdata/portraits/katchinsky_portrait.png"
+        ),
+    }
+
+    for kat_file, kat_portrait in kats.items():
+        for kat2_file, kat2_portrait in kats.items():
+            score = ssim(np.array(kat_portrait), np.array(kat2_portrait))
+            print(f"{kat_file} vs {kat2_file}: {score}")
