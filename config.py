@@ -41,6 +41,9 @@ class SC2Region(str, Enum):
     KR = "KR"
     CN = "CN"
 
+    def __str__(self) -> str:
+        return self.value
+
 
 class CoachEvent(str, Enum):
     wake = "wake"
