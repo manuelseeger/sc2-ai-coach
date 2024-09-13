@@ -11,7 +11,6 @@
       "program": "coach.py",
       "console": "integratedTerminal",
       "envFile": "${workspaceFolder}/.env",
-
       "env": {
         "PYDEVD_DISABLE_FILE_VALIDATION": "1"
       }
@@ -23,7 +22,6 @@
       "program": "coach.py",
       "console": "integratedTerminal",
       "envFile": "${workspaceFolder}/.env",
-
       "env": {
         "PYDEVD_DISABLE_FILE_VALIDATION": "1",
         "AICOACH_audiomode": "text",
@@ -37,7 +35,6 @@
       "program": "coach.py",
       "console": "integratedTerminal",
       "envFile": "${workspaceFolder}/.env",
-
       "env": {
         "PYDEVD_DISABLE_FILE_VALIDATION": "1",
         "AICOACH_aibackend": "Mocked"
@@ -50,34 +47,25 @@
       "program": "build.py",
       "console": "integratedTerminal",
       "envFile": "${workspaceFolder}/.env",
-      "args": ["--deploy"]
+      "args": [
+        "--deploy"
+      ]
     },
     {
-      "name": "CLI sync",
+      "name": "CLI full sync",
       "type": "debugpy",
       "request": "launch",
       "program": "repcli.py",
       "console": "integratedTerminal",
       "envFile": "${workspaceFolder}/.env",
-      "args": ["--debug", "--clean", "sync"]
-    },
-    {
-      "name": "CLI add players",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "repcli.py",
-      "console": "integratedTerminal",
-      "envFile": "${workspaceFolder}/.env",
-      "args": ["--debug", "addplayers", "--from=2024-06-07"]
-    },
-    {
-      "name": "CLI deamon",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "repcli.py",
-      "console": "integratedTerminal",
-      "envFile": "${workspaceFolder}/.env",
-      "args": ["--debug", "--clean", "deamon"]
+      "args": [
+        "--debug",
+        "--clean",
+        "sync",
+        "--from=2024-01-01",
+        "players",
+        "replays"
+      ]
     },
     {
       "name": "OBS client",
