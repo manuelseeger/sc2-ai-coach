@@ -7,6 +7,9 @@ from config import config
 
 warnings.filterwarnings("ignore")
 
+from rich.traceback import install
+
+install(show_locals=True)
 
 rootlogger = logging.getLogger()
 for handler in rootlogger.handlers.copy():

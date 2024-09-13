@@ -93,24 +93,24 @@ Use the tool [repcli.py](repcli.py) to populate your DB with replays. The tools 
 Usage: repcli.py [OPTIONS] COMMAND [ARGS]...
 
 Options:
-  --clean       Delete replays from instant-leave games
-  --debug       Print debug messages, including replay parser
-  --simulation  Run in simulation mode, don't actually insert to DB
-  --help        Show this message and exit.
+  --clean        Delete replays from instant-leave games
+  --debug        Print debug messages, including replay parser
+  --simulation   Run in simulation mode, don't actually insert to DB
+  -v, --verbose  Print verbose output
+  --help         Show this message and exit.
 
 Commands:
-  deamon  Monitor replay folder, add new replays to MongoDB
-  echo    Echo pretty-printed parsed replay data from a .SC2Replay file
-  sync    Sync replays from replay folder to MongoDB
+  echo   Echo pretty-printed parsed replay data from a .SC2Replay file
+  query  Query the DB for replays and players
+  sync   Sync replays and players from replay folder to MongoDB
 ```
 
 Run
 
 ```sh
-> python repcli.py --simulation sync --from=2024-01-01
+> python repcli.py --simulation sync players replays --from=2024-01-01 
 ```
-
-to read all 1v1 ladder replays from beginning of 2024. With the `--simulation` flag the replays will not actually be commited to DB. Remove the `--simulation` flag and run again to store all replay in DB.
+to read all 1v1 ladder replays from beginning of 2024, and add the replays and the players from the replays to the DB. With the `--simulation` flag the replays will not actually be commited to DB. Remove the `--simulation` flag and run again to store all replay in DB.
 
 The `replays` collection of the DB should now be populated with replay documents.
 
