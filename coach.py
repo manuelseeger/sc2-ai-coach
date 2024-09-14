@@ -96,7 +96,6 @@ def main(debug):
                 # print once every 10 seconds so we know you are still alive
                 if datetime.now().second % 10 == 0:
                     if not ping_printed:
-                        log.debug("Waiting for thread ...")
                         log.info("Waiting for thread ...")
                         ping_printed = True
                 else:

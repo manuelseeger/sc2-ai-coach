@@ -1,5 +1,3 @@
-from os.path import join
-
 from RealtimeTTS import CoquiEngine, SystemEngine, TextToAudioStream
 
 

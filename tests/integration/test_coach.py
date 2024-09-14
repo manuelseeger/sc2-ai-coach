@@ -49,6 +49,8 @@ def test_init_from_new_replay(replay_file):
 
     response = session.chat(message)
 
+    session.close()
+
 
 @pytest.mark.parametrize(
     "replay_file",
@@ -67,6 +69,8 @@ def test_init_from_replay_with_nonutf8_chars(replay_file):
     message = f"How would you summarize the game in 1 paragraph? Make sure to include tech choices, timings, but keep it short."
 
     response = session.chat(message)
+
+    session.close()
 
 
 @pytest.mark.parametrize(
@@ -94,3 +98,5 @@ def test_init_from_replay_with_metadata(replay_file, mocker):
 
     replay = reader.load_replay(replay_file)
     session.handle_new_replay(__name__, replay)
+
+    session.close()
