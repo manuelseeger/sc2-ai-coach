@@ -272,7 +272,7 @@ class Metadata(DbModel):
     description: str | None = None
     tags: List[str] | None = None
     conversation: List[AssistantMessage] | None = None
-    _collection: ClassVar = "replays.meta"
+    _collection: ClassVar = "meta"
 
 
 class Alias(MainBaseModel):
@@ -313,7 +313,7 @@ class PlayerInfo(DbModel):
     toon_handle: ToonHandle
     portrait: BsonBinary | None = None
     portrait_constructed: BsonBinary | None = None
-    _collection: ClassVar = "replays.players"
+    _collection: ClassVar = "players"
 
     def update_aliases(self, seen_on: datetime = None):
         seen_on = seen_on or datetime.now()

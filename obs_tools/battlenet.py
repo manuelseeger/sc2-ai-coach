@@ -18,7 +18,7 @@ REGION_MAP = {
 
 
 def toon_handle_from_id(toon_id: str, region: str) -> str:
-    region_id, realm_id = REGION_MAP[region.lower()]
+    region_id, realm_id = REGION_MAP[region]
     return f"{region_id}-S2-{realm_id}-{toon_id}"
 
 
