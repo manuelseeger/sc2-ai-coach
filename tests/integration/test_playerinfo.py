@@ -245,12 +245,11 @@ def test_match_portrait_filename(portrait_file, map_name, replay_date, expected)
     assert is_portrait_match(portrait_file, map_name, replay_date) == expected
 
 
-# @pytest.mark.parametrize("portrait_file", "kat_diamond.png")
-def test_match_kat_portrait():
+def test_constructed_portrait():
     name = "IIIIIIIIIIII"
     kat_from_bnet_profile = Image.open(
         "tests/testdata/portraits/kat_from_bnet.jpg"
-    ).resize((105, 105), Image.Resampling.BICUBIC)
+    ).resize((95, 95), Image.Resampling.BICUBIC)
     diamond_frame = Image.open("assets/diamond_frame.png")
 
     new = Image.new("RGB", (105, 105), (0, 0, 0))

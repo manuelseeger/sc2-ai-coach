@@ -115,7 +115,7 @@ def portrait_construct_from_bnet(toon_id: int) -> bytes | None:
             log.warning(f"Bnet refused profile portrait for toon_id {toon_id}")
             return
         bnet_portrait = Image.open(BytesIO(r.content)).resize(
-            (105, 105), Image.Resampling.BICUBIC
+            (95, 95), Image.Resampling.BICUBIC
         )
         diamond_frame = Image.open("assets/diamond_frame.png")
 
@@ -193,7 +193,7 @@ def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo 
     scores = []
 
     # can't match barcode with kat portrait
-    if is_barcode(name) and ssim(np.array(KAT_PORTRAIT), portrait) > 0.2:
+    if is_barcode(name) and ssim(np.array(KAT_PORTRAIT), portrait) > 0.6:
         log.debug("Barcode with Kat portrait")
         return None
 
@@ -202,6 +202,12 @@ def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo 
 
     try:
         for candidate in candidates:
+            if candidate.portrait_constructed:
+                img = Image.open(BytesIO(candidate.portrait_constructed))
+                score = ssim(np.array(img), portrait)
+                if score:
+                    log.debug(f"Score from constructed portrait: {score}")
+                    scores.append((score, candidate))
             for alias in candidate.aliases:
                 if alias.name != name:
                     continue
@@ -221,7 +227,7 @@ def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo 
             f"Best score, best candidate: {best_score}, {best_candidate.name} ({best_candidate.toon_handle})"
         )
 
-        if best_score > 0.2:
+        if best_score > 0.6:
             return best_candidate
 
     log.info(f"Could not resolve player {name} by portrait")

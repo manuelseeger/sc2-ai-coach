@@ -202,6 +202,48 @@ def sync(
     console.print(table)
 
 
+@cli.group()
+@click.pass_context
+def query(ctx):
+    "Query the DB for replays and players"
+    pass
+
+
+@query.command()
+@click.pass_context
+@click.option("--query", "-q", type=str, prompt="MongoDB Query")
+def players(ctx, query):
+    """Query the DB for players"""
+    query = force_valid_json_string(query)
+    query = json.loads(query)
+
+    players = replaydb.db.find_many(PlayerInfo, raw_query=query)
+    for player in players:
+        console.print_json(str(player))
+        if ctx.obj["VERBOSE"]:
+            print_player_portrait(player)
+
+
+@cli.command()
+@click.pass_context
+@click.argument("replay", type=click.Path(exists=True), required=True)
+def echo(ctx, replay):
+    """Echo pretty-printed parsed replay data from a .SC2Replay file"""
+    rep = reader.load_replay(replay)
+    console.print(rep)
+
+
+def print_player_portrait(player: PlayerInfo):
+    portrait = player.portrait or player.portrait_constructed
+    if portrait:
+        img = Image.open(BytesIO(portrait)).resize((40, 40))
+        arr = np.array(img)
+        output = climage.convert_array(
+            arr, is_unicode=True, is_256color=False, is_truecolor=True
+        )
+        print(output)
+
+
 def syncplayer(ctx, replay: Replay, summary: SyncSummary):
     opponent = replay.get_opponent_of(config.student.name)
 
@@ -239,48 +281,6 @@ def syncreplay(ctx, replay: Replay, summary: SyncSummary):
             summary.replays_added += 1
         else:
             console.print(f":x: {replay} not added to DB")
-
-
-@cli.group()
-@click.pass_context
-def query(ctx):
-    "Query the DB for replays and players"
-    pass
-
-
-@query.command()
-@click.pass_context
-@click.option("--query", "-q", type=str, prompt="MongoDB Query")
-def players(ctx, query):
-    """Query the DB for players"""
-    query = force_valid_json_string(query)
-    query = json.loads(query)
-
-    players = replaydb.db.find_many(PlayerInfo, raw_query=query)
-    for player in players:
-        console.print_json(str(player))
-        if ctx.obj["VERBOSE"]:
-            print_player_portrait(player)
-
-
-@cli.command()
-@click.pass_context
-@click.argument("replay", type=click.Path(exists=True), required=True)
-def echo(ctx, replay, default):
-    """Echo pretty-printed parsed replay data from a .SC2Replay file"""
-    rep = reader.load_replay(replay)
-    console.print(rep)
-
-
-def print_player_portrait(player: PlayerInfo):
-    portrait = player.portrait or player.portrait_constructed
-    if portrait:
-        img = Image.open(BytesIO(portrait)).resize((40, 40))
-        arr = np.array(img)
-        output = climage.convert_array(
-            arr, is_unicode=True, is_256color=False, is_truecolor=True
-        )
-        print(output)
 
 
 if __name__ == "__main__":

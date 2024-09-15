@@ -18,4 +18,7 @@ obs_tools/ttsmodels/
 tests/coverage/
 .coverage
 tests/test-results.xml
-report.html
+*report.html
+mongodb/mongo-seed/*.json
+mongodb/dump/
+playground/external/
