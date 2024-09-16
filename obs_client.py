@@ -1,4 +1,4 @@
-from time import sleep
+from time import sleep, time
 
 import click
 import obsws_python as obsws
@@ -38,6 +38,19 @@ def main(verbose, debug):
             last_ui = None
             while True:
                 ui = sc2client.get_uiinfo()
+
+                with open("logs/time.log", "r") as f:
+                    last_time = float(f.read())
+                    diff = time() - last_time
+                    if diff > 15:
+                        data = {"message": "fadelog"}
+                    else:
+                        data = {"message": "showlog"}
+                    obs.call_vendor_request(
+                        vendor_name="AdvancedSceneSwitcher",
+                        request_type="AdvancedSceneSwitcherMessage",
+                        request_data=data,
+                    )
 
                 if ui is None:
                     print(":warning: SC2 not running?")

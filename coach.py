@@ -32,7 +32,6 @@ if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
     from obs_tools.tts import make_tts_stream
 
     tts = make_tts_stream()
-    tts.feed("")
 
 if config.obs_integration:
     from obs_tools.mapstats import update_map_stats
@@ -76,6 +75,9 @@ def main(debug):
         replay_scanner.start()
         new_replay = signal("replay")
         new_replay.connect(session.handle_new_replay)
+
+    if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
+        tts.feed("Starting TTS")
 
     log.info("\n")
     log.info(f"Audio mode: {str(config.audiomode)}")
@@ -157,7 +159,12 @@ class AISession:
 
     def update_last_replay(self, replay: Replay | None = None):
         if replay is None:
-            replay = replaydb.get_most_recent()
+            try:
+                replay = replaydb.get_most_recent()
+            except:
+                log.error("Error getting most recent replay, is DB runnung?")
+                sys.exit(1)
+
         self.last_map = replay.map_name
         self.last_opponent = replay.get_player(config.student.name, opponent=True).name
         self.last_mmr = replay.get_player(config.student.name).scaled_rating
