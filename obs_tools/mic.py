@@ -73,8 +73,9 @@ class Microphone:
         start_time = time()
         while True:
             with self.microphone as source:
+                log.debug("Listening...")
                 audio = self.recognizer.listen(source)
-
+            log.debug("Heard something")
             sample_rate = 16000
 
             frames = frame_generator(
@@ -85,6 +86,8 @@ class Microphone:
             is_speech_frames = [
                 vad.is_speech(frame.data, sample_rate) for frame in frames
             ]
+
+            is_speech_frames = [1 for _ in is_speech_frames]
 
             # Calculate the percentage of speech frames
             # This is an attempt to counter whisper halucinations. Ambient noise, especially clapping

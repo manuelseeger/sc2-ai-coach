@@ -73,7 +73,7 @@ class Transcriber:
             output = str(outputs["text"]).strip()
 
         # Finally discard halucinated 'thank you's on clicks and pops
-        if output.lower() == "thank you" and length < 0.7:
-            output = ""
+        # if output.lower() == "thank you" and length < 0.7:
+        #    output = ""
 
         return output
