@@ -3,6 +3,7 @@ import logging
 import os
 import threading
 from os.path import basename, join
+from pathlib import Path
 from time import sleep
 
 from blinker import signal
@@ -18,6 +19,16 @@ log.setLevel(logging.INFO)
 newreplay = signal("replay")
 
 reader = ReplayReader()
+
+
+def wait_for_delete(file_path: Path, timeout: int = 10) -> bool:
+    for _ in range(timeout):
+        try:
+            os.remove(file_path)
+            return True
+        except:
+            sleep(1)
+    return False
 
 
 class NewReplayScanner(threading.Thread):
@@ -63,7 +74,7 @@ class NewReplayScanner(threading.Thread):
                     if reader.is_instant_leave(replay_raw) or reader.has_afk_player(
                         replay_raw
                     ):
-                        os.remove(file_path)
+                        wait_for_delete(file_path)
                         log.info(f"Deleted {basename(file_path)}")
             list_of_files = new_list_of_files + list_of_files
             sleep(config.deamon_polling_rate)

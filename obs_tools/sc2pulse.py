@@ -2,6 +2,7 @@
 # all credit to author nephestdev@gmail.com
 # https://github.com/sc2-pulse/reveal-sc2-opponent
 
+import logging
 from datetime import UTC, datetime
 from enum import Enum
 from typing import List, Optional
@@ -13,6 +14,8 @@ from config import config
 from obs_tools.battlenet import toon_handle_from_id
 from obs_tools.types import Race as GameInfoRace
 from replays.util import convert_enum
+
+log = logging.getLogger(f"{config.name}.{__name__}")
 
 
 class SC2PulseRace(str, Enum):
@@ -150,6 +153,8 @@ class SC2PulseClient:
                     "race": race.value,
                 },
             )
+            if response.status_code == 404:
+                log.debug(f"404 for {batch}, race {race.value}")
             response.raise_for_status()
             pulse_teams = [SC2PulseTeam(**t) for t in response.json()]
             teams.extend(pulse_teams)
