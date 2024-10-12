@@ -154,6 +154,8 @@ class TwitchObsLogHandler(Handler):
                 msg = message
             console.print(msg, style=style)
 
+        # we write a timestamp to file so that obs_client can check the last time
+        # we printed a message.
         with open("logs/time.log", "w") as f:
             f.write(f"{time.time()}")
 
