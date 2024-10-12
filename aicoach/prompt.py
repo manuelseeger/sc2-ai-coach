@@ -4,6 +4,7 @@ from jinja2 import Environment, FileSystemLoader, Template
 from typing_extensions import Dict
 
 from config import config
+from obs_tools import twitch
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 log.setLevel(logging.DEBUG)
@@ -28,6 +29,8 @@ class Jinja2Loader:
     initial_instructions: Template
     additional_instructions: Template
     scanner_empty: Template
+    rematch: Template
+    twitch: Template
 
     def __init__(self):
         self.env = LoggingEnvironment(
@@ -41,6 +44,8 @@ class Jinja2Loader:
             "additional_instructions.jinja2"
         )
         self.scanner_empty = self.env.get_template("scanner_empty.jinja2")
+        self.rematch = self.env.get_template("rematch.jinja2")
+        self.twitch = self.env.get_template("twitch.jinja2")
 
     def render(self, template_name: str, replacements: Dict[str, str]) -> str:
         template = self.env.get_template(template_name)
