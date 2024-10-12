@@ -126,7 +126,7 @@ Prerequisites:
 
 Add your OpenAI organization, Assistant ID, and API key to the env variables, `AICOACH_ASSISTANT_ID`, `AICOACH_OPENAI_API_KEY`, `AICOACH_OPENAI_ORG_ID`.
 
-Note on cost: Long conversations can cost up to one dollar ($1.00) in OpenAI API usage. AICoach will not incur API costs until one of the wake events is triggered - see below.
+Note on cost: Long conversations can cost up to one dollar ($1.00) in OpenAI API usage. Typically interactions stay below $0.10 however. AICoach will not incur API costs until one of the wake events is triggered - see below.
 
 If you just want a database with your replays you can skip this step and the next or do it later.
 
@@ -151,6 +151,8 @@ Configure a wake hotkey. On pressing this key (combination) AICoach will wake up
 
 Configure student.emoji if you want to show a [different icon](./playground/emojis.txt) in the terminal output.
 
+You can disable interactions with the `interactive` flag. If off, AI coach will speak, but won't listen for input. 
+
 ```yaml
 # config.yourname.yml
 
@@ -161,6 +163,7 @@ student:
   emoji: ":woman_student:"
 db_name: "YOURDB"
 wake_key: "ctrl+alt+w"
+interactive: False
 ```
 
 ## Run AICoach
