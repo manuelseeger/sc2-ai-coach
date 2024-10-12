@@ -22,3 +22,4 @@ dependencies:
       - spawningtool
       - pyodmongo
       - keyboard
+      - blizzardapi2
