@@ -11,22 +11,22 @@ from config import config
 from obs_tools.sc2client import sc2client
 from obs_tools.types import Screen
 
-log = logging.getLogger(__name__)
-log_file = Path("logs/obs_client.log")
+# log = logging.getLogger(__name__)
+# log_file = Path("logs/obs_client.log")
 
-handler = logging.FileHandler(log_file, mode="a", encoding="utf-8")
-log.addHandler(handler)
-
-
-def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
-    if issubclass(exc_type, KeyboardInterrupt):
-        sys.__excepthook__(exc_type, exc_value, exc_traceback)
-        return
-    log.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+# handler = logging.FileHandler(log_file, mode="a", encoding="utf-8")
+# log.addHandler(handler)
 
 
-sys.excepthook = log_uncaught_exceptions
-sys.stdout = open(log_file, "a")
+# def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
+# if issubclass(exc_type, KeyboardInterrupt):
+# sys.__excepthook__(exc_type, exc_value, exc_traceback)
+# return
+# log.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+
+# sys.excepthook = log_uncaught_exceptions
+# sys.stdout = open(log_file, "a", encoding="utf-8")
 
 
 # we set this up as a standalone process so that OBS can run and react to SC2 UI changes without the need
