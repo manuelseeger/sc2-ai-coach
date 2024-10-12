@@ -30,13 +30,13 @@ recognizer:
   speech_threshold: 0.3
 # Hotkey to call up the AI coach prompt when run in text-in mode
 wake_key: "ctrl+alt+w"
-# Determines whether you can interact with AI coach; if False, AI coach will handle replays but won't wait for your input
+# Determines whether you can interact with AI coach; if False, AI coach will handle replays but won't ask for your input
 interactive: True
 
 # Configure the "student" - the player using AI coach
 student:
   name: "studentname"
-  race: "Zerg"
+  race: "Terran"
   # Emoji to represent the student in output
   emoji: ":man_technologist:"
   # URL pointing to your public sc2replaystats profile's map stats (optional)
@@ -48,11 +48,11 @@ sc2_client_url: "http://127.0.0.1:6119"
 # AI coach backend, use "Mocked" for testing without an AI backend
 aibackend: "OpenAI"
 # which GPT model to use for OpenAI Assistant API
-gpt_model: "gpt-4o"
+gpt_model: "gpt-4o-2024-08-06"
 # Cost per prompt token
-gpt_prompt_pricing: 0.000005
+gpt_prompt_pricing: 0.0000025
 # Cost per completion token
-gpt_completion_pricing: 0.000015
+gpt_completion_pricing: 0.000010
 
 # Which events should the AI coach react to
 coach_events:
@@ -67,8 +67,15 @@ screenshot: "obs/screenshots/_maploading.png"
 # Where tesserocr should look for the tesseract data
 tessdata_dir: "C:\\Program Files\\Tesseract-OCR\\tessdata"
 
+# The battle.net region we play on
+blizzard_region: "EU"
+# delta in MMR between player and potential opponent to consider opponent for barcode unmasking
+rating_delta_max: 500
+# maximum time since last played game to consider opponent for barcode unmasking in seconds
+last_played_ago_max: 2400
+
 # Current ladder season
-season: 59
+season: 60
 # Maps in the current ladder pool
 ladder_maps:
   - Goldenaura LE

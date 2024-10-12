@@ -87,31 +87,6 @@ example = """
 }
 """
 
-default_projection = {
-    "_id": 1,
-    "date": 1,
-    "game_length": 1,
-    "map_name": 1,
-    "players.avg_apm": 1,
-    "players.highest_league": 1,
-    "players.name": 1,
-    "players.messages": 1,
-    "players.pick_race": 1,
-    "players.pid": 1,
-    "players.play_race": 1,
-    "players.result": 1,
-    "players.scaled_rating": 1,
-    "players.stats": 1,
-    "players.toon_handle": 1,
-    "players.build_order.time": 1,
-    "players.build_order.name": 1,
-    "players.build_order.supply": 1,
-    "players.build_order.is_chronoboosted": 1,
-    "real_length": 1,
-    "stats": 1,
-    "unix_timestamp": 1,
-}
-
 
 @AIFunction
 def QueryReplayDB(
@@ -122,7 +97,7 @@ def QueryReplayDB(
     projection: Annotated[
         str,
         'A MongoDB projection document to specifiy which fields of the document to return. Example projection to get only the map name for returned replays: {"map_name": 1}. This is optional and defaults to returning all fields.',
-    ] = dumps(default_projection),
+    ] = dumps(config.default_projection),
     sort: Annotated[
         str,
         'A MongoDB sort document to specify how to sort the returned documents. Example to sort by game length: {"game_length": -1}. This is optional and defaults to sorting by unix_timestamp, descending.',

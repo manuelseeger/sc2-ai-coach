@@ -19,6 +19,6 @@ db.createUser({
 });
 
 db.createCollection("replays");
-db.createCollection("replays.meta");
-db.createCollection("replays.players");
+db.createCollection("meta");
+db.createCollection("players");
 db.createCollection("sessions");

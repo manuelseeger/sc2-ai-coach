@@ -6,7 +6,7 @@ dependencies:
   - conda-forge::pydantic=2.6
   - conda-forge::pydantic-settings
   - pyyaml
-  - requests
+  - conda-forge::httpx
   - click
   - conda-forge::openai
   - pytest
@@ -15,7 +15,6 @@ dependencies:
   - python-levenshtein
   - blinker
   - jinja2
-  - pillow
   - pip
   - pip:
       - opencv-python
@@ -23,3 +22,4 @@ dependencies:
       - spawningtool
       - pyodmongo
       - keyboard
+      - blizzardapi2

@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 
 from openai.types.beta.threads import Message
+from pydantic import BaseModel
 
 from aicoach import AICoach
 from aicoach.prompt import Templates
@@ -17,19 +18,17 @@ def save_replay_summary(replay: Replay, coach: AICoach):
 
     messages: list[Message] = coach.get_conversation()
 
-    summary = coach.get_response(Templates.summary.render())
+    class Response(BaseModel):
+        summary: str
+        keywords: list[str]
 
-    tags_raw = coach.get_response(Templates.tags.render())
+    response = coach.get_structured_response(
+        message=Templates.summary.render(), schema=Response
+    )
 
-    try:
-        tags = [t.strip() for t in tags_raw.split(",")]
-    except:
-        log.warn("Assistant gave us invalid tags")
-        tags = []
-
-    log.info(f"Added tags '{','.join(tags)} to replay'")
-    meta: Metadata = Metadata(replay=replay.id, description=summary)
-    meta.tags = tags
+    log.info(f"Added tags '{','.join(response.keywords)} to replay'")
+    meta: Metadata = Metadata(replay=replay.id, description=response.summary)
+    meta.tags = response.keywords
     meta.conversation = [
         AssistantMessage(
             role=m.role,

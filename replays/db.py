@@ -14,7 +14,7 @@ from .types import Metadata, PlayerInfo, Replay, Session
 # Initialize the database engine
 engine = DbEngine(mongo_uri=str(config.mongo_dsn), db_name=config.db_name)
 
-SC2Model = Union[Replay, Metadata, Session, PlayerInfo]
+SC2Model = Replay | Metadata | Session | PlayerInfo
 
 
 class ReplayDB:
@@ -46,7 +46,7 @@ class ReplayDB:
             sort=sort((Replay.unix_timestamp, -1)),
         )
         if most_recent is None:
-            raise ValueError("No replays found")
+            raise ValueError(f"No replays found for {config.student.name}")
 
         return most_recent
 

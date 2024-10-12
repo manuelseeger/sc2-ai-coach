@@ -2,7 +2,7 @@ import json
 import os
 
 import click
-import requests
+import httpx
 import tiktoken
 from rich import print, print_json
 
@@ -51,7 +51,7 @@ def main(do_deploy):
 
 
 def deploy(assistant):
-    with requests.Session() as s:
+    with httpx.Client() as s:
         url = f"https://api.openai.com/v1/assistants/{config.assistant_id}"
         r = s.post(
             url,
@@ -60,7 +60,7 @@ def deploy(assistant):
                 "OpenAI-Beta": "assistants=v2",
                 "Authorization": f"Bearer {config.openai_api_key}",
             },
-            data=json.dumps(assistant, indent=2),
+            json=assistant,
         )
         print_json(r.text)
 

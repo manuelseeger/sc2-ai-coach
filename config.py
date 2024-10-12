@@ -1,6 +1,6 @@
 from enum import Enum
 from glob import glob
-from typing import Annotated, Dict, List, Tuple, Type
+from typing import Annotated, Dict, List, Optional, Tuple, Type
 
 from pydantic import BaseModel
 from pydantic.networks import UrlConstraints
@@ -33,6 +33,16 @@ yaml_files = sort_config_files(yaml_files)
 env_files = glob(".env*")
 env_files = sort_config_files(env_files)
 env_files.remove(".env.example")
+
+
+class SC2Region(str, Enum):
+    US = "US"
+    EU = "EU"
+    KR = "KR"
+    CN = "CN"
+
+    def __str__(self) -> str:
+        return self.value
 
 
 class CoachEvent(str, Enum):
@@ -110,6 +120,14 @@ class Config(BaseSettings):
 
     obs_integration: bool
     sc2_client_url: str = "http://127.0.0.1:6119"
+
+    blizzard_client_id: Optional[str] = None
+    blizzard_client_secret: Optional[str] = None
+    blizzard_region: SC2Region
+
+    rating_delta_max: int
+    last_played_ago_max: int
+
     screenshot: str
     tessdata_dir: str
     obs_ws_pw: str | None = None

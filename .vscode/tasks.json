@@ -1,0 +1,11 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Env File Lock",
+            "type": "shell",
+            "command": "powershell -Command 'conda env export --no-builds | findstr -v \"prefix\" > environment.yml'",
+            "problemMatcher": []
+        }
+    ]
+}

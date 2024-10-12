@@ -10,7 +10,7 @@ from typing_extensions import Annotated
 
 from config import AIBackend, config
 
-from .util import time2secs
+from .util import splittoon, time2secs
 
 
 def convert_to_nested_structure(d: dict):
@@ -247,8 +247,7 @@ class Replay(DbModel):
             "players.name": 1,
             "players.play_race": 1,
         }
-        include_keys = convert_to_nested_structure(projection)
-        wrap_all_fields(include_keys)
+        include_keys = convert_projection(projection)
         return self.model_dump_json(
             include=include_keys, exclude_unset=True, exclude_defaults=True
         )
@@ -273,7 +272,7 @@ class Metadata(DbModel):
     description: str | None = None
     tags: List[str] | None = None
     conversation: List[AssistantMessage] | None = None
-    _collection: ClassVar = "replays.meta"
+    _collection: ClassVar = "meta"
 
 
 class Alias(MainBaseModel):
@@ -313,28 +312,34 @@ class PlayerInfo(DbModel):
     aliases: AliasList = []
     toon_handle: ToonHandle
     portrait: BsonBinary | None = None
-    _collection: ClassVar = "replays.players"
+    portrait_constructed: BsonBinary | None = None
+    _collection: ClassVar = "players"
 
     def update_aliases(self, seen_on: datetime = None):
         seen_on = seen_on or datetime.now()
         if self in self.aliases:
             return
         for alias in self.aliases:
-            if alias.name == self.name and self.portrait not in alias.portraits:
-                alias.portraits.append(self.portrait)
-                alias.seen_on = seen_on
+            if alias.name == self.name:
+                if self.portrait and self.portrait not in alias.portraits:
+                    alias.portraits.append(self.portrait)
+                    alias.seen_on = seen_on
                 return
+
+        portraits = [self.portrait] if self.portrait else []
+
         self.aliases.append(
             Alias(
                 name=self.name,
-                portraits=[self.portrait] if self.portrait else [],
                 seen_on=seen_on,
+                portraits=portraits,
             )
         )
 
     def __str__(self) -> str:
         exclude = {
             "portrait": 1,
+            "portrait_constructed": 1,
             "aliases.portraits": 1,
         }
 
@@ -347,6 +352,9 @@ class PlayerInfo(DbModel):
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    def split_profile_id(self) -> Tuple[int, int, int]:
+        return splittoon(self.toon_handle)
 
 
 class Usage(MainBaseModel):

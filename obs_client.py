@@ -1,4 +1,7 @@
-from time import sleep
+import logging
+import sys
+from pathlib import Path
+from time import sleep, time
 
 import click
 import obsws_python as obsws
@@ -7,6 +10,23 @@ from rich import print
 from config import config
 from obs_tools.sc2client import sc2client
 from obs_tools.types import Screen
+
+# log = logging.getLogger(__name__)
+# log_file = Path("logs/obs_client.log")
+
+# handler = logging.FileHandler(log_file, mode="a", encoding="utf-8")
+# log.addHandler(handler)
+
+
+# def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
+# if issubclass(exc_type, KeyboardInterrupt):
+# sys.__excepthook__(exc_type, exc_value, exc_traceback)
+# return
+# log.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+
+# sys.excepthook = log_uncaught_exceptions
+# sys.stdout = open(log_file, "a", encoding="utf-8")
 
 
 # we set this up as a standalone process so that OBS can run and react to SC2 UI changes without the need
@@ -38,6 +58,19 @@ def main(verbose, debug):
             last_ui = None
             while True:
                 ui = sc2client.get_uiinfo()
+
+                with open("logs/time.log", "r") as f:
+                    last_time = float(f.read())
+                    diff = time() - last_time
+                    if diff > 15:
+                        data = {"message": "fadelog"}
+                    else:
+                        data = {"message": "showlog"}
+                    obs.call_vendor_request(
+                        vendor_name="AdvancedSceneSwitcher",
+                        request_type="AdvancedSceneSwitcherMessage",
+                        request_data=data,
+                    )
 
                 if ui is None:
                     print(":warning: SC2 not running?")

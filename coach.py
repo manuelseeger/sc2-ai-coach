@@ -13,27 +13,13 @@ from rich.prompt import Prompt
 from aicoach import AICoach
 from aicoach.prompt import Templates
 from config import AIBackend, AudioMode, CoachEvent, config
+from log import log
 from obs_tools.playerinfo import resolve_replays_from_current_opponent
 from obs_tools.rich_log import TwitchObsLogHandler
 from obs_tools.types import ScanResult, WakeResult
 from replays.db import replaydb
 from replays.metadata import save_replay_summary
 from replays.types import Player, Replay, Role, Session, Usage
-
-warnings.filterwarnings("ignore")
-
-
-rootlogger = logging.getLogger()
-for handler in rootlogger.handlers.copy():
-    try:
-        rootlogger.removeHandler(handler)
-    except ValueError:
-        pass
-rootlogger.addHandler(logging.NullHandler())
-
-log = logging.getLogger(config.name)
-log.propagate = False
-log.setLevel(logging.INFO)
 
 if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
     from aicoach.transcribe import Transcriber
@@ -42,32 +28,18 @@ if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
     mic = Microphone()
     transcriber = Transcriber()
 
+if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
+    from obs_tools.tts import make_tts_stream
+
+    tts = make_tts_stream()
 
 if config.obs_integration:
-    from obs_tools.mapstats import get_map_stats
+    from obs_tools.mapstats import update_map_stats
 
-if not os.path.exists("logs"):
-    os.makedirs("logs")
-
-handler = logging.FileHandler(
-    os.path.join(
-        "logs",
-        f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-obs_watcher.log",
-    ),
-    encoding="utf-8",
-)
-handler.setLevel(logging.DEBUG)
-one_file_handler = logging.FileHandler(
-    mode="a",
-    filename=os.path.join("logs", "_obs_watcher.log"),
-    encoding="utf-8",
-)
-one_file_handler.setLevel(logging.DEBUG)
-log.addHandler(handler)
-log.addHandler(one_file_handler)
 
 obs_handler = TwitchObsLogHandler()
 obs_handler.setLevel(logging.INFO)
+
 log.addHandler(obs_handler)
 
 
@@ -76,16 +48,7 @@ log.addHandler(obs_handler)
 def main(debug):
     if debug:
         log.setLevel(logging.DEBUG)
-        handler.setLevel(logging.DEBUG)
         log.debug("debugging on")
-
-    if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
-        from obs_tools.tts import make_tts_stream
-
-        global tts
-
-        tts = make_tts_stream()
-        tts.feed("")
 
     session = AISession()
 
@@ -113,6 +76,9 @@ def main(debug):
         new_replay = signal("replay")
         new_replay.connect(session.handle_new_replay)
 
+    if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
+        tts.feed("Starting TTS")
+
     log.info("\n")
     log.info(f"Audio mode: {str(config.audiomode)}")
     log.info(f"OBS integration: {str(config.obs_integration)}")
@@ -132,7 +98,6 @@ def main(debug):
                 # print once every 10 seconds so we know you are still alive
                 if datetime.now().second % 10 == 0:
                     if not ping_printed:
-                        log.debug("Waiting for thread ...")
                         log.info("Waiting for thread ...")
                         ping_printed = True
                 else:
@@ -159,12 +124,12 @@ def main(debug):
 
 
 class AISession:
-    coach: AICoach = None
-    last_map: str = None
-    last_opponent: str = None
+    coach: AICoach
+    last_map: str
+    last_opponent: str
     last_mmr: int = 4000
-    _thread_id: str = None
-    last_rep_id: str = None
+    _thread_id: str | None = None
+    last_rep_id: str
 
     session: Session
 
@@ -192,14 +157,14 @@ class AISession:
             self.session.threads.append(value)
             replaydb.db.save(self.session)
 
-    def update_last_replay(self, replay: Replay = None):
+    def update_last_replay(self, replay: Replay | None = None):
         if replay is None:
-            replay = replaydb.get_most_recent()
-        if replay is None:
-            log.warning(
-                f"Can't find most recent replay for student '{config.student.name}'"
-            )
-            return
+            try:
+                replay = replaydb.get_most_recent()
+            except:
+                log.error("Error getting most recent replay, is DB runnung?")
+                sys.exit(1)
+
         self.last_map = replay.map_name
         self.last_opponent = replay.get_player(config.student.name, opponent=True).name
         self.last_mmr = replay.get_player(config.student.name).scaled_rating
@@ -295,20 +260,20 @@ class AISession:
         replaydb.db.save(self.session)
 
     def is_goodbye(self, response: str):
-        if levenshtein(response[-20:].lower().strip(), "good luck, have fun") < 8:
-            return True
-        else:
-            return False
+        return levenshtein(response[-20:].lower().strip(), "good luck, have fun") < 8
 
-    def initiate_from_game_start(self, map, opponent, mmr) -> str:
+    def initiate_from_game_start(self, map, opponent, mmr):
         replacements = {
             "student": str(config.student.name),
             "map": str(map),
             "opponent": str(opponent),
             "mmr": str(mmr),
+            "replays": [],
         }
 
-        opponent, past_replays = resolve_replays_from_current_opponent(opponent, map)
+        opponent, past_replays = resolve_replays_from_current_opponent(
+            opponent, map, mmr
+        )
 
         if len(past_replays) > 0:
             replacements["replays"] = [
@@ -319,7 +284,7 @@ class AISession:
         else:
             self.say(Templates.scanner_empty.render(replacements), flush=False)
 
-    def initiate_from_new_replay(self, replay: Replay) -> str:
+    def initiate_from_new_replay(self, replay: Replay):
         opponent = replay.get_opponent_of(config.student.name).name
         replacements = {
             "student": str(config.student.name),
@@ -334,13 +299,10 @@ class AISession:
         self.thread_id = self.coach.create_thread(prompt)
 
     def handle_game_start(self, sender, scanresult: ScanResult):
-        log.debug(sender, scanresult)
+        log.debug(f"{sender} {scanresult}")
 
         if scanresult.mapname and config.obs_integration:
-            stats = get_map_stats(scanresult.mapname)
-            if stats is not None:
-                with open("obs/map_stats.html", "w") as f:
-                    f.write(stats.prettify())
+            update_map_stats(scanresult.mapname)
 
         if not self.is_active():
             self.initiate_from_game_start(

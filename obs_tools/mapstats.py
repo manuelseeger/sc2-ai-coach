@@ -27,3 +27,10 @@ def get_map_stats(map):
                             return sibling
         except Exception as e:
             log.warn(f"Could not get map stats: {e}")
+
+
+def update_map_stats(map):
+    stats = get_map_stats(map)
+    if stats is not None:
+        with open("obs/map_stats.html", "w") as f:
+            f.write(stats.prettify())

@@ -33,7 +33,7 @@ from replays.types import PlayerInfo, to_bson_binary
 def test_save_existing_player_info(replay_file, portrait_file):
     reader = ReplayReader()
     replay = reader.load_replay(replay_file)
-    result = save_player_info(replay)
+    result, player_info = save_player_info(replay)
 
     assert result.acknowledged
     assert result.modified_count == 1
@@ -60,7 +60,7 @@ def test_existing_player_info_update_alias(replay_file, portrait_file, monkeypat
 
     reader = ReplayReader()
     replay = reader.load_replay(replay_file)
-    result = save_player_info(replay)
+    result, player_info = save_player_info(replay)
 
     assert result.acknowledged
     assert result.modified_count == 1
@@ -79,7 +79,7 @@ def test_save_player_without_obs_integration(replay_file):
 
     reader = ReplayReader()
     replay = reader.load_replay(replay_file)
-    result = save_player_info(replay)
+    result, player_info = save_player_info(replay)
 
     assert result.acknowledged
 
@@ -116,32 +116,45 @@ def test_resolve_barcode_player(portrait_file):
 
     portrait = Image.open(portrait_file)
 
-    player_info = playerinfo.resolve_player(barcode, portrait=np.array(portrait))
+    player_info = playerinfo.resolve_player_with_portrait(
+        barcode, portrait=np.array(portrait)
+    )
 
     assert player_info.id == barcode1
 
 
 # requires sc2client to connect to the game
 @pytest.mark.parametrize(
-    "portrait_file",
-    ["Post-Youth LE - BARCODE vs zatic 2024-08-05 16-32-48_portrait.png"],
+    "portrait_file, opponent, num_replays",
+    [
+        (
+            "Post-Youth LE - BARCODE vs zatic 2024-08-05 16-32-48_portrait.png",
+            "lllllllllllI",
+            4,
+        ),
+        (
+            "Post-Youth LE - BARCODE vs zatic 2024-08-05 16-32-48_portrait.png",
+            "hobgoblindoesntexist",
+            0,
+        ),
+    ],
     indirect=["portrait_file"],
 )
-def test_resolve_current_player(portrait_file, monkeypatch):
+def test_resolve_current_player(portrait_file, opponent, num_replays, monkeypatch):
 
     def get_portrait_mocked(o, m, r):
         return open(portrait_file, "rb").read()
 
     monkeypatch.setattr(playerinfo, "get_matching_portrait", get_portrait_mocked)
 
-    bc = "lllllllllllI"
     mapname = "Post-Youth LE"
-    opponent, replays = resolve_replays_from_current_opponent(
-        opponent=bc, mapname=mapname
+    mmr = 4000
+    resolved_opponent, replays = resolve_replays_from_current_opponent(
+        opponent=opponent, mapname=mapname, mmr=mmr
     )
 
-    assert opponent == bc
-    assert len(replays) > 0
+    assert resolved_opponent == opponent
+    assert len(replays) == num_replays
 
 
 # requires sc2client to connect to the game
@@ -157,8 +170,9 @@ def test_resolve_current_barcode_player(portrait_file, monkeypatch):
     monkeypatch.setattr(playerinfo, "get_matching_portrait", get_portrait_mocked)
     bc = "IIIIIIIIIIII"
     mapname = "Post-Youth LE"
+    mmr = 4000
     opponent, replays = resolve_replays_from_current_opponent(
-        opponent=bc, mapname=mapname
+        opponent=bc, mapname=mapname, mmr=mmr
     )
 
     assert opponent == bc
@@ -229,3 +243,34 @@ def test_get_matching_portrait(portrait_file):
 )
 def test_match_portrait_filename(portrait_file, map_name, replay_date, expected):
     assert is_portrait_match(portrait_file, map_name, replay_date) == expected
+
+
+def test_constructed_portrait():
+    name = "IIIIIIIIIIII"
+    kat_from_bnet_profile = Image.open(
+        "tests/testdata/portraits/kat_from_bnet.jpg"
+    ).resize((95, 95), Image.Resampling.BICUBIC)
+    diamond_frame = Image.open("assets/diamond_frame.png")
+
+    new = Image.new("RGB", (105, 105), (0, 0, 0))
+
+    new.paste(
+        kat_from_bnet_profile,
+        (5, 6),
+    )
+    new.paste(diamond_frame, (0, 0), diamond_frame)
+
+    kat_from_bnet = new
+
+    kats = {
+        "kat_diamond.png": Image.open("tests/testdata/portraits/kat_diamond.png"),
+        "kat_from_bnet.jpg": kat_from_bnet,
+        "katchinsky_portrait.png": Image.open(
+            "tests/testdata/portraits/katchinsky_portrait.png"
+        ),
+    }
+
+    for kat_file, kat_portrait in kats.items():
+        for kat2_file, kat2_portrait in kats.items():
+            score = ssim(np.array(kat_portrait), np.array(kat2_portrait))
+            print(f"{kat_file} vs {kat2_file}: {score}")

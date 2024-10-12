@@ -6,7 +6,7 @@ dependencies:
   - conda-forge::pydantic=2.6
   - conda-forge::pydantic-settings
   - pyyaml
-  - requests
+  - conda-forge::httpx
   - click
   - pymongo
   - conda-forge::openai
@@ -22,3 +22,4 @@ dependencies:
       - pyodmongo
       - keyboard
       - climage
+      - blizzapi2

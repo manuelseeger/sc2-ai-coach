@@ -19,15 +19,15 @@ This is my personal research project to explore the latest in LLM based agents.
 
 Looking up past games when a new game is being played:
 
-![Example new game](archive/aicoach-scanner-example.png "New game started")
+![Example new game](assets/aicoach-scanner-example.png "New game started")
 
 Analyzing a replay after a game just finished:
 
-![Example replay](archive/aicoach-newreplay-manners.png "New Replay, discussing player's manners")
+![Example replay](assets/aicoach-newreplay-manners.png "New Replay, discussing player's manners")
 
 Answering arbitrary questions on SC2:
 
-![Example replay](archive/aicoach-hey-goat.png "Weighing in on the GOAT debate")
+![Example replay](assets/aicoach-hey-goat.png "Weighing in on the GOAT debate")
 
 ## Minimal Setup
 
@@ -63,41 +63,11 @@ The rest of the settings will be taken from `config.yml`.
 
 Secrets are configured with environment variables. Either provide them at runtime or put them in a dotenv file, like [.env.example](.env.example). (But copy to `.env` since the example file is ignored).
 
-### OpenAI
-
-Prerequisites:
-
-- Setup an OpenAI account and fund with credits
-- Create an OpenAI Assistant
-- Create an API key.
-
-Add your OpenAI organization, Assistant ID, and API key to the env variables, `AICOACH_ASSISTANT_ID`, `AICOACH_OPENAI_API_KEY`, `AICOACH_OPENAI_ORG_ID`.
-
-Note on cost: Long conversations can cost up to one dollar ($1.00) in OpenAI API usage. AICoach will not incur API costs until one of the wake events is triggered - see below.
-
-If you just want a database with your replays you can skip this step and the next or do it later.
-
-### Build and deploy assistant
-
-```sh
-> python build.py
-```
-
-to build the assistant. You should have a new file [aicoach/assistant.json](aicoach/assistant.json).
-
-```sh
-> python build.py --deploy
-```
-
-to deploy the assistant to OpenAI. Check on https://platform.openai.com/playground if the assistant is initialized with tools and instructions.
-
 ### Database
 
 Any MongoDB > 4.5 will do. Either setup one by yourself, or follow the instructions in [mongodb/](mongodb/README.md) on how to setup a local database for dev/testing.
 
-If you setup your own MongoDB, create a database, and add 3 collections `replays`, `replays.meta`, `replays.players`.
-
-Add the DB name to settings:
+If you setup your own MongoDB, create a database and add the DB name to settings:
 
 ```yaml
 # config.yourname.yml
@@ -123,34 +93,65 @@ Use the tool [repcli.py](repcli.py) to populate your DB with replays. The tools 
 Usage: repcli.py [OPTIONS] COMMAND [ARGS]...
 
 Options:
-  --clean       Delete replays from instant-leave games
-  --debug       Print debug messages, including replay parser
-  --simulation  Run in simulation mode, don't actually insert to DB
-  --help        Show this message and exit.
+  --clean        Delete replays from instant-leave games
+  --debug        Print debug messages, including replay parser
+  --simulation   Run in simulation mode, don't actually insert to DB
+  -v, --verbose  Print verbose output
+  --help         Show this message and exit.
 
 Commands:
-  deamon  Monitor replay folder, add new replays to MongoDB
-  echo    Echo pretty-printed parsed replay data from a .SC2Replay file
-  sync    Sync replays from replay folder to MongoDB
+  echo   Echo pretty-printed parsed replay data from a .SC2Replay file
+  query  Query the DB for replays and players
+  sync   Sync replays and players from replay folder to MongoDB
 ```
 
 Run
 
 ```sh
-> python repcli.py --simulation sync --from=2024-01-01
+> python repcli.py --simulation sync players replays --from=2024-01-01 
 ```
-
-to read all 1v1 ladder replays from beginning of 2024. With the `--simulation` flag the replays will not actually be commited to DB. Remove the `--simulation` flag and run again to store all replay in DB.
+to read all 1v1 ladder replays from beginning of 2024, and add the replays and the players from the replays to the DB. With the `--simulation` flag the replays will not actually be commited to DB. Remove the `--simulation` flag and run again to store all replay in DB.
 
 The `replays` collection of the DB should now be populated with replay documents.
 
 See `python repcli.py sync --help` for more options. You can always repopulate the DB from replay files without destroying anything. AICoach does not change anything on the replay data in the DB.
+
+### OpenAI
+
+Prerequisites:
+
+- Setup an OpenAI account and fund with credits
+- Create an OpenAI Assistant
+- Create an API key.
+
+Add your OpenAI organization, Assistant ID, and API key to the env variables, `AICOACH_ASSISTANT_ID`, `AICOACH_OPENAI_API_KEY`, `AICOACH_OPENAI_ORG_ID`.
+
+Note on cost: Long conversations can cost up to one dollar ($1.00) in OpenAI API usage. Typically interactions stay below $0.10 however. AICoach will not incur API costs until one of the wake events is triggered - see below.
+
+If you just want a database with your replays you can skip this step and the next or do it later.
+
+### Build and deploy assistant
+
+```sh
+> python build.py
+```
+
+to build the assistant. You should have a new file [aicoach/assistant.json](aicoach/assistant.json).
+
+```sh
+> python build.py --deploy
+```
+
+to deploy the assistant to OpenAI. Check on https://platform.openai.com/playground if the assistant is initialized with tools and instructions.
+
 
 ### (Optional) Additional settings
 
 Configure a wake hotkey. On pressing this key (combination) AICoach will wake up and ask for input. Default: `ctrl+alt+w`.
 
 Configure student.emoji if you want to show a [different icon](./playground/emojis.txt) in the terminal output.
+
+You can disable interactions with the `interactive` flag. If off, AI coach will speak, but won't listen for input. 
 
 ```yaml
 # config.yourname.yml
@@ -162,6 +163,7 @@ student:
   emoji: ":woman_student:"
 db_name: "YOURDB"
 wake_key: "ctrl+alt+w"
+interactive: False
 ```
 
 ## Run AICoach
