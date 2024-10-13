@@ -71,7 +71,7 @@ class Transcriber:
             batch_size=16,
             torch_dtype=torch.float16,
             device=self.device,
-            # model_kwargs=self.whisper_params,
+            model_kwargs=self.whisper_params,
         )
         log.debug(
             f"Transcriber initialized, Device: {self.device}, Flash-Attn-2: {is_flash_attn_2_available()}"
