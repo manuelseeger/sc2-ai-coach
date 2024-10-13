@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from time import sleep, time
 
 import click
-from blinker import signal
 from Levenshtein import distance as levenshtein
 from pydantic import BaseModel
 from rich.prompt import Prompt
@@ -58,32 +57,24 @@ def main(debug):
 
         twitch = TwitchListener(name="twitch")
         twitch.start()
-        twitch_signal = signal("twitch_chat")
-        twitch_signal.connect(session.handle_twitch_chat)
 
     if CoachEvent.wake in config.coach_events:
         from obs_tools import WakeListener
 
         listener = WakeListener(name="listener")
         listener.start()
-        wake = signal("wakeup")
-        wake.connect(session.handle_wake)
 
     if CoachEvent.game_start in config.coach_events:
         from obs_tools import GameStartedScanner
 
         scanner = GameStartedScanner(name="scanner")
         scanner.start()
-        loading_screen = signal("loading_screen")
-        loading_screen.connect(session.handle_game_start)
 
     if CoachEvent.new_replay in config.coach_events:
         from replays.newreplay import NewReplayScanner
 
         replay_scanner = NewReplayScanner(name="replay_scanner")
         replay_scanner.start()
-        new_replay = signal("replay")
-        new_replay.connect(session.handle_new_replay)
 
     if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
         tts.feed("Starting TTS")
@@ -101,11 +92,16 @@ def main(debug):
     ping_printed = False
     while True:
         try:
-            # task = signal_queue.get()
-            # if isinstance(task, TwitchResult):
-            #    session.handle_twitch_chat("twitch", task)
-            if session.is_active():
-                pass
+            task = signal_queue.get()
+            # task = None
+            if isinstance(task, TwitchResult):
+                session.handle_twitch_chat("twitch", task)
+            elif isinstance(task, WakeResult):
+                session.handle_wake("wakeup", task)
+            elif isinstance(task, ScanResult):
+                session.handle_game_start("loading_screen", task)
+            elif isinstance(task, Replay):
+                session.handle_new_replay("replay", task)
             else:
                 # print once every 10 seconds so we know you are still alive
                 if datetime.now().second % 10 == 0:
@@ -115,7 +111,7 @@ def main(debug):
                 else:
                     ping_printed = False
 
-            sleep(1)
+            signal_queue.task_done()
         except queue.Empty:
             pass
         except KeyboardInterrupt:
@@ -138,6 +134,8 @@ def main(debug):
                 twitch.stop()
                 twitch.join()
             sys.exit(0)
+        finally:
+            sleep(1)
 
 
 class AISession:
@@ -362,7 +360,7 @@ class AISession:
                 self.close()
 
     def handle_twitch_chat(self, sender, twitch_chat: TwitchResult):
-        log.debug(str(sender) + twitch_chat.message)
+        log.debug(f"{twitch_chat.user}: {twitch_chat.message}")
 
         while self.is_active():
             sleep(1)
