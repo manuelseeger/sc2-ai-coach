@@ -6,17 +6,15 @@ from os.path import basename, join
 from pathlib import Path
 from time import sleep
 
-from blinker import signal
-
 from config import config
 from obs_tools.playerinfo import save_player_info
 from replays.db import replaydb
 from replays.reader import ReplayReader
+from shared import signal_queue
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 log.setLevel(logging.INFO)
 
-newreplay = signal("replay")
 
 reader = ReplayReader()
 
@@ -69,7 +67,8 @@ class NewReplayScanner(threading.Thread):
                     result, player_info = save_player_info(replay)
                     if not result.acknowledged:
                         log.error(f"Failed to save player info for {replay}")
-                    newreplay.send(self, replay=replay)
+
+                    signal_queue.put(replay)
                 else:
                     if reader.is_instant_leave(replay_raw) or reader.has_afk_player(
                         replay_raw

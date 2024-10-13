@@ -6,10 +6,11 @@ from time import sleep
 import numpy as np
 import onnxruntime
 import pyaudio
-from blinker import signal
+import torch
 from openwakeword.model import Model
 
 from config import config
+from shared import signal_queue
 
 from .types import WakeResult
 
@@ -34,8 +35,6 @@ mic_stream = audio.open(
 
 owwModel = Model([config.oww_model], inference_framework="onnx")
 
-wakeup = signal("wakeup")
-
 
 class WakeWordListener(threading.Thread):
     def __init__(self, name):
@@ -51,6 +50,8 @@ class WakeWordListener(threading.Thread):
         return self._stop_event.is_set()
 
     def run(self):
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        torch.set_default_device(device)
         self.listen_for_wake_word()
 
     def listen_for_wake_word(self):
@@ -70,6 +71,6 @@ class WakeWordListener(threading.Thread):
                 if (datetime.now() - last_score_timestamp).seconds > 5:
                     last_score_timestamp = datetime.now()
                     log.info(f"Model woke up with a score of {score:.2f}")
-                    wakeup.send(self, wakeresult=WakeResult(awake=True))
+                    signal_queue.put(WakeResult(awake=True))
                     owwModel.reset()
                     sleep(5)

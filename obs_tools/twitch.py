@@ -2,14 +2,13 @@ import asyncio
 import logging
 import threading
 
-from blinker import signal
-from numpy import sign
 from twitchAPI.chat import Chat, ChatCommand, ChatMessage, ChatSub, EventData
 from twitchAPI.oauth import UserAuthenticator
 from twitchAPI.twitch import Twitch
 from twitchAPI.type import AuthScope, ChatEvent
 
 from config import config
+from shared import signal_queue
 
 from .types import TwitchResult
 
@@ -34,7 +33,6 @@ class TwitchListener(threading.Thread):
         return self._stop_event.is_set()
 
     def run(self):
-        self.twitch_chat = signal("twitch_chat")
         asyncio.run(self.twitch_async())
 
     async def on_ready(self, ready_event: EventData):
@@ -46,7 +44,7 @@ class TwitchListener(threading.Thread):
         result = TwitchResult(
             user=msg.user.name, channel=msg.room.name, message=msg.text
         )
-        await self.twitch_chat.send(self, twitch_chat=result)
+        await signal_queue.put(result)
 
     async def twitch_async(self):
 
