@@ -31,6 +31,7 @@ class Jinja2Loader:
     scanner_empty: Template
     rematch: Template
     twitch: Template
+    init_twitch: Template
 
     def __init__(self):
         self.env = LoggingEnvironment(
@@ -46,6 +47,7 @@ class Jinja2Loader:
         self.scanner_empty = self.env.get_template("scanner_empty.jinja2")
         self.rematch = self.env.get_template("rematch.jinja2")
         self.twitch = self.env.get_template("twitch.jinja2")
+        self.init_twitch = self.env.get_template("init_twitch.jinja2")
 
     def render(self, template_name: str, replacements: Dict[str, str]) -> str:
         template = self.env.get_template(template_name)

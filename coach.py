@@ -1,13 +1,15 @@
+import asyncio
 import logging
-import os
+import queue
 import sys
-import warnings
 from datetime import datetime, timezone
 from time import sleep, time
 
 import click
 from blinker import signal
+from cv2 import add
 from Levenshtein import distance as levenshtein
+from pydantic import BaseModel
 from rich.prompt import Prompt
 
 from aicoach import AICoach
@@ -16,10 +18,11 @@ from config import AIBackend, AudioMode, CoachEvent, config
 from log import log
 from obs_tools.playerinfo import resolve_replays_from_current_opponent
 from obs_tools.rich_log import TwitchObsLogHandler
-from obs_tools.types import ScanResult, WakeResult
+from obs_tools.types import ScanResult, TwitchResult, WakeResult
 from replays.db import replaydb
 from replays.metadata import save_replay_summary
 from replays.types import Player, Replay, Role, Session, Usage
+from shared import signal_queue
 
 if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
     from aicoach.transcribe import Transcriber
@@ -51,6 +54,14 @@ def main(debug):
         log.debug("debugging on")
 
     session = AISession()
+
+    if CoachEvent.twitch in config.coach_events:
+        from obs_tools.twitch import TwitchListener
+
+        twitch = TwitchListener(name="twitch")
+        twitch.start()
+        twitch_signal = signal("twitch_chat")
+        twitch_signal.connect(session.handle_twitch_chat)
 
     if CoachEvent.wake in config.coach_events:
         from obs_tools import WakeListener
@@ -92,6 +103,9 @@ def main(debug):
     ping_printed = False
     while True:
         try:
+            # task = signal_queue.get()
+            # if isinstance(task, TwitchResult):
+            #    session.handle_twitch_chat("twitch", task)
             if session.is_active():
                 pass
             else:
@@ -104,6 +118,8 @@ def main(debug):
                     ping_printed = False
 
             sleep(1)
+        except queue.Empty:
+            pass
         except KeyboardInterrupt:
             log.info("Shutting down ...")
 
@@ -120,6 +136,9 @@ def main(debug):
             if CoachEvent.new_replay in config.coach_events:
                 replay_scanner.stop()
                 replay_scanner.join()
+            if CoachEvent.twitch in config.coach_events:
+                twitch.stop()
+                twitch.join()
             sys.exit(0)
 
 
@@ -130,6 +149,7 @@ class AISession:
     last_mmr: int = 4000
     _thread_id: str | None = None
     last_rep_id: str
+    chat_thread_id: str | None = None
 
     session: Session
 
@@ -276,6 +296,8 @@ class AISession:
         )
 
         if len(past_replays) > 0:
+            if past_replays[0].id == self.last_rep_id:
+                pass
             replacements["replays"] = [
                 r.default_projection_json(limit=300) for r in past_replays[:5]
             ]
@@ -340,6 +362,41 @@ class AISession:
                 save_replay_summary(replay, self.coach)
 
                 self.close()
+
+    def handle_twitch_chat(self, sender, twitch_chat: TwitchResult):
+        log.debug(str(sender) + twitch_chat.message)
+
+        while self.is_active():
+            sleep(1)
+
+        replacements = {
+            "user": twitch_chat.user,
+            "message": twitch_chat.message,
+        }
+        prompt = Templates.twitch.render(replacements)
+
+        class TwitchChatResponse(BaseModel):
+            is_question: bool
+            answer: str
+
+        if not self.chat_thread_id:
+            self.chat_thread_id = self.coach.create_thread()
+        else:
+            self.coach.set_active_thread(self.chat_thread_id)
+
+        # response = self.coach.get_response(message=prompt)
+        response: TwitchChatResponse = self.coach.get_structured_response(
+            message=prompt,
+            schema=TwitchChatResponse,
+            additional_instructions=Templates.init_twitch.render(
+                {"student": config.student.name}
+            ),
+        )
+
+        log.debug(response)
+
+        if response.is_question:
+            self.say(response.answer, flush=False)
 
 
 if __name__ == "__main__":
