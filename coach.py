@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import queue
 import sys
@@ -7,7 +6,6 @@ from time import sleep, time
 
 import click
 from blinker import signal
-from cv2 import add
 from Levenshtein import distance as levenshtein
 from pydantic import BaseModel
 from rich.prompt import Prompt
@@ -384,7 +382,6 @@ class AISession:
         else:
             self.coach.set_active_thread(self.chat_thread_id)
 
-        # response = self.coach.get_response(message=prompt)
         response: TwitchChatResponse = self.coach.get_structured_response(
             message=prompt,
             schema=TwitchChatResponse,
@@ -397,6 +394,8 @@ class AISession:
 
         if response.is_question:
             self.say(response.answer, flush=False)
+
+        self.close()
 
 
 if __name__ == "__main__":
