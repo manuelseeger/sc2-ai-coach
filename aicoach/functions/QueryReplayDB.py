@@ -139,7 +139,15 @@ def QueryReplayDB(
             limit=limit,
         )
         results = list(cursor)
-        result_replays = [Replay(**result) for result in results]
+        result_replays = []
+        for result in results:
+            try:
+                r = Replay(**result)
+                result_replays.append(r)
+            except Exception as e:
+                log.debug(f"Failed to parse replay: {e}")
+                pass
+
     except Exception as e:
         log.error(e)
         return []

@@ -41,7 +41,6 @@ class Transcriber:
         torch.set_default_device(self.device)
         torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
         model_id = config.speech_recognition_model
-        model_id = "distil-whisper/distil-large-v3"
 
         self.model = AutoModelForSpeechSeq2Seq.from_pretrained(
             model_id,
