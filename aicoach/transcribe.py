@@ -1,5 +1,6 @@
 import io
 import logging
+from typing import List, Optional, Union
 
 import numpy as np
 import soundfile as sf
@@ -7,7 +8,10 @@ import torch
 import transformers
 from speech_recognition.audio import AudioData
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
-from transformers.utils import is_flash_attn_2_available
+from transformers.feature_extraction_utils import BatchFeature
+from transformers.models.whisper import WhisperFeatureExtractor
+from transformers.utils import TensorType, is_flash_attn_2_available
+from typing_extensions import override
 
 from config import config
 
@@ -17,41 +21,60 @@ log = logging.getLogger(f"{config.name}.{__name__}")
 log.setLevel(logging.DEBUG)
 
 
+class GPUWhisperFeatureExtractor(WhisperFeatureExtractor):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
+    @override
+    def __call__(
+        self,
+        *args,
+        **kwargs,
+    ) -> BatchFeature:
+        return super().__call__(*args, device=self.device, **kwargs)
+
+
 class Transcriber:
     def __init__(self):
-        device = "cuda:0" if torch.cuda.is_available() else "cpu"
-        torch.set_default_device(device)
+        self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        torch.set_default_device(self.device)
         torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
         model_id = config.speech_recognition_model
+        model_id = "distil-whisper/distil-large-v3"
 
-        model = AutoModelForSpeechSeq2Seq.from_pretrained(
+        self.model = AutoModelForSpeechSeq2Seq.from_pretrained(
             model_id,
             torch_dtype=torch_dtype,
             low_cpu_mem_usage=True,
             use_safetensors=True,
             attn_implementation="flash_attention_2",
+            use_flash_attention_2=True,
         )
-        model.to(device)
+        self.model.to(self.device)
 
-        processor = AutoProcessor.from_pretrained(model_id)
+        self.processor = AutoProcessor.from_pretrained(model_id)
 
-        # don't let whisper halucinate, see https://github.com/openai/whisper/discussions/679
-        whisper_params = {"temperature": 0.2}
+        extractor = GPUWhisperFeatureExtractor(
+            feature_size=self.processor.feature_extractor.feature_size
+        )
+
+        self.whisper_params = {"temperature": 0.2}
 
         self.pipe = pipeline(
             "automatic-speech-recognition",
-            model=model,
-            tokenizer=processor.tokenizer,
-            feature_extractor=processor.feature_extractor,
+            model=self.model,
+            tokenizer=self.processor.tokenizer,
+            feature_extractor=extractor,
             max_new_tokens=128,
             chunk_length_s=30,
             batch_size=16,
             torch_dtype=torch.float16,
-            device=device,
-            model_kwargs=whisper_params,
+            device=self.device,
+            # model_kwargs=self.whisper_params,
         )
         log.debug(
-            f"Transcriber initialized, Device: {device}, Flash-Attn-2: {is_flash_attn_2_available()}"
+            f"Transcriber initialized, Device: {self.device}, Flash-Attn-2: {is_flash_attn_2_available()}"
         )
 
     def transcribe(self, audio: AudioData) -> str:
