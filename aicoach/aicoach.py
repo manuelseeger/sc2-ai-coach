@@ -62,7 +62,10 @@ class AICoach:
 
         self.additional_instructions = Templates.additional_instructions.render(
             # Monday, January 01, 2021
-            {"today": datetime.now().strftime("%A, %B %d, %Y")}
+            {
+                "today": datetime.now().strftime("%A, %B %d, %Y"),
+                "timestamp": datetime.now().timestamp(),
+            }
         )
 
         self.additional_instructions += "\n\n" + more_instructions
@@ -225,6 +228,7 @@ class AICoach:
                         yield token
             except APIError as e:
                 log.error(f"API Error: {e}")
+                log.debug(f"API Error: {e.body}")
                 yield ""
 
     def _process_event(self, event) -> Generator[str, None, None]:
