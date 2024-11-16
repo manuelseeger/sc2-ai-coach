@@ -189,7 +189,7 @@ When a new replay is added to the replay folder while AICoach is running, AICoac
 - Add the replay to replay DB
 - Offer to discuss the replay
 
-On closing of the conversation, AICoach will save the conversation in `replays.meta` along with a summary and some keywords which characterize the game.
+On closing of the conversation, AICoach will save the conversation in `meta` along with a summary and some keywords which characterize the game.
 
 ### New game event
 
@@ -234,6 +234,11 @@ Set up all dependencies from `environment-cp311.yml`. Review [Installation.md](I
 [parse_map_loading_screen.py](obs_tools/parse_map_loading_screen.py) needs you to setup OBS to take a screenshot when the maploading screen is showing in SC2. This is done to read the opponents name faster (before the game clock starts).
 
 The OBS setup is not documented here and you can skip this part by keeping `obs_integration=False`.
+
+More undocumented features: 
+- Twitch integration, AI coach listens and responds to questions in twitch chat
+- Battle.net integration, AI coach can request profile information including portrait for players from battle.net
+- SC2 pulse integration, AI coach can try to unmask barcodes 
 
 ## Limitations
 

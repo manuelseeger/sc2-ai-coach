@@ -360,7 +360,8 @@ class AISession:
                 self.close()
 
     def handle_twitch_chat(self, sender, twitch_chat: TwitchResult):
-        log.debug(f"{twitch_chat.user}: {twitch_chat.message}")
+        #log.debug(f"{twitch_chat.user}: {twitch_chat.message}")
+        log.info(f"{twitch_chat.user}: {twitch_chat.message}")
 
         while self.is_active():
             sleep(1)
@@ -379,6 +380,8 @@ class AISession:
             self.chat_thread_id = self.coach.create_thread()
         else:
             self.coach.set_active_thread(self.chat_thread_id)
+
+        self.thread_id = self.chat_thread_id
 
         response: TwitchChatResponse = self.coach.get_structured_response(
             message=prompt,
