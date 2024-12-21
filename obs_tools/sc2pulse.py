@@ -155,7 +155,8 @@ class SC2PulseClient:
             )
             if response.status_code == 404:
                 log.debug(f"404 for {batch}, race {race.value}")
-            response.raise_for_status()
+            else:
+                response.raise_for_status()
             pulse_teams = [SC2PulseTeam(**t) for t in response.json()]
             teams.extend(pulse_teams)
 
