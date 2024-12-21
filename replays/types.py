@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any, ClassVar, Dict, List, Tuple
+from typing import Annotated, Any, ClassVar, Dict, List, Literal, Tuple
 
 import bson
 import pydantic
@@ -121,7 +121,7 @@ class Player(MainBaseModel):
     creep_spread_by_minute: Dict[str, float] | None = None
     highest_league: int
     name: str
-    max_creep_spread: Tuple[int, float] | None = None
+    max_creep_spread: Tuple[int, float] | Literal[0] | None = None
     messages: List[ReplayMessage] = []
     pick_race: str
     pid: int
