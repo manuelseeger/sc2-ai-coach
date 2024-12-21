@@ -360,8 +360,7 @@ class AISession:
                 self.close()
 
     def handle_twitch_chat(self, sender, twitch_chat: TwitchResult):
-        #log.debug(f"{twitch_chat.user}: {twitch_chat.message}")
-        log.info(f"{twitch_chat.user}: {twitch_chat.message}")
+        log.debug(f"{twitch_chat.user}: {twitch_chat.message}")
 
         while self.is_active():
             sleep(1)
@@ -394,6 +393,7 @@ class AISession:
         log.debug(response)
 
         if response.is_question:
+            log.info(f"{twitch_chat.user}: {twitch_chat.message}")
             self.say(response.answer, flush=False)
 
         self.close()
