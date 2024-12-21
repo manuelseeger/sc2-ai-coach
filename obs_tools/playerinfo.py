@@ -193,7 +193,7 @@ def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo 
     scores = []
 
     # can't match barcode with kat portrait
-    if is_barcode(name) and ssim(np.array(KAT_PORTRAIT), portrait) > 0.6:
+    if is_barcode(name) and float(ssim(np.array(KAT_PORTRAIT), portrait)) > 0.6:
         log.debug("Barcode with Kat portrait")
         return None
 
