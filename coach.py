@@ -293,11 +293,16 @@ class AISession:
 
         if len(past_replays) > 0:
             if past_replays[0].id == self.last_rep_id:
-                pass
-            replacements["replays"] = [
-                r.default_projection_json(limit=300) for r in past_replays[:5]
-            ]
-            prompt = Templates.scanner.render(replacements)
+                replacements["replays"] = [
+                    past_replays[0].default_projection_json(limit=300)
+                ]
+                prompt = Templates.rematch.render(replacements)
+            else:
+                replacements["replays"] = [
+                    r.default_projection_json(limit=300) for r in past_replays[:5]
+                ]
+                prompt = Templates.scanner.render(replacements)
+                
             self.thread_id = self.coach.create_thread(prompt)
         else:
             self.say(Templates.scanner_empty.render(replacements), flush=False)
