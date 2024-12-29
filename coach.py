@@ -302,7 +302,7 @@ class AISession:
                     r.default_projection_json(limit=300) for r in past_replays[:5]
                 ]
                 prompt = Templates.scanner.render(replacements)
-                
+
             self.thread_id = self.coach.create_thread(prompt)
         else:
             self.say(Templates.scanner_empty.render(replacements), flush=False)
