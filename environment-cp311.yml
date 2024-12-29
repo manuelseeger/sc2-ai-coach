@@ -20,8 +20,6 @@ dependencies:
   - simonflueckiger::tesserocr
   - beautifulsoup4
   - python-levenshtein
-  - onnxruntime
-  - blinker
   #- pytorch # conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
   - jupyter
   - conda-forge::matplotlib
@@ -37,7 +35,7 @@ dependencies:
       - sc2reader
       - spawningtool
       - openwakeword
-      - optimum
+      - onnxruntime-gpu
       - accelerate
       - transformers
       - SpeechRecognition

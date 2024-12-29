@@ -1,9 +1,10 @@
 import json
 import logging
 from datetime import datetime
-from typing import Callable, Dict, Generator, Generic, Type, TypeVar
+from typing import Callable, Dict, Generator, Generic, Optional, Type, TypeVar
 
-from openai import APIError, AssistantEventHandler, OpenAI
+from click import Option
+from openai import APIError, AssistantEventHandler, NotGiven, OpenAI
 from openai.lib.streaming import AssistantStreamManager
 from openai.types.beta import Assistant, Thread
 from openai.types.beta.assistant_stream_event import (
@@ -41,20 +42,33 @@ class AICoach:
 
     additional_instructions: str = ""
 
+    assistant: Assistant
+
     def __init__(self):
         """Initializes the AICoach object with the assistant and additional instructions."""
         self.assistant: Assistant = client.beta.assistants.retrieve(
             assistant_id=config.assistant_id
         )
 
-        self.additional_instructions = Templates.additional_instructions.render(
-            # Monday, January 01, 2021
-            {"today": datetime.now().strftime("%A, %B %d, %Y")}
-        )
+        self.init_additional_instructions()
+
         self._init_functions()
 
     def _init_functions(self):
         self.functions = {f.__name__: f for f in AIFunctions}
+
+    def init_additional_instructions(self, more_instructions: str = ""):
+        """Initializes the additional instructions with the given keyword arguments."""
+
+        self.additional_instructions = Templates.additional_instructions.render(
+            # Monday, January 01, 2021
+            {
+                "today": datetime.now().strftime("%A, %B %d, %Y"),
+                "timestamp": datetime.now().timestamp(),
+            }
+        )
+
+        self.additional_instructions += "\n\n" + more_instructions
 
     def get_thread_usage(self, thread_id: str) -> Usage:
         """Returns the accumulated usages of all runs of the current thread."""
@@ -74,7 +88,7 @@ class AICoach:
             thread_id=self.thread.id, order="desc", limit=1
         )
         if messages.data[0].role != "assistant":
-            log.warn("Assistant sent no message")
+            log.warning("Assistant sent no message")
             return ""
         return messages.data[0].content[0].text.value
 
@@ -113,6 +127,14 @@ class AICoach:
                 log.error(f"API Error: {e}")
                 yield ""
 
+    def set_active_thread(self, thread_id: str):
+        """Set the active thread to the thread with the given thread id."""
+        self.thread = self.get_thread(thread_id)
+
+    def get_thread(self, thread_id: str) -> Thread:
+        """Return the thread object for a given thread id."""
+        return client.beta.threads.retrieve(thread_id=thread_id)
+
     def get_response(self, message) -> str:
         """Get the response from the assistant for a given message.
 
@@ -123,17 +145,23 @@ class AICoach:
             buffer += response
         return buffer
 
-    def get_structured_response(self, message, schema: Type[TBaseModel]) -> TBaseModel:
+    def get_structured_response_poll(
+        self, message, schema: Type[TBaseModel]
+    ) -> TBaseModel:
         """Get the structured response from the assistant for a given message."""
         message = client.beta.threads.messages.create(
             thread_id=self.thread.id,
             role="user",
             content=message,
         )
+        function_tools = [
+            tool for tool in self.assistant.tools if tool.type == "function"
+        ]
+
         new_run = client.beta.threads.runs.create_and_poll(
             thread_id=self.thread.id,
             assistant_id=self.assistant.id,
-            tools=[],  # structured output requires no tools
+            tools=function_tools,  # structured output requires only function tools
             response_format={
                 "type": "json_schema",
                 "json_schema": {
@@ -146,7 +174,38 @@ class AICoach:
         if new_run.status == "completed":
             return schema(**json.loads(self.get_most_recent_message()))
 
-    def chat(self, text) -> Generator[str, None, None]:
+    def get_structured_response(
+        self,
+        message,
+        schema: Type[TBaseModel],
+        additional_instructions: Optional[str] = None,
+    ) -> TBaseModel:
+        """Get the structured response from the assistant for a given message."""
+        function_tools = [
+            tool for tool in self.assistant.tools if tool.type == "function"
+        ]
+        response_format = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": schema.__name__,
+                "schema": schema.model_json_schema(),
+            },
+        }
+
+        if additional_instructions:
+            self.init_additional_instructions(additional_instructions)
+
+        buffer = ""
+        for response in self.chat(
+            message, response_format=response_format, tools=function_tools
+        ):
+            buffer += response
+        self.init_additional_instructions()
+        return schema(**json.loads(self.get_most_recent_message()))
+
+    def chat(
+        self, text, response_format=None, tools=None
+    ) -> Generator[str, None, None]:
         """Send a message to the assistant and stream the response.
 
         This creates a new run for the current thread and streams the response from the assistant.
@@ -160,6 +219,8 @@ class AICoach:
             thread_id=self.thread.id,
             assistant_id=self.assistant.id,
             additional_instructions=self.additional_instructions,
+            response_format=response_format,
+            tools=tools,
         ) as stream:
             try:
                 for event in stream:
@@ -167,6 +228,7 @@ class AICoach:
                         yield token
             except APIError as e:
                 log.error(f"API Error: {e}")
+                log.debug(f"API Error: {e.body}")
                 yield ""
 
     def _process_event(self, event) -> Generator[str, None, None]:

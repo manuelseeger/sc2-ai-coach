@@ -49,6 +49,7 @@ class CoachEvent(str, Enum):
     wake = "wake"
     game_start = "game_start"
     new_replay = "new_replay"
+    twitch = "twitch"
 
 
 class AIBackend(str, Enum):
@@ -124,6 +125,10 @@ class Config(BaseSettings):
     blizzard_client_id: Optional[str] = None
     blizzard_client_secret: Optional[str] = None
     blizzard_region: SC2Region
+
+    twitch_client_id: Optional[str] = None
+    twitch_client_secret: Optional[str] = None
+    twitch_channel: Optional[str] = None
 
     rating_delta_max: int
     last_played_ago_max: int

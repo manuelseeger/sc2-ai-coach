@@ -1,0 +1,15 @@
+I just started a game against "{{opponent}}" on the map {{map}}. We are currently playing at {{mmr}} MMR.
+
+There are {{replays|length}} replays of me playing against {{opponent}}. Pretend you found these replays for me, and
+reply as if you are the one starting this conversation.
+Give a 1 sentence summary of {{opponent}} strategy for each replay. When giving the summary for a replay, emphazise that
+it was played on {{map}} before if that is the case. Include who won. Be ready to answer questions about these past
+games against
+{{opponent}}.
+
+Past replays against {{opponent}}:
+
+{% for replay in replays %}
+{{replay}}
+-------------------
+{% endfor %}

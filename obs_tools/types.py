@@ -1,3 +1,4 @@
+from email import message
 from enum import Enum
 from typing import List
 
@@ -30,6 +31,12 @@ class ScanResult(BaseModel):
 
 class WakeResult(BaseModel):
     awake: bool
+
+
+class TwitchResult(BaseModel):
+    user: str
+    channel: str
+    message: str
 
 
 class Race(str, Enum):

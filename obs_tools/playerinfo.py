@@ -193,7 +193,7 @@ def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo 
     scores = []
 
     # can't match barcode with kat portrait
-    if is_barcode(name) and ssim(np.array(KAT_PORTRAIT), portrait) > 0.6:
+    if is_barcode(name) and float(ssim(np.array(KAT_PORTRAIT), portrait)) > 0.6:
         log.debug("Barcode with Kat portrait")
         return None
 
@@ -240,9 +240,8 @@ def resolve_replays_from_current_opponent(
     playerinfo = None
     race = None
 
-    log.debug(f"Resolving replays for opponent {opponent}")
-
     if not is_barcode(opponent):
+        log.debug(f"Trying to resolve {opponent} by name")
         # 0 look in DB for player info
         q = PlayerInfo.name == opponent
         playerinfos = replaydb.db.find_many(PlayerInfo, q)
@@ -251,6 +250,7 @@ def resolve_replays_from_current_opponent(
             playerinfo = playerinfos[0]
 
     if not playerinfo:
+        log.debug(f"Trying to resolve {opponent} by portrait")
         gameinfo = sc2client.wait_for_gameinfo(timeout=30, ongoing=True)
         if gameinfo:
             opponent, race = sc2client.get_opponent(gameinfo)
@@ -273,7 +273,7 @@ def resolve_replays_from_current_opponent(
         log.debug(f"Could not get race, is SC2Client running?")
 
     if not playerinfo and race:
-
+        log.debug(f"Trying to resolve {opponent} with SC2Pulse")
         # 2 query sc2pulse for player info
         pulse_players = sc2pulse.get_unmasked_players(
             opponent=opponent, race=race, mmr=mmr

@@ -9,12 +9,12 @@ from time import sleep, time
 import cv2
 import numpy
 import tesserocr
-from blinker import signal
 from Levenshtein import distance as levenstein
 from PIL import Image
 
 from config import config
 from obs_tools.sc2client import sc2client
+from shared import signal_queue
 
 from .types import ScanResult
 
@@ -148,7 +148,6 @@ class LoadingScreenScanner(threading.Thread):
 
     def scan_loading_screen(self):
         log.debug("Starting loading screen scanner")
-        loading_screen = signal("loading_screen")
         while True:
             if self.stopped():
                 log.debug("Stopping loading screen scanner")
@@ -200,5 +199,7 @@ class LoadingScreenScanner(threading.Thread):
                     save_portrait(opponent_portrait, new_name)
 
                     scanresult = ScanResult(mapname=map, opponent=opponent)
-                    loading_screen.send(self, scanresult=scanresult)
+
+                    signal_queue.put(scanresult)
+
             sleep(config.deamon_polling_rate)

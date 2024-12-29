@@ -1,13 +1,12 @@
 import logging
-import os
+import queue
 import sys
-import warnings
 from datetime import datetime, timezone
 from time import sleep, time
 
 import click
-from blinker import signal
 from Levenshtein import distance as levenshtein
+from pydantic import BaseModel
 from rich.prompt import Prompt
 
 from aicoach import AICoach
@@ -16,10 +15,11 @@ from config import AIBackend, AudioMode, CoachEvent, config
 from log import log
 from obs_tools.playerinfo import resolve_replays_from_current_opponent
 from obs_tools.rich_log import TwitchObsLogHandler
-from obs_tools.types import ScanResult, WakeResult
+from obs_tools.types import ScanResult, TwitchResult, WakeResult
 from replays.db import replaydb
 from replays.metadata import save_replay_summary
 from replays.types import Player, Replay, Role, Session, Usage
+from shared import signal_queue
 
 if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
     from aicoach.transcribe import Transcriber
@@ -52,29 +52,29 @@ def main(debug):
 
     session = AISession()
 
+    if CoachEvent.twitch in config.coach_events:
+        from obs_tools.twitch import TwitchListener
+
+        twitch = TwitchListener(name="twitch")
+        twitch.start()
+
     if CoachEvent.wake in config.coach_events:
         from obs_tools import WakeListener
 
         listener = WakeListener(name="listener")
         listener.start()
-        wake = signal("wakeup")
-        wake.connect(session.handle_wake)
 
     if CoachEvent.game_start in config.coach_events:
         from obs_tools import GameStartedScanner
 
         scanner = GameStartedScanner(name="scanner")
         scanner.start()
-        loading_screen = signal("loading_screen")
-        loading_screen.connect(session.handle_game_start)
 
     if CoachEvent.new_replay in config.coach_events:
         from replays.newreplay import NewReplayScanner
 
         replay_scanner = NewReplayScanner(name="replay_scanner")
         replay_scanner.start()
-        new_replay = signal("replay")
-        new_replay.connect(session.handle_new_replay)
 
     if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
         tts.feed("Starting TTS")
@@ -92,8 +92,16 @@ def main(debug):
     ping_printed = False
     while True:
         try:
-            if session.is_active():
-                pass
+            task = signal_queue.get()
+            # task = None
+            if isinstance(task, TwitchResult):
+                session.handle_twitch_chat("twitch", task)
+            elif isinstance(task, WakeResult):
+                session.handle_wake("wakeup", task)
+            elif isinstance(task, ScanResult):
+                session.handle_game_start("loading_screen", task)
+            elif isinstance(task, Replay):
+                session.handle_new_replay("replay", task)
             else:
                 # print once every 10 seconds so we know you are still alive
                 if datetime.now().second % 10 == 0:
@@ -103,7 +111,9 @@ def main(debug):
                 else:
                     ping_printed = False
 
-            sleep(1)
+            signal_queue.task_done()
+        except queue.Empty:
+            pass
         except KeyboardInterrupt:
             log.info("Shutting down ...")
 
@@ -120,7 +130,12 @@ def main(debug):
             if CoachEvent.new_replay in config.coach_events:
                 replay_scanner.stop()
                 replay_scanner.join()
+            if CoachEvent.twitch in config.coach_events:
+                twitch.stop()
+                twitch.join()
             sys.exit(0)
+        finally:
+            sleep(1)
 
 
 class AISession:
@@ -130,6 +145,7 @@ class AISession:
     last_mmr: int = 4000
     _thread_id: str | None = None
     last_rep_id: str
+    chat_thread_id: str | None = None
 
     session: Session
 
@@ -276,13 +292,20 @@ class AISession:
         )
 
         if len(past_replays) > 0:
-            replacements["replays"] = [
-                r.default_projection_json(limit=300) for r in past_replays[:5]
-            ]
-            prompt = Templates.scanner.render(replacements)
+            if past_replays[0].id == self.last_rep_id:
+                replacements["replays"] = [
+                    past_replays[0].default_projection_json(limit=300)
+                ]
+                prompt = Templates.rematch.render(replacements)
+            else:
+                replacements["replays"] = [
+                    r.default_projection_json(limit=300) for r in past_replays[:5]
+                ]
+                prompt = Templates.new_game.render(replacements)
+
             self.thread_id = self.coach.create_thread(prompt)
         else:
-            self.say(Templates.scanner_empty.render(replacements), flush=False)
+            self.say(Templates.new_game_empty.render(replacements), flush=False)
 
     def initiate_from_new_replay(self, replay: Replay):
         opponent = replay.get_opponent_of(config.student.name).name
@@ -340,6 +363,45 @@ class AISession:
                 save_replay_summary(replay, self.coach)
 
                 self.close()
+
+    def handle_twitch_chat(self, sender, twitch_chat: TwitchResult):
+        log.debug(f"{twitch_chat.user}: {twitch_chat.message}")
+
+        while self.is_active():
+            sleep(1)
+
+        replacements = {
+            "user": twitch_chat.user,
+            "message": twitch_chat.message,
+        }
+        prompt = Templates.twitch.render(replacements)
+
+        class TwitchChatResponse(BaseModel):
+            is_question: bool
+            answer: str
+
+        if not self.chat_thread_id:
+            self.chat_thread_id = self.coach.create_thread()
+        else:
+            self.coach.set_active_thread(self.chat_thread_id)
+
+        self.thread_id = self.chat_thread_id
+
+        response: TwitchChatResponse = self.coach.get_structured_response(
+            message=prompt,
+            schema=TwitchChatResponse,
+            additional_instructions=Templates.init_twitch.render(
+                {"student": config.student.name}
+            ),
+        )
+
+        log.debug(response)
+
+        if response.is_question:
+            log.info(f"{twitch_chat.user}: {twitch_chat.message}")
+            self.say(response.answer, flush=False)
+
+        self.close()
 
 
 if __name__ == "__main__":

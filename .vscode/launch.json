@@ -75,6 +75,26 @@
       "console": "integratedTerminal",
       "envFile": "${workspaceFolder}/.env",
       "args": []
-    }
+    },
+    {
+      "name": "SSIM report",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "playground/ssim_report.py",
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/.env",
+      "cwd": "${workspaceFolder}",
+      "args": []
+    },
+    {
+      "name": "twitch",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "playground/twitch.py",
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/.env",
+      "cwd": "${workspaceFolder}",
+      "args": []
+    },
   ]
 }

@@ -75,18 +75,18 @@ rating_delta_max: 500
 last_played_ago_max: 2400
 
 # Current ladder season
-season: 60
+season: 61
 # Maps in the current ladder pool
 ladder_maps:
-  - Goldenaura LE
-  - Site Delta LE
-  - Oceanborn LE
-  - Post-Youth LE
-  - Amphion LE
-  - Crimson Court LE
-  - Dynasty LE
-  - Alcyone LE
-  - Ghost River LE
+ - Neon Violet Square LE
+ - Amygdala
+ - Ultralove
+ - Abyssal Reef LE
+ - Frostline LE
+ - Ley Lines
+ - Whispers of Gold
+ - King's Cove LE
+ - El Dorado
 
 # Configure which replay fields to include per default when reading replays
 default_projection:
