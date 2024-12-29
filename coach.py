@@ -301,11 +301,11 @@ class AISession:
                 replacements["replays"] = [
                     r.default_projection_json(limit=300) for r in past_replays[:5]
                 ]
-                prompt = Templates.scanner.render(replacements)
+                prompt = Templates.new_game.render(replacements)
 
             self.thread_id = self.coach.create_thread(prompt)
         else:
-            self.say(Templates.scanner_empty.render(replacements), flush=False)
+            self.say(Templates.new_game_empty.render(replacements), flush=False)
 
     def initiate_from_new_replay(self, replay: Replay):
         opponent = replay.get_opponent_of(config.student.name).name
