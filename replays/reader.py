@@ -1,11 +1,18 @@
 import logging
 
 import sc2reader
-from sc2reader.engine.plugins import CreepTracker
+from sc2reader.engine.plugins import ContextLoader, CreepTracker
+from sc2reader_plugins import (
+    APMTracker,
+    EventSecondCorrector,
+    PlayerStatsTracker,
+    SQTracker,
+    WorkerTracker,
+)
 
 from config import config
 
-from .sc2readerplugins.APMTracker import APMTracker
+# from .sc2readerplugins.APMTracker import APMTracker
 from .sc2readerplugins.ReplayStats import ReplayStats
 from .sc2readerplugins.SpawningTool import SpawningTool
 from .types import Replay
@@ -14,13 +21,19 @@ from .types import Replay
 
 
 log = logging.getLogger(config.name)
-
+sc2reader.engine.register_plugin(EventSecondCorrector())  # Recommended for lotv reps
+sc2reader.engine.register_plugin(ContextLoader())
+sc2reader.engine.register_plugin(APMTracker())
 sc2reader.engine.register_plugin(CreepTracker())
+sc2reader.engine.register_plugin(WorkerTracker())
+sc2reader.engine.register_plugin(SQTracker())
+sc2reader.engine.register_plugin(PlayerStatsTracker())
+
 
 factory = sc2reader.factories.SC2Factory()
 factory.register_plugin("Replay", ReplayStats())
 factory.register_plugin("Replay", SpawningTool())
-factory.register_plugin("Replay", APMTracker())
+# factory.register_plugin("Replay", APMTracker())
 
 
 class ReplayReader:
@@ -139,6 +152,8 @@ def replay_to_dict(replay) -> dict:
                     else None
                 ),
                 "stats": getattr(player, "stats", None),
+                "worker_micro": getattr(player, "worker_micro", None),
+                "worker_split": getattr(player, "worker_split", None),
                 "sid": getattr(player, "sid", None),
                 "supply": supply,
                 "toon_handle": getattr(player, "toon_handle", None),

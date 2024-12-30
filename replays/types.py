@@ -86,8 +86,31 @@ class ReplayMessage(MainBaseModel):
 
 
 class PlayerStats(MainBaseModel):
-    worker_split: int
-    worker_micro: int
+    worker_active: Dict[int, int]
+    income_minerals: Dict[int, int]
+    income_vespene: Dict[int, int]
+    income_resources: Dict[int, int]
+    unspent_minerals: Dict[int, int]
+    unspent_vespene: Dict[int, int]
+    unspent_resources: Dict[int, int]
+    minerals_used_active_forces: Dict[int, int]
+    vespene_used_active_forces: Dict[int, int]
+    resources_used_active_forces: Dict[int, int]
+    minerals_used_technology: Dict[int, int]
+    vespene_used_technology: Dict[int, int]
+    resources_used_technology: Dict[int, int]
+    minerals_lost: Dict[int, int]
+    vespene_lost: Dict[int, int]
+    resources_lost: Dict[int, int]
+    avg_income_minerals: float
+    avg_income_vespene: float
+    avg_income_resources: float
+    avg_unspent_minerals: float
+    avg_unspent_vespene: float
+    avg_unspent_resources: float
+    minerals_lost_total: int
+    vespene_lost_total: int
+    resources_lost_total: int
 
 
 class ReplayStats(MainBaseModel):
@@ -115,6 +138,7 @@ class BuildOrder(MainBaseModel):
 class Player(MainBaseModel):
     abilities_used: List[AbilityUsed] = []
     avg_apm: float
+
     build_order: List[BuildOrder] = []
     clan_tag: str
     color: Color
@@ -135,6 +159,8 @@ class Player(MainBaseModel):
     uid: int
     units_lost: List[UnitLoss]
     url: str
+    worker_micro: int
+    worker_split: int
 
 
 class Observer(MainBaseModel):

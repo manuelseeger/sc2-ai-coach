@@ -119,7 +119,7 @@ def test_is_gg(message, expected):
     [
         (
             "Goldenaura LE (282) 2 base Terran tank allin.SC2Replay",
-            {0: (1, 1), 1: (0, 0)},
+            {0: (1, 2), 1: (0, 0)},
         )
     ],
     indirect=["replay_file"],
@@ -128,3 +128,77 @@ def test_replaystats_worker_micro(replay_file, expected):
     replay = sc2reader.load_replay(replay_file)
     micro = player_worker_micro(replay)
     assert micro == expected
+
+
+@pytest.mark.parametrize(
+    "replay_file",
+    [
+        "NeoHumanity LE (279) Division By Zero.SC2Replay",
+    ],
+    indirect=True,
+)
+def test_apm_tracker_division_by_zero(replay_file):
+
+    reader = ReplayReader()
+
+    replay_raw = reader.load_replay_raw(replay_file)
+
+    p1, p2 = replay_raw.players
+
+    assert p1.avg_apm == 0
+    assert p2.avg_apm == 0
+
+
+@pytest.mark.parametrize(
+    "replay_file",
+    [
+        "Equilibrium LE (84).SC2Replay",
+    ],
+    indirect=True,
+)
+def test_worker_tracker(replay_file):
+    reader = ReplayReader()
+
+    raw_replay = reader.load_replay_raw(replay_file)
+
+    p1, p2 = raw_replay.players
+
+    assert p1.worker_killed_total == p2.worker_lost_total
+    assert p1.worker_lost_total == p2.worker_killed_total
+
+
+@pytest.mark.parametrize(
+    "replay_file",
+    [
+        "Equilibrium LE (84).SC2Replay",
+    ],
+    indirect=True,
+)
+def test_spending_quotient(replay_file):
+    reader = ReplayReader()
+
+    raw_replay = reader.load_replay_raw(replay_file)
+
+    p1, p2 = raw_replay.players
+
+    assert p1.avg_sq > 10
+    assert p2.avg_sq > 10
+    assert p1.avg_sq > p2.avg_sq
+
+
+@pytest.mark.parametrize(
+    "replay_file",
+    [
+        "Equilibrium LE (84).SC2Replay",
+    ],
+    indirect=True,
+)
+def test_player_stats_tracker(replay_file):
+    reader = ReplayReader()
+
+    raw_replay = reader.load_replay_raw(replay_file)
+
+    p1, p2 = raw_replay.players
+
+    assert p1.stats["avg_unspent_resources"] > 0
+    assert p2.stats["avg_unspent_resources"] > 0

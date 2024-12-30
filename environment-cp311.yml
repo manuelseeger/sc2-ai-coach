@@ -46,3 +46,4 @@ dependencies:
       - climage
       - obsws-python
       - blizzapi2
+      - # SC2 reader plugins pip install git+https://github.com/NumberPigeon/sc2reader-plugins.git
