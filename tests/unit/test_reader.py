@@ -159,12 +159,12 @@ def test_apm_tracker_division_by_zero(replay_file):
 def test_worker_tracker(replay_file):
     reader = ReplayReader()
 
-    raw_replay = reader.load_replay_raw(replay_file)
+    replay = reader.load_replay(replay_file)
 
-    p1, p2 = raw_replay.players
+    p1, p2 = replay.players
 
-    assert p1.worker_killed_total == p2.worker_lost_total
-    assert p1.worker_lost_total == p2.worker_killed_total
+    assert p1.worker_stats.worker_killed_total == p2.worker_stats.worker_lost_total
+    assert p1.worker_stats.worker_lost_total == p2.worker_stats.worker_killed_total
 
 
 @pytest.mark.parametrize(
@@ -177,9 +177,9 @@ def test_worker_tracker(replay_file):
 def test_spending_quotient(replay_file):
     reader = ReplayReader()
 
-    raw_replay = reader.load_replay_raw(replay_file)
+    replay = reader.load_replay(replay_file)
 
-    p1, p2 = raw_replay.players
+    p1, p2 = replay.players
 
     assert p1.avg_sq > 10
     assert p2.avg_sq > 10
@@ -196,9 +196,9 @@ def test_spending_quotient(replay_file):
 def test_player_stats_tracker(replay_file):
     reader = ReplayReader()
 
-    raw_replay = reader.load_replay_raw(replay_file)
+    replay = reader.load_replay(replay_file)
 
-    p1, p2 = raw_replay.players
+    p1, p2 = replay.players
 
-    assert p1.stats["avg_unspent_resources"] > 0
-    assert p2.stats["avg_unspent_resources"] > 0
+    assert p1.stats.avg_unspent_resources > 0
+    assert p2.stats.avg_unspent_resources > 0

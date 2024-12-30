@@ -135,10 +135,22 @@ class BuildOrder(MainBaseModel):
     is_worker: bool = False
 
 
+class WorkerStats(MainBaseModel):
+    worker_micro: int
+    worker_split: int
+    worker_count: Dict[int, int] = {}
+    worker_trained: Dict[int, int] = {}
+    worker_killed: Dict[int, int] = {}
+    worker_lost: Dict[int, int] = {}
+    worker_trained_total: int
+    worker_killed_total: int
+    worker_lost_total: int
+
+
 class Player(MainBaseModel):
     abilities_used: List[AbilityUsed] = []
     avg_apm: float
-
+    avg_sq: float
     build_order: List[BuildOrder] = []
     clan_tag: str
     color: Color
@@ -159,8 +171,7 @@ class Player(MainBaseModel):
     uid: int
     units_lost: List[UnitLoss]
     url: str
-    worker_micro: int
-    worker_split: int
+    worker_stats: WorkerStats
 
 
 class Observer(MainBaseModel):

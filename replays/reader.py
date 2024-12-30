@@ -12,16 +12,12 @@ from sc2reader_plugins import (
 
 from config import config
 
-# from .sc2readerplugins.APMTracker import APMTracker
 from .sc2readerplugins.ReplayStats import ReplayStats
 from .sc2readerplugins.SpawningTool import SpawningTool
 from .types import Replay
 
-# from sc2reader.factories.plugins.replay import APMTracker as APMTrackerBroken
-
-
 log = logging.getLogger(config.name)
-sc2reader.engine.register_plugin(EventSecondCorrector())  # Recommended for lotv reps
+sc2reader.engine.register_plugin(EventSecondCorrector())
 sc2reader.engine.register_plugin(ContextLoader())
 sc2reader.engine.register_plugin(APMTracker())
 sc2reader.engine.register_plugin(CreepTracker())
@@ -33,7 +29,6 @@ sc2reader.engine.register_plugin(PlayerStatsTracker())
 factory = sc2reader.factories.SC2Factory()
 factory.register_plugin("Replay", ReplayStats())
 factory.register_plugin("Replay", SpawningTool())
-# factory.register_plugin("Replay", APMTracker())
 
 
 class ReplayReader:
@@ -127,10 +122,23 @@ def replay_to_dict(replay) -> dict:
         if type(max_creep_spread) is not tuple and max_creep_spread is not None:
             max_creep_spread = (0, 0)
 
+        worker_stats = {
+            "worker_micro": getattr(player, "worker_micro", None),
+            "worker_split": getattr(player, "worker_split", None),
+            "worker_count": getattr(player, "worker_count", None),
+            "worker_trained": getattr(player, "worker_trained", None),
+            "worker_killed": getattr(player, "worker_killed", None),
+            "worker_lost": getattr(player, "worker_lost", None),
+            "worker_trained_total": getattr(player, "worker_trained_total", None),
+            "worker_killed_total": getattr(player, "worker_killed_total", None),
+            "worker_lost_total": getattr(player, "worker_lost_total", None),
+        }
+
         players.append(
             {
                 "abilities_used": getattr(player, "abilities_used", None),
-                "avg_apm": getattr(player, "avg_apm", None),
+                "avg_apm": getattr(player, "avg_apm", 0),
+                "avg_sq": getattr(player, "avg_sq", 0.0),
                 "build_order": getattr(player, "build_order", None),
                 "clan_tag": getattr(player, "clan_tag", None),
                 "clock_position": getattr(player, "clock_position", None),
@@ -161,6 +169,7 @@ def replay_to_dict(replay) -> dict:
                 "uid": getattr(player, "uid", None),
                 "units_lost": getattr(player, "units_lost", None),
                 "url": getattr(player, "url", None),
+                "worker_stats": worker_stats,
             }
         )
 
