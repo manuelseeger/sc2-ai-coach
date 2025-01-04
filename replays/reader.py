@@ -160,8 +160,6 @@ def replay_to_dict(replay) -> dict:
                     else None
                 ),
                 "stats": getattr(player, "stats", None),
-                "worker_micro": getattr(player, "worker_micro", None),
-                "worker_split": getattr(player, "worker_split", None),
                 "sid": getattr(player, "sid", None),
                 "supply": supply,
                 "toon_handle": getattr(player, "toon_handle", None),
