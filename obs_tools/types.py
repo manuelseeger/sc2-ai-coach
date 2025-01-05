@@ -34,9 +34,22 @@ class WakeResult(BaseModel):
 
 
 class TwitchResult(BaseModel):
+    channel: str | None
+    event: dict | None
+
+
+class TwitchChatResult(TwitchResult):
     user: str
-    channel: str
     message: str
+
+
+class TwitchFollowResult(TwitchResult):
+    user: str
+
+
+class TwitchRaidResult(TwitchResult):
+    user: str
+    viewers: int
 
 
 class Race(str, Enum):

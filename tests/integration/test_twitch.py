@@ -4,7 +4,7 @@ import pytest
 from rich import print
 
 from coach import AISession
-from obs_tools.types import TwitchResult
+from obs_tools.types import TwitchChatResult
 from replays.reader import ReplayReader
 
 
@@ -13,22 +13,22 @@ def test_twitch_chat():
     session = AISession()
 
     chat = [
-        TwitchResult(
+        TwitchChatResult(
             channel="zatic",
             message="When was the last game zatic played?",
             user="hobgoblin",
         ),
-        TwitchResult(
+        TwitchChatResult(
             channel="zatic",
             message="This is so cool",
             user="tuorello",
         ),
-        TwitchResult(
+        TwitchChatResult(
             channel="zatic",
             message="I love this",
             user="tuorello",
         ),
-        TwitchResult(
+        TwitchChatResult(
             channel="zatic",
             message="and what time was it?",
             user="hobgoblin",

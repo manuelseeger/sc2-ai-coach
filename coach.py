@@ -15,7 +15,14 @@ from config import AIBackend, AudioMode, CoachEvent, config
 from log import log
 from obs_tools.playerinfo import resolve_replays_from_current_opponent
 from obs_tools.rich_log import TwitchObsLogHandler
-from obs_tools.types import ScanResult, TwitchResult, WakeResult
+from obs_tools.types import (
+    ScanResult,
+    TwitchChatResult,
+    TwitchFollowResult,
+    TwitchRaidResult,
+    TwitchResult,
+    WakeResult,
+)
 from replays.db import replaydb
 from replays.metadata import save_replay_summary
 from replays.types import Player, Replay, Role, Session, Usage
@@ -94,8 +101,12 @@ def main(debug):
         try:
             task = signal_queue.get()
             # task = None
-            if isinstance(task, TwitchResult):
+            if isinstance(task, TwitchChatResult):
                 session.handle_twitch_chat("twitch", task)
+            elif isinstance(task, TwitchFollowResult):
+                session.handle_twitch_follow("twitch", task)
+            elif isinstance(task, TwitchRaidResult):
+                session.handle_twitch_raid("twitch", task)
             elif isinstance(task, WakeResult):
                 session.handle_wake("wakeup", task)
             elif isinstance(task, ScanResult):
@@ -364,7 +375,13 @@ class AISession:
 
                 self.close()
 
-    def handle_twitch_chat(self, sender, twitch_chat: TwitchResult):
+    def handle_twitch_follow(self, sender, twitch_follow: TwitchFollowResult):
+        log.debug(f"{twitch_follow.user} followed")
+
+    def handle_twitch_raid(self, sender, twitch_raid: TwitchRaidResult):
+        pass
+
+    def handle_twitch_chat(self, sender, twitch_chat: TwitchChatResult):
         log.debug(f"{twitch_chat.user}: {twitch_chat.message}")
 
         while self.is_active():
