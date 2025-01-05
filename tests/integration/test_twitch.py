@@ -1,11 +1,15 @@
+import queue
 from os.path import join
+from time import sleep
 
 import pytest
+from numpy import sign
 from rich import print
 
 from coach import AISession
+from obs_tools.twitch import TwitchListener
 from obs_tools.types import TwitchChatResult
-from replays.reader import ReplayReader
+from shared import signal_queue
 
 
 def test_twitch_chat():

@@ -129,6 +129,8 @@ class Config(BaseSettings):
     twitch_client_id: Optional[str] = None
     twitch_client_secret: Optional[str] = None
     twitch_channel: Optional[str] = None
+    twitch_mocked: bool = False
+    twitch_mocked_user_id: Optional[str] = None
 
     rating_delta_max: int
     last_played_ago_max: int

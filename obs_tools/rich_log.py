@@ -44,6 +44,7 @@ class Emojis:
     system: str = ":computer:"
     pricing: str = ":moneybag:"
     player_info: str = ":bust_in_silhouette:"
+    test_tube: str = ":test_tube:"
 
 
 EMOJI_MAP = {
@@ -57,6 +58,7 @@ EMOJI_MAP = {
     "close": Emojis.system,
     "calculate_usage": Emojis.pricing,
     "obs_tools.playerinfo.save_player_info": Emojis.player_info,
+    "obs_tools.twitch.twitch_async_mocked": Emojis.test_tube,
 }
 
 
