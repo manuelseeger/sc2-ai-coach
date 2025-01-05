@@ -29,8 +29,9 @@ class Jinja2Loader:
     additional_instructions: Template
     new_game_empty: Template
     rematch: Template
-    twitch: Template
+    twitch_chat: Template
     init_twitch: Template
+    twitch_follow: Template
 
     def __init__(self):
         self.env = LoggingEnvironment(
@@ -45,8 +46,10 @@ class Jinja2Loader:
         )
         self.new_game_empty = self.env.get_template("new_game_empty.jinja2")
         self.rematch = self.env.get_template("rematch.jinja2")
-        self.twitch = self.env.get_template("twitch.jinja2")
         self.init_twitch = self.env.get_template("init_twitch.jinja2")
+        self.twitch_chat = self.env.get_template("twitch_chat.jinja2")
+        self.twitch_follow = self.env.get_template("twitch_follow.jinja2")
+        self.twitch_raid = self.env.get_template("twitch_raid.jinja2")
 
     def render(self, template_name: str, replacements: Dict[str, str]) -> str:
         template = self.env.get_template(template_name)

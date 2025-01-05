@@ -20,7 +20,6 @@ from obs_tools.types import (
     TwitchChatResult,
     TwitchFollowResult,
     TwitchRaidResult,
-    TwitchResult,
     WakeResult,
 )
 from replays.db import replaydb
@@ -377,21 +376,35 @@ class AISession:
 
     def handle_twitch_follow(self, sender, twitch_follow: TwitchFollowResult):
         log.debug(f"{twitch_follow.user} followed")
+        replacements = {
+            "user": twitch_follow.user,
+            "student": config.student.name,
+        }
+        prompt = Templates.twitch_follow.render(replacements)
+        self.thread_id = self.coach.create_thread(prompt)
+        response = self.stream_thread()
+        self.close()
 
     def handle_twitch_raid(self, sender, twitch_raid: TwitchRaidResult):
-        pass
+        log.debug(f"{twitch_raid.user} raided with {twitch_raid.viewers} viewers")
+        replacements = {
+            "user": twitch_raid.user,
+            "viewers": twitch_raid.viewers,
+            "student": config.student.name,
+        }
+        prompt = Templates.twitch_raid.render(replacements)
+        self.thread_id = self.coach.create_thread(prompt)
+        response = self.stream_thread()
+        self.close()
 
     def handle_twitch_chat(self, sender, twitch_chat: TwitchChatResult):
         log.debug(f"{twitch_chat.user}: {twitch_chat.message}")
-
-        while self.is_active():
-            sleep(1)
 
         replacements = {
             "user": twitch_chat.user,
             "message": twitch_chat.message,
         }
-        prompt = Templates.twitch.render(replacements)
+        prompt = Templates.twitch_chat.render(replacements)
 
         class TwitchChatResponse(BaseModel):
             is_question: bool
