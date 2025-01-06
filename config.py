@@ -2,7 +2,7 @@ from enum import Enum
 from glob import glob
 from typing import Annotated, Dict, List, Optional, Tuple, Type
 
-from pydantic import BaseModel
+from pydantic import BaseModel, DirectoryPath
 from pydantic.networks import UrlConstraints
 from pydantic_core import MultiHostUrl, Url
 from pydantic_settings import (
@@ -125,6 +125,7 @@ class Config(BaseSettings):
     blizzard_client_id: Optional[str] = None
     blizzard_client_secret: Optional[str] = None
     blizzard_region: SC2Region
+    bnet_cache_dir: Optional[DirectoryPath] = None
 
     twitch_client_id: Optional[str] = None
     twitch_client_secret: Optional[str] = None

@@ -1,10 +1,14 @@
+import logging
+from pathlib import Path
 from typing import Dict, Optional
 
+import httpx
 from blizzardapi2 import BlizzardApi
 from pydantic import BaseModel, HttpUrl
 
 from config import config
 
+log = logging.getLogger(f"{config.name}.{__name__}")
 # https://develop.battle.net/documentation/guides/regionality-and-apis
 REGION_MAP = {
     "US": (1, 1),
@@ -92,3 +96,24 @@ class BattleNet:
             locale="en_US",
         )
         return BattlenetProfile(**p)
+
+    def get_portrait(self, profile: BattlenetProfile) -> bytes | None:
+        parts = profile.summary.portrait.path.split("/")
+        guid = parts[-3]
+        basename = parts[-1]
+        cache_path = Path(config.bnet_cache_dir, guid, basename)
+
+        if cache_path.exists():
+            return cache_path.read_bytes()
+
+        r = httpx.get(profile.summary.portrait.unicode_string())
+        if r.status_code != 200:
+            log.warning(
+                f"Bnet refused profile portrait for toon_id {profile.summary.id}"
+            )
+            return
+
+        # write to cache dir
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_bytes(r.content)
+        return r.content

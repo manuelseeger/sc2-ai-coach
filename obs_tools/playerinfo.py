@@ -110,11 +110,13 @@ def portrait_construct_from_bnet(toon_id: int) -> bytes | None:
         return
 
     if profile:
-        r = httpx.get(str(profile.summary.portrait))
-        if r.status_code != 200:
-            log.warning(f"Bnet refused profile portrait for toon_id {toon_id}")
+
+        portrait_bytes = battlenet.get_portrait(profile)
+
+        if not portrait_bytes:
             return
-        bnet_portrait = Image.open(BytesIO(r.content)).resize(
+
+        bnet_portrait = Image.open(BytesIO(portrait_bytes)).resize(
             (95, 95), Image.Resampling.BICUBIC
         )
         diamond_frame = Image.open("assets/diamond_frame.png")
@@ -292,7 +294,10 @@ def resolve_replays_from_current_opponent(
     log.debug(f"Resolved player info: {playerinfo}")
 
     if playerinfo:
-        q = {"players.toon_handle": playerinfo.toon_handle}
+        q = {
+            "players.toon_handle": playerinfo.toon_handle,
+            "date": {"$gt": 'ISODate("2024-01-01")'},
+        }
         sort = od_sort((Replay.unix_timestamp, -1))
         past_replays = replaydb.db.find_many(Replay, raw_query=q, sort=sort)
         return opponent, past_replays
