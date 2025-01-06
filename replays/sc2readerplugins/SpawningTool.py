@@ -2,7 +2,7 @@ from sc2reader.factories.plugins.utils import plugin
 from spawningtool.parser import GameParser
 
 
-class GameParserFromParserReplay(GameParser):
+class GameParserFromParsedReplay(GameParser):
     def load_replay(self):
         if self.replay is None:
             super().load_replay()
@@ -13,7 +13,7 @@ class GameParserFromParserReplay(GameParser):
 
 @plugin
 def SpawningTool(replay):
-    parser = GameParserFromParserReplay("")
+    parser = GameParserFromParsedReplay("")
     parser.set_replay(replay)
     sp = parser.get_parsed_data(include_map_details=True)
     for player in replay.players:

@@ -6,7 +6,6 @@ import os
 from datetime import date, datetime, timedelta
 from io import BytesIO
 from os.path import basename, getmtime, join
-from time import sleep
 
 import click
 import climage
@@ -23,7 +22,7 @@ from config import config
 from obs_tools.playerinfo import save_player_info
 from replays.db import replaydb
 from replays.reader import ReplayReader
-from replays.types import Alias, Player, PlayerInfo, Replay
+from replays.types import PlayerInfo, Replay
 
 custom_theme = Theme(
     {
@@ -175,6 +174,11 @@ def sync(
         else:
             console.print(f"Filtered {basename(file_path)}")
             summary.filtered_replays += 1
+            if reader.is_archon_mode(replay_raw):
+                console.print(
+                    f":couple: Archon mode is not supported {basename(file_path)}"
+                )
+                continue
             if reader.is_instant_leave(replay_raw):
                 summary.instant_leave_replays += 1
                 if ctx.obj["CLEAN"]:

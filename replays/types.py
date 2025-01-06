@@ -193,6 +193,7 @@ class Player(MainBaseModel):
     name: str
     max_creep_spread: Tuple[int, float] | Literal[0] | None = None
     messages: List[ReplayMessage] = []
+    official_apm: float | None = None
     pick_race: str
     pid: int
     play_race: str

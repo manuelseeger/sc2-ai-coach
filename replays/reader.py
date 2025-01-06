@@ -25,8 +25,7 @@ sc2reader.engine.register_plugin(WorkerTracker())
 sc2reader.engine.register_plugin(SQTracker())
 sc2reader.engine.register_plugin(PlayerStatsTracker())
 
-
-factory = sc2reader.factories.SC2Factory()
+factory = sc2reader.factories.DictCachedSC2Factory(cache_max_size=1000)
 factory.register_plugin("Replay", ReplayStats())
 factory.register_plugin("Replay", SpawningTool())
 
@@ -36,9 +35,10 @@ class ReplayReader:
 
     def __init__(self):
         self.default_filters = [
-            self.is_ladder,
-            lambda x: not self.is_instant_leave(x),
-            lambda x: not self.has_afk_player(x),
+            lambda x: not self.is_ladder(x),
+            self.is_archon_mode,
+            self.is_instant_leave,
+            self.has_afk_player,
         ]
 
     def load_replay_raw(self, file_path):
@@ -68,11 +68,13 @@ class ReplayReader:
                 return True
         return False
 
+    def is_archon_mode(self, replay):
+        is_archon_mode = any(p.archon_leader_id is not None for p in replay.players)
+        log.debug(f"is_archon_mode: {is_archon_mode}")
+        return is_archon_mode
+
     def apply_filters(self, replay, filters=[]):
-        for filter in filters + self.default_filters:
-            if filter(replay) is False:
-                return False
-        return True
+        return not any(f(replay) for f in filters + self.default_filters)
 
     def to_typed_replay(self, replay_raw) -> Replay:
         replay_dict = replay_to_dict(replay_raw)
@@ -150,6 +152,7 @@ def replay_to_dict(replay) -> dict:
                 "name": getattr(player, "name", None),
                 "max_creep_spread": max_creep_spread,
                 "messages": [m for m in messages if m["pid"] == player.sid],
+                "official_apm": getattr(player, "official_apm", None),
                 "pick_race": getattr(player, "pick_race", None),
                 "pid": getattr(player, "pid", None),
                 "play_race": getattr(player, "play_race", None),

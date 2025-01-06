@@ -202,3 +202,24 @@ def test_player_stats_tracker(replay_file):
 
     assert p1.stats.avg_unspent_resources > 0
     assert p2.stats.avg_unspent_resources > 0
+
+
+@pytest.mark.parametrize(
+    "replay_file",
+    [
+        "Romanticide LE (164) Archon Mode.SC2Replay",
+        "Oxide LE (147) Archon Mode.SC2Replay",
+    ],
+    indirect=True,
+)
+def test_apm_archon_mode(replay_file):
+    reader = ReplayReader()
+
+    replay = reader.load_replay_raw(replay_file)
+
+    p1, p2, p3, p4 = replay.players
+
+    assert p1.avg_apm > 0
+    assert p2.avg_apm > 0
+    assert p3.avg_apm > 0
+    assert p4.avg_apm > 0
