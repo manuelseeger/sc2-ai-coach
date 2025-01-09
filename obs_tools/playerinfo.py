@@ -294,10 +294,7 @@ def resolve_replays_from_current_opponent(
     log.debug(f"Resolved player info: {playerinfo}")
 
     if playerinfo:
-        q = {
-            "players.toon_handle": playerinfo.toon_handle,
-            "date": {"$gt": 'ISODate("2024-01-01")'},
-        }
+        q = {"players.toon_handle": playerinfo.toon_handle}
         sort = od_sort((Replay.unix_timestamp, -1))
         past_replays = replaydb.db.find_many(Replay, raw_query=q, sort=sort)
         return opponent, past_replays
