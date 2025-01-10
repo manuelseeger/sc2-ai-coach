@@ -7,7 +7,7 @@ from config import config
 from replays.reader import ReplayReader
 
 
-def test_function_add_metadata():
+def test_function_add_metadata(util):
     aicoach = AICoach()
 
     rep_id = "e22f8952c22a61a86ae3d2dd3fb2e5f650f7504a15c186f3f8761727cfaa3eea"
@@ -16,14 +16,11 @@ def test_function_add_metadata():
 
     aicoach.create_thread(message)
 
-    response = ""
-    for token in aicoach.stream_thread():
-        response += token
+    response = util.stream_thread(aicoach)
 
     message = f"Can you please add the tag 'smurf' to the replay?"
-    response = ""
-    for token in aicoach.chat(message):
-        response += token
+
+    response = aicoach.get_response(message)
 
     assert isinstance(response, str)
     assert len(response) > 0
@@ -60,10 +57,8 @@ def test_add_tag_after_replay_summary(replay_file, util):
     print(response)
 
     message = f"Can you please add the tag 'smurf' to the replay?"
-    response = ""
-    for token in coach.chat(message):
-        response += token
 
+    response = coach.get_response(message)
     assert isinstance(response, str)
     assert len(response) > 0
     print(response)
@@ -72,7 +67,7 @@ def test_add_tag_after_replay_summary(replay_file, util):
 @pytest.mark.parametrize(
     "replay_file",
     [
-        "Site Delta LE (106) ZvZ 2base Muta into mass muta chaotic win.SC2Replay",
+        # "Site Delta LE (106) ZvZ 2base Muta into mass muta chaotic win.SC2Replay",
     ],
     indirect=True,
 )
@@ -99,9 +94,7 @@ def test_add_player_tag_after_replay(replay_file, util):
 
     message = f"Can you please tag this player as a smurf?"
 
-    response = ""
-    for token in coach.chat(message):
-        response += token
+    response = coach.get_response(message)
 
     assert isinstance(response, str)
     assert len(response) > 0

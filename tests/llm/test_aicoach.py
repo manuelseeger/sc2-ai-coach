@@ -1,7 +1,6 @@
 from numpy import isin
 from pydantic import BaseModel
 from rich import print
-from sympy import im
 
 from aicoach import AICoach
 from aicoach.prompt import Templates
@@ -9,34 +8,30 @@ from config import config
 from replays.db import replaydb
 
 
-def test_function_smurf_detection():
+def test_function_smurf_detection(util):
     aicoach = AICoach()
 
     handle = "2-S2-1-691545"
 
-    message = f"I am playing someone on around 3000 MMR. The player I am playing with has the handle toon handle '{handle}'. Can you tell me if they are a smurf?"
+    message = f"I am playing someone on around 3000 MMR. The player I am playing with has the toon handle '{handle}'. Can you tell me if they are a smurf?"
 
     aicoach.create_thread(message)
 
-    response = ""
-    for token in aicoach.stream_thread():
-        response += token
+    response = util.stream_thread(aicoach)
 
     assert isinstance(response, str)
     assert len(response) > 0
     print(response)
 
 
-def test_function_query_build_order():
+def test_function_query_build_order(util):
     aicoach = AICoach()
 
     message = f"My player ID is 'zatic'. Get the build order of the opponent of the last game I played against 'protoss' opponents."
 
     aicoach.create_thread(message)
 
-    response = ""
-    for token in aicoach.stream_thread():
-        response += token
+    response = util.stream_thread(aicoach)
 
     assert isinstance(response, str)
     assert len(response) > 0

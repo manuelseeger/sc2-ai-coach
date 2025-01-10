@@ -231,10 +231,14 @@ def players(ctx, query):
 @cli.command()
 @click.pass_context
 @click.argument("replay", type=click.Path(exists=True), required=True)
-def echo(ctx, replay):
+@click.option("--json", "-j", is_flag=True, default=False, help="Print in JSON")
+def echo(ctx, replay, json):
     """Echo pretty-printed parsed replay data from a .SC2Replay file"""
     rep = reader.load_replay(replay)
-    console.print(rep)
+    if json:
+        console.print_json(rep.default_projection_json())
+    else:
+        console.print(rep)
 
 
 def print_player_portrait(player: PlayerInfo):

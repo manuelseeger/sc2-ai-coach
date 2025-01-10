@@ -298,18 +298,22 @@ class Replay(DbModel):
             include=include_keys, exclude=exclude_keys, exclude_unset=True
         )
 
+    def projection_json(self, projection: dict, limit=450, include_workers=True) -> str:
+        """Return a JSON string of replay limited to the given projection fields"""
+        exclude_keys = self._exclude_keys_for_build_order(
+            limit=limit, include_workers=include_workers
+        )
+        include_keys = convert_projection(projection)
+        return self.model_dump_json(
+            include=include_keys, exclude=exclude_keys, exclude_unset=True
+        )
+
     def default_projection_json(self, limit=450, include_workers=True) -> str:
         """Return a JSON string of replay limited to the default projection fields
 
         Limit this to 450 seconds by default, as this results in a JSON string of about
         28Kb, which allows for an OpenAI prompt within the 32Kb API limit."""
-        exclude_keys = self._exclude_keys_for_build_order(
-            limit=limit, include_workers=include_workers
-        )
-        include_keys = convert_projection(config.default_projection)
-        return self.model_dump_json(
-            include=include_keys, exclude=exclude_keys, exclude_unset=True
-        )
+        return self.projection_json(config.default_projection, limit, include_workers)
 
     def __str__(self) -> str:
         projection = {
