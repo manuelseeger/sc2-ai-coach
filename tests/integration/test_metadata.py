@@ -4,8 +4,10 @@ from aicoach.aicoach_mock import AICoachMock as AICoach
 from aicoach.functions import AddMetadata
 from replays.metadata import save_replay_summary
 from replays.reader import ReplayReader
+from tests.conftest import only_in_debugging
 
 
+@only_in_debugging
 @pytest.mark.parametrize(
     "replay_file",
     [

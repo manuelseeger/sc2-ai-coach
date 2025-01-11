@@ -26,7 +26,7 @@ def get_map_stats(map):
                         if sibling.name == "table":
                             return sibling
         except Exception as e:
-            log.warn(f"Could not get map stats: {e}")
+            log.warning(f"Could not get map stats: {e}")
 
 
 def update_map_stats(map):

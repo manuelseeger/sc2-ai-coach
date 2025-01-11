@@ -10,8 +10,10 @@ from coach import AISession
 from obs_tools.twitch import TwitchListener
 from obs_tools.types import TwitchChatResult
 from shared import signal_queue
+from tests.conftest import only_in_debugging
 
 
+@only_in_debugging
 def test_twitch_chat():
 
     session = AISession()

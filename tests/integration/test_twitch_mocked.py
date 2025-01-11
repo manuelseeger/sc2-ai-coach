@@ -4,10 +4,15 @@ from time import sleep
 import pytest
 from rich import print
 
+from config import config
 from obs_tools.twitch import TwitchListener
 from shared import signal_queue
 
 
+@pytest.mark.skipif(
+    config.twitch_mocked is False,
+    reason="Only run when twitch events are mocked locally.",
+)
 def test_channel_follow():
 
     twitch = TwitchListener(name="twitch")

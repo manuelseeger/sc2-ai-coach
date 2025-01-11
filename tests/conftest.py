@@ -1,5 +1,6 @@
+import pathlib
 import sys
-from os.path import join
+from os.path import exists, join
 
 import pytest
 
@@ -37,7 +38,13 @@ def reference_file(request):
 
 @pytest.fixture
 def prompt_file(request):
-    return join(TESTDATA_DIR, "prompts", request.param)
+    if request.param is None:
+        # json file with same basename as python path
+        json_file = pathlib.Path(request.path).with_suffix(".json")
+        if exists(json_file):
+            return json_file
+    else:
+        return join(TESTDATA_DIR, "prompts", request.param)
 
 
 class Util:
