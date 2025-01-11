@@ -44,7 +44,10 @@ def test_add_metadata(replay_file):
 
     meta.tags = ["test", "zvz", "muta"]
 
-    replaydb.db.save(meta, query=eq(Metadata.replay, replay.id))
+    db_response = replaydb.db.save(meta, query=eq(Metadata.replay, replay.id))
+
+    assert db_response.acknowledged
+    assert db_response.modified_count == 1
 
 
 @pytest.mark.parametrize(
@@ -61,6 +64,8 @@ def test_upsert_existing_replay(replay_file):
 
     result = replaydb.upsert(replay)
     assert result.acknowledged
+    assert result.matched_count == 1
+    assert result.modified_count == 1
 
 
 def test_upsert_new_replay():
