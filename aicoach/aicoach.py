@@ -3,7 +3,6 @@ import logging
 from datetime import datetime
 from typing import Callable, Dict, Generator, Generic, Optional, Type, TypeVar
 
-from click import Option
 from openai import APIError, AssistantEventHandler, NotGiven, OpenAI
 from openai.lib.streaming import AssistantStreamManager
 from openai.types.beta import Assistant, Thread

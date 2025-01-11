@@ -1,4 +1,3 @@
-from numpy import isin
 from pydantic import BaseModel
 from rich import print
 
@@ -55,12 +54,10 @@ def test_get_structured_response():
 
     message = f"""Can you please summarize the game in one paragraph? Make sure to mention tech choices, timings, but keep it short. Important to mention are key choices of my opponent in terms of tech and opening units.
     
-    Also please extract keywords that characterize the game. Focus on the essentials..
+Also please extract keywords that characterize the game. Focus on the essentials..
         
 Important to include are tech choices. Do no include generic terms like "aggression" or "macro" or terms which can be 
-read from the main replay like the player name or race.
-
-Return the response in structured JSON."""
+read from the main replay like the player name or race."""
 
     class Response(BaseModel):
         summary: str

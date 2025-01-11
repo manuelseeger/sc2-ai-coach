@@ -1,0 +1,28 @@
+{
+    "test_twitch_chat": [
+        {
+            "user": "tuorello",
+            "message": "When do you think zatic has a shot at winning against Serral?",
+            "criteria": "Says the likelyhood of zatic winning against serral is low",
+            "expected": true
+        },
+        {
+            "user": "hans",
+            "message": "So is this cheating?",
+            "criteria": "Denies this is cheating. Includes that no live game data can be accessed.",
+            "expected": true
+        },
+        {
+            "user": "DokWon",
+            "message": "How does this work?",
+            "criteria": "Has access to replay data. Addresses user by name. ANswer does not include URL to source code",
+            "expected": true
+        },
+        {
+            "user": "DokWon",
+            "message": "Where can I download this?",
+            "criteria": "Includes link to source code on github.com",
+            "expected": true
+        }
+    ]
+}

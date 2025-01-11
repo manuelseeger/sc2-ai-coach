@@ -47,5 +47,6 @@ dependencies:
       - obsws-python
       - blizzapi2
       - twitchAPI      
+      - parametrize_from_file
       - # SC2 reader plugins pip install git+https://github.com/NumberPigeon/sc2reader-plugins.git
 
