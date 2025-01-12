@@ -5,29 +5,7 @@ from rich import print
 
 from coach import AISession
 from replays.reader import ReplayReader
-
-
-class MicMock:
-    def listen(self):
-        return None
-
-    def say(self, text):
-        print(text)
-
-
-class TTSMock:
-    def feed(self, text):
-        print(text)
-
-
-class TranscriberMock:
-    _data: list[str] = None
-
-    def __init__(self, data: list[str] = None) -> None:
-        self._data = data
-
-    def transcribe(self, audio):
-        return self._data.pop(0)
+from tests.mocks import MicMock, TranscriberMock, TTSMock
 
 
 @pytest.mark.parametrize(
@@ -44,6 +22,8 @@ def test_init_from_new_replay(replay_file):
     replay = reader.load_replay(replay_file)
 
     session.initiate_from_new_replay(replay)
+
+    assert session.is_active()
 
     message = f"How would you summarize the game in 1 paragraph? Make sure to include tech choices, timings, but keep it short."
 
@@ -85,7 +65,7 @@ def test_init_from_replay_with_metadata(replay_file, mocker):
     session = AISession()
 
     user_convo = [
-        "A what time did the protoss build their first 2 ground units?",
+        "At what time did the protoss build their first 2 ground units?",
         "At what time did they take their third base?",
         "What did they spend their first 3 chronoboosts on?",
         "Thank you, that will be all for now.",

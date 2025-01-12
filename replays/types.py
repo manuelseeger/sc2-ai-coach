@@ -1,10 +1,11 @@
+import re
 from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, ClassVar, Dict, List, Literal, Tuple
 
 import bson
 import pydantic
-from pydantic import BaseModel, Field
+from pydantic import AfterValidator, BaseModel, Field, ValidationError
 from pyodmongo import DbModel, MainBaseModel
 from typing_extensions import Annotated
 
@@ -13,7 +14,7 @@ from config import AIBackend, config
 from .util import splittoon, time2secs
 
 
-def convert_to_nested_structure(d: dict):
+def convert_to_nested_structure(d: dict[str, Any]) -> dict:
     """Convert a dictionary with keys containing dots to a nested structure
 
     This is used to convert from a MongoDB projection to an include/exclude structure as used by pydantic
@@ -56,13 +57,46 @@ def convert_projection(projection: dict) -> dict:
     return keys
 
 
+# example 2-S2-1-6861867
+def _validate_toon_handle(t: str) -> str:
+    if not re.match(r"^\d-S\d-\d-\d+$", t):
+        raise ValueError("Invalid toon handle")
+    return t
+
+
 ReplayId = Annotated[str, Field(min_length=64, max_length=64)]
-# 2-S2-2-9562
-ToonHandle = Annotated[str, Field(min_length=11, max_length=15)]
+
+ToonHandle = Annotated[
+    str,
+    Field(min_length=11, max_length=15),
+    AfterValidator(_validate_toon_handle),
+]
 BsonBinary = Annotated[
     bson.Binary,
     pydantic.PlainValidator(to_bson_binary),
 ]
+
+
+class FieldTypeValidator:
+    def validate_toon_handle(v: Any) -> bool:
+        class ToonHandleValidator(BaseModel):
+            toon_handle: ToonHandle
+
+        try:
+            ToonHandleValidator(toon_handle=v)
+            return True
+        except ValidationError:
+            return False
+
+    def validate_replay_id(v: Any) -> bool:
+        class ReplayIdValidator(BaseModel):
+            id: ReplayId
+
+        try:
+            ReplayIdValidator(id=v)
+            return True
+        except ValidationError:
+            return False
 
 
 class AbilityUsed(MainBaseModel):
@@ -86,8 +120,31 @@ class ReplayMessage(MainBaseModel):
 
 
 class PlayerStats(MainBaseModel):
-    worker_split: int
-    worker_micro: int
+    worker_active: Dict[str, int]
+    income_minerals: Dict[str, int]
+    income_vespene: Dict[str, int]
+    income_resources: Dict[str, int]
+    unspent_minerals: Dict[str, int]
+    unspent_vespene: Dict[str, int]
+    unspent_resources: Dict[str, int]
+    minerals_used_active_forces: Dict[str, int]
+    vespene_used_active_forces: Dict[str, int]
+    resources_used_active_forces: Dict[str, int]
+    minerals_used_technology: Dict[str, int]
+    vespene_used_technology: Dict[str, int]
+    resources_used_technology: Dict[str, int]
+    minerals_lost: Dict[str, int]
+    vespene_lost: Dict[str, int]
+    resources_lost: Dict[str, int]
+    avg_income_minerals: float
+    avg_income_vespene: float
+    avg_income_resources: float
+    avg_unspent_minerals: float
+    avg_unspent_vespene: float
+    avg_unspent_resources: float
+    minerals_lost_total: int
+    vespene_lost_total: int
+    resources_lost_total: int
 
 
 class ReplayStats(MainBaseModel):
@@ -112,9 +169,22 @@ class BuildOrder(MainBaseModel):
     is_worker: bool = False
 
 
+class WorkerStats(MainBaseModel):
+    worker_micro: int
+    worker_split: int
+    worker_count: Dict[str, int] = {}
+    worker_trained: Dict[str, int] = {}
+    worker_killed: Dict[str, int] = {}
+    worker_lost: Dict[str, int] = {}
+    worker_trained_total: int
+    worker_killed_total: int
+    worker_lost_total: int
+
+
 class Player(MainBaseModel):
     abilities_used: List[AbilityUsed] = []
     avg_apm: float
+    avg_sq: float
     build_order: List[BuildOrder] = []
     clan_tag: str
     color: Color
@@ -123,6 +193,7 @@ class Player(MainBaseModel):
     name: str
     max_creep_spread: Tuple[int, float] | Literal[0] | None = None
     messages: List[ReplayMessage] = []
+    official_apm: float | None = None
     pick_race: str
     pid: int
     play_race: str
@@ -135,6 +206,7 @@ class Player(MainBaseModel):
     uid: int
     units_lost: List[UnitLoss]
     url: str
+    worker_stats: WorkerStats
 
 
 class Observer(MainBaseModel):
@@ -226,18 +298,22 @@ class Replay(DbModel):
             include=include_keys, exclude=exclude_keys, exclude_unset=True
         )
 
+    def projection_json(self, projection: dict, limit=450, include_workers=True) -> str:
+        """Return a JSON string of replay limited to the given projection fields"""
+        exclude_keys = self._exclude_keys_for_build_order(
+            limit=limit, include_workers=include_workers
+        )
+        include_keys = convert_projection(projection)
+        return self.model_dump_json(
+            include=include_keys, exclude=exclude_keys, exclude_unset=True
+        )
+
     def default_projection_json(self, limit=450, include_workers=True) -> str:
         """Return a JSON string of replay limited to the default projection fields
 
         Limit this to 450 seconds by default, as this results in a JSON string of about
         28Kb, which allows for an OpenAI prompt within the 32Kb API limit."""
-        exclude_keys = self._exclude_keys_for_build_order(
-            limit=limit, include_workers=include_workers
-        )
-        include_keys = convert_projection(config.default_projection)
-        return self.model_dump_json(
-            include=include_keys, exclude=exclude_keys, exclude_unset=True
-        )
+        return self.projection_json(config.default_projection, limit, include_workers)
 
     def __str__(self) -> str:
         projection = {
@@ -313,6 +389,7 @@ class PlayerInfo(DbModel):
     toon_handle: ToonHandle
     portrait: BsonBinary | None = None
     portrait_constructed: BsonBinary | None = None
+    tags: List[str] | None = None
     _collection: ClassVar = "players"
 
     def update_aliases(self, seen_on: datetime = None):

@@ -1,8 +1,9 @@
 import logging
 import queue
 import sys
-from datetime import datetime, timezone
+from datetime import datetime
 from time import sleep, time
+from typing import Callable
 
 import click
 from Levenshtein import distance as levenshtein
@@ -15,7 +16,13 @@ from config import AIBackend, AudioMode, CoachEvent, config
 from log import log
 from obs_tools.playerinfo import resolve_replays_from_current_opponent
 from obs_tools.rich_log import TwitchObsLogHandler
-from obs_tools.types import ScanResult, TwitchResult, WakeResult
+from obs_tools.types import (
+    ScanResult,
+    TwitchChatResult,
+    TwitchFollowResult,
+    TwitchRaidResult,
+    WakeResult,
+)
 from replays.db import replaydb
 from replays.metadata import save_replay_summary
 from replays.types import Player, Replay, Role, Session, Usage
@@ -79,7 +86,6 @@ def main(debug):
     if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
         tts.feed("Starting TTS")
 
-    log.info("\n")
     log.info(f"Audio mode: {str(config.audiomode)}")
     log.info(f"OBS integration: {str(config.obs_integration)}")
     log.info(
@@ -90,18 +96,13 @@ def main(debug):
     log.info(f"Starting { 'non-' * ( not config.interactive ) }interactive session")
 
     ping_printed = False
+
     while True:
         try:
             task = signal_queue.get()
-            # task = None
-            if isinstance(task, TwitchResult):
-                session.handle_twitch_chat("twitch", task)
-            elif isinstance(task, WakeResult):
-                session.handle_wake("wakeup", task)
-            elif isinstance(task, ScanResult):
-                session.handle_game_start("loading_screen", task)
-            elif isinstance(task, Replay):
-                session.handle_new_replay("replay", task)
+            handler = session.get_handler(task)
+            if handler:
+                handler(task)
             else:
                 # print once every 10 seconds so we know you are still alive
                 if datetime.now().second % 10 == 0:
@@ -149,6 +150,8 @@ class AISession:
 
     session: Session
 
+    handlers: dict[type, Callable]
+
     def __init__(self):
 
         self.update_last_replay()
@@ -161,6 +164,18 @@ class AISession:
             ai_backend=config.aibackend,
         )
         replaydb.db.save(self.session)
+
+        self.handlers = {
+            TwitchChatResult: self.handle_twitch_chat,
+            TwitchFollowResult: self.handle_twitch_follow,
+            TwitchRaidResult: self.handle_twitch_raid,
+            WakeResult: self.handle_wake,
+            ScanResult: self.handle_game_start,
+            Replay: self.handle_new_replay,
+        }
+
+    def get_handler(self, task) -> Callable | None:
+        return self.handlers.get(type(task))
 
     @property
     def thread_id(self):
@@ -321,8 +336,8 @@ class AISession:
 
         self.thread_id = self.coach.create_thread(prompt)
 
-    def handle_game_start(self, sender, scanresult: ScanResult):
-        log.debug(f"{sender} {scanresult}")
+    def handle_game_start(self, scanresult: ScanResult):
+        log.debug(scanresult)
 
         if scanresult.mapname and config.obs_integration:
             update_map_stats(scanresult.mapname)
@@ -338,8 +353,8 @@ class AISession:
                 if done:
                     self.close()
 
-    def handle_wake(self, sender, wakeresult: WakeResult):
-        log.debug(sender)
+    def handle_wake(self, wakeresult: WakeResult):
+        log.debug(wakeresult)
         if not self.is_active():
             self.thread_id = self.coach.create_thread()
 
@@ -347,8 +362,8 @@ class AISession:
             if done:
                 self.close()
 
-    def handle_new_replay(self, sender, replay: Replay):
-        log.debug(sender)
+    def handle_new_replay(self, replay: Replay):
+        log.debug(replay)
         if not self.is_active():
             log.debug("New replay detected")
             self.initiate_from_new_replay(replay)
@@ -364,17 +379,39 @@ class AISession:
 
                 self.close()
 
-    def handle_twitch_chat(self, sender, twitch_chat: TwitchResult):
-        log.debug(f"{twitch_chat.user}: {twitch_chat.message}")
+    def handle_twitch_follow(self, twitch_follow: TwitchFollowResult):
+        log.debug(f"{twitch_follow.user} followed")
+        replacements = {
+            "user": twitch_follow.user,
+            "student": config.student.name,
+        }
+        prompt = Templates.twitch_follow.render(replacements)
+        self.thread_id = self.coach.create_thread(prompt)
+        response = self.stream_thread()
+        log.info(response, extra={"role": Role.assistant})
+        self.close()
 
-        while self.is_active():
-            sleep(1)
+    def handle_twitch_raid(self, twitch_raid: TwitchRaidResult):
+        log.debug(f"{twitch_raid.user} raided with {twitch_raid.viewers} viewers")
+        replacements = {
+            "user": twitch_raid.user,
+            "viewers": twitch_raid.viewers,
+            "student": config.student.name,
+        }
+        prompt = Templates.twitch_raid.render(replacements)
+        self.thread_id = self.coach.create_thread(prompt)
+        response = self.stream_thread()
+        log.info(response, extra={"role": Role.assistant})
+        self.close()
+
+    def handle_twitch_chat(self, twitch_chat: TwitchChatResult):
+        log.debug(f"{twitch_chat.user}: {twitch_chat.message}")
 
         replacements = {
             "user": twitch_chat.user,
             "message": twitch_chat.message,
         }
-        prompt = Templates.twitch.render(replacements)
+        prompt = Templates.twitch_chat.render(replacements)
 
         class TwitchChatResponse(BaseModel):
             is_question: bool

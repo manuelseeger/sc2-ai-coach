@@ -4,11 +4,11 @@ from time import sleep, time
 from urllib.parse import urljoin
 
 import httpx
-from blinker import signal
 from httpx import ConnectError
 from pydantic_core import ValidationError
 
 from config import config
+from shared import signal_queue
 
 from .types import GameInfo, Race, Result, ScanResult, Screen, UIInfo
 
@@ -29,7 +29,7 @@ class SC2Client:
             gameinfo = GameInfo.model_validate_json(game)
             return gameinfo
         except ValidationError as e:
-            log.warn(f"Invalid game data: {e}")
+            log.warning(f"Invalid game data: {e}")
         return None
 
     def get_uiinfo(self) -> UIInfo:
@@ -38,7 +38,7 @@ class SC2Client:
             uiinfo = UIInfo.model_validate_json(ui)
             return uiinfo
         except ValidationError as e:
-            log.warn(f"Invalid UI data: {e}")
+            log.warning(f"Invalid UI data: {e}")
         return None
 
     def get_opponent(self, gameinfo=None) -> tuple[str, Race]:
@@ -108,7 +108,7 @@ class ClientAPIScanner(threading.Thread):
 
     def scan_client_api(self):
         log.debug("Starting game client scanner")
-        loading_screen = signal("loading_screen")
+
         while True:
             if self.stopped():
                 log.debug("Stopping game client scanner")
@@ -127,8 +127,8 @@ class ClientAPIScanner(threading.Thread):
                 mapname = ""
 
                 scanresult = ScanResult(mapname=mapname, opponent=opponent)
+                signal_queue.put(scanresult)
 
-                loading_screen.send(self, scanresult=scanresult)
             sleep(1)
 
 

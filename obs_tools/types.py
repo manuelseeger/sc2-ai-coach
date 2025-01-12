@@ -1,6 +1,6 @@
 from email import message
 from enum import Enum
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -34,9 +34,22 @@ class WakeResult(BaseModel):
 
 
 class TwitchResult(BaseModel):
+    channel: Optional[str] = None
+    event: Optional[dict] = None
+
+
+class TwitchChatResult(TwitchResult):
     user: str
-    channel: str
     message: str
+
+
+class TwitchFollowResult(TwitchResult):
+    user: str
+
+
+class TwitchRaidResult(TwitchResult):
+    user: str
+    viewers: int
 
 
 class Race(str, Enum):

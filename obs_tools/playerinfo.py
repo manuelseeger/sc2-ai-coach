@@ -110,11 +110,13 @@ def portrait_construct_from_bnet(toon_id: int) -> bytes | None:
         return
 
     if profile:
-        r = httpx.get(str(profile.summary.portrait))
-        if r.status_code != 200:
-            log.warning(f"Bnet refused profile portrait for toon_id {toon_id}")
+
+        portrait_bytes = battlenet.get_portrait(profile)
+
+        if not portrait_bytes:
             return
-        bnet_portrait = Image.open(BytesIO(r.content)).resize(
+
+        bnet_portrait = Image.open(BytesIO(portrait_bytes)).resize(
             (95, 95), Image.Resampling.BICUBIC
         )
         diamond_frame = Image.open("assets/diamond_frame.png")

@@ -2,7 +2,6 @@ import logging
 import threading
 
 import keyboard
-from blinker import signal
 
 from config import config
 
@@ -10,7 +9,7 @@ from .types import WakeResult
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
-wakeup = signal("wakeup")
+from shared import signal_queue
 
 
 class WakeKeyListener(threading.Thread):
@@ -32,4 +31,4 @@ class WakeKeyListener(threading.Thread):
 
     def listen_for_wake_key(self):
         log.debug("Wake key pressed")
-        wakeup.send(self, wakeresult=WakeResult(awake=True))
+        signal_queue.put(WakeResult(awake=True))

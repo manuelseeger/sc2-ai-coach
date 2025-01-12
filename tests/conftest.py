@@ -1,8 +1,19 @@
-from os.path import join
+import pathlib
+import sys
+from os.path import exists, join
 
 import pytest
 
+from tests.critic import LmmCritic
+
 TESTDATA_DIR = "tests/testdata"
+
+
+def only_in_debugging(func):
+    """Decorator to skip tests unless a debugger is attached."""
+    if sys.gettrace() is None:  # No debugger is attached
+        func = pytest.mark.skip(reason="Skipping because not in debugging mode.")(func)
+    return func
 
 
 @pytest.fixture
@@ -23,6 +34,17 @@ def portrait_file(request):
 @pytest.fixture
 def reference_file(request):
     return join(TESTDATA_DIR, "screenshots", request.param)
+
+
+@pytest.fixture
+def prompt_file(request):
+    if request.param is None:
+        # json file with same basename as python path
+        json_file = pathlib.Path(request.path).with_suffix(".json")
+        if exists(json_file):
+            return json_file
+    else:
+        return join(TESTDATA_DIR, "prompts", request.param)
 
 
 class Util:
@@ -59,3 +81,8 @@ class ReplayRawMock:
 @pytest.fixture
 def util():
     return Util
+
+
+@pytest.fixture
+def critic():
+    return LmmCritic()

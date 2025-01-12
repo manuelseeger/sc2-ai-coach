@@ -2,7 +2,7 @@ from enum import Enum
 from glob import glob
 from typing import Annotated, Dict, List, Optional, Tuple, Type
 
-from pydantic import BaseModel
+from pydantic import BaseModel, DirectoryPath
 from pydantic.networks import UrlConstraints
 from pydantic_core import MultiHostUrl, Url
 from pydantic_settings import (
@@ -87,7 +87,11 @@ class StudentConfig(BaseModel):
 
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
-        yaml_file=yaml_files, env_file=env_files, env_prefix="AICOACH_", extra="ignore"
+        yaml_file=yaml_files,
+        env_file=env_files,
+        env_prefix="AICOACH_",
+        extra="ignore",
+        env_nested_delimiter="__",
     )
     name: str = "AICoach"
     replay_folder: str
@@ -125,10 +129,13 @@ class Config(BaseSettings):
     blizzard_client_id: Optional[str] = None
     blizzard_client_secret: Optional[str] = None
     blizzard_region: SC2Region
+    bnet_cache_dir: Optional[DirectoryPath] = None
 
     twitch_client_id: Optional[str] = None
     twitch_client_secret: Optional[str] = None
     twitch_channel: Optional[str] = None
+    twitch_mocked: bool = False
+    twitch_mocked_user_id: Optional[str] = None
 
     rating_delta_max: int
     last_played_ago_max: int

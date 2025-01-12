@@ -1,19 +1,20 @@
 name: aicoach311-ci
 channels:
   - conda-forge
+  - simonflueckiger
 dependencies:
   - python=3.11
-  - conda-forge::pydantic=2.6
-  - conda-forge::pydantic-settings
+  - pydantic=2.6
+  - pydantic-settings
   - pyyaml
-  - conda-forge::httpx
+  - httpx
   - click
-  - conda-forge::openai
+  - openai
   - pytest
   - pytest-mock
   - pytest-cov
   - python-levenshtein
-  - blinker
+  - tesserocr
   - jinja2
   - pip
   - pip:
@@ -23,3 +24,5 @@ dependencies:
       - pyodmongo
       - keyboard
       - blizzardapi2
+      - parametrize_from_file
+      - git+https://github.com/NumberPigeon/sc2reader-plugins.git

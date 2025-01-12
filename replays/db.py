@@ -11,15 +11,12 @@ from config import config
 
 from .types import Metadata, PlayerInfo, Replay, Session
 
-# Initialize the database engine
-engine = DbEngine(mongo_uri=str(config.mongo_dsn), db_name=config.db_name)
-
 SC2Model = Replay | Metadata | Session | PlayerInfo
 
 
 class ReplayDB:
     def __init__(self):
-        self.db = engine
+        self.db = DbEngine(mongo_uri=str(config.mongo_dsn), db_name=config.db_name)
         self.replays: Collection = self.db._db["replays"]
         self.meta: Collection = self.db._db["replays.meta"]
 

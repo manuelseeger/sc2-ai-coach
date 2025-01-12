@@ -1,26 +1,33 @@
 import logging
 
 import sc2reader
-from sc2reader.engine.plugins import CreepTracker
+from sc2reader.engine.plugins import ContextLoader, CreepTracker
+from sc2reader_plugins import (
+    APMTracker,
+    EventSecondCorrector,
+    PlayerStatsTracker,
+    SQTracker,
+    WorkerTracker,
+)
 
 from config import config
 
-from .sc2readerplugins.APMTracker import APMTracker
 from .sc2readerplugins.ReplayStats import ReplayStats
 from .sc2readerplugins.SpawningTool import SpawningTool
 from .types import Replay
 
-# from sc2reader.factories.plugins.replay import APMTracker as APMTrackerBroken
-
-
 log = logging.getLogger(config.name)
-
+sc2reader.engine.register_plugin(EventSecondCorrector())
+sc2reader.engine.register_plugin(ContextLoader())
+sc2reader.engine.register_plugin(APMTracker())
 sc2reader.engine.register_plugin(CreepTracker())
+sc2reader.engine.register_plugin(WorkerTracker())
+sc2reader.engine.register_plugin(SQTracker())
+sc2reader.engine.register_plugin(PlayerStatsTracker())
 
-factory = sc2reader.factories.SC2Factory()
+factory = sc2reader.factories.DictCachedSC2Factory(cache_max_size=1000)
 factory.register_plugin("Replay", ReplayStats())
 factory.register_plugin("Replay", SpawningTool())
-factory.register_plugin("Replay", APMTracker())
 
 
 class ReplayReader:
@@ -28,9 +35,10 @@ class ReplayReader:
 
     def __init__(self):
         self.default_filters = [
-            self.is_ladder,
-            lambda x: not self.is_instant_leave(x),
-            lambda x: not self.has_afk_player(x),
+            lambda x: not self.is_ladder(x),
+            self.is_archon_mode,
+            self.is_instant_leave,
+            self.has_afk_player,
         ]
 
     def load_replay_raw(self, file_path):
@@ -60,11 +68,13 @@ class ReplayReader:
                 return True
         return False
 
+    def is_archon_mode(self, replay):
+        is_archon_mode = any(p.archon_leader_id is not None for p in replay.players)
+        log.debug(f"is_archon_mode: {is_archon_mode}")
+        return is_archon_mode
+
     def apply_filters(self, replay, filters=[]):
-        for filter in filters + self.default_filters:
-            if filter(replay) is False:
-                return False
-        return True
+        return not any(f(replay) for f in filters + self.default_filters)
 
     def to_typed_replay(self, replay_raw) -> Replay:
         replay_dict = replay_to_dict(replay_raw)
@@ -114,10 +124,23 @@ def replay_to_dict(replay) -> dict:
         if type(max_creep_spread) is not tuple and max_creep_spread is not None:
             max_creep_spread = (0, 0)
 
+        worker_stats = {
+            "worker_micro": getattr(player, "worker_micro", None),
+            "worker_split": getattr(player, "worker_split", None),
+            "worker_count": getattr(player, "worker_count", None),
+            "worker_trained": getattr(player, "worker_trained", None),
+            "worker_killed": getattr(player, "worker_killed", None),
+            "worker_lost": getattr(player, "worker_lost", None),
+            "worker_trained_total": getattr(player, "worker_trained_total", None),
+            "worker_killed_total": getattr(player, "worker_killed_total", None),
+            "worker_lost_total": getattr(player, "worker_lost_total", None),
+        }
+
         players.append(
             {
                 "abilities_used": getattr(player, "abilities_used", None),
-                "avg_apm": getattr(player, "avg_apm", None),
+                "avg_apm": getattr(player, "avg_apm", 0),
+                "avg_sq": getattr(player, "avg_sq", 0.0),
                 "build_order": getattr(player, "build_order", None),
                 "clan_tag": getattr(player, "clan_tag", None),
                 "clock_position": getattr(player, "clock_position", None),
@@ -129,6 +152,7 @@ def replay_to_dict(replay) -> dict:
                 "name": getattr(player, "name", None),
                 "max_creep_spread": max_creep_spread,
                 "messages": [m for m in messages if m["pid"] == player.sid],
+                "official_apm": getattr(player, "official_apm", None),
                 "pick_race": getattr(player, "pick_race", None),
                 "pid": getattr(player, "pid", None),
                 "play_race": getattr(player, "play_race", None),
@@ -146,6 +170,7 @@ def replay_to_dict(replay) -> dict:
                 "uid": getattr(player, "uid", None),
                 "units_lost": getattr(player, "units_lost", None),
                 "url": getattr(player, "url", None),
+                "worker_stats": worker_stats,
             }
         )
 

@@ -17,9 +17,8 @@ def ReplayStats(replay):
     worker_micro = player_worker_micro(replay)
 
     for player in replay.players:
-        player.stats = {}
-        player.stats["worker_split"] = worker_micro[player.sid][0]
-        player.stats["worker_micro"] = worker_micro[player.sid][1]
+        player.worker_split = worker_micro[player.sid][0]
+        player.worker_micro = worker_micro[player.sid][1]
 
     replay.stats = stats
     return replay
