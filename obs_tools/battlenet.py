@@ -88,13 +88,17 @@ class BattleNet:
         self.realm_id = REGION_MAP[config.blizzard_region.value][1]
 
     def get_profile(self, profile_id: int) -> BattlenetProfile:
-        p = self.api_client.starcraft2.community.get_profile(
-            region=config.blizzard_region,
-            region_id=self.region_id,
-            realm_id=self.realm_id,
-            profile_id=profile_id,
-            locale="en_US",
-        )
+        try:
+            p = self.api_client.starcraft2.community.get_profile(
+                region=config.blizzard_region,
+                region_id=self.region_id,
+                realm_id=self.realm_id,
+                profile_id=profile_id,
+                locale="en_US",
+            )
+        except Exception as e:
+            log.warning(f"Failed to get profile {profile_id}: {e}")
+            return
         return BattlenetProfile(**p)
 
     def get_portrait(self, profile: BattlenetProfile) -> bytes | None:
