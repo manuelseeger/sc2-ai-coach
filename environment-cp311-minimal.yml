@@ -13,7 +13,6 @@ dependencies:
   - tiktoken
   - rich
   - python-levenshtein
-  - blinker
   - jinja2
   - pip
   - pip:
