@@ -13,7 +13,7 @@ jobs:
         shell: bash -l {0}
     steps:
       - name: Dependencies
-        run: sudo apt update && sudo apt install ffmpeg libsm6 libxext6 tesseract-ocr tesseract-ocr-eng libtesseract-dev libleptonica-dev pkg-config -y
+        run: sudo add-apt-repository ppa:alex-p/tesseract-ocr5 -y && sudo apt update && sudo apt install ffmpeg libsm6 libxext6 tesseract-ocr tesseract-ocr-eng libtesseract-dev libleptonica-dev pkg-config -y
       - uses: actions/checkout@v4
       - uses: conda-incubator/setup-miniconda@v3
         with:
@@ -30,7 +30,7 @@ jobs:
           AICOACH_ASSISTANT_ID: "XXX"
           AICOACH_OPENAI_API_KEY: "YYY"
           AICOACH_OPENAI_ORG_ID: "ZZZ"
-          AICOACH_TESSDATA_DIR: /usr/share/tesseract-ocr/4.00/tessdata/
+          AICOACH_TESSDATA_DIR: /usr/share/tesseract-ocr/5/tessdata/
           AICOACH_OBS_INTEGRATION: "False"
           AICOACH_AUDIOMODE: "text"
           AICOACH_STUDENT__NAME: "zatic"
@@ -41,6 +41,3 @@ jobs:
           name: pytest results
           path: tests/test-results.xml
           reporter: java-junit
-      - name: debug
-        if: failure()
-        uses: mxschmitt/action-tmate@v3
