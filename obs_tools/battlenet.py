@@ -117,6 +117,9 @@ class BattleNet:
             )
             return
 
+        if config.bnet_cache_dir is None:
+            return r.content
+
         # write to cache dir
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         cache_path.write_bytes(r.content)
