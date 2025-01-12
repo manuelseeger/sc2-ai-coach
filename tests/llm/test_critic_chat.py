@@ -49,7 +49,7 @@ def test_twitch_chat(user, message, criteria, expected, util, critic: LmmCritic)
 
     # assert
     qa = f"USER: {user}\nQUESTION: {message},\nANSWER:{response.answer}"
-    critique = critic.evaluate(critic_init, qa)
+    critique = critic.evaluate_one_shot(critic_init, qa)
 
     print(f"PASSED: {critique.passed}")
     print(critique.justification)

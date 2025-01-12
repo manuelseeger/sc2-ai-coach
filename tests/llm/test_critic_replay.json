@@ -1,0 +1,46 @@
+{
+    "test_analyze_replay": [
+        {
+            "replay_file": "Solaris LE (179) ZvP ground hydra lurker.SC2Replay",
+            "instructions": "You are given questions about a Starcraft 2 replay, and answers to those questions. For each questions/answer you are given an evaluation criteria. Determine if the answer meets the criteria.",
+            "convo": [
+                {
+                    "question": "At what time did the protoss build their first 2 ground units?",
+                    "criteria": "Must say that the first two ground units were Adepts. Gives the time for the two units as 2:02 and 2:32, respectively. Considered correct if within 2 seconds of the correct time.",
+                    "expected": true
+                },
+                {
+                    "question": "At what time did they take their third base?",
+                    "criteria": "Correct time: 4:46. Considered passed if within 5 seconds of the correct time.",
+                    "expected": true
+                }
+            ]
+        },
+        {
+            "replay_file": "Ultralove (29) ZvT blue flame mech.SC2Replay",
+            "instructions": "You are given questions about a Starcraft 2 replay, and answers to those questions. For each questions/answer you are given an evaluation criteria. Determine if the answer meets the criteria.",
+            "convo": [
+                {
+                    "question": "What was their opening?",
+                    "criteria": "Must mentioned a fast-expand and that they opened with a reaper.",
+                    "expected": true
+                },
+                {
+                    "question": "What would you call their build?",
+                    "criteria": "Must mention hellions and blue flame upgrade in the answer",
+                    "expected": true
+                },
+                {
+                    "question": "When did they take their third base?",
+                    "criteria": "Correct time: 4:50. Considered passed if within 5 seconds of the correct time.",
+                    "expected": true
+                },
+                {
+                    "question": "Thank you, that will be all for now.",
+                    "criteria": "Must include the phrase 'good luck, have fun' in the answer.",
+                    "expected": true
+                }
+            ]
+        }
+    ]
+}
