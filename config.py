@@ -87,7 +87,11 @@ class StudentConfig(BaseModel):
 
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
-        yaml_file=yaml_files, env_file=env_files, env_prefix="AICOACH_", extra="ignore"
+        yaml_file=yaml_files,
+        env_file=env_files,
+        env_prefix="AICOACH_",
+        extra="ignore",
+        env_nested_delimiter="__",
     )
     name: str = "AICoach"
     replay_folder: str

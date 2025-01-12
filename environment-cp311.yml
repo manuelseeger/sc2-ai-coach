@@ -15,6 +15,7 @@ dependencies:
   - conda-forge::openai
   - pytest
   - pytest-mock
+  - pytest-cov  
   - tiktoken
   - rich
   - simonflueckiger::tesserocr

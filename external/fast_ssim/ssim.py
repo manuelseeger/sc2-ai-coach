@@ -7,7 +7,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 ssim_dll_path = os.path.split(os.path.realpath(__file__))[0]
-ssim_dll_name = "ssim"
+ssim_dll_name = "ssim" if os.name == "nt" else "libssim"
 
 dll = np.ctypeslib.load_library(ssim_dll_name, ssim_dll_path)
 

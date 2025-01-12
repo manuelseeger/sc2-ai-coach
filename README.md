@@ -248,6 +248,7 @@ Probably a lot...
 - Most of the internal logic relies on the name of a player(s) and thus won't work properly for a student who changes their name from season to season.
 - This has only been tested with replays starting from early 2023. Much older replays will likely throw errors.
 - Text mode wake event interferes with SC2 causing lag. Don't use during gaming sessions.
+- The production version is meant to run on Windows. Everything covered in unit tests runs on Win32 and Linux. 
 
 ## SC2 map stats
 
