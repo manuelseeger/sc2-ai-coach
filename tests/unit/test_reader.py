@@ -206,6 +206,7 @@ def test_player_stats_tracker(replay_file):
 
 
 @only_in_debugging
+@pytest.mark.skip(reason="Skip until fix in upstream sc2reader plugins")
 @pytest.mark.parametrize(
     "replay_file",
     [
