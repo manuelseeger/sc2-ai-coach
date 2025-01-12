@@ -1,7 +1,8 @@
-import pytest
-from obs_tools.parse_map_loading_screen import parse_map_loading_screen
 import cv2
+import pytest
+
 from external.fast_ssim.ssim import ssim
+from obs_tools.parse_map_loading_screen import parse_map_loading_screen
 
 
 @pytest.mark.parametrize(

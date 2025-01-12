@@ -44,26 +44,32 @@ def test_save_existing_player_info(replay_file, portrait_file):
     [
         (
             "Goldenaura LE (282) 2 base Terran tank allin.SC2Replay",
-            "Oceanborn LE - LightHood vs zatic 2024-06-15 12-27-13_portrait.png",
+            "Goldenaura LE - BlackEyed vs zatic 2024-06-02 15-24-03_portrait.png",
         )
     ],
     indirect=["replay_file", "portrait_file"],
 )
 def test_existing_player_info_update_alias(replay_file, portrait_file, monkeypatch):
 
+    # arrange
     def get_portrait_mocked(o, m, r):
         return open(portrait_file, "rb").read()
 
     monkeypatch.setattr(playerinfo, "get_matching_portrait", get_portrait_mocked)
 
-    player_info = replaydb.db.find_one(PlayerInfo, raw_query={"_id": "2-S2-2-504151"})
-
     reader = ReplayReader()
     replay = reader.load_replay(replay_file)
-    result, player_info = save_player_info(replay)
+    opponent_handle = replay.get_opponent_of(config.student.name).toon_handle
 
+    player_info = replaydb.db.find_one(PlayerInfo, raw_query={"_id": opponent_handle})
+
+    # act
+    result, new_player_info = save_player_info(replay)
+
+    # assert
     assert result.acknowledged
     assert result.modified_count == 1
+    assert any([a == player_info for a in new_player_info.aliases])
 
     # Undo the alias update
     result = replaydb.upsert(player_info)

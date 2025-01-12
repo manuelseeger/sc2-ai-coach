@@ -20,9 +20,8 @@ def test_sc2client_get_opponent():
     opponent, race = client.get_opponent()
 
     print(f"Opponent: {opponent}")
+    assert opponent is not None
 
     barcode = is_barcode(opponent)
 
-    print(f"Is barcode: {barcode}")
-
-    assert opponent is not None
+    assert barcode is not None

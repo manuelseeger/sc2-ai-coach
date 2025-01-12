@@ -1,3 +1,4 @@
+import pytest
 from rich import print
 
 from config import config
@@ -28,12 +29,18 @@ def test_get_unmasked_player():
     print(players)
 
 
-def test_get_profile():
+@pytest.mark.parametrize(
+    ("profile_id", "expected_name"),
+    [
+        (2372922, "Oreoff"),
+        (691545, "zatic"),
+    ],
+)
+def test_get_profile(profile_id, expected_name):
     bnet = BattleNet()
-    profile_id = 1487019
     profile = bnet.get_profile(profile_id)
 
     print(profile)
 
     assert profile is not None
-    assert profile.summary.displayName == "Quma"
+    assert profile.summary.displayName == expected_name
