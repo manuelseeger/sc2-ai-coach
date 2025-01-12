@@ -74,6 +74,9 @@ rating_delta_max: 500
 # maximum time since last played game to consider opponent for barcode unmasking in seconds
 last_played_ago_max: 2400
 
+# where to cache bnet files
+bnet_cache_dir: obs/bnet_cache
+
 # Current ladder season
 season: 61
 # Maps in the current ladder pool
