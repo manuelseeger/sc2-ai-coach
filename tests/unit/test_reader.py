@@ -4,6 +4,7 @@ import sc2reader
 from replays.reader import ReplayReader
 from replays.sc2readerplugins.ReplayStats import is_gg, player_worker_micro
 from replays.util import time2secs
+from tests.conftest import only_in_debugging
 
 
 @pytest.mark.parametrize(
@@ -204,6 +205,7 @@ def test_player_stats_tracker(replay_file):
     assert p2.stats.avg_unspent_resources > 0
 
 
+@only_in_debugging
 @pytest.mark.parametrize(
     "replay_file",
     [
