@@ -283,3 +283,15 @@ def test_constructed_portrait():
             score = ssim(np.array(kat_portrait), np.array(kat2_portrait))
 
             print(f"{kat_file} vs {kat2_file}: {score}")
+
+
+# Amygdala (38) TvZ smurf leaves TvT.SC2Replay
+@pytest.mark.parametrize(
+    "replay_file",
+    ["Amygdala (38) TvZ smurf leaves TvT.SC2Replay"],
+    indirect=True,
+)
+def test_detect_smurf(replay_file):
+    # Amygdala - BARCODE vs zatic 2025-01-15 14-00-41 tvz smurf leaves tvt.png
+    # smurf: 2-S2-1-8773156
+    pass
