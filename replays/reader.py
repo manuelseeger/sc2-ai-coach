@@ -12,11 +12,14 @@ from sc2reader_plugins import (
 
 from config import config
 
+from .sc2readerplugins.EventAbilityNameCorrector import EventAbilityNameCorrector
 from .sc2readerplugins.ReplayStats import ReplayStats
 from .sc2readerplugins.SpawningTool import SpawningTool
 from .types import Replay
 
 log = logging.getLogger(config.name)
+
+
 sc2reader.engine.register_plugin(EventSecondCorrector())
 sc2reader.engine.register_plugin(ContextLoader())
 sc2reader.engine.register_plugin(APMTracker())
@@ -24,6 +27,7 @@ sc2reader.engine.register_plugin(CreepTracker())
 sc2reader.engine.register_plugin(WorkerTracker())
 sc2reader.engine.register_plugin(SQTracker())
 sc2reader.engine.register_plugin(PlayerStatsTracker())
+sc2reader.engine.register_plugin(EventAbilityNameCorrector())
 
 factory = sc2reader.factories.DictCachedSC2Factory(cache_max_size=1000)
 factory.register_plugin("Replay", ReplayStats())

@@ -226,3 +226,20 @@ def test_apm_archon_mode(replay_file):
     assert p2.avg_apm > 0
     assert p3.avg_apm > 0
     assert p4.avg_apm > 0
+
+
+@pytest.mark.parametrize(
+    "replay_file",
+    [
+        "Radhuset Station LE (85) ZvP chrono.SC2Replay",
+    ],
+    indirect=True,
+)
+def test_parse_chrono_boost(replay_file):
+    reader = ReplayReader()
+
+    replay = reader.load_replay(replay_file)
+
+    p1, p2 = replay.players
+
+    assert any(p.is_chronoboosted for p in p1.build_order)
