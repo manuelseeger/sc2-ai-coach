@@ -5,7 +5,7 @@
 import logging
 from datetime import UTC, datetime
 from enum import Enum
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from httpx import Client
 from pydantic import BaseModel
@@ -16,6 +16,26 @@ from obs_tools.types import Race as GameInfoRace
 from replays.util import convert_enum
 
 log = logging.getLogger(f"{config.name}.{__name__}")
+
+
+class MatchType(str, Enum):
+    _1V1 = "_1V1"
+    _2V2 = "_2V2"
+    _3V3 = "_3V3"
+    _4V4 = "_4V4"
+    ARCHON = "ARCHON"
+    COOP = "COOP"
+    CUSTOM = "CUSTOM"
+    UNKNOWN = "UNKNOWN"
+
+
+class MatchDecision(str, Enum):
+    win = "WIN"
+    loss = "LOSS"
+    tie = "TIE"
+    observer = "OBSERVER"
+    left = "LEFT"
+    disagree = "DISAGREE"
 
 
 class SC2PulseRace(str, Enum):
@@ -36,9 +56,9 @@ class SC2PulseRegion(str, Enum):
 
 
 class SC2PulseCharacterStats(BaseModel):
-    rating: int
-    gamesPlayed: int
-    rank: int
+    rating: Optional[int] = None
+    gamesPlayed: Optional[int] = None
+    rank: Optional[int] = None
 
 
 class SC2PulseAccount(BaseModel):
@@ -75,13 +95,13 @@ class SC2PulseDistinctCharacter(BaseModel):
     members: SC2PulseMember
 
 
-class SC2PulseTeam(BaseModel):
+class SC2PulseLadderTeam(BaseModel):
     id: int
     rating: int
     wins: int
     losses: int
     ties: int
-    lastPlayed: datetime
+    lastPlayed: Optional[datetime] = None
     members: List[SC2PulseMember]
 
     @property
@@ -89,6 +109,101 @@ class SC2PulseTeam(BaseModel):
         return toon_handle_from_id(
             str(self.members[0].character.battlenetId), config.blizzard_region
         )
+
+    @property
+    def race(self) -> SC2PulseRace:
+        raceGamesPlayed = {
+            attr: getattr(self.members[0], attr, None)
+            for attr in [
+                "protossGamesPlayed",
+                "terranGamesPlayed",
+                "zergGamesPlayed",
+                "randomGamesPlayed",
+            ]
+        }
+
+        existing_attributes = {
+            k: v for k, v in raceGamesPlayed.items() if v is not None
+        }
+        if not existing_attributes:
+            return None
+        # Find the attribute with the highest value
+        race_name = max(existing_attributes, key=existing_attributes.get)
+        race_name = race_name.replace("GamesPlayed", "").upper()
+
+        return SC2PulseRace(race_name)
+
+
+class SC2PulseMatchParticipant(BaseModel):
+    matchId: int
+    playerCharacterId: int
+    teamId: Optional[int] = None
+    teamStateDateTime: Optional[datetime] = None
+    decision: MatchDecision
+    ratingChange: Optional[int] = None
+
+
+class SC2PulseMatch(BaseModel):
+    id: int
+    mapId: int
+    duration: Optional[int] = None
+    date: datetime
+    type: MatchType
+    # decision: MatchDecision
+    region: SC2PulseRegion
+    updated: datetime
+
+
+class SC2PulseLadderMatchParticipant(BaseModel):
+    participant: SC2PulseMatchParticipant
+    team: Optional[SC2PulseLadderTeam] = None
+
+
+class SC2PulseMap(BaseModel):
+    id: int
+    name: str
+
+
+class SC2PulseLadderMatch(BaseModel):
+    match: SC2PulseMatch
+    map: SC2PulseMap
+    participants: List[SC2PulseLadderMatchParticipant]
+
+    def get_participant(self, character_id: int) -> SC2PulseLadderMatchParticipant:
+        try:
+            return next(
+                p
+                for p in self.participants
+                if p.participant.playerCharacterId == character_id
+            )
+        except StopIteration:
+            return None
+
+    def get_opponent_of(self, character_id: int) -> SC2PulseLadderMatchParticipant:
+        try:
+            return next(
+                p
+                for p in self.participants
+                if p.participant.playerCharacterId != character_id
+            )
+        except StopIteration:
+            return None
+
+
+class SC2PulsePagedSearchResultListLadderMatch(BaseModel):
+    meta: Any
+    result: List[SC2PulseLadderMatch]
+
+
+class SC2PulseCommonCharacter(BaseModel):
+    teams: List[SC2PulseLadderTeam]
+    linkedDistinctCharacters: List[SC2PulseDistinctCharacter]
+    matches: List[SC2PulseLadderMatch]
+    # stats:
+    # proPlayer:
+    # discordUser:
+    # history:
+    # reports:
 
 
 class SC2PulseClient:
@@ -134,9 +249,65 @@ class SC2PulseClient:
         response.raise_for_status()
         return [int(c) for c in response.json()]
 
+    def character_search(self, name: str) -> List[SC2PulseDistinctCharacter]:
+        response = self.client.get(
+            "/character/search",
+            params={
+                "term": name,
+            },
+        )
+        if response.status_code == 404:
+            return []
+        response.raise_for_status()
+        return [SC2PulseDistinctCharacter(**c) for c in response.json()]
+
+    def _get_character_matches(
+        self,
+        character_id: int,
+        length: int = 10,
+        matches: List[SC2PulseLadderMatch] = [],
+    ):
+        while len(matches) < length:
+            last_match = matches[-1]
+            date_after = last_match.match.date
+
+            # 2025-01-17T10:22:41Z
+            date_after_str = date_after.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            # /character/8924902/matches/2025-01-17T10:22:41Z/_1V1/49611/1/1/_1V1
+            response = self.client.get(
+                f"/character/{character_id}/matches/{date_after_str}/{MatchType._1V1.value}/{last_match.match.mapId}/1/1/{MatchType._1V1.value}",
+            )
+            content = response.json()
+
+            matches.extend([SC2PulseLadderMatch(**l) for l in content["result"]])
+
+        return matches
+
+    def get_character_common(
+        self, character_id: int, match_length: int = 10
+    ) -> SC2PulseCommonCharacter:
+
+        response = self.client.get(
+            f"/character/{character_id}/common",
+            params={
+                "matchType": MatchType._1V1.value,
+                "mmrHistoryDepth": "180",
+            },
+        )
+        content = response.json()
+        common = SC2PulseCommonCharacter(**content)
+
+        if len(common.matches) < match_length:
+            common.matches = self._get_character_matches(
+                character_id, match_length, common.matches
+            )
+
+        return common
+
     def get_teams(
         self, character_ids: List[int], race: SC2PulseRace
-    ) -> List[SC2PulseTeam]:
+    ) -> List[SC2PulseLadderTeam]:
 
         teams = []
         for batch in [
@@ -157,14 +328,14 @@ class SC2PulseClient:
                 log.debug(f"404 for {batch}, race {race.value}")
             else:
                 response.raise_for_status()
-                pulse_teams = [SC2PulseTeam(**t) for t in response.json()]
+                pulse_teams = [SC2PulseLadderTeam(**t) for t in response.json()]
                 teams.extend(pulse_teams)
 
         return teams
 
     def get_unmasked_players(
         self, opponent: str, race: str | Enum, mmr: int
-    ) -> List[SC2PulseTeam]:
+    ) -> List[SC2PulseLadderTeam]:
 
         if isinstance(race, GameInfoRace):
             race = race.convert(SC2PulseRace)

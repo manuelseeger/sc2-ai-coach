@@ -87,7 +87,7 @@ class BattleNet:
         self.region_id = REGION_MAP[config.blizzard_region.value][0]
         self.realm_id = REGION_MAP[config.blizzard_region.value][1]
 
-    def get_profile(self, profile_id: int) -> BattlenetProfile:
+    def get_profile(self, profile_id: int) -> BattlenetProfile | None:
         try:
             p = self.api_client.starcraft2.community.get_profile(
                 region=config.blizzard_region,
@@ -124,3 +124,6 @@ class BattleNet:
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         cache_path.write_bytes(r.content)
         return r.content
+
+    def get_profile_link(self, toon_handle: str) -> str:
+        return f"https://starcraft2.com/en-us/profile/{toon_handle.replace('-S2','').replace('-', '/')}"
