@@ -59,7 +59,10 @@ def main(verbose, debug):
                 ui = sc2client.get_uiinfo()
 
                 with open("logs/time.log", "r") as f:
-                    last_time = float(f.read())
+                    try:
+                        last_time = float(f.read())
+                    except:
+                        last_time = time()
                     diff = time() - last_time
                     if diff > 15:
                         data = {"message": "fadelog"}
