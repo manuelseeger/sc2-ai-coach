@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from config import config
 from obs_tools.battlenet import toon_handle_from_id
 from obs_tools.types import Race as GameInfoRace
-from replays.util import convert_enum
+from replays.util import convert_enum, is_barcode
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -321,7 +321,7 @@ class SC2PulseClient:
                     "characterId": ",".join(map(str, batch)),
                     "season": self.season,
                     "queue": self.queue,
-                    "race": race.value,
+                    # "race": race.value,
                 },
             )
             if response.status_code == 404:
@@ -346,8 +346,13 @@ class SC2PulseClient:
 
         teams = self.get_teams(char_ids, race)
 
+        # mmr to add to search range for non-barcode opponents
+        delta_modifier = 0 if is_barcode(opponent) else 200
+
         close_opponent_teams = [
-            team for team in teams if abs(team.rating - mmr) <= self.rating_delta_max
+            team
+            for team in teams
+            if abs(team.rating - mmr) <= self.rating_delta_max + delta_modifier
         ]
 
         active_opponent_teams = [
