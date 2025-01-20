@@ -33,7 +33,6 @@ dependencies:
       - pyaudio
       - pysoundfile
       - opencv-python
-      - sc2reader
       - spawningtool
       - openwakeword
       - onnxruntime-gpu
@@ -49,5 +48,6 @@ dependencies:
       - blizzapi2
       - twitchAPI      
       - parametrize_from_file
+      - git+https://github.com/ggtracker/sc2reader@upstream
       - # SC2 reader plugins pip install git+https://github.com/NumberPigeon/sc2reader-plugins.git
 

@@ -3,12 +3,16 @@ I just started a game against "{{opponent}}" on the map {{map}}. We are currentl
 There are {{replays|length}} replays of me playing against {{opponent}}. Pretend you found these replays for me, and
 reply as if you are the one starting this conversation.
 Give a 1 sentence summary of {{opponent}} strategy for each replay. When giving the summary for a replay, emphazise that
-it was played on {{map}} before if that is the case. Include who won. Be ready to answer questions about these past
-games against
-{{opponent}}.
+it was played on {{map}} before if that is the case, but don't mention the map if it isn't. Include who won.
+
+If the matchup report shows extremely skewed winrates, or one of the
+matchups has an instant leave rate higher than 15%, warn me that this player might be smurf. If not, don't mention
+anything.
+
+Matchup report for {{opponent}} from match history:
+{{race_report}}
 
 Past replays against {{opponent}}:
-
 {% for replay in replays %}
 {{replay}}
 -------------------

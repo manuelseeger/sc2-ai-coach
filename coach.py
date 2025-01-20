@@ -2,6 +2,7 @@ import logging
 import queue
 import sys
 from datetime import datetime
+from os import replace
 from time import sleep, time
 from typing import Callable
 
@@ -16,6 +17,7 @@ from config import AIBackend, AudioMode, CoachEvent, config
 from log import log
 from obs_tools.playerinfo import resolve_replays_from_current_opponent
 from obs_tools.rich_log import TwitchObsLogHandler
+from obs_tools.smurfs import build_race_report, get_sc2pulse_match_history
 from obs_tools.types import (
     ScanResult,
     TwitchChatResult,
@@ -294,17 +296,25 @@ class AISession:
         return levenshtein(response[-20:].lower().strip(), "good luck, have fun") < 8
 
     def initiate_from_game_start(self, map, opponent, mmr):
+
         replacements = {
             "student": str(config.student.name),
             "map": str(map),
             "opponent": str(opponent),
             "mmr": str(mmr),
             "replays": [],
+            "race_report": "",
         }
 
-        opponent, past_replays = resolve_replays_from_current_opponent(
+        playerinfo, past_replays = resolve_replays_from_current_opponent(
             opponent, map, mmr
         )
+
+        if playerinfo is not None:
+            match_history = get_sc2pulse_match_history(playerinfo.toon_handle)
+            if match_history is not None:
+                race_report = build_race_report(match_history)
+                replacements["race_report"] = race_report.to_markdown(index=False)
 
         if len(past_replays) > 0:
             if past_replays[0].id == self.last_rep_id:
