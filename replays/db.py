@@ -1,8 +1,9 @@
+from contextlib import contextmanager
 from typing import Union
 
 from pydantic_core import ValidationError
 from pymongo.collection import Collection
-from pyodmongo import DbEngine, DbModel
+from pyodmongo import DbEngine, DbModel, ResponsePaginate
 from pyodmongo.models.responses import DbResponse
 from pyodmongo.queries import eq, sort
 from typing_extensions import override
@@ -51,6 +52,24 @@ class ReplayDB:
         ModelClass = model.__class__
         q = eq(ModelClass.id, model.id)
         return self.db.find_one(Model=ModelClass, query=q)
+
+    def find_many_dict(self, model, raw_query: dict):
+        current_page = 1
+        while True:
+            response: ResponsePaginate = self.db.find_many(
+                Model=model,
+                paginate=True,
+                current_page=current_page,
+                docs_per_page=100,
+                raw_query=raw_query,
+                as_dict=True,
+            )
+            for doc in response.docs:
+                yield doc
+
+            if current_page >= response.page_quantity:
+                break
+            current_page += 1
 
 
 replaydb = ReplayDB()
