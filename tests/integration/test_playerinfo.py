@@ -156,11 +156,11 @@ def test_resolve_current_player(portrait_file, opponent, num_replays, monkeypatc
 
     mapname = "Post-Youth LE"
     mmr = 4000
-    resolved_opponent, replays = resolve_replays_from_current_opponent(
+    playerinfo, replays = resolve_replays_from_current_opponent(
         opponent=opponent, mapname=mapname, mmr=mmr
     )
 
-    assert resolved_opponent == opponent
+    assert playerinfo.name == opponent
     assert len(replays) == num_replays
 
 
@@ -178,11 +178,11 @@ def test_resolve_current_barcode_player(portrait_file, monkeypatch):
     bc = "IIIIIIIIIIII"
     mapname = "Post-Youth LE"
     mmr = 4000
-    opponent, replays = resolve_replays_from_current_opponent(
+    playerinfo, replays = resolve_replays_from_current_opponent(
         opponent=bc, mapname=mapname, mmr=mmr
     )
 
-    assert opponent == bc
+    assert playerinfo.name == bc
     assert len(replays) > 0
 
 

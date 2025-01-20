@@ -362,3 +362,6 @@ class SC2PulseClient:
         )
 
         return final_opponent_teams[: self.limit_teams]
+
+    def get_profile_link(self, toon_handle: str) -> str:
+        return f"https://starcraft2.com/en-us/profile/{toon_handle.replace('-S2','').replace('-', '/')}"

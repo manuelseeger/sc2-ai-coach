@@ -237,7 +237,7 @@ def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo 
 
 def resolve_replays_from_current_opponent(
     opponent: str, mapname: str, mmr: int
-) -> Tuple[str, List[Replay]]:
+) -> Tuple[PlayerInfo, List[Replay]]:
 
     playerinfo = None
     race = None
@@ -297,6 +297,6 @@ def resolve_replays_from_current_opponent(
         q = {"players.toon_handle": playerinfo.toon_handle}
         sort = od_sort((Replay.unix_timestamp, -1))
         past_replays = replaydb.db.find_many(Replay, raw_query=q, sort=sort)
-        return opponent, past_replays
+        return playerinfo, past_replays
     else:
-        return opponent, []
+        return None, []
