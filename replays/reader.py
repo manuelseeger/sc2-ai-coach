@@ -12,7 +12,6 @@ from sc2reader_plugins import (
 
 from config import config
 
-from .sc2readerplugins.EventAbilityNameCorrector import EventAbilityNameCorrector
 from .sc2readerplugins.ReplayStats import ReplayStats
 from .sc2readerplugins.SpawningTool import SpawningTool
 from .types import Replay
@@ -27,7 +26,7 @@ sc2reader.engine.register_plugin(CreepTracker())
 sc2reader.engine.register_plugin(WorkerTracker())
 sc2reader.engine.register_plugin(SQTracker())
 sc2reader.engine.register_plugin(PlayerStatsTracker())
-sc2reader.engine.register_plugin(EventAbilityNameCorrector())
+
 
 factory = sc2reader.factories.DictCachedSC2Factory(cache_max_size=1000)
 factory.register_plugin("Replay", ReplayStats())
@@ -86,7 +85,6 @@ class ReplayReader:
 
 
 def replay_to_dict(replay) -> dict:
-    # Build observers into dictionary
     observers = list()
     for observer in replay.observers:
         messages = list()
@@ -117,7 +115,6 @@ def replay_to_dict(replay) -> dict:
             }
         )
 
-    # Build players into dictionary
     players = list()
     for player in replay.players:
         supply = getattr(player, "supply", None)

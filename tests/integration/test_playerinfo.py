@@ -14,6 +14,7 @@ from obs_tools.playerinfo import (
     resolve_replays_from_current_opponent,
     save_player_info,
 )
+from obs_tools.sc2pulse import SC2PulseClient
 from replays.db import replaydb
 from replays.reader import ReplayReader
 from replays.types import PlayerInfo, to_bson_binary
@@ -283,3 +284,14 @@ def test_constructed_portrait():
             score = ssim(np.array(kat_portrait), np.array(kat2_portrait))
 
             print(f"{kat_file} vs {kat2_file}: {score}")
+
+
+def test_get_new_player_from_pulse():
+
+    opponent = "Seigneur"
+    race = "PROTOSS"
+    mmr = 4000
+
+    sc2pulse = SC2PulseClient()
+    pulse_players = sc2pulse.get_unmasked_players(opponent=opponent, race=race, mmr=mmr)
+    print(pulse_players)

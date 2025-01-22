@@ -38,13 +38,14 @@ class GPUWhisperFeatureExtractor(WhisperFeatureExtractor):
 class Transcriber:
     def __init__(self):
         self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
         torch.set_default_device(self.device)
-        torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+        self.torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
         model_id = config.speech_recognition_model
 
         self.model = AutoModelForSpeechSeq2Seq.from_pretrained(
             model_id,
-            torch_dtype=torch_dtype,
+            torch_dtype=self.torch_dtype,
             low_cpu_mem_usage=True,
             use_safetensors=True,
             attn_implementation="flash_attention_2",
@@ -68,7 +69,7 @@ class Transcriber:
             max_new_tokens=128,
             chunk_length_s=30,
             batch_size=16,
-            torch_dtype=torch.float16,
+            torch_dtype=self.torch_dtype,
             device=self.device,
             model_kwargs=self.whisper_params,
         )

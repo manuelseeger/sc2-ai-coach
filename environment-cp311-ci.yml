@@ -15,6 +15,7 @@ dependencies:
   - pytest-cov
   - python-levenshtein
   - tesserocr
+  - pandas
   - jinja2
   - pip
   - pip:

@@ -109,7 +109,7 @@ def QueryReplayDB(
     limit_time: Annotated[
         int,
         "An integer to specify the maximum number of seconds to include results from. When limit_time is given, arrays in the result set are filtered to only include elements up to that time. This is optional.",
-    ] = None,
+    ] = 600,
 ) -> list:
     """Query the replay database and return JSON representation of all matching replays.
 
