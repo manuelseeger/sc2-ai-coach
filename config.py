@@ -138,6 +138,7 @@ class Config(BaseSettings):
     twitch_mocked_user_id: Optional[str] = None
 
     rating_delta_max: int
+    rating_delta_max_barcode: int
     last_played_ago_max: int
 
     screenshot: str

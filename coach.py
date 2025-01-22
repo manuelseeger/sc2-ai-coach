@@ -2,7 +2,6 @@ import logging
 import queue
 import sys
 from datetime import datetime
-from os import replace
 from time import sleep, time
 from typing import Callable
 
@@ -311,9 +310,16 @@ class AISession:
         )
 
         if playerinfo is not None:
-            match_history = get_sc2pulse_match_history(playerinfo.toon_handle)
-            if match_history is not None:
-                race_report = build_race_report(match_history)
+            match_history = get_sc2pulse_match_history(
+                playerinfo.toon_handle, match_length=100
+            )
+            if match_history is not None and len(match_history):
+                match_history.data.to_csv(
+                    f"logs/match_history_{opponent}_{playerinfo.toon_handle}.csv",
+                    index=False,
+                    encoding="utf-8",
+                )
+                race_report = match_history.race_report
                 replacements["race_report"] = race_report.to_markdown(index=False)
 
         if len(past_replays) > 0:
@@ -330,7 +336,11 @@ class AISession:
 
             self.thread_id = self.coach.create_thread(prompt)
         else:
-            self.say(Templates.new_game_empty.render(replacements), flush=False)
+            if playerinfo is not None:
+                prompt = Templates.new_game.render(replacements)
+                self.thread_id = self.coach.create_thread(prompt)
+            else:
+                self.say(Templates.new_game_empty.render(replacements), flush=False)
 
     def initiate_from_new_replay(self, replay: Replay):
         opponent = replay.get_opponent_of(config.student.name).name

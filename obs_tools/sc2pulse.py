@@ -154,9 +154,20 @@ class SC2PulseMatch(BaseModel):
     updated: datetime
 
 
+class SC2PulseTeamState(BaseModel):
+    rating: int
+    wins: int
+    games: int
+
+
+class SC2PulseParticipantTeamState(BaseModel):
+    teamState: SC2PulseTeamState
+
+
 class SC2PulseLadderMatchParticipant(BaseModel):
     participant: SC2PulseMatchParticipant
     team: Optional[SC2PulseLadderTeam] = None
+    teamState: Optional[SC2PulseParticipantTeamState] = None
 
 
 class SC2PulseMap(BaseModel):
@@ -212,25 +223,16 @@ class SC2PulseClient:
 
     BASE_URL = "https://sc2pulse.nephest.com/sc2/api"
 
-    season: int
-
     region: SC2PulseRegion
 
     queue: str = "LOTV_1V1"
 
     team_batch_size: int = 200
 
-    rating_delta_max: int = 500
-
-    last_played_ago_max: int = 2400
-
     limit_teams: int = 5
 
     def __init__(self):
         self.client = Client(base_url=self.BASE_URL)
-        self.season = config.season
-        self.rating_delta_max = config.rating_delta_max
-        self.last_played_ago_max = config.last_played_ago_max
         self.region = convert_enum(config.blizzard_region, SC2PulseRegion)
 
     def character_search_advanced(self, name, caseSensitive=False) -> List[int]:
@@ -239,7 +241,7 @@ class SC2PulseClient:
             params={
                 "name": name,
                 "region": self.region.value,
-                "season": self.season,
+                "season": config.season,
                 "queue": self.queue,
                 "caseSensitive": caseSensitive,
             },
@@ -268,6 +270,8 @@ class SC2PulseClient:
         matches: List[SC2PulseLadderMatch] = [],
     ):
         while len(matches) < length:
+            if not matches:
+                break
             last_match = matches[-1]
             date_after = last_match.match.date
 
@@ -314,12 +318,11 @@ class SC2PulseClient:
             character_ids[i : i + self.team_batch_size]
             for i in range(0, len(character_ids), self.team_batch_size)
         ]:
-            # can't get random teams?
             response = self.client.get(
                 f"/group/team",
                 params={
                     "characterId": ",".join(map(str, batch)),
-                    "season": self.season,
+                    "season": config.season,
                     "queue": self.queue,
                     # "race": race.value,
                 },
@@ -346,19 +349,21 @@ class SC2PulseClient:
 
         teams = self.get_teams(char_ids, race)
 
-        # mmr to add to search range for non-barcode opponents
-        delta_modifier = 0 if is_barcode(opponent) else 200
+        delta = (
+            config.rating_delta_max_barcode
+            if is_barcode(opponent)
+            else config.rating_delta_max
+        )
 
         close_opponent_teams = [
-            team
-            for team in teams
-            if abs(team.rating - mmr) <= self.rating_delta_max + delta_modifier
+            team for team in teams if abs(team.rating - mmr) <= delta
         ]
 
         active_opponent_teams = [
             team
             for team in close_opponent_teams
-            if (datetime.now(UTC) - team.lastPlayed).seconds < self.last_played_ago_max
+            if (datetime.now(UTC) - team.lastPlayed).seconds
+            < config.last_played_ago_max
         ]
 
         final_opponent_teams = sorted(
