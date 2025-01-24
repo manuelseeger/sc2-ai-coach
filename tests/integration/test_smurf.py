@@ -26,7 +26,7 @@ def test_detect_smurf(replay_file, toon_handle):
     ["2-S2-1-1248982", "2-S2-1-8773156"],
 )
 def test_get_match_history(toon_handle):
-    match_history = get_sc2pulse_match_history(toon_handle, match_length=100)
+    match_history = get_sc2pulse_match_history(toon_handle)
 
     assert len(match_history) > 0
 

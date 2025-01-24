@@ -75,6 +75,8 @@ rating_delta_max: 750
 rating_delta_max_barcode: 500
 # maximum time since last played game to consider opponent for barcode unmasking in seconds
 last_played_ago_max: 2400
+# how many games to pull from the match history to check winrates
+match_history_depth: 100
 
 # Current ladder season
 season: 61

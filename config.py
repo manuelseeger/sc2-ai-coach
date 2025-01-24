@@ -140,6 +140,7 @@ class Config(BaseSettings):
     rating_delta_max: int
     rating_delta_max_barcode: int
     last_played_ago_max: int
+    match_history_depth: int
 
     screenshot: str
     tessdata_dir: str

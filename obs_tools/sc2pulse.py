@@ -266,10 +266,10 @@ class SC2PulseClient:
     def _get_character_matches(
         self,
         character_id: int,
-        length: int = 10,
+        depth: int = 10,
         matches: List[SC2PulseLadderMatch] = [],
     ):
-        while len(matches) < length:
+        while len(matches) < depth:
             if not matches:
                 break
             last_match = matches[-1]
@@ -289,7 +289,7 @@ class SC2PulseClient:
         return matches
 
     def get_character_common(
-        self, character_id: int, match_length: int = 10
+        self, character_id: int, match_history_depth: int = 10
     ) -> SC2PulseCommonCharacter:
 
         response = self.client.get(
@@ -302,9 +302,9 @@ class SC2PulseClient:
         content = response.json()
         common = SC2PulseCommonCharacter(**content)
 
-        if len(common.matches) < match_length:
+        if len(common.matches) < match_history_depth:
             common.matches = self._get_character_matches(
-                character_id, match_length, common.matches
+                character_id, match_history_depth, common.matches
             )
 
         return common

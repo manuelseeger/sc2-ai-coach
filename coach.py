@@ -16,7 +16,7 @@ from config import AIBackend, AudioMode, CoachEvent, config
 from log import log
 from obs_tools.playerinfo import resolve_replays_from_current_opponent
 from obs_tools.rich_log import TwitchObsLogHandler
-from obs_tools.smurfs import build_race_report, get_sc2pulse_match_history
+from obs_tools.smurfs import get_sc2pulse_match_history
 from obs_tools.types import (
     ScanResult,
     TwitchChatResult,
@@ -304,15 +304,14 @@ class AISession:
             "replays": [],
             "race_report": "",
         }
+        prompt = None
 
         playerinfo, past_replays = resolve_replays_from_current_opponent(
             opponent, map, mmr
         )
 
         if playerinfo is not None:
-            match_history = get_sc2pulse_match_history(
-                playerinfo.toon_handle, match_length=100
-            )
+            match_history = get_sc2pulse_match_history(playerinfo.toon_handle)
             if match_history is not None and len(match_history):
                 match_history.data.to_csv(
                     f"logs/match_history_{opponent}_{playerinfo.toon_handle}.csv",
@@ -334,13 +333,13 @@ class AISession:
                 ]
                 prompt = Templates.new_game.render(replacements)
 
+        if match_history and prompt is None:
+            prompt = Templates.new_game.render(replacements)
+
+        if prompt is not None:
             self.thread_id = self.coach.create_thread(prompt)
         else:
-            if playerinfo is not None:
-                prompt = Templates.new_game.render(replacements)
-                self.thread_id = self.coach.create_thread(prompt)
-            else:
-                self.say(Templates.new_game_empty.render(replacements), flush=False)
+            self.say(Templates.new_game_empty.render(replacements), flush=False)
 
     def initiate_from_new_replay(self, replay: Replay):
         opponent = replay.get_opponent_of(config.student.name).name

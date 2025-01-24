@@ -3,11 +3,10 @@ from itertools import product
 from typing import Any, Optional
 
 import pandas as pd
-from pydantic import BaseModel, ConfigDict, field_validator, validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from config import config
 from obs_tools.sc2pulse import SC2PulseClient, SC2PulseCommonCharacter, SC2PulseRace
-from replays.types import PlayerInfo
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -41,7 +40,8 @@ def build_race_report(df: pd.DataFrame) -> pd.DataFrame:
                 "instant_leave_rate": instant_leave_rate,
             }
         )
-    report = pd.DataFrame(matchups)
+    columns = ["matchup", "race1", "race2", "winrate", "instant_leave_rate"]
+    report = pd.DataFrame(matchups, columns=columns)
     report.set_index("matchup", inplace=True)
     log.debug(report.to_markdown(index=False))
     return report
@@ -75,9 +75,7 @@ class MatchHistory(BaseModel):
         return len(self.data)
 
 
-def get_sc2pulse_match_history(
-    toon_handle: str, match_length=30
-) -> MatchHistory | None:
+def get_sc2pulse_match_history(toon_handle: str) -> MatchHistory | None:
 
     pulse = SC2PulseClient()
 
@@ -96,7 +94,9 @@ def get_sc2pulse_match_history(
     # chars[0].members.character.region
     # chars[0].members.character.name # battletag
 
-    common = pulse.get_character_common(sc2pulse_char_id, match_length=match_length)
+    common = pulse.get_character_common(
+        sc2pulse_char_id, match_history_depth=config.match_history_depth
+    )
 
     columns = [
         "date",
