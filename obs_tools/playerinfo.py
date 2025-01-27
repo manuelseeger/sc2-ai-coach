@@ -3,10 +3,10 @@ import logging
 import re
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from os.path import getmtime, join
+from os.path import getmtime
 from typing import List, Tuple
 
-import httpx
+
 import numpy as np
 from PIL import Image
 from pyodmongo.models.responses import DbResponse
@@ -14,14 +14,18 @@ from pyodmongo.queries import elem_match
 from pyodmongo.queries import sort as od_sort
 
 from config import config
-from external.fast_ssim.ssim import ssim
-from obs_tools.battlenet import BattleNet, toon_id_from_toon_handle
+from obs_tools.battlenet import BattleNet
 from obs_tools.sc2client import sc2client
 from obs_tools.sc2pulse import SC2PulseClient
-from obs_tools.types import Race as GameInfoRace
+
 from replays.db import replaydb
 from replays.types import Alias, PlayerInfo, Replay, to_bson_binary
 from replays.util import is_aware, is_barcode
+from shared import http_client
+
+
+if config.obs_integration:
+    from external.fast_ssim.ssim import ssim
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -29,9 +33,9 @@ PORTRAIT_DIR = "obs/screenshots/portraits"
 
 KAT_PORTRAIT = Image.open("assets/katchinsky_portrait.png")
 
-sc2pulse = SC2PulseClient()
+sc2pulse = SC2PulseClient(http_client=http_client)
 
-battlenet = BattleNet()
+battlenet = BattleNet(http_client=http_client)
 
 
 def is_portrait_match(
@@ -265,11 +269,8 @@ def resolve_replays_from_current_opponent(
         )
         if portrait_bytes:
             portrait = Image.open(BytesIO(portrait_bytes))
-        else:
-            portrait = None
-
-        # 1 look through DB and see if we played this name + portrait before
-        playerinfo = resolve_player_with_portrait(opponent, np.array(portrait))
+            # 1 look through DB and see if we played this name + portrait before
+            playerinfo = resolve_player_with_portrait(opponent, np.array(portrait))
 
     if not race:
         log.debug(f"Could not get race, is SC2Client running?")
@@ -283,7 +284,7 @@ def resolve_replays_from_current_opponent(
 
         if pulse_players:
             log.debug(
-                f"Trying with closest player from SC2Pulse: {pulse_players[0].toon_handle}"
+                f"Closest player out of {len(pulse_players)}: {pulse_players[0].toon_handle}"
             )
             playerinfo = PlayerInfo(
                 id=pulse_players[0].toon_handle,
