@@ -69,6 +69,8 @@ tessdata_dir: "C:\\Program Files\\Tesseract-OCR\\tessdata"
 
 # The battle.net region we play on
 blizzard_region: "EU"
+# Whether sc2reader should request map files and populate replays with map details like clock positions
+include_map_details: True
 # delta in MMR between player and potential opponent when searching on SC2Pulse
 rating_delta_max: 750
 # delta in MMR between player and potential opponent to consider opponent for barcode unmasking

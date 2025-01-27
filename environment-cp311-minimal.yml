@@ -3,24 +3,23 @@ channels:
   - conda-forge
 dependencies:
   - python=3.11
-  - conda-forge::pydantic=2.6
-  - conda-forge::pydantic-settings
+  - pydantic
+  - pydantic-settings
   - pyyaml
-  - conda-forge::httpx
+  - httpx
   - click
   - pymongo
-  - conda-forge::openai
+  - openai
   - tiktoken
   - rich
   - python-levenshtein
   - jinja2
+  - pandas
   - pip
   - pip:
-      - sc2reader
-      - spawningtool
+      - git+https://github.com/NumberPigeon/sc2reader-plugins.git
+      - git+https://github.com/StoicLoofah/spawningtool.git@master
       - pyodmongo
       - keyboard
       - climage
-      - blizzapi2
-      - parametrize_from_file
-      - git+https://github.com/NumberPigeon/sc2reader-plugins.git
+      - blizzardapi2

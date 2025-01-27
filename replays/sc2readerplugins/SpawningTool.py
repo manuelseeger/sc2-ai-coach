@@ -12,10 +12,10 @@ class GameParserFromParsedReplay(GameParser):
 
 
 @plugin
-def SpawningTool(replay):
+def SpawningTool(replay, include_map_details=True):
     parser = GameParserFromParsedReplay("")
     parser.set_replay(replay)
-    sp = parser.get_parsed_data(include_map_details=True)
+    sp = parser.get_parsed_data(include_map_details=include_map_details)
     for player in replay.players:
         if sp["buildOrderExtracted"]:
             player.build_order = sp["players"][player.pid]["buildOrder"]

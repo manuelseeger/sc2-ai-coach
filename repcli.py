@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta
 from io import BytesIO
 from os.path import basename, getmtime, join
 from typing import Annotated
+from pathlib import Path
 
 import click
 import climage
@@ -147,14 +148,7 @@ def cli(ctx, clean, debug, simulation, verbose):
     help="Sync from the most recent replay in DB",
     default=False,
 )
-@click.argument("entity", nargs=-1, type=click.Choice(["players", "replays"]))
-def sync(
-    ctx,
-    from_: datetime,
-    to_: datetime,
-    from_most_recent: bool,
-    entity: tuple[str, str],
-):
+def sync(ctx, from_: datetime, to_: datetime, from_most_recent: bool):
     """Sync replays and players from replay folder to MongoDB"""
 
     if from_most_recent:
@@ -174,9 +168,14 @@ def sync(
     ]
 
     list_of_files.sort(key=getmtime)
-
     console.print(f"Found {len(list_of_files)} potential replays to sync")
 
+    summary = _sync(list_of_files, ctx)
+
+    console.print(summary.to_table())
+
+
+def _sync(list_of_files, ctx) -> SyncSummary:
     summary = SyncSummary()
     summary.total_replays = len(list_of_files)
 
@@ -186,11 +185,8 @@ def sync(
             console.print(f"Adding {basename(file_path)}")
             replay = reader.to_typed_replay(replay_raw)
 
-            if "replays" in entity:
-                syncreplay(ctx, replay, summary)
-
-            if "players" in entity:
-                syncplayer(ctx, replay, summary)
+            syncreplay(ctx, replay, summary)
+            syncplayer(ctx, replay, summary)
         else:
             console.print(f"Filtered {basename(file_path)}")
             summary.filtered_replays += 1
@@ -213,14 +209,13 @@ def sync(
                     os.remove(file_path)
                     console.print(f":litter_in_bin_sign: Deleted {basename(file_path)}")
                     continue
-
-    console.print(summary.to_table())
+    return summary
 
 
 @cli.command()
 @click.option("--logfile", "-l", type=click.Path(), help="Log file for stack traces")
 def validate(logfile):
-    "Validate the replay DB"
+    "Validate all replays in the DB. Shows replays in DB which can't be read"
 
     summary = ValidationSummary()
 
@@ -265,6 +260,32 @@ def players(ctx, query):
         console.print_json(str(player))
         if ctx.obj["VERBOSE"]:
             print_player_portrait(player)
+
+
+@cli.command()
+@click.pass_context
+@click.argument("replay", type=click.Path(exists=False), required=True, nargs=-1)
+def add(ctx, replay):
+    """Add one or more replays to the DB"""
+
+    list_of_files = []
+
+    if "*" in replay or "?" in replay:
+        list_of_files = glob.glob(replay)
+    elif isinstance(replay, tuple):
+        list_of_files = [r for r in replay]
+    else:
+        list_of_files.append(replay)
+
+    list_of_files = [Path(f).resolve() for f in list_of_files]
+
+    if not list_of_files:
+        console.print(f":x: No replays found for {replay}")
+        return
+
+    summary = _sync(list_of_files, ctx)
+
+    console.print(summary.to_table())
 
 
 @cli.command()

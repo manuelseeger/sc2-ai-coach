@@ -5,7 +5,7 @@ from typing import Dict, Optional
 import httpx
 from blizzardapi2 import BlizzardApi
 from pydantic import BaseModel, HttpUrl
-
+from replays.types import ToonHandle
 from config import config
 
 log = logging.getLogger(f"{config.name}.{__name__}")
@@ -21,12 +21,12 @@ REGION_MAP = {
 }
 
 
-def toon_handle_from_id(toon_id: str, region: str) -> str:
+def toon_handle_from_id(toon_id: str, region: str) -> ToonHandle:
     region_id, realm_id = REGION_MAP[region]
     return f"{region_id}-S2-{realm_id}-{toon_id}"
 
 
-def toon_id_from_toon_handle(toon_handle: str) -> str:
+def toon_id_from_toon_handle(toon_handle: str | ToonHandle) -> str:
     return toon_handle.split("-")[-1]
 
 
@@ -77,7 +77,14 @@ class BattleNet:
     realm_id: int
     bnet_integration: bool = True
 
-    def __init__(self):
+    http_client: httpx.Client
+
+    def __init__(self, http_client: httpx.Client = None):
+        if http_client:
+            self.http_client = http_client
+        else:
+            self.http_client = httpx.Client()
+
         if not config.blizzard_client_id or not config.blizzard_client_secret:
             self.bnet_integration = False
             return
@@ -110,7 +117,7 @@ class BattleNet:
         if cache_path.exists():
             return cache_path.read_bytes()
 
-        r = httpx.get(profile.summary.portrait.unicode_string())
+        r = self.http_client.get(profile.summary.portrait.unicode_string())
         if r.status_code != 200:
             log.warning(
                 f"Bnet refused profile portrait for toon_id {profile.summary.id}"

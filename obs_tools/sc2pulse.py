@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, List, Optional
 
-from httpx import Client
+import httpx
 from pydantic import BaseModel
 
 from config import config
@@ -219,7 +219,7 @@ class SC2PulseCommonCharacter(BaseModel):
 
 class SC2PulseClient:
 
-    client: Client
+    client: httpx.Client
 
     BASE_URL = "https://sc2pulse.nephest.com/sc2/api"
 
@@ -231,8 +231,12 @@ class SC2PulseClient:
 
     limit_teams: int = 5
 
-    def __init__(self):
-        self.client = Client(base_url=self.BASE_URL)
+    def __init__(self, http_client: httpx.Client = None):
+        if http_client:
+            self.client = http_client
+            self.client.base_url = self.BASE_URL
+        else:
+            self.client = httpx.Client(base_url=self.BASE_URL)
         self.region = convert_enum(config.blizzard_region, SC2PulseRegion)
 
     def character_search_advanced(self, name, caseSensitive=False) -> List[int]:

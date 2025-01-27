@@ -4,11 +4,11 @@ channels:
   - huggingface
 dependencies:
   - python=3.11
-  - conda-forge::pydantic=2.6
-  - conda-forge::pydantic-settings
+  - pydantic=2.6
+  - pydantic-settings
   - pyyaml
   - pandas
-  - conda-forge::httpx
+  - httpx
   - click
   - pymongo
   - numpy
@@ -23,8 +23,8 @@ dependencies:
   - python-levenshtein
   #- pytorch # conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
   - jupyter
-  - conda-forge::matplotlib
-  - conda-forge::webrtcvad
+  - matplotlib
+  - webrtcvad
   - scipy
   - jinja2
   - pillow
@@ -45,7 +45,7 @@ dependencies:
       - keyboard
       - climage
       - obsws-python
-      - blizzapi2
+      - blizzardapi2
       - twitchAPI      
       - parametrize_from_file
       - git+https://github.com/ggtracker/sc2reader@upstream
