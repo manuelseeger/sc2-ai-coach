@@ -156,7 +156,7 @@ class UnitLoss(MainBaseModel):
     time: str
     name: str
     killer: int | None = None
-    clock_position: int
+    clock_position: int | None = None
 
 
 class BuildOrder(MainBaseModel):
@@ -229,7 +229,7 @@ class Replay(DbModel):
     is_ladder: bool = True
     is_private: bool = False
     map_name: str
-    map_size: Tuple[int, int] | None = (0, 0)  # we have legacy replays without map_size
+    map_size: Tuple[int, int] | None = (0, 0)
     observers: List[Observer] = []
     players: List[Player]
     region: str

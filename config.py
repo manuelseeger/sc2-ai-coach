@@ -130,6 +130,7 @@ class Config(BaseSettings):
     blizzard_client_secret: Optional[str] = None
     blizzard_region: SC2Region
     bnet_cache_dir: Optional[DirectoryPath] = None
+    include_map_details: bool = True
 
     twitch_client_id: Optional[str] = None
     twitch_client_secret: Optional[str] = None

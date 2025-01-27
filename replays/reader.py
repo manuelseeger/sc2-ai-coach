@@ -1,5 +1,5 @@
 import logging
-
+from pathlib import Path
 import sc2reader
 from sc2reader.engine.plugins import ContextLoader, CreepTracker
 from sc2reader_plugins import (
@@ -30,7 +30,9 @@ sc2reader.engine.register_plugin(PlayerStatsTracker())
 
 factory = sc2reader.factories.DictCachedSC2Factory(cache_max_size=1000)
 factory.register_plugin("Replay", ReplayStats())
-factory.register_plugin("Replay", SpawningTool())
+factory.register_plugin(
+    "Replay", SpawningTool(include_map_details=config.include_map_details)
+)
 
 
 class ReplayReader:
@@ -44,12 +46,14 @@ class ReplayReader:
             self.has_afk_player,
         ]
 
-    def load_replay_raw(self, file_path):
+    def load_replay_raw(self, file_path: str | Path):
+        if isinstance(file_path, Path):
+            file_path = str(file_path)
         replay = factory.load_replay(file_path)
         log.debug(f"Loaded {replay.filename}")
         return replay
 
-    def load_replay(self, file_path: str) -> Replay:
+    def load_replay(self, file_path: str | Path) -> Replay:
         return self.to_typed_replay(self.load_replay_raw(file_path))
 
     def is_ladder(self, replay):
