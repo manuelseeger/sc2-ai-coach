@@ -2,16 +2,16 @@ import re
 from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, ClassVar, Dict, List, Literal, Tuple
+from pydantic_core import CoreSchema, core_schema
 
 import bson
 import pydantic
 from pydantic import AfterValidator, BaseModel, Field, ValidationError
 from pyodmongo import DbModel, MainBaseModel
 from typing_extensions import Annotated
-
+from shared import REGION_MAP
 from config import AIBackend, config
-
-from .util import splittoon, time2secs
+from .util import time2secs
 
 
 def convert_to_nested_structure(d: dict[str, Any]) -> dict:
@@ -66,7 +66,7 @@ def _validate_toon_handle(t: str) -> str:
 
 ReplayId = Annotated[str, Field(min_length=64, max_length=64)]
 
-ToonHandle = Annotated[
+ToonHandleOld = Annotated[
     str,
     Field(min_length=11, max_length=15),
     AfterValidator(_validate_toon_handle),
@@ -75,6 +75,41 @@ BsonBinary = Annotated[
     bson.Binary,
     pydantic.PlainValidator(to_bson_binary),
 ]
+
+
+class ToonHandle(str):
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type: type, handler) -> CoreSchema:
+        # Reuse the core schema for `str`, with a post-processing validator
+        return core_schema.no_info_after_validator_function(
+            cls._validate,
+            core_schema.str_schema(),
+        )
+
+    @classmethod
+    def _validate(cls, v) -> "ToonHandle":
+        if not isinstance(v, str):
+            raise ValueError("Invalid type")
+        if not re.match(r"^\d-S\d-\d-\d+$", v):
+            raise ValueError("Invalid toon handle")
+        if len(v) < 11 or len(v) > 15:
+            raise ValueError("Invalid toon handle length")
+        return cls(v)
+
+    def __repr__(self):
+        return f"ToonHandle({super().__repr__()})"
+
+    def to_profile_link(self) -> str:
+        return f"https://starcraft2.com/en-us/profile/{self.replace('-S2','').replace('-', '/')}"
+
+    def to_id(self) -> str:
+        return self.split("-")[-1]
+
+    @classmethod
+    def from_id(cls, toon_id: str) -> "ToonHandle":
+        region = REGION_MAP[config.blizzard_region.value][0]
+        realm = REGION_MAP[config.blizzard_region.value][1]
+        return cls(f"{region}-S2-{realm}-{toon_id}")
 
 
 class FieldTypeValidator:
@@ -201,7 +236,7 @@ class Player(MainBaseModel):
     scaled_rating: int
     stats: PlayerStats
     supply: List[Tuple[int, int]] = []
-    toon_handle: str
+    toon_handle: ToonHandle
     toon_id: int
     uid: int
     units_lost: List[UnitLoss]
@@ -429,9 +464,6 @@ class PlayerInfo(DbModel):
 
     def __repr__(self) -> str:
         return self.__str__()
-
-    def split_profile_id(self) -> Tuple[int, int, int]:
-        return splittoon(self.toon_handle)
 
 
 class Usage(MainBaseModel):

@@ -8,12 +8,13 @@ from enum import Enum
 from typing import Any, List, Optional
 
 import httpx
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 
 from config import config
 from obs_tools.lib.battlenet import toon_handle_from_id
 from obs_tools.lib.sc2client import Race as GameInfoRace
 from replays.util import convert_enum, is_barcode
+from replays.types import ToonHandle
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -104,12 +105,12 @@ class SC2PulseLadderTeam(BaseModel):
     lastPlayed: Optional[datetime] = None
     members: List[SC2PulseMember]
 
+    @computed_field
     @property
-    def toon_handle(self) -> str:
-        return toon_handle_from_id(
-            str(self.members[0].character.battlenetId), config.blizzard_region
-        )
+    def toon_handle(self) -> ToonHandle:
+        return ToonHandle.from_id(str(self.members[0].character.battlenetId))
 
+    @computed_field
     @property
     def race(self) -> SC2PulseRace:
         raceGamesPlayed = {
@@ -378,6 +379,3 @@ class SC2PulseClient:
         )
 
         return final_opponent_teams[: self.limit_teams]
-
-    def get_profile_link(self, toon_handle: str) -> str:
-        return f"https://starcraft2.com/en-us/profile/{toon_handle.replace('-S2','').replace('-', '/')}"

@@ -7,27 +7,14 @@ from blizzardapi2 import BlizzardApi
 from pydantic import BaseModel, HttpUrl
 from replays.types import ToonHandle
 from config import config
+from shared import REGION_MAP
 
 log = logging.getLogger(f"{config.name}.{__name__}")
-# https://develop.battle.net/documentation/guides/regionality-and-apis
-REGION_MAP = {
-    "US": (1, 1),
-    "LA": (1, 2),
-    "EU": (2, 1),
-    "RU": (2, 2),
-    "KR": (3, 1),
-    "TW": (3, 2),
-    "CN": (5, 1),
-}
 
 
 def toon_handle_from_id(toon_id: str, region: str) -> ToonHandle:
     region_id, realm_id = REGION_MAP[region]
     return f"{region_id}-S2-{realm_id}-{toon_id}"
-
-
-def toon_id_from_toon_handle(toon_handle: str | ToonHandle) -> str:
-    return toon_handle.split("-")[-1]
 
 
 class BattlenetProfileSummary(BaseModel):
@@ -131,6 +118,3 @@ class BattleNet:
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         cache_path.write_bytes(r.content)
         return r.content
-
-    def get_profile_link(self, toon_handle: str) -> str:
-        return f"https://starcraft2.com/en-us/profile/{toon_handle.replace('-S2','').replace('-', '/')}"

@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, field_validator, computed_field
 from shared import http_client
 from config import config
 from obs_tools.lib.sc2pulse import SC2PulseClient, SC2PulseCommonCharacter, SC2PulseRace
+from replays.types import ToonHandle
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -76,11 +77,11 @@ class MatchHistory(BaseModel):
         return len(self.data)
 
 
-def get_sc2pulse_match_history(toon_handle: str) -> MatchHistory | None:
+def get_sc2pulse_match_history(toon_handle: ToonHandle) -> MatchHistory | None:
 
     sc2pulse = SC2PulseClient(http_client=http_client)
 
-    profile_link = sc2pulse.get_profile_link(toon_handle)
+    profile_link = toon_handle.to_profile_link()
 
     chars = sc2pulse.character_search(profile_link)
 
