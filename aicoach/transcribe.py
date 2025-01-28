@@ -1,6 +1,5 @@
 import io
 import logging
-from typing import List, Optional, Union
 
 import numpy as np
 import soundfile as sf
@@ -10,7 +9,7 @@ from speech_recognition.audio import AudioData
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 from transformers.feature_extraction_utils import BatchFeature
 from transformers.models.whisper import WhisperFeatureExtractor
-from transformers.utils import TensorType, is_flash_attn_2_available
+from transformers.utils import is_flash_attn_2_available
 from typing_extensions import override
 
 from config import config

@@ -11,8 +11,6 @@ from .base import AIFunction
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
-from ..utils import get_clean_tags
-
 
 @AIFunction
 def AddPlayerTags(

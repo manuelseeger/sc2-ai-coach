@@ -1,6 +1,6 @@
 import pytest
 
-from obs_tools.smurfs import build_race_report, get_sc2pulse_match_history
+from obs_tools.smurfs import get_sc2pulse_match_history
 from tests.conftest import only_in_debugging
 
 
@@ -14,9 +14,9 @@ def test_detect_smurf(replay_file, toon_handle):
 
     match_history = get_sc2pulse_match_history(toon_handle)
 
-    race_report = build_race_report(match_history)
+    race_report = match_history.race_report
 
-    assert race_report["instant_leave_rate"].max() > 0.2
+    assert race_report["instant_leave_rate"].max() > 0.25
     assert race_report["winrate"].max() > 0.8
 
 
