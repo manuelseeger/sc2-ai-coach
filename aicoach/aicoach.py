@@ -24,9 +24,15 @@ from config import config
 from .functions import AIFunctions
 from .prompt import Templates
 
+from shared import http_client
+
 log = logging.getLogger(f"{config.name}.{__name__}")
 
-client = OpenAI(api_key=config.openai_api_key, organization=config.openai_org_id)
+client = OpenAI(
+    api_key=config.openai_api_key,
+    organization=config.openai_org_id,
+    http_client=http_client,
+)
 
 TBaseModel = TypeVar("T", bound=BaseModel)
 
