@@ -4,15 +4,15 @@ channels:
   - huggingface
 dependencies:
   - python=3.11
-  - pydantic=2.6
+  - pydantic
   - pydantic-settings
   - pyyaml
   - pandas
+  - tabulate
   - httpx
   - click
-  - pymongo
   - numpy
-  - conda-forge::openai
+  - openai
   - pytest
   - pytest-mock
   - pytest-cov  
@@ -33,7 +33,6 @@ dependencies:
       - pyaudio
       - pysoundfile
       - opencv-python
-      - spawningtool
       - openwakeword
       - onnxruntime-gpu
       - accelerate
@@ -48,6 +47,6 @@ dependencies:
       - blizzardapi2
       - twitchAPI      
       - parametrize_from_file
-      - git+https://github.com/ggtracker/sc2reader@upstream
-      - # SC2 reader plugins pip install git+https://github.com/NumberPigeon/sc2reader-plugins.git
+      - git+https://github.com/NumberPigeon/sc2reader-plugins.git
+      - git+https://github.com/StoicLoofah/spawningtool.git@master
 

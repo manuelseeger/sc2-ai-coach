@@ -16,6 +16,7 @@ dependencies:
   - python-levenshtein
   - tesserocr
   - pandas
+  - tabulate
   - jinja2
   - pip
   - pip:

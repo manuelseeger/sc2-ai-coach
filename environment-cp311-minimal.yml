@@ -15,6 +15,7 @@ dependencies:
   - python-levenshtein
   - jinja2
   - pandas
+  - tabulate
   - pip
   - pip:
       - git+https://github.com/NumberPigeon/sc2reader-plugins.git

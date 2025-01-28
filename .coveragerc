@@ -4,6 +4,8 @@ omit=
     playground/*
     external/*
     archive/*
+    assets/*
+    mongodb/*
 
 [html]
 directory=tests/coverage/htmlcov
