@@ -305,6 +305,7 @@ class AISession:
             "race_report": "",
         }
         prompt = None
+        match_history = None
 
         playerinfo, past_replays = resolve_replays_from_current_opponent(
             opponent, map, mmr
@@ -371,6 +372,8 @@ class AISession:
                 done = self.converse()
                 if done:
                     self.close()
+        else:
+            log.debug("active thread, skipping")
 
     def handle_wake(self, wakeresult: WakeResult):
         log.debug(wakeresult)
@@ -380,6 +383,8 @@ class AISession:
             done = self.converse()
             if done:
                 self.close()
+        else:
+            log.debug("active thread, skipping")
 
     def handle_new_replay(self, replay: Replay):
         log.debug(replay)
@@ -397,6 +402,8 @@ class AISession:
                 save_replay_summary(replay, self.coach)
 
                 self.close()
+        else:
+            log.debug("active thread, skipping")
 
     def handle_twitch_follow(self, twitch_follow: TwitchFollowResult):
         log.debug(f"{twitch_follow.user} followed")

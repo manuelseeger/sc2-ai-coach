@@ -149,6 +149,11 @@ class LoadingScreenScanner(threading.Thread):
     def scan_loading_screen(self):
         log.debug("Starting loading screen scanner")
         while True:
+            map = None
+            player1 = None
+            player2 = None
+            opponent = None
+
             if self.stopped():
                 log.debug("Stopping loading screen scanner")
                 break

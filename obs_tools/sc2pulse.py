@@ -283,9 +283,11 @@ class SC2PulseClient:
             date_after_str = date_after.strftime("%Y-%m-%dT%H:%M:%SZ")
 
             # /character/8924902/matches/2025-01-17T10:22:41Z/_1V1/49611/1/1/_1V1
-            response = self.client.get(
-                f"/character/{character_id}/matches/{date_after_str}/{MatchType._1V1.value}/{last_match.match.mapId}/1/1/{MatchType._1V1.value}",
-            )
+            # timeout?
+            url = f"/character/{character_id}/matches/{date_after_str}/{MatchType._1V1.value}/{last_match.match.mapId}/1/1/{MatchType._1V1.value}"
+
+            log.debug(f"SC2Pulse {url}")
+            response = self.client.get(url, timeout=5)
             content = response.json()
 
             matches.extend([SC2PulseLadderMatch(**l) for l in content["result"]])
