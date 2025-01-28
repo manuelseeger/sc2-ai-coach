@@ -3,10 +3,10 @@ from itertools import product
 from typing import Any, Optional
 
 import pandas as pd
-from pydantic import BaseModel, ConfigDict, field_validator
-
+from pydantic import BaseModel, ConfigDict, field_validator, computed_field
+from shared import http_client
 from config import config
-from obs_tools.sc2pulse import SC2PulseClient, SC2PulseCommonCharacter, SC2PulseRace
+from obs_tools.lib.sc2pulse import SC2PulseClient, SC2PulseCommonCharacter, SC2PulseRace
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -53,8 +53,9 @@ class MatchHistory(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    @computed_field
     @property
-    def race_report(self):
+    def race_report(self) -> pd.DataFrame:
         return build_race_report(self.data)
 
     @field_validator("data", mode="before")
@@ -77,11 +78,11 @@ class MatchHistory(BaseModel):
 
 def get_sc2pulse_match_history(toon_handle: str) -> MatchHistory | None:
 
-    pulse = SC2PulseClient()
+    sc2pulse = SC2PulseClient(http_client=http_client)
 
-    profile_link = pulse.get_profile_link(toon_handle)
+    profile_link = sc2pulse.get_profile_link(toon_handle)
 
-    chars = pulse.character_search(profile_link)
+    chars = sc2pulse.character_search(profile_link)
 
     if len(chars) == 0:
         log.warning(f"Could not find character for {toon_handle}")
@@ -94,7 +95,7 @@ def get_sc2pulse_match_history(toon_handle: str) -> MatchHistory | None:
     # chars[0].members.character.region
     # chars[0].members.character.name # battletag
 
-    common = pulse.get_character_common(
+    common = sc2pulse.get_character_common(
         sc2pulse_char_id, match_history_depth=config.match_history_depth
     )
 

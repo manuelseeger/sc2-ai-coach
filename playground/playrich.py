@@ -6,7 +6,7 @@ import logging
 from time import sleep
 
 from config import config
-from obs_tools.rich_log import TwitchObsLogHandler
+from obs_tools.io.rich_log import TwitchObsLogHandler
 from replays.types import Role
 
 log = logging.getLogger(config.name)

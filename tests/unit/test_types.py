@@ -19,7 +19,11 @@ def test_validate_toonhandle(value, is_valid):
 
 
 def test_twitch_result_types():
-    from obs_tools.types import TwitchChatResult, TwitchFollowResult, TwitchRaidResult
+    from obs_tools.events.types import (
+        TwitchChatResult,
+        TwitchFollowResult,
+        TwitchRaidResult,
+    )
 
     chat_result = TwitchChatResult(message="test", user="test", channel="test")
     assert chat_result.message == "test"

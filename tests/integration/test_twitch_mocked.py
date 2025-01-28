@@ -5,7 +5,7 @@ import pytest
 from rich import print
 
 from config import config
-from obs_tools.twitch import TwitchListener
+from obs_tools.events.twitch import TwitchListener
 from shared import signal_queue
 
 

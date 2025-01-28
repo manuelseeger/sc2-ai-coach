@@ -1,4 +1,4 @@
-from obs_tools.types import Screen, UIInfo
+from obs_tools.lib.sc2client import Screen, UIInfo
 
 
 def test_uiinfo_equality_loading():

@@ -14,7 +14,7 @@ from obs_tools.playerinfo import (
     resolve_replays_from_current_opponent,
     save_player_info,
 )
-from obs_tools.sc2pulse import SC2PulseClient
+from obs_tools.lib.sc2pulse import SC2PulseClient
 from replays.db import replaydb
 from replays.reader import ReplayReader
 from replays.types import PlayerInfo, to_bson_binary

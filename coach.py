@@ -10,14 +10,15 @@ from Levenshtein import distance as levenshtein
 from pydantic import BaseModel
 from rich.prompt import Prompt
 
+
 from aicoach import AICoach
 from aicoach.prompt import Templates
 from config import AIBackend, AudioMode, CoachEvent, config
 from log import log
 from obs_tools.playerinfo import resolve_replays_from_current_opponent
-from obs_tools.rich_log import TwitchObsLogHandler
+from obs_tools.io.rich_log import TwitchObsLogHandler
 from obs_tools.smurfs import get_sc2pulse_match_history
-from obs_tools.types import (
+from obs_tools.events.types import (
     ScanResult,
     TwitchChatResult,
     TwitchFollowResult,
@@ -26,18 +27,20 @@ from obs_tools.types import (
 )
 from replays.db import replaydb
 from replays.metadata import save_replay_summary
-from replays.types import Player, Replay, Role, Session, Usage
+from replays.types import Replay, Role, Session, Usage
 from shared import signal_queue
 
+
+# Setup: Input output, logging, depending on config
 if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
     from aicoach.transcribe import Transcriber
-    from obs_tools.mic import Microphone
+    from obs_tools.io.mic import Microphone
 
     mic = Microphone()
     transcriber = Transcriber()
 
 if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
-    from obs_tools.tts import make_tts_stream
+    from obs_tools.io.tts import make_tts_stream
 
     tts = make_tts_stream()
 
@@ -58,10 +61,13 @@ def main(debug):
         log.setLevel(logging.DEBUG)
         log.debug("debugging on")
 
+    # Build session and initialize event handlers
+    # Each handler is a threading.thread that listens for configured events
+    # On an event, the handler puts a new task in the signal_queue
     session = AISession()
 
     if CoachEvent.twitch in config.coach_events:
-        from obs_tools.twitch import TwitchListener
+        from obs_tools.events.twitch import TwitchListener
 
         twitch = TwitchListener(name="twitch")
         twitch.start()
@@ -96,23 +102,12 @@ def main(debug):
 
     log.info(f"Starting { 'non-' * ( not config.interactive ) }interactive session")
 
-    ping_printed = False
-
+    # Main loop: Every 1s get a task from the signal_queue first in first out, and let the session process it
+    # On shutdown, close all event listener threads and exit
     while True:
         try:
             task = signal_queue.get()
-            handler = session.get_handler(task)
-            if handler:
-                handler(task)
-            else:
-                # print once every 10 seconds so we know you are still alive
-                if datetime.now().second % 10 == 0:
-                    if not ping_printed:
-                        log.info("Waiting for thread ...")
-                        ping_printed = True
-                else:
-                    ping_printed = False
-
+            session.handle(task)
             signal_queue.task_done()
         except queue.Empty:
             pass
@@ -141,6 +136,28 @@ def main(debug):
 
 
 class AISession:
+    """Represents one gaming session with the AI coach.
+
+    Holds some session state:
+    - current assistant thread
+    - current thread handling twitch chat
+    - last player + replay we faced
+
+    Records the session in the replaydb, and calculates the usage and cost
+    of the AI backend.
+
+    Implements the handlers for the different event types.
+
+    Each handler usually sets up a new conversation by grounding the context
+    with the event data. Then the handler starts the conversation between user
+    and AI coach.
+
+    So for each event type there is a handler method, and optionally an init method.
+    The init method sets up the conversation context, and the handler method starts
+    and ends the conversation.
+    Once a conversation is ended, the handler exits and the main loop can pull and
+    process a new task."""
+
     coach: AICoach
     last_map: str
     last_opponent: str
@@ -154,7 +171,6 @@ class AISession:
     handlers: dict[type, Callable]
 
     def __init__(self):
-
         self.update_last_replay()
         self.coach = AICoach()
 
@@ -177,6 +193,11 @@ class AISession:
 
     def get_handler(self, task) -> Callable | None:
         return self.handlers.get(type(task))
+
+    def handle(self, task):
+        handler = self.get_handler(task)
+        if handler:
+            handler(task)
 
     @property
     def thread_id(self):
@@ -203,6 +224,10 @@ class AISession:
         self.last_rep_id = replay.id
 
     def converse(self):
+        """Listen to input from the user, pass it to the AI coach, and output
+        the response.
+        Exit once AI coach thinks the conversation is over.
+        """
 
         if not config.interactive:
             sleep(1)
@@ -237,7 +262,10 @@ class AISession:
             if self.is_goodbye(response):
                 return True
 
-    def stream_thread(self):
+    def stream_thread(self) -> str:
+        """Stream an active thead with the AI coach, and output the response.
+
+        Additionally return the buffered response as string."""
         buffer = ""
         for message in self.coach.stream_thread():
             buffer += message
@@ -245,14 +273,18 @@ class AISession:
         return buffer
 
     def chat(self, message: str) -> str:
+        """Input the message to AI coach, and output the response.
+
+        Additionally return the buffered response as string."""
         buffer = ""
         for response in self.coach.chat(message):
             buffer += response
             self.say(response)
-
         return buffer
 
     def say(self, message, flush=True):
+        """Output a message to the user. Depending on audio config, this uses
+        text-to-speech or just writes to the rich log."""
         if config.audiomode in [AudioMode.text, AudioMode.voice_in]:
             log.info(message, extra={"role": Role.assistant, "flush": flush})
         else:
@@ -268,6 +300,8 @@ class AISession:
         return self.thread_id is not None
 
     def calculate_usage(self):
+        """Calculate the usage and cost of the AI backend for the current thread
+        and save it to the session in the DB."""
         if not self.thread_id:
             return
         token_usage = self.coach.get_thread_usage(self.thread_id)
@@ -295,6 +329,14 @@ class AISession:
         return levenshtein(response[-20:].lower().strip(), "good luck, have fun") < 8
 
     def initiate_from_game_start(self, map, opponent, mmr):
+        """Adds game start information to conversation context
+
+        The context is initialized depending on:
+
+        Is this a rematch / have we just played this player before?
+        Do we have past replay of this opponent?
+        Can we identify the opponent from past games or by opponent match history?
+        """
 
         replacements = {
             "student": str(config.student.name),
@@ -343,6 +385,8 @@ class AISession:
             self.say(Templates.new_game_empty.render(replacements), flush=False)
 
     def initiate_from_new_replay(self, replay: Replay):
+        """Adds replay information to conversation context"""
+
         opponent = replay.get_opponent_of(config.student.name).name
         replacements = {
             "student": str(config.student.name),
@@ -357,6 +401,13 @@ class AISession:
         self.thread_id = self.coach.create_thread(prompt)
 
     def handle_game_start(self, scanresult: ScanResult):
+        """Handle new game event.
+
+        This is invoked when a new match is started in SC2.
+
+        Sets up context with past information about the player we are facing,
+        if available. Then starts a conversation.
+        """
         log.debug(scanresult)
 
         if scanresult.mapname and config.obs_integration:
@@ -376,6 +427,12 @@ class AISession:
             log.debug("active thread, skipping")
 
     def handle_wake(self, wakeresult: WakeResult):
+        """Handle a wake event.
+
+        This is the user waking up the assistant for a conversation
+        without additional context.
+        """
+
         log.debug(wakeresult)
         if not self.is_active():
             self.thread_id = self.coach.create_thread()
@@ -387,6 +444,12 @@ class AISession:
             log.debug("active thread, skipping")
 
     def handle_new_replay(self, replay: Replay):
+        """Handle a new replay event.
+
+        This is invoked when a new replay is added to the replay folder.
+        Adds the replay to the context and starts a conversation.
+        """
+
         log.debug(replay)
         if not self.is_active():
             log.debug("New replay detected")
@@ -406,6 +469,11 @@ class AISession:
             log.debug("active thread, skipping")
 
     def handle_twitch_follow(self, twitch_follow: TwitchFollowResult):
+        """Handle a twitch follow event.
+
+        Thanks the follower.
+        """
+
         log.debug(f"{twitch_follow.user} followed")
         replacements = {
             "user": twitch_follow.user,
@@ -418,6 +486,11 @@ class AISession:
         self.close()
 
     def handle_twitch_raid(self, twitch_raid: TwitchRaidResult):
+        """Handle a twitch raid event.
+
+        Thanks the raider and welcomes the viewers
+        """
+
         log.debug(f"{twitch_raid.user} raided with {twitch_raid.viewers} viewers")
         replacements = {
             "user": twitch_raid.user,
@@ -431,6 +504,16 @@ class AISession:
         self.close()
 
     def handle_twitch_chat(self, twitch_chat: TwitchChatResult):
+        """Handle a twitch chat event.
+
+        If a viewer says something in chat, figure out if the message is a question, and
+        if so, answer it.
+
+        This is different than the other event handlers in that the assistent reuses the same
+        thread for all chat messages, so that it can properly answer follow up questions. So
+        AICoach keeps a memory of the entire chat history.
+        """
+
         log.debug(f"{twitch_chat.user}: {twitch_chat.message}")
 
         replacements = {

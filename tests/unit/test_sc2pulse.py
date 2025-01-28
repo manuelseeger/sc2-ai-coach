@@ -1,5 +1,5 @@
-from obs_tools.sc2pulse import SC2PulseRace
-from obs_tools.types import Race
+from obs_tools.lib.sc2pulse import SC2PulseRace
+from obs_tools.lib.sc2client import Race
 from replays.util import convert_enum
 
 

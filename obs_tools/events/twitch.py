@@ -2,7 +2,7 @@ import asyncio
 import logging
 import threading
 
-from twitchAPI.chat import Chat, ChatCommand, ChatMessage, ChatSub, EventData
+from twitchAPI.chat import Chat, ChatMessage, EventData
 from twitchAPI.eventsub.websocket import EventSubWebsocket
 from twitchAPI.helper import first
 from twitchAPI.oauth import UserAuthenticationStorageHelper, UserAuthenticator
@@ -78,7 +78,10 @@ class TwitchListener(threading.Thread):
         signal_queue.put(result)
 
     async def twitch_async(self):
+        """Start the twitch listener.
 
+        Join the streamer chat channel, and subscribe to raid and follow events.
+        """
         self.twitch = await Twitch(config.twitch_client_id, config.twitch_client_secret)
         helper = UserAuthenticationStorageHelper(self.twitch, USER_SCOPE)
         await helper.bind()
@@ -98,6 +101,8 @@ class TwitchListener(threading.Thread):
         )
 
     async def twitch_async_mocked(self):
+        """Unfortunately the mocked API needs a separate implementation so we can't
+        just mock the twitch service and test the production code."""
         log.info("Starting mocked twitch listener")
         mock_scope = [
             AuthScope.MODERATOR_READ_FOLLOWERS,

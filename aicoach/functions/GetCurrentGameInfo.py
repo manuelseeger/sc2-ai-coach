@@ -1,11 +1,13 @@
 import logging
 
 from config import config
-from obs_tools.sc2client import GameInfo, sc2client
+from obs_tools.lib.sc2client import GameInfo, SC2Client
 
 from .base import AIFunction
 
 log = logging.getLogger(f"{config.name}.{__name__}")
+
+sc2client = SC2Client()
 
 
 @AIFunction

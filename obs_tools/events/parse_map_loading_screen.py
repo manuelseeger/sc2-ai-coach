@@ -13,7 +13,7 @@ from Levenshtein import distance as levenstein
 from PIL import Image
 
 from config import config
-from obs_tools.sc2client import sc2client
+from obs_tools.lib.sc2client import SC2Client
 from shared import signal_queue
 
 from .types import ScanResult
@@ -132,10 +132,15 @@ def wait_for_file(file_path: str, timeout: int = 3, delay: float = 0.1) -> bool:
 
 
 class LoadingScreenScanner(threading.Thread):
+
+    sc2client: SC2Client
+
     def __init__(self, name):
         super().__init__()
         self.name = name
         self._stop_event = threading.Event()
+
+        self.sc2client = SC2Client()
 
     def stop(self):
         self._stop_event.set()
@@ -194,9 +199,9 @@ class LoadingScreenScanner(threading.Thread):
 
                 if opponent == barcode:
                     log.info("Barcode detected, trying to get exact barcode")
-                    gameinfo = sc2client.wait_for_gameinfo(ongoing=True)
+                    gameinfo = self.sc2client.wait_for_gameinfo(ongoing=True)
 
-                    opponent, race = sc2client.get_opponent(gameinfo)
+                    opponent, race = self.sc2client.get_opponent(gameinfo)
                     log.info(f"Barcode resolved to {opponent}")
 
                 if opponent is not None:

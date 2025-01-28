@@ -14,9 +14,9 @@ from pyodmongo.queries import elem_match
 from pyodmongo.queries import sort as od_sort
 
 from config import config
-from obs_tools.battlenet import BattleNet
-from obs_tools.sc2client import sc2client
-from obs_tools.sc2pulse import SC2PulseClient
+from obs_tools.lib.battlenet import BattleNet
+from obs_tools.lib.sc2client import SC2Client
+from obs_tools.lib.sc2pulse import SC2PulseClient
 
 from replays.db import replaydb
 from replays.types import Alias, PlayerInfo, Replay, to_bson_binary
@@ -30,12 +30,11 @@ if config.obs_integration:
 log = logging.getLogger(f"{config.name}.{__name__}")
 
 PORTRAIT_DIR = "obs/screenshots/portraits"
-
 KAT_PORTRAIT = Image.open("assets/katchinsky_portrait.png")
 
 sc2pulse = SC2PulseClient(http_client=http_client)
-
 battlenet = BattleNet(http_client=http_client)
+sc2client = SC2Client()
 
 
 def is_portrait_match(
@@ -242,7 +241,17 @@ def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo 
 def resolve_replays_from_current_opponent(
     opponent: str, mapname: str, mmr: int
 ) -> Tuple[PlayerInfo, List[Replay]]:
+    """Try to identify the opponent.
 
+    0: Search in DB for the player name if unique
+    1: Get the exact name from game client. If we have the players portrait from the
+    loading screen, search in DB for the player name and portrait
+    2: Query SC2Pulse for the player name. If multiple found return the closest
+    in terms of recency and MMR
+
+    If player is identified, look for past replays against this player.
+
+    Returns the player info and potentially a list of past replays."""
     playerinfo = None
     race = None
 
