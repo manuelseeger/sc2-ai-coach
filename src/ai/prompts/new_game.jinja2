@@ -8,10 +8,12 @@ it was played on {{map}} before if that is the case, but don't mention the map i
 {% endif %}
 
 {% if race_report %}
-If the matchup report shows winrates of over 0.75 or under 0.25, or one of the
+If the matchup report shows winrates of above 0.75 or below 0.25, or one of the
 matchups has an instant leave rate higher than 0.15, warn me that this player might be smurf. State the matchup and the
 value which is out of bounds.
-If no values are off, don't mention anything related to match history or smurfing at all. Simply wish me a good game.
+
+If none are out of bounds, don't mention anything related to match history, smurfing, leave rates, win rates, or their
+bounds at all. Simply wish me a good game and say nothing else.
 
 Matchup report for {{opponent}} from match history:
 {{race_report}}

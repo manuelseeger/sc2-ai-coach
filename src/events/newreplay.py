@@ -13,6 +13,7 @@ from src.events.types import NewReplayResult
 from src.playerinfo import save_player_info
 from src.replaydb.db import replaydb
 from src.replaydb.reader import ReplayReader
+from src.replaydb.util import wait_for_file
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 log.setLevel(logging.INFO)
@@ -36,9 +37,11 @@ class NewReplayHandler(FileSystemEventHandler):
         if event.is_directory:
             return
         if event.src_path.endswith(".SC2Replay"):
-            self.process_new_file(event.src_path)
+            if wait_for_file(event.src_path):
+                self.process_new_file(event.src_path)
 
     def process_new_file(self, file_path: str):
+
         replay_raw = reader.load_replay_raw(file_path)
         if reader.apply_filters(replay_raw):
             log.info(f"New replay {basename(file_path)}")

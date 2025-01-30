@@ -1,9 +1,7 @@
 import pandas as pd
 import parametrize_from_file
-import pytest
 
 from coach import AISession
-from src.replaydb.reader import ReplayReader
 from src.replaydb.types import PlayerInfo
 from src.smurfs import MatchHistory
 from tests.conftest import only_in_debugging
@@ -22,7 +20,6 @@ def test_detects_smurfing(
     mocker,
     critic: LmmCritic,
 ):
-
     # arrange
     session = AISession()
 
@@ -47,7 +44,6 @@ def test_detects_smurfing(
     response = session.stream_thread()
 
     # assert
-
     critic_init = "You are given responses about a player's match history. Determine whether the response satisfies the evaluation criteria.\n\n"
     critic_init += "EVALUATION CRITERIA: " + criteria
 

@@ -243,3 +243,18 @@ def test_parse_chrono_boost(replay_file):
     p1, p2 = replay.players
 
     assert any(p.is_chronoboosted for p in p1.build_order)
+
+
+@pytest.mark.parametrize(
+    "replay_file",
+    [
+        "Amygdala (69) AFK player.SC2Replay",
+    ],
+    indirect=True,
+)
+def test_afk_replay(replay_file):
+    reader = ReplayReader()
+
+    replay = reader.load_replay(replay_file)
+
+    assert any([p.avg_apm == 0 for p in replay.players])
