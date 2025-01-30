@@ -17,3 +17,5 @@ mongodb/mongo-seed/*.json
 mongodb/dump/
 playground/external/
 user_token.json
+*.log
+*.mock
