@@ -79,7 +79,7 @@ def get_emoji(name: str, funcName: str) -> str:
     return Emojis.aicoach
 
 
-class TwitchObsLogHandler(Handler):
+class RichConsoleLogHandler(Handler):
     """Custom log handler for rich console output.
 
     We are (mis)using the logging system to provide a pretty interface
@@ -200,18 +200,24 @@ class TwitchObsLogHandler(Handler):
             self.stop_statuses()
             # Always recreate the status object. If we reuse the same object, the status will render at
             # the position of the last status, overwriting lines printed between the two statuses.
-            if record.funcName == "transcribe":
-                self._status_methods[record.funcName] = console.status(
-                    record.msg, spinner="point"
-                )
-                self._status_methods[record.funcName].start()
-            else:
-                self._status_methods[record.funcName] = LogStatus(name=record.funcName)
+            self._status_methods[record.funcName] = self._create_status(record=record)
 
-                self._status_methods[record.funcName].start()
+            if record.funcName is not "transcribe":
                 self._status_methods[record.funcName].stream(record.msg)
         else:
+            if record.funcName not in self._status_methods:
+                self._status_methods[record.funcName] = self._create_status(
+                    record=record
+                )
             self._status_methods[record.funcName].stream(record.msg)
+
+    def _create_status(self, record: LogRecord):
+        if record.funcName == "transcribe":
+            status = console.status(record.msg, spinner="point")
+        else:
+            status = LogStatus(name=record.funcName)
+        status.start()
+        return status
 
     def stop_statuses(self):
         for status in self._status_methods.values():

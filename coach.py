@@ -16,7 +16,7 @@ from aicoach.prompt import Templates
 from config import AIBackend, AudioMode, CoachEvent, config
 from log import log
 from obs_tools.playerinfo import resolve_replays_from_current_opponent
-from obs_tools.io.rich_log import TwitchObsLogHandler
+from obs_tools.io.rich_log import RichConsoleLogHandler
 from obs_tools.smurfs import get_sc2pulse_match_history
 from obs_tools.events.types import (
     ScanResult,
@@ -24,6 +24,7 @@ from obs_tools.events.types import (
     TwitchFollowResult,
     TwitchRaidResult,
     WakeResult,
+    NewReplayResult,
 )
 from replays.db import replaydb
 from replays.metadata import save_replay_summary
@@ -48,10 +49,10 @@ if config.obs_integration:
     from obs_tools.mapstats import update_map_stats
 
 
-obs_handler = TwitchObsLogHandler()
-obs_handler.setLevel(logging.INFO)
+rich_handler = RichConsoleLogHandler()
+rich_handler.setLevel(logging.INFO)
 
-log.addHandler(obs_handler)
+log.addHandler(rich_handler)
 
 
 @click.command()
@@ -87,7 +88,7 @@ def main(debug):
     if CoachEvent.new_replay in config.coach_events:
         from replays.newreplay import NewReplayScanner
 
-        replay_scanner = NewReplayScanner(name="replay_scanner")
+        replay_scanner = NewReplayScanner()
         replay_scanner.start()
 
     if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
@@ -443,12 +444,14 @@ class AISession:
         else:
             log.debug("active thread, skipping")
 
-    def handle_new_replay(self, replay: Replay):
+    def handle_new_replay(self, replay_result: NewReplayResult):
         """Handle a new replay event.
 
         This is invoked when a new replay is added to the replay folder.
         Adds the replay to the context and starts a conversation.
         """
+
+        replay = replay_result.replay
 
         log.debug(replay)
         if not self.is_active():
