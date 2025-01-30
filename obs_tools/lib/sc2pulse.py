@@ -13,8 +13,8 @@ from pydantic import BaseModel, computed_field
 from config import config
 from obs_tools.lib.battlenet import toon_handle_from_id
 from obs_tools.lib.sc2client import Race as GameInfoRace
-from replays.util import convert_enum, is_barcode
 from replays.types import ToonHandle
+from replays.util import convert_enum, is_barcode
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -284,12 +284,14 @@ class SC2PulseClient:
             date_after_str = date_after.strftime("%Y-%m-%dT%H:%M:%SZ")
 
             # /character/8924902/matches/2025-01-17T10:22:41Z/_1V1/49611/1/1/_1V1
-            # timeout?
             url = f"/character/{character_id}/matches/{date_after_str}/{MatchType._1V1.value}/{last_match.match.mapId}/1/1/{MatchType._1V1.value}"
 
             log.debug(f"SC2Pulse {url}")
             response = self.client.get(url, timeout=5)
+            response.raise_for_status()
             content = response.json()
+            if len(content["result"]) == 0:
+                break
 
             matches.extend([SC2PulseLadderMatch(**l) for l in content["result"]])
 

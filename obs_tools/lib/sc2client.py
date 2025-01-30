@@ -1,19 +1,15 @@
 import logging
-
+from enum import Enum
 from time import sleep, time
+from typing import List
 from urllib.parse import urljoin
 
 import httpx
 from httpx import ConnectError
+from pydantic import BaseModel
 from pydantic_core import ValidationError
 
 from config import config
-
-
-from enum import Enum
-
-from typing import List
-from pydantic import BaseModel
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -41,7 +37,7 @@ class Race(str, Enum):
     zerg = "Zerg"
     random = "random"
 
-    normal_map = {
+    normal_map: dict = {
         "Terr": "Terran",
         "Prot": "Protoss",
         "Zerg": "Zerg",
@@ -49,7 +45,7 @@ class Race(str, Enum):
     }
 
     def normalize(self):
-        return self.normal_map[self.value]
+        return self.normal_map.get(self.value)
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
@@ -58,7 +54,7 @@ class Race(str, Enum):
             return self == other
 
     def convert(self, other: Enum):
-        return other[self.value]
+        return other[self.name]
 
 
 class Result(str, Enum):

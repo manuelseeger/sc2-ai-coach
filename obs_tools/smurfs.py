@@ -3,11 +3,12 @@ from itertools import product
 from typing import Any, Optional
 
 import pandas as pd
-from pydantic import BaseModel, ConfigDict, field_validator, computed_field
-from shared import http_client
+from pydantic import BaseModel, ConfigDict, computed_field, field_validator
+
 from config import config
 from obs_tools.lib.sc2pulse import SC2PulseClient, SC2PulseCommonCharacter, SC2PulseRace
 from replays.types import ToonHandle
+from shared import http_client
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -44,6 +45,7 @@ def build_race_report(df: pd.DataFrame) -> pd.DataFrame:
     columns = ["matchup", "race1", "race2", "winrate", "instant_leave_rate"]
     report = pd.DataFrame(matchups, columns=columns)
     report.set_index("matchup", inplace=True)
+    report = report.round(2)
     log.debug(report.to_markdown(index=False))
     return report
 
