@@ -8,8 +8,7 @@ import obsws_python as obsws
 from rich import print
 
 from config import config
-from obs_tools.sc2client import sc2client
-from obs_tools.types import Screen
+from src.lib.sc2client import SC2Client, Screen
 
 log = logging.getLogger(__name__)
 log_file = Path("logs/obs_client.log")
@@ -26,6 +25,9 @@ def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
 
 sys.excepthook = log_uncaught_exceptions
 sys.stdout = open(log_file, "a", encoding="utf-8")
+
+
+sc2client = SC2Client()
 
 
 # we set this up as a standalone process so that OBS can run and react to SC2 UI changes without the need
@@ -59,7 +61,10 @@ def main(verbose, debug):
                 ui = sc2client.get_uiinfo()
 
                 with open("logs/time.log", "r") as f:
-                    last_time = float(f.read())
+                    try:
+                        last_time = float(f.read())
+                    except:
+                        last_time = time()
                     diff = time() - last_time
                     if diff > 15:
                         data = {"message": "fadelog"}

@@ -1,9 +1,8 @@
 import pytest
 from rich import print
 
-from config import config
-from obs_tools.battlenet import BattleNet
-from obs_tools.sc2pulse import SC2PulseClient, SC2PulseRace, SC2PulseRegion
+from src.lib.battlenet import BattleNet
+from src.lib.sc2pulse import SC2PulseClient, SC2PulseRace
 
 
 def test_get_barcode_character_ids():

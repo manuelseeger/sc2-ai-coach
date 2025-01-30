@@ -1,7 +1,7 @@
 import pytest
 
 from config import config
-from obs_tools.mapstats import get_map_stats
+from src.mapstats import get_map_stats
 
 
 @pytest.mark.parametrize(

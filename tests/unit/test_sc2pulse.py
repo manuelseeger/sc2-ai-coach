@@ -1,6 +1,5 @@
-from obs_tools.sc2pulse import SC2PulseRace
-from obs_tools.types import Race
-from replays.util import convert_enum
+from src.lib.sc2client import Race
+from src.lib.sc2pulse import SC2PulseRace
 
 
 def test_convert_race():
@@ -13,6 +12,6 @@ def test_convert_race():
 
     assert protoss.value == "Prot"
 
-    protoss = convert_enum(protoss, SC2PulseRace)
+    protoss = protoss.convert(SC2PulseRace)
 
     assert protoss.value == "PROTOSS"

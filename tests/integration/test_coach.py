@@ -4,7 +4,7 @@ import pytest
 from rich import print
 
 from coach import AISession
-from replays.reader import ReplayReader
+from src.replaydb.reader import ReplayReader
 from tests.mocks import MicMock, TranscriberMock, TTSMock
 
 

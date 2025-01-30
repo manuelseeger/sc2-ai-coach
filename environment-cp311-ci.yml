@@ -15,7 +15,10 @@ dependencies:
   - pytest-cov
   - python-levenshtein
   - tesserocr
+  - pandas
+  - tabulate
   - jinja2
+  - watchdog
   - pip
   - pip:
       - opencv-python

@@ -1,4 +1,4 @@
-from openai import APIError, AssistantEventHandler, NotGiven, OpenAI
+from openai import OpenAI
 from pydantic import BaseModel
 
 from config import config

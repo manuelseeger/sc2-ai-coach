@@ -1,15 +1,5 @@
-import queue
-from os.path import join
-from time import sleep
-
-import pytest
-from numpy import sign
-from rich import print
-
 from coach import AISession
-from obs_tools.twitch import TwitchListener
-from obs_tools.types import TwitchChatResult
-from shared import signal_queue
+from src.events.types import TwitchChatResult
 from tests.conftest import only_in_debugging
 
 

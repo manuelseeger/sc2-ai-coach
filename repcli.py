@@ -6,23 +6,25 @@ import os
 from datetime import date, datetime, timedelta
 from io import BytesIO
 from os.path import basename, getmtime, join
+from pathlib import Path
+from typing import Annotated
 
 import click
 import climage
 import numpy as np
 from PIL import Image
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.table import Table
 from rich.theme import Theme
 
-from aicoach.utils import force_valid_json_string
 from config import config
-from obs_tools.playerinfo import save_player_info
-from replays.db import replaydb
-from replays.reader import ReplayReader
-from replays.types import PlayerInfo, Replay
+from src.ai.utils import force_valid_json_string
+from src.playerinfo import save_player_info
+from src.replaydb.db import replaydb
+from src.replaydb.reader import ReplayReader
+from src.replaydb.types import PlayerInfo, Replay
 
 custom_theme = Theme(
     {
@@ -40,6 +42,38 @@ log.addHandler(RichHandler(show_time=False, rich_tracebacks=True))
 reader = ReplayReader()
 
 dformat = lambda x: datetime.fromtimestamp(x).strftime("%Y-%m-%d %H:%M:%S")
+
+
+class Summary(BaseModel):
+
+    def to_table(self):
+        table = Table(title=self.__class__.__name__)
+        table.add_column("Stat", justify="left", style="bold", no_wrap=True)
+        table.add_column("Value", justify="left", style="cyan")
+        for field_name, field_info in self.model_fields.items():
+            if len(field_info.metadata) > 0 and field_info.metadata[0] == False:
+                continue
+            table.add_row(field_info.title, str(getattr(self, field_name)))
+
+        return table
+
+
+class ValidationSummary(Summary):
+    valid_replays: int = Field(title="Valid replays", default=0)
+    error_replays: int = Field(title="Erroneous replays", default=0)
+
+
+class SyncSummary(Summary):
+    afk_replays: int = Field(title="Replays with AFK players", default=0)
+    instant_leave_replays: int = Field(title="Instant leave replays", default=0)
+    deleted_replays: int = Field(title="Deleted replays", default=0)
+    total_replays: int = Field(title="Total replays", default=0)
+    players_added: int = Field(title="Players added", default=0)
+    replays_added: int = Field(title="Replays added", default=0)
+    portraits_added: int = Field(title="Portraits added", default=0)
+    portraits_constructed: int = Field(title="Portraits constructed", default=0)
+    filtered_replays: int = Field(title="Filtered replays", default=0)
+    players: Annotated[list[str], False] = []
 
 
 @click.group()
@@ -87,19 +121,6 @@ def cli(ctx, clean, debug, simulation, verbose):
         logging.getLogger("sc2reader").setLevel(logging.CRITICAL)
 
 
-class SyncSummary(BaseModel):
-    afk_replays: int = Field(title="Replays with AFK players", default=0)
-    instant_leave_replays: int = Field(title="Instant leave replays", default=0)
-    deleted_replays: int = Field(title="Deleted replays", default=0)
-    total_replays: int = Field(title="Total replays", default=0)
-    players_added: int = Field(title="Players added", default=0)
-    replays_added: int = Field(title="Replays added", default=0)
-    portraits_added: int = Field(title="Portraits added", default=0)
-    portraits_constructed: int = Field(title="Portraits constructed", default=0)
-    filtered_replays: int = Field(title="Filtered replays", default=0)
-    players: list[str] = []
-
-
 @cli.command()
 @click.pass_context
 @click.option(
@@ -127,14 +148,7 @@ class SyncSummary(BaseModel):
     help="Sync from the most recent replay in DB",
     default=False,
 )
-@click.argument("entity", nargs=2, type=click.Choice(["players", "replays"]))
-def sync(
-    ctx,
-    from_: datetime,
-    to_: datetime,
-    from_most_recent: bool,
-    entity: tuple[str, str],
-):
+def sync(ctx, from_: datetime, to_: datetime, from_most_recent: bool):
     """Sync replays and players from replay folder to MongoDB"""
 
     if from_most_recent:
@@ -154,9 +168,14 @@ def sync(
     ]
 
     list_of_files.sort(key=getmtime)
-
     console.print(f"Found {len(list_of_files)} potential replays to sync")
 
+    summary = _sync(list_of_files, ctx)
+
+    console.print(summary.to_table())
+
+
+def _sync(list_of_files, ctx) -> SyncSummary:
     summary = SyncSummary()
     summary.total_replays = len(list_of_files)
 
@@ -166,11 +185,8 @@ def sync(
             console.print(f"Adding {basename(file_path)}")
             replay = reader.to_typed_replay(replay_raw)
 
-            if "replays" in entity:
-                syncreplay(ctx, replay, summary)
-
-            if "players" in entity:
-                syncplayer(ctx, replay, summary)
+            syncreplay(ctx, replay, summary)
+            syncplayer(ctx, replay, summary)
         else:
             console.print(f"Filtered {basename(file_path)}")
             summary.filtered_replays += 1
@@ -193,17 +209,35 @@ def sync(
                     os.remove(file_path)
                     console.print(f":litter_in_bin_sign: Deleted {basename(file_path)}")
                     continue
+    return summary
 
-    table = Table(title="Summary")
-    table.add_column("Stat", justify="left", style="bold", no_wrap=True)
-    table.add_column("Value", justify="left", style="cyan")
 
-    for field_name, field_info in summary.model_fields.items():
-        if field_name == "players":
-            continue
-        table.add_row(field_info.title, str(getattr(summary, field_name)))
+@cli.command()
+@click.option("--logfile", "-l", type=click.Path(), help="Log file for stack traces")
+def validate(logfile):
+    "Validate all replays in the DB. Shows replays in DB which can't be read"
 
-    console.print(table)
+    summary = ValidationSummary()
+
+    for replay in replaydb.find_many_dict(Replay, raw_query={}):
+        console.print(f"Validating {basename(replay['filename'])}", end=" ")
+        try:
+            rep = Replay(**replay)
+            console.print(":white_heavy_check_mark:")
+            summary.valid_replays += 1
+
+        except ValidationError as e:
+            console.print(":x:")
+            console.print(f"ID: {replay['_id']}")
+            if logfile:
+                with open(logfile, "a") as f:
+                    f.write(f"ID: {replay['_id']}\n")
+                    f.write(f"{e}\n")
+            else:
+                console.print(e)
+            summary.error_replays += 1
+
+    console.print(summary.to_table())
 
 
 @cli.group()
@@ -226,6 +260,32 @@ def players(ctx, query):
         console.print_json(str(player))
         if ctx.obj["VERBOSE"]:
             print_player_portrait(player)
+
+
+@cli.command()
+@click.pass_context
+@click.argument("replay", type=click.Path(exists=False), required=True, nargs=-1)
+def add(ctx, replay):
+    """Add one or more replays to the DB"""
+
+    list_of_files = []
+
+    if "*" in replay or "?" in replay:
+        list_of_files = glob.glob(replay)
+    elif isinstance(replay, tuple):
+        list_of_files = [r for r in replay]
+    else:
+        list_of_files.append(replay)
+
+    list_of_files = [Path(f).resolve() for f in list_of_files]
+
+    if not list_of_files:
+        console.print(f":x: No replays found for {replay}")
+        return
+
+    summary = _sync(list_of_files, ctx)
+
+    console.print(summary.to_table())
 
 
 @cli.command()

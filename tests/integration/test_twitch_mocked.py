@@ -5,8 +5,8 @@ import pytest
 from rich import print
 
 from config import config
-from obs_tools.twitch import TwitchListener
 from shared import signal_queue
+from src.events.twitch import TwitchListener
 
 
 @pytest.mark.skipif(

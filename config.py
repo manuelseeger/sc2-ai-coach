@@ -130,6 +130,7 @@ class Config(BaseSettings):
     blizzard_client_secret: Optional[str] = None
     blizzard_region: SC2Region
     bnet_cache_dir: Optional[DirectoryPath] = None
+    include_map_details: bool = True
 
     twitch_client_id: Optional[str] = None
     twitch_client_secret: Optional[str] = None
@@ -138,7 +139,9 @@ class Config(BaseSettings):
     twitch_mocked_user_id: Optional[str] = None
 
     rating_delta_max: int
+    rating_delta_max_barcode: int
     last_played_ago_max: int
+    match_history_depth: int
 
     screenshot: str
     tessdata_dir: str

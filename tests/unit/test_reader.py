@@ -1,9 +1,9 @@
 import pytest
 import sc2reader
 
-from replays.reader import ReplayReader
-from replays.sc2readerplugins.ReplayStats import is_gg, player_worker_micro
-from replays.util import time2secs
+from src.replaydb.plugins.ReplayStats import is_gg, player_worker_micro
+from src.replaydb.reader import ReplayReader
+from src.replaydb.util import time2secs
 from tests.conftest import only_in_debugging
 
 
@@ -226,3 +226,35 @@ def test_apm_archon_mode(replay_file):
     assert p2.avg_apm > 0
     assert p3.avg_apm > 0
     assert p4.avg_apm > 0
+
+
+@pytest.mark.parametrize(
+    "replay_file",
+    [
+        "Radhuset Station LE (85) ZvP chrono.SC2Replay",
+    ],
+    indirect=True,
+)
+def test_parse_chrono_boost(replay_file):
+    reader = ReplayReader()
+
+    replay = reader.load_replay(replay_file)
+
+    p1, p2 = replay.players
+
+    assert any(p.is_chronoboosted for p in p1.build_order)
+
+
+@pytest.mark.parametrize(
+    "replay_file",
+    [
+        "Amygdala (69) AFK player.SC2Replay",
+    ],
+    indirect=True,
+)
+def test_afk_replay(replay_file):
+    reader = ReplayReader()
+
+    replay = reader.load_replay(replay_file)
+
+    assert any([p.avg_apm == 0 for p in replay.players])

@@ -4,15 +4,15 @@ channels:
   - huggingface
 dependencies:
   - python=3.11
-  - conda-forge::pydantic=2.6
-  - conda-forge::pydantic-settings
+  - pydantic
+  - pydantic-settings
   - pyyaml
   - pandas
-  - conda-forge::httpx
+  - tabulate
+  - httpx
   - click
-  - pymongo
   - numpy
-  - conda-forge::openai
+  - openai
   - pytest
   - pytest-mock
   - pytest-cov  
@@ -23,18 +23,17 @@ dependencies:
   - python-levenshtein
   #- pytorch # conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
   - jupyter
-  - conda-forge::matplotlib
-  - conda-forge::webrtcvad
+  - matplotlib
+  - webrtcvad
   - scipy
   - jinja2
   - pillow
+  - watchdog
   - pip
   - pip:
       - pyaudio
       - pysoundfile
       - opencv-python
-      - sc2reader
-      - spawningtool
       - openwakeword
       - onnxruntime-gpu
       - accelerate
@@ -46,8 +45,9 @@ dependencies:
       - keyboard
       - climage
       - obsws-python
-      - blizzapi2
+      - blizzardapi2
       - twitchAPI      
       - parametrize_from_file
-      - # SC2 reader plugins pip install git+https://github.com/NumberPigeon/sc2reader-plugins.git
+      - git+https://github.com/NumberPigeon/sc2reader-plugins.git
+      - git+https://github.com/StoicLoofah/spawningtool.git@master
 

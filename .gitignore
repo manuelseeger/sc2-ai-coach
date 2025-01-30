@@ -2,19 +2,13 @@ run.cmd
 .ipynb_checkpoints/
 .pyc
 __pycache__/
-expetiment.ipynb
-replays.csv
-*.csv
 .env*
 !.env.example
 *config.*.yml
 obs/
-deamon.cmd
 aicoach/assistant.json
-deploy.cmd
 logs/
 mongodb/mongo-seed/*.json
-obs_tools/ttsmodels/
 tests/coverage/
 .coverage
 tests/test-results.xml
@@ -23,3 +17,5 @@ mongodb/mongo-seed/*.json
 mongodb/dump/
 playground/external/
 user_token.json
+*.log
+*.mock

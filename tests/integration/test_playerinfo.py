@@ -7,16 +7,17 @@ from PIL import Image
 
 from config import config
 from external.fast_ssim.ssim import ssim
-from obs_tools import playerinfo
-from obs_tools.playerinfo import (
+from src import playerinfo
+from src.lib.sc2pulse import SC2PulseClient
+from src.playerinfo import (
     get_matching_portrait,
     is_portrait_match,
     resolve_replays_from_current_opponent,
     save_player_info,
 )
-from replays.db import replaydb
-from replays.reader import ReplayReader
-from replays.types import PlayerInfo, to_bson_binary
+from src.replaydb.db import replaydb
+from src.replaydb.reader import ReplayReader
+from src.replaydb.types import PlayerInfo, to_bson_binary
 from tests.conftest import only_in_debugging
 
 
@@ -156,11 +157,11 @@ def test_resolve_current_player(portrait_file, opponent, num_replays, monkeypatc
 
     mapname = "Post-Youth LE"
     mmr = 4000
-    resolved_opponent, replays = resolve_replays_from_current_opponent(
+    playerinfo, replays = resolve_replays_from_current_opponent(
         opponent=opponent, mapname=mapname, mmr=mmr
     )
 
-    assert resolved_opponent == opponent
+    assert playerinfo.name == opponent
     assert len(replays) == num_replays
 
 
@@ -178,11 +179,11 @@ def test_resolve_current_barcode_player(portrait_file, monkeypatch):
     bc = "IIIIIIIIIIII"
     mapname = "Post-Youth LE"
     mmr = 4000
-    opponent, replays = resolve_replays_from_current_opponent(
+    playerinfo, replays = resolve_replays_from_current_opponent(
         opponent=bc, mapname=mapname, mmr=mmr
     )
 
-    assert opponent == bc
+    assert playerinfo.name == bc
     assert len(replays) > 0
 
 
@@ -283,3 +284,14 @@ def test_constructed_portrait():
             score = ssim(np.array(kat_portrait), np.array(kat2_portrait))
 
             print(f"{kat_file} vs {kat2_file}: {score}")
+
+
+def test_get_new_player_from_pulse():
+
+    opponent = "Seigneur"
+    race = "PROTOSS"
+    mmr = 4000
+
+    sc2pulse = SC2PulseClient()
+    pulse_players = sc2pulse.get_unmasked_players(opponent=opponent, race=race, mmr=mmr)
+    print(pulse_players)

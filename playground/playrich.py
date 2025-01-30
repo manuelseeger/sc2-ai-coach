@@ -6,12 +6,12 @@ import logging
 from time import sleep
 
 from config import config
-from obs_tools.rich_log import TwitchObsLogHandler
-from replays.types import Role
+from src.io.rich_log import RichConsoleLogHandler
+from src.replaydb.types import Role
 
 log = logging.getLogger(config.name)
 log.setLevel(logging.INFO)
-log.addHandler(TwitchObsLogHandler())
+log.addHandler(RichConsoleLogHandler())
 
 
 def playrich():

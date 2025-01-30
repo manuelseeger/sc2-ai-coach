@@ -2,13 +2,13 @@ import logging
 
 from rich import print
 
-from obs_tools.rich_log import TwitchObsLogHandler
-from obs_tools.sc2client import SC2Client
-from replays.util import is_barcode
+from src.io.rich_log import RichConsoleLogHandler
+from src.lib.sc2client import SC2Client
+from src.replaydb.util import is_barcode
 
 log = logging.getLogger("twitch")
 log.setLevel(logging.DEBUG)
-log.addHandler(TwitchObsLogHandler())
+log.addHandler(RichConsoleLogHandler())
 
 
 # SC2 must be running and a game must be in progress or have been played recently
