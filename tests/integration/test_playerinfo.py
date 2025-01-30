@@ -7,17 +7,17 @@ from PIL import Image
 
 from config import config
 from external.fast_ssim.ssim import ssim
-from obs_tools import playerinfo
-from obs_tools.playerinfo import (
+from src import playerinfo
+from src.lib.sc2pulse import SC2PulseClient
+from src.playerinfo import (
     get_matching_portrait,
     is_portrait_match,
     resolve_replays_from_current_opponent,
     save_player_info,
 )
-from obs_tools.lib.sc2pulse import SC2PulseClient
-from replays.db import replaydb
-from replays.reader import ReplayReader
-from replays.types import PlayerInfo, to_bson_binary
+from src.replaydb.db import replaydb
+from src.replaydb.reader import ReplayReader
+from src.replaydb.types import PlayerInfo, to_bson_binary
 from tests.conftest import only_in_debugging
 
 

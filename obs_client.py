@@ -8,8 +8,7 @@ import obsws_python as obsws
 from rich import print
 
 from config import config
-from obs_tools.lib.sc2client import SC2Client, Screen
-
+from src.lib.sc2client import SC2Client, Screen
 
 log = logging.getLogger(__name__)
 log_file = Path("logs/obs_client.log")

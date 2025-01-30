@@ -1,6 +1,6 @@
+import functools
 import inspect
 import json
-import functools
 
 BASE_SCHEMA_MAP = {
     "bool": "boolean",

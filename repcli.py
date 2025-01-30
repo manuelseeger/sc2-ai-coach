@@ -6,8 +6,8 @@ import os
 from datetime import date, datetime, timedelta
 from io import BytesIO
 from os.path import basename, getmtime, join
-from typing import Annotated
 from pathlib import Path
+from typing import Annotated
 
 import click
 import climage
@@ -19,12 +19,12 @@ from rich.logging import RichHandler
 from rich.table import Table
 from rich.theme import Theme
 
-from aicoach.utils import force_valid_json_string
 from config import config
-from obs_tools.playerinfo import save_player_info
-from replays.db import replaydb
-from replays.reader import ReplayReader
-from replays.types import PlayerInfo, Replay
+from src.ai.utils import force_valid_json_string
+from src.playerinfo import save_player_info
+from src.replaydb.db import replaydb
+from src.replaydb.reader import ReplayReader
+from src.replaydb.types import PlayerInfo, Replay
 
 custom_theme = Theme(
     {

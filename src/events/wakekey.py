@@ -4,8 +4,7 @@ import threading
 import keyboard
 
 from config import config
-
-from obs_tools.events.types import WakeResult
+from src.events.types import WakeResult
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 

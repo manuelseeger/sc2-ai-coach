@@ -1,12 +1,8 @@
-from contextlib import contextmanager
-from typing import Union
-
 from pydantic_core import ValidationError
 from pymongo.collection import Collection
-from pyodmongo import DbEngine, DbModel, ResponsePaginate
+from pyodmongo import DbEngine, ResponsePaginate
 from pyodmongo.models.responses import DbResponse
 from pyodmongo.queries import eq, sort
-from typing_extensions import override
 
 from config import config
 

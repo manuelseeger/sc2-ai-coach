@@ -1,10 +1,10 @@
 import pytest
 from rich import print
 
-from aicoach import AICoach
-from aicoach.prompt import Templates
 from config import config
-from replays.reader import ReplayReader
+from src.ai import AICoach
+from src.ai.prompt import Templates
+from src.replaydb.reader import ReplayReader
 
 
 def test_function_add_metadata(util):

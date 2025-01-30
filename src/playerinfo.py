@@ -6,7 +6,6 @@ from io import BytesIO
 from os.path import getmtime
 from typing import List, Tuple
 
-
 import numpy as np
 from PIL import Image
 from pyodmongo.models.responses import DbResponse
@@ -14,15 +13,13 @@ from pyodmongo.queries import elem_match
 from pyodmongo.queries import sort as od_sort
 
 from config import config
-from obs_tools.lib.battlenet import BattleNet
-from obs_tools.lib.sc2client import SC2Client
-from obs_tools.lib.sc2pulse import SC2PulseClient
-
-from replays.db import replaydb
-from replays.types import Alias, PlayerInfo, Replay, to_bson_binary
-from replays.util import is_aware, is_barcode
 from shared import http_client
-
+from src.lib.battlenet import BattleNet
+from src.lib.sc2client import SC2Client
+from src.lib.sc2pulse import SC2PulseClient
+from src.replaydb.db import replaydb
+from src.replaydb.types import Alias, PlayerInfo, Replay, to_bson_binary
+from src.replaydb.util import is_aware, is_barcode
 
 if config.obs_integration:
     from external.fast_ssim.ssim import ssim

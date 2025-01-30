@@ -16,6 +16,7 @@ dependencies:
   - jinja2
   - pandas
   - tabulate
+  - watchdog
   - pip
   - pip:
       - git+https://github.com/NumberPigeon/sc2reader-plugins.git

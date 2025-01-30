@@ -4,14 +4,15 @@ from os.path import basename
 from pathlib import Path
 from time import sleep
 
-from config import config
-from obs_tools.playerinfo import save_player_info
-from replays.db import replaydb
-from replays.reader import ReplayReader
-from shared import signal_queue
-from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from obs_tools.events.types import NewReplayResult
+from watchdog.observers import Observer
+
+from config import config
+from shared import signal_queue
+from src.events.types import NewReplayResult
+from src.playerinfo import save_player_info
+from src.replaydb.db import replaydb
+from src.replaydb.reader import ReplayReader
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 log.setLevel(logging.INFO)

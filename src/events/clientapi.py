@@ -1,10 +1,12 @@
-import threading
-from ..lib.sc2client import is_live_game, SC2Client
-from .types import ScanResult
 import logging
+import threading
+from time import sleep
+
 from config import config
 from shared import signal_queue
-from time import sleep
+
+from ..lib.sc2client import SC2Client, is_live_game
+from .types import ScanResult
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 

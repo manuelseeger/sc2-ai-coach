@@ -6,9 +6,9 @@ import httpx
 import tiktoken
 from rich import print, print_json
 
-from aicoach.functions import AIFunctions
-from aicoach.prompt import Templates
 from config import config
+from src.ai.functions import AIFunctions
+from src.ai.prompt import Templates
 
 
 @click.command()
@@ -43,7 +43,7 @@ def main(do_deploy):
 
     print(f"Current tokens in initial instructions: {len(tokens)}")
 
-    with open(os.path.join("aicoach", "assistant.json"), "w") as f:
+    with open("assistant.json", "w") as f:
         f.write(json.dumps(assistant, indent=2))
 
     if do_deploy:

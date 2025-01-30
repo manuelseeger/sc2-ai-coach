@@ -1,7 +1,8 @@
 from typing import Optional
 
 from pydantic import BaseModel
-from replays.types import Replay
+
+from src.replaydb.types import Replay
 
 
 class NewReplayResult(BaseModel):

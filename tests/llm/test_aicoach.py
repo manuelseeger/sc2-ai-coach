@@ -1,10 +1,10 @@
 from pydantic import BaseModel
 from rich import print
 
-from aicoach import AICoach
-from aicoach.prompt import Templates
 from config import config
-from replays.db import replaydb
+from src.ai import AICoach
+from src.ai.prompt import Templates
+from src.replaydb.db import replaydb
 
 
 def test_function_smurf_detection(util):

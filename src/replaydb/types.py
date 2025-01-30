@@ -2,15 +2,17 @@ import re
 from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, ClassVar, Dict, List, Literal, Tuple
-from pydantic_core import CoreSchema, core_schema
 
 import bson
 import pydantic
 from pydantic import AfterValidator, BaseModel, Field, ValidationError
+from pydantic_core import CoreSchema, core_schema
 from pyodmongo import DbModel, MainBaseModel
 from typing_extensions import Annotated
-from shared import REGION_MAP
+
 from config import AIBackend, config
+from shared import REGION_MAP
+
 from .util import time2secs
 
 

@@ -1,8 +1,10 @@
-from replays.newreplay import NewReplayHandler, NewReplayScanner
-from config import config
-import pytest
 import shutil
 from pathlib import Path
+
+import pytest
+
+from config import config
+from src.events.newreplay import NewReplayHandler, NewReplayScanner
 
 
 @pytest.mark.parametrize(

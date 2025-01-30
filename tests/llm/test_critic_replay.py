@@ -2,7 +2,7 @@ import parametrize_from_file
 import pytest
 
 from coach import AISession
-from replays.reader import ReplayReader
+from src.replaydb.reader import ReplayReader
 from tests.conftest import only_in_debugging
 from tests.critic import LmmCritic
 from tests.mocks import MicMock, TranscriberMock, TTSMock

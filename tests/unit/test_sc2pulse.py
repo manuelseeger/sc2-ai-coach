@@ -1,6 +1,5 @@
-from obs_tools.lib.sc2client import Race
-from obs_tools.lib.sc2pulse import SC2PulseRace
-from replays.util import convert_enum
+from src.lib.sc2client import Race
+from src.lib.sc2pulse import SC2PulseRace
 
 
 def test_convert_race():

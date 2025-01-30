@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+
 import sc2reader
 from sc2reader.engine.plugins import ContextLoader, CreepTracker
 from sc2reader_plugins import (
@@ -12,8 +13,8 @@ from sc2reader_plugins import (
 
 from config import config
 
-from .sc2readerplugins.ReplayStats import ReplayStats
-from .sc2readerplugins.SpawningTool import SpawningTool
+from .plugins.ReplayStats import ReplayStats
+from .plugins.SpawningTool import SpawningTool
 from .types import Replay
 
 log = logging.getLogger(config.name)

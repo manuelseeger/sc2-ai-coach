@@ -11,10 +11,10 @@ import httpx
 from pydantic import BaseModel, computed_field
 
 from config import config
-from obs_tools.lib.battlenet import toon_handle_from_id
-from obs_tools.lib.sc2client import Race as GameInfoRace
-from replays.types import ToonHandle
-from replays.util import convert_enum, is_barcode
+from src.lib.battlenet import toon_handle_from_id
+from src.lib.sc2client import Race as GameInfoRace
+from src.replaydb.types import ToonHandle
+from src.replaydb.util import convert_enum, is_barcode
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 

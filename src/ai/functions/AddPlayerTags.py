@@ -4,8 +4,8 @@ from typing import Annotated
 from pydantic import ValidationError
 
 from config import config
-from replays.db import eq, replaydb
-from replays.types import FieldTypeValidator, PlayerInfo, ToonHandle
+from src.replaydb.db import eq, replaydb
+from src.replaydb.types import FieldTypeValidator, PlayerInfo, ToonHandle
 
 from .base import AIFunction
 

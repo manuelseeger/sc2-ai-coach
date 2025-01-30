@@ -4,8 +4,8 @@ from typing import Annotated
 from pydantic import ValidationError
 
 from config import config
-from replays.db import eq, replaydb
-from replays.types import Metadata, ReplayId
+from src.replaydb.db import eq, replaydb
+from src.replaydb.types import Metadata, ReplayId
 
 from .base import AIFunction
 

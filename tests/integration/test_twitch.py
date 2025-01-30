@@ -1,7 +1,5 @@
 from coach import AISession
-
-from obs_tools.events.types import TwitchChatResult
-
+from src.events.types import TwitchChatResult
 from tests.conftest import only_in_debugging
 
 

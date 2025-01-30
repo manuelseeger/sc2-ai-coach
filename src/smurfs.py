@@ -6,9 +6,9 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict, computed_field, field_validator
 
 from config import config
-from obs_tools.lib.sc2pulse import SC2PulseClient, SC2PulseCommonCharacter, SC2PulseRace
-from replays.types import ToonHandle
 from shared import http_client
+from src.lib.sc2pulse import SC2PulseClient, SC2PulseCommonCharacter, SC2PulseRace
+from src.replaydb.types import ToonHandle
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 

@@ -4,8 +4,8 @@ from typing import Annotated
 from bson.json_util import dumps, loads
 
 from config import config
-from replays.db import replaydb
-from replays.types import Replay
+from src.replaydb.db import replaydb
+from src.replaydb.types import Replay
 
 from ..utils import force_valid_json_string
 from .base import AIFunction

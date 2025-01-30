@@ -5,9 +5,10 @@ from typing import Dict, Optional
 import httpx
 from blizzardapi2 import BlizzardApi
 from pydantic import BaseModel, HttpUrl
-from replays.types import ToonHandle
+
 from config import config
 from shared import REGION_MAP
+from src.replaydb.types import ToonHandle
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 

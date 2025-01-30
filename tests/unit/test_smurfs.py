@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from obs_tools.smurfs import MatchHistory
+from src.smurfs import MatchHistory
 
 
 @pytest.mark.parametrize(

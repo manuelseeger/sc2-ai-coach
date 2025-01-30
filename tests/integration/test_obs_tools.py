@@ -2,9 +2,9 @@ import logging
 
 from rich import print
 
-from obs_tools.io.rich_log import RichConsoleLogHandler
-from obs_tools.lib.sc2client import SC2Client
-from replays.util import is_barcode
+from src.io.rich_log import RichConsoleLogHandler
+from src.lib.sc2client import SC2Client
+from src.replaydb.util import is_barcode
 
 log = logging.getLogger("twitch")
 log.setLevel(logging.DEBUG)

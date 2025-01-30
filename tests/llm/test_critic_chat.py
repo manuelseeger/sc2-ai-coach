@@ -2,9 +2,9 @@ import parametrize_from_file
 from pydantic import BaseModel
 from rich import print
 
-from aicoach import AICoach
-from aicoach.prompt import Templates
 from config import config
+from src.ai import AICoach
+from src.ai.prompt import Templates
 from tests.conftest import LmmCritic, only_in_debugging
 
 

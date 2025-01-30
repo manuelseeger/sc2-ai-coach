@@ -3,9 +3,9 @@ from datetime import datetime, timedelta
 import pytest
 
 from config import config
-from replays.db import eq, replaydb
-from replays.reader import ReplayReader
-from replays.types import AssistantMessage, Metadata, Replay, Role
+from src.replaydb.db import eq, replaydb
+from src.replaydb.reader import ReplayReader
+from src.replaydb.types import AssistantMessage, Metadata, Replay, Role
 
 
 def test_db_ready():

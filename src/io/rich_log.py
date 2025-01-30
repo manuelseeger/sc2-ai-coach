@@ -8,7 +8,7 @@ from rich.markdown import Markdown
 from rich.status import Status
 
 from config import config
-from replays.types import Role
+from src.replaydb.types import Role
 
 console = Console()
 

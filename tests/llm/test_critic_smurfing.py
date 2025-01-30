@@ -3,9 +3,9 @@ import parametrize_from_file
 import pytest
 
 from coach import AISession
-from obs_tools.smurfs import MatchHistory
-from replays.reader import ReplayReader
-from replays.types import PlayerInfo
+from src.replaydb.reader import ReplayReader
+from src.replaydb.types import PlayerInfo
+from src.smurfs import MatchHistory
 from tests.conftest import only_in_debugging
 from tests.critic import LmmCritic
 from tests.mocks import MicMock, TranscriberMock, TTSMock

@@ -1,7 +1,7 @@
 import pytest
 
-from aicoach.functions import AddMetadata, AIFunctions
-from aicoach.utils import force_valid_json_string, get_clean_tags
+from src.ai.functions import AddMetadata, AIFunctions
+from src.ai.utils import force_valid_json_string, get_clean_tags
 
 
 @pytest.mark.parametrize(

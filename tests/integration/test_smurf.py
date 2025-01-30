@@ -1,6 +1,6 @@
 import pytest
 
-from obs_tools.smurfs import get_sc2pulse_match_history
+from src.smurfs import get_sc2pulse_match_history
 from tests.conftest import only_in_debugging
 
 

@@ -1,6 +1,6 @@
 import pytest
 
-from replays.types import FieldTypeValidator, ToonHandle
+from src.replaydb.types import FieldTypeValidator, ToonHandle
 
 
 @pytest.mark.parametrize(
@@ -19,11 +19,7 @@ def test_validate_toonhandle(value, is_valid):
 
 
 def test_twitch_result_types():
-    from obs_tools.events.types import (
-        TwitchChatResult,
-        TwitchFollowResult,
-        TwitchRaidResult,
-    )
+    from src.events.types import TwitchChatResult, TwitchFollowResult, TwitchRaidResult
 
     chat_result = TwitchChatResult(message="test", user="test", channel="test")
     assert chat_result.message == "test"

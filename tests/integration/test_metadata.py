@@ -1,9 +1,8 @@
 import pytest
 
-from aicoach.aicoach_mock import AICoachMock as AICoach
-from aicoach.functions import AddMetadata
-from replays.metadata import save_replay_summary
-from replays.reader import ReplayReader
+from src.ai.aicoach_mock import AICoachMock as AICoach
+from src.ai.functions import AddMetadata
+from src.replaydb.reader import ReplayReader
 from tests.conftest import only_in_debugging
 
 

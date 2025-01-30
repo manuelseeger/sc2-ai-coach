@@ -35,7 +35,7 @@ class Jinja2Loader:
 
     def __init__(self):
         self.env = LoggingEnvironment(
-            loader=FileSystemLoader(searchpath="./aicoach/prompts/")
+            loader=FileSystemLoader(searchpath="./src/ai/prompts/")
         )
         self.new_game = self.env.get_template("new_game.jinja2")
         self.new_replay = self.env.get_template("new_replay.jinja2")

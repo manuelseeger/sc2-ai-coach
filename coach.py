@@ -7,46 +7,44 @@ from typing import Callable
 
 import click
 from Levenshtein import distance as levenshtein
+from openai.types.beta.threads import Message
 from pydantic import BaseModel
 from rich.prompt import Prompt
 
-
-from aicoach import AICoach
-from aicoach.prompt import Templates
 from config import AIBackend, AudioMode, CoachEvent, config
 from log import log
-from obs_tools.playerinfo import resolve_replays_from_current_opponent
-from obs_tools.io.rich_log import RichConsoleLogHandler
-from obs_tools.smurfs import get_sc2pulse_match_history
-from obs_tools.events.types import (
+from shared import signal_queue
+from src.ai import AICoach
+from src.ai.prompt import Templates
+from src.events.types import (
+    NewReplayResult,
     ScanResult,
     TwitchChatResult,
     TwitchFollowResult,
     TwitchRaidResult,
     WakeResult,
-    NewReplayResult,
 )
-from replays.db import replaydb
-from replays.metadata import save_replay_summary
-from replays.types import Replay, Role, Session, Usage
-from shared import signal_queue
-
+from src.io.rich_log import RichConsoleLogHandler
+from src.playerinfo import resolve_replays_from_current_opponent
+from src.replaydb.db import eq, replaydb
+from src.replaydb.types import AssistantMessage, Metadata, Replay, Role, Session, Usage
+from src.smurfs import get_sc2pulse_match_history
 
 # Setup: Input output, logging, depending on config
 if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
-    from aicoach.transcribe import Transcriber
-    from obs_tools.io.mic import Microphone
+    from src.io.mic import Microphone
+    from src.io.transcribe import Transcriber
 
     mic = Microphone()
     transcriber = Transcriber()
 
 if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
-    from obs_tools.io.tts import make_tts_stream
+    from src.io.tts import make_tts_stream
 
     tts = make_tts_stream()
 
 if config.obs_integration:
-    from obs_tools.mapstats import update_map_stats
+    from src.mapstats import update_map_stats
 
 
 rich_handler = RichConsoleLogHandler()
@@ -68,25 +66,25 @@ def main(debug):
     session = AISession()
 
     if CoachEvent.twitch in config.coach_events:
-        from obs_tools.events.twitch import TwitchListener
+        from src.events.twitch import TwitchListener
 
         twitch = TwitchListener(name="twitch")
         twitch.start()
 
     if CoachEvent.wake in config.coach_events:
-        from obs_tools import WakeListener
+        from src import WakeListener
 
         listener = WakeListener(name="listener")
         listener.start()
 
     if CoachEvent.game_start in config.coach_events:
-        from obs_tools import GameStartedScanner
+        from src import GameStartedScanner
 
         scanner = GameStartedScanner(name="scanner")
         scanner.start()
 
     if CoachEvent.new_replay in config.coach_events:
-        from replays.newreplay import NewReplayScanner
+        from src.events.newreplay import NewReplayScanner
 
         replay_scanner = NewReplayScanner()
         replay_scanner.start()
@@ -99,6 +97,8 @@ def main(debug):
     log.info(
         f"AI Backend: {str(config.aibackend)} {config.gpt_model if config.aibackend == AIBackend.openai else ''}"
     )
+    if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
+        log.info(f"Transcriber: {config.speech_recognition_model}")
     log.info(f"Coach events enabled: {', '.join(config.coach_events)}")
 
     log.info(f"Starting { 'non-' * ( not config.interactive ) }interactive session")
@@ -465,7 +465,7 @@ class AISession:
                 self.say("I'll save a summary of the game.", flush=False)
                 self.update_last_replay(replay)
 
-                save_replay_summary(replay, self.coach)
+                self.save_replay_summary(replay)
 
                 self.close()
         else:
@@ -551,6 +551,34 @@ class AISession:
             self.say(response.answer, flush=False)
 
         self.close()
+
+    def save_replay_summary(self, replay: Replay):
+
+        messages: list[Message] = self.coach.get_conversation()
+
+        class Response(BaseModel):
+            summary: str
+            keywords: list[str]
+
+        response = self.coach.get_structured_response(
+            message=Templates.summary.render(), schema=Response
+        )
+
+        log.info(f"Added tags '{','.join(response.keywords)} to replay'")
+        meta: Metadata = Metadata(replay=replay.id, description=response.summary)
+        meta.tags = response.keywords
+        meta.conversation = [
+            AssistantMessage(
+                role=m.role,
+                text=m.content[0].text.value,
+                created_at=datetime.fromtimestamp(m.created_at),
+            )
+            # skip the instruction message which includes the replay as JSON
+            for m in messages[::-1][1:]
+            if m.content[0].text.value
+        ]
+
+        replaydb.db.save(meta, query=eq(Metadata.replay, replay.id))
 
 
 if __name__ == "__main__":

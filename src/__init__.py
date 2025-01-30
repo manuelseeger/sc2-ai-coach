@@ -7,7 +7,6 @@ if config.obs_integration:
 else:
     from .events.clientapi import ClientAPIScanner as GameStartedScanner
 
-
 if config.audiomode in [AudioMode.full, AudioMode.voice_in]:
     from .events.wakeword import WakeWordListener as WakeListener
 else:

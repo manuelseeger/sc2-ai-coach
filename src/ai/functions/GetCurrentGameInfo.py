@@ -1,7 +1,7 @@
 import logging
 
 from config import config
-from obs_tools.lib.sc2client import GameInfo, SC2Client
+from src.lib.sc2client import GameInfo, SC2Client
 
 from .base import AIFunction
 

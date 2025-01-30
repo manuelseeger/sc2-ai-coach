@@ -20,11 +20,10 @@ from openai.types.beta.threads.run import Usage
 from pydantic import BaseModel
 
 from config import config
+from shared import http_client
 
 from .functions import AIFunctions
 from .prompt import Templates
-
-from shared import http_client
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 

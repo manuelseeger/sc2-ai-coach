@@ -13,8 +13,8 @@ from Levenshtein import distance as levenstein
 from PIL import Image
 
 from config import config
-from obs_tools.lib.sc2client import SC2Client
 from shared import signal_queue
+from src.lib.sc2client import SC2Client
 
 from .types import ScanResult
 

@@ -28,6 +28,7 @@ dependencies:
   - scipy
   - jinja2
   - pillow
+  - watchdog
   - pip
   - pip:
       - pyaudio
