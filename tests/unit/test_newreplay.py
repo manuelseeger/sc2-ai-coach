@@ -1,5 +1,6 @@
 import shutil
 from pathlib import Path
+from time import sleep
 
 import pytest
 
@@ -23,6 +24,9 @@ def test_new_replay_added(replay_file, tmp_path: Path, mocker):
 
     # act
     shutil.copy(replay_file, tmp_path)
+
+    # unix doesn't dispatch file created immeditely
+    sleep(1)
 
     # assert
     process_new_file.assert_called_once()
