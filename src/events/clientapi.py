@@ -5,13 +5,13 @@ from time import sleep
 from config import config
 from shared import signal_queue
 
-from ..lib.sc2client import SC2Client, is_live_game
-from .types import ScanResult
+from src.lib.sc2client import SC2Client, is_live_game
+from src.events import NewMatchEvent
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
 
-class ClientAPIScanner(threading.Thread):
+class ClientAPIListener(threading.Thread):
 
     last_gameinfo = None
 
@@ -53,7 +53,7 @@ class ClientAPIScanner(threading.Thread):
                 opponent, race = self.sc2client.get_opponent(gameinfo)
                 mapname = ""
 
-                scanresult = ScanResult(mapname=mapname, opponent=opponent)
+                scanresult = NewMatchEvent(mapname=mapname, opponent=opponent)
                 signal_queue.put(scanresult)
 
             sleep(1)

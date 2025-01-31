@@ -19,16 +19,16 @@ def test_validate_toonhandle(value, is_valid):
 
 
 def test_twitch_result_types():
-    from src.events.types import TwitchChatResult, TwitchFollowResult, TwitchRaidResult
+    from src.events import TwitchChatEvent, TwitchFollowEvent, TwitchRaidEvent
 
-    chat_result = TwitchChatResult(message="test", user="test", channel="test")
+    chat_result = TwitchChatEvent(message="test", user="test", channel="test")
     assert chat_result.message == "test"
 
-    follow_result = TwitchFollowResult(user="test", event={"test": "test"})
+    follow_result = TwitchFollowEvent(user="test", event={"test": "test"})
     assert follow_result.user == "test"
     assert follow_result.event == {"test": "test"}
 
-    raid_result = TwitchRaidResult(user="test", viewers=11)
+    raid_result = TwitchRaidEvent(user="test", viewers=11)
     assert raid_result.user == "test"
     assert raid_result.viewers == 11
 

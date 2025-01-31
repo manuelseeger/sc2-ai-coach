@@ -4,7 +4,7 @@ import threading
 import keyboard
 
 from config import config
-from src.events.types import WakeResult
+from src.events import WakeEvent
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -30,4 +30,4 @@ class WakeKeyListener(threading.Thread):
 
     def listen_for_wake_key(self):
         log.debug("Wake key pressed")
-        signal_queue.put(WakeResult(awake=True))
+        signal_queue.put(WakeEvent(awake=True))

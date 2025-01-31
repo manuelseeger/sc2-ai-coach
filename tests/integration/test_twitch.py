@@ -1,5 +1,5 @@
 from coach import AISession
-from src.events.types import TwitchChatResult
+from src.events import TwitchChatEvent
 from tests.conftest import only_in_debugging
 
 
@@ -9,22 +9,22 @@ def test_twitch_chat():
     session = AISession()
 
     chat = [
-        TwitchChatResult(
+        TwitchChatEvent(
             channel="zatic",
             message="When was the last game zatic played?",
             user="hobgoblin",
         ),
-        TwitchChatResult(
+        TwitchChatEvent(
             channel="zatic",
             message="This is so cool",
             user="tuorello",
         ),
-        TwitchChatResult(
+        TwitchChatEvent(
             channel="zatic",
             message="I love this",
             user="tuorello",
         ),
-        TwitchChatResult(
+        TwitchChatEvent(
             channel="zatic",
             message="and what time was it?",
             user="hobgoblin",

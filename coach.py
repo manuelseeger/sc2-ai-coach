@@ -16,13 +16,13 @@ from log import log
 from shared import signal_queue
 from src.ai import AICoach
 from src.ai.prompt import Templates
-from src.events.types import (
-    NewReplayResult,
-    ScanResult,
-    TwitchChatResult,
-    TwitchFollowResult,
-    TwitchRaidResult,
-    WakeResult,
+from src.events import (
+    NewReplayEvent,
+    NewMatchEvent,
+    TwitchChatEvent,
+    TwitchFollowEvent,
+    TwitchRaidEvent,
+    WakeEvent,
 )
 from src.io.rich_log import RichConsoleLogHandler
 from src.playerinfo import resolve_replays_from_current_opponent
@@ -66,27 +66,27 @@ def main(debug):
     session = AISession()
 
     if CoachEvent.twitch in config.coach_events:
-        from src.events.twitch import TwitchListener
+        from src.events import TwitchListener
 
         twitch = TwitchListener(name="twitch")
         twitch.start()
 
     if CoachEvent.wake in config.coach_events:
-        from src import WakeListener
+        from src.events import WakeListener
 
         listener = WakeListener(name="listener")
         listener.start()
 
     if CoachEvent.game_start in config.coach_events:
-        from src import GameStartedScanner
+        from src.events import GameStartedListener
 
-        scanner = GameStartedScanner(name="scanner")
+        scanner = GameStartedListener(name="scanner")
         scanner.start()
 
     if CoachEvent.new_replay in config.coach_events:
-        from src.events.newreplay import NewReplayScanner
+        from src.events import NewReplayListener
 
-        replay_scanner = NewReplayScanner()
+        replay_scanner = NewReplayListener()
         replay_scanner.start()
 
     if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
@@ -184,12 +184,12 @@ class AISession:
         replaydb.db.save(self.session)
 
         self.handlers = {
-            TwitchChatResult: self.handle_twitch_chat,
-            TwitchFollowResult: self.handle_twitch_follow,
-            TwitchRaidResult: self.handle_twitch_raid,
-            WakeResult: self.handle_wake,
-            ScanResult: self.handle_game_start,
-            Replay: self.handle_new_replay,
+            TwitchChatEvent: self.handle_twitch_chat,
+            TwitchFollowEvent: self.handle_twitch_follow,
+            TwitchRaidEvent: self.handle_twitch_raid,
+            WakeEvent: self.handle_wake,
+            NewMatchEvent: self.handle_game_start,
+            NewReplayEvent: self.handle_new_replay,
         }
 
     def get_handler(self, task) -> Callable | None:
@@ -401,7 +401,7 @@ class AISession:
 
         self.thread_id = self.coach.create_thread(prompt)
 
-    def handle_game_start(self, scanresult: ScanResult):
+    def handle_game_start(self, scanresult: NewMatchEvent):
         """Handle new game event.
 
         This is invoked when a new match is started in SC2.
@@ -427,7 +427,7 @@ class AISession:
         else:
             log.debug("active thread, skipping")
 
-    def handle_wake(self, wakeresult: WakeResult):
+    def handle_wake(self, wakeresult: WakeEvent):
         """Handle a wake event.
 
         This is the user waking up the assistant for a conversation
@@ -444,7 +444,7 @@ class AISession:
         else:
             log.debug("active thread, skipping")
 
-    def handle_new_replay(self, replay_result: NewReplayResult):
+    def handle_new_replay(self, replay_result: NewReplayEvent):
         """Handle a new replay event.
 
         This is invoked when a new replay is added to the replay folder.
@@ -471,7 +471,7 @@ class AISession:
         else:
             log.debug("active thread, skipping")
 
-    def handle_twitch_follow(self, twitch_follow: TwitchFollowResult):
+    def handle_twitch_follow(self, twitch_follow: TwitchFollowEvent):
         """Handle a twitch follow event.
 
         Thanks the follower.
@@ -488,7 +488,7 @@ class AISession:
         log.info(response, extra={"role": Role.assistant})
         self.close()
 
-    def handle_twitch_raid(self, twitch_raid: TwitchRaidResult):
+    def handle_twitch_raid(self, twitch_raid: TwitchRaidEvent):
         """Handle a twitch raid event.
 
         Thanks the raider and welcomes the viewers
@@ -506,7 +506,7 @@ class AISession:
         log.info(response, extra={"role": Role.assistant})
         self.close()
 
-    def handle_twitch_chat(self, twitch_chat: TwitchChatResult):
+    def handle_twitch_chat(self, twitch_chat: TwitchChatEvent):
         """Handle a twitch chat event.
 
         If a viewer says something in chat, figure out if the message is a question, and

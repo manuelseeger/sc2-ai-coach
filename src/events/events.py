@@ -5,33 +5,37 @@ from pydantic import BaseModel
 from src.replaydb.types import Replay
 
 
-class NewReplayResult(BaseModel):
+class EventBase(BaseModel):
+    pass
+
+
+class NewReplayEvent(EventBase):
     replay: Replay
 
 
-class ScanResult(BaseModel):
+class NewMatchEvent(EventBase):
     mapname: str
     opponent: str
 
 
-class WakeResult(BaseModel):
+class WakeEvent(EventBase):
     awake: bool
 
 
-class TwitchResult(BaseModel):
+class TwitchEvent(EventBase):
     channel: Optional[str] = None
     event: Optional[dict] = None
 
 
-class TwitchChatResult(TwitchResult):
+class TwitchChatEvent(TwitchEvent):
     user: str
     message: str
 
 
-class TwitchFollowResult(TwitchResult):
+class TwitchFollowEvent(TwitchEvent):
     user: str
 
 
-class TwitchRaidResult(TwitchResult):
+class TwitchRaidEvent(TwitchEvent):
     user: str
     viewers: int
