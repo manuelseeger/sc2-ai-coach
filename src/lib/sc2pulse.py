@@ -11,7 +11,6 @@ import httpx
 from pydantic import BaseModel, computed_field
 
 from config import config
-from src.lib.battlenet import toon_handle_from_id
 from src.lib.sc2client import Race as GameInfoRace
 from src.replaydb.types import ToonHandle
 from src.replaydb.util import convert_enum, is_barcode

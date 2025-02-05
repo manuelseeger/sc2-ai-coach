@@ -3,7 +3,7 @@ import numpy
 import pytest
 
 from external.fast_ssim.ssim import ssim
-from src.events.parse_map_loading_screen import parse_map_loading_screen
+from src.events.loading_screen import parse_map_loading_screen
 
 
 @pytest.mark.parametrize(

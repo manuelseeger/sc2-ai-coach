@@ -17,7 +17,7 @@ def test_twitch_chat(user, message, criteria, expected, util, critic: LmmCritic)
 
     Input, criteria, and expected in *.json files.
 
-    There are expensive tests as for every assistant invokation we also run
+    These are expensive tests as for every assistant invokation we also run
     completions on another LLM, which is why we only run these in debugging."""
 
     # arrange
