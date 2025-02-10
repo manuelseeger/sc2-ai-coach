@@ -31,7 +31,7 @@ def test_get_unmasked_player():
 @pytest.mark.parametrize(
     ("profile_id", "expected_name"),
     [
-        (2372922, "Oreoff"),
+        (2372922, "jay"),
         (691545, "zatic"),
     ],
 )

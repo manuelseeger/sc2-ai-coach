@@ -1,41 +1,6 @@
 import pytest
 
-from src.ai.aicoach_mock import AICoachMock as AICoach
 from src.ai.functions import AddMetadata
-from src.replaydb.reader import ReplayReader
-from tests.conftest import only_in_debugging
-
-
-@only_in_debugging
-@pytest.mark.parametrize(
-    "replay_file",
-    [
-        "Site Delta LE (106) ZvZ 2base Muta into mass muta chaotic win.SC2Replay",
-    ],
-    indirect=True,
-)
-def test_save_replay_summary(replay_file):
-
-    coach = AICoach()
-    coach.create_thread()
-
-    data = [
-        {
-            "role": "assistant",
-            "text": "On a 2 player map, the Zerg player opened with a 2 base Muta build, transitioning into mass Mutas. The game was chaotic, but the Zerg player won.",
-        },
-        {
-            "role": "assistant",
-            "text": "2 player map, ZvZ, 2 base Muta, mass Muta, chaotic win",
-        },
-    ]
-    coach.set_data(data)
-
-    reader = ReplayReader()
-
-    replay = reader.load_replay(replay_file)
-
-    save_replay_summary(replay, coach)
 
 
 @pytest.mark.parametrize(

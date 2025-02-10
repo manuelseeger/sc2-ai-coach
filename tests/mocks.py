@@ -1,3 +1,6 @@
+from rich import print
+
+
 class MicMock:
     def listen(self):
         return None

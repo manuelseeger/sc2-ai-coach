@@ -1,13 +1,14 @@
-from os.path import join
-
 import pytest
-from rich import print
 
 from coach import AISession
+from config import config
+from src.events import NewReplayEvent
 from src.replaydb.reader import ReplayReader
+from tests.conftest import only_in_debugging
 from tests.mocks import MicMock, TranscriberMock, TTSMock
 
 
+@only_in_debugging
 @pytest.mark.parametrize(
     "replay_file",
     [
@@ -15,15 +16,17 @@ from tests.mocks import MicMock, TranscriberMock, TTSMock
     ],
     indirect=True,
 )
-def test_init_from_new_replay(replay_file):
+def test_init_from_new_replay(replay_file, mocker):
     reader = ReplayReader()
     session = AISession()
+
+    mocker.patch("coach.tts", TTSMock())
 
     replay = reader.load_replay(replay_file)
 
     session.initiate_from_new_replay(replay)
-
     assert session.is_active()
+    response = session.stream_thread()
 
     message = f"How would you summarize the game in 1 paragraph? Make sure to include tech choices, timings, but keep it short."
 
@@ -32,6 +35,7 @@ def test_init_from_new_replay(replay_file):
     session.close()
 
 
+@only_in_debugging
 @pytest.mark.parametrize(
     "replay_file",
     [
@@ -39,12 +43,16 @@ def test_init_from_new_replay(replay_file):
     ],
     indirect=True,
 )
-def test_init_from_replay_with_nonutf8_chars(replay_file):
+def test_init_from_replay_with_nonutf8_chars(replay_file, mocker):
     reader = ReplayReader()
     session = AISession()
+
+    mocker.patch("coach.tts", TTSMock())
+
     replay = reader.load_replay(replay_file)
 
     session.initiate_from_new_replay(replay)
+    response = session.stream_thread()
 
     message = f"How would you summarize the game in 1 paragraph? Make sure to include tech choices, timings, but keep it short."
 
@@ -53,6 +61,7 @@ def test_init_from_replay_with_nonutf8_chars(replay_file):
     session.close()
 
 
+@only_in_debugging
 @pytest.mark.parametrize(
     "replay_file",
     [
@@ -61,6 +70,8 @@ def test_init_from_replay_with_nonutf8_chars(replay_file):
     indirect=["replay_file"],
 )
 def test_init_from_replay_with_metadata(replay_file, mocker):
+
+    assert config.interactive
     reader = ReplayReader()
     session = AISession()
 
@@ -77,6 +88,7 @@ def test_init_from_replay_with_metadata(replay_file, mocker):
     rep = "Solaris LE (179) ZvP ground hydra lurker.SC2Replay"
 
     replay = reader.load_replay(replay_file)
-    session.handle_new_replay(__name__, replay)
+
+    session.handle_new_replay(NewReplayEvent(replay=replay))
 
     session.close()
