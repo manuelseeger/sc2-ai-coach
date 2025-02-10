@@ -1,19 +1,37 @@
 import logging
+from typing import Any
+from urllib.parse import urljoin, urlparse, urlunparse
 
-import requests
+import httpx
 from bs4 import BeautifulSoup
 from Levenshtein import distance as levenshtein
+from pydantic import HttpUrl
 
 from config import config
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
 
+def add_path_segment(url: HttpUrl, *segments: Any) -> str:
+    parsed_url = urlparse(str(url))
+
+    new_path = "/".join(
+        [parsed_url.path.rstrip("/")] + [str(s) for s in list(segments)]
+    )
+
+    updated_url = urlunparse(parsed_url._replace(path=new_path))
+    return updated_url
+
+
 def get_map_stats(map):
     if config.student.sc2replaystats_map_url is None:
         return None
-    with requests.Session() as s:
-        url = f"{config.student.sc2replaystats_map_url}/{config.season}/{config.student.race[0]}"
+    with httpx.Client() as s:
+
+        url = add_path_segment(
+            config.student.sc2replaystats_map_url, config.season, config.student.race[0]
+        )
+
         try:
             r = s.get(url)
             soup = BeautifulSoup(r.content, "html.parser")

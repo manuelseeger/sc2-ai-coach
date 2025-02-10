@@ -40,6 +40,7 @@ student:
   # Emoji to represent the student in output
   emoji: ":man_technologist:"
   # URL pointing to your public sc2replaystats profile's map stats (optional)
+  # Example https://sc2replaystats.com/account/maps/69238/0/238923/1v1/AutoMM
   sc2replaystats_map_url:
 
 # Address of the SC2 game client server
@@ -81,7 +82,7 @@ last_played_ago_max: 2400
 match_history_depth: 100
 
 # Current ladder season
-season: 61
+season: 62
 # Maps in the current ladder pool
 ladder_maps:
  - Neon Violet Square LE

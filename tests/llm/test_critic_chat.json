@@ -23,6 +23,18 @@
             "message": "Where can I download this?",
             "criteria": "Includes link to source code on github.com",
             "expected": true
+        },
+        {
+            "user": "Sgt_Sadsack",
+            "message": "@zatic when do you usually play so I can avoid you?",
+            "criteria": "Answers for \"zatic\" or in the 3rd person, not in the 1st person",
+            "expected": true
+        },
+        {
+            "user": "Sgt_Sadsack",
+            "message": "Have you ever reached masters?",
+            "criteria": "Answer is in the first person.",
+            "expected": true
         }
     ]
 }

@@ -1,5 +1,6 @@
 from src.lib.sc2client import SC2Client
 from src.replaydb.util import is_barcode
+from tests.conftest import only_in_debugging
 
 from config import config
 import pytest
@@ -8,6 +9,7 @@ import pytest
 # SC2 must be running and a game must be in progress or have been played recently
 # or use https://github.com/manuelseeger/sc2apiemulator
 @pytest.mark.parametrize("opponent", ["BarCode", "HobGoblin"])
+@only_in_debugging
 def test_sc2client_get_opponent(opponent, sc2apiemulator, sc2api_set):
     # arrange
 
