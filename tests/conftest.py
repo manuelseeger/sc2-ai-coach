@@ -1,6 +1,12 @@
 import pathlib
 import sys
 from os.path import exists, join
+from urllib.parse import urljoin
+
+import time
+import pytest
+import docker
+import httpx
 
 import pytest
 
@@ -86,3 +92,96 @@ def util():
 @pytest.fixture
 def critic():
     return LmmCritic()
+
+
+@pytest.fixture(scope="session")
+def sc2api_container():
+    """
+    Starts a docker container from the manuelseeger/sc2apiemulator image, exposing port 6119.
+    Waits until a GET request to the base URL returns HTTP 200.
+    Yields the base URL for the service.
+    """
+    client = docker.from_env()
+    container = client.containers.run(
+        "manuelseeger/sc2apiemulator", detach=True, ports={"6119/tcp": 6119}
+    )
+
+    base_url = "http://localhost:6119"
+    # Wait until the container is ready (max 30 seconds)
+    for _ in range(30):
+        try:
+            response = httpx.get(base_url)
+            if response.status_code == 200:
+                break
+        except Exception:
+            pass
+        time.sleep(1)
+    else:
+        container.stop()
+        container.remove(force=True)
+        pytest.fail("SC2 API emulator did not start in time.")
+
+    yield base_url
+
+    container.stop()
+    container.remove(force=True)
+
+
+@pytest.fixture
+def sc2apiemulator(sc2api_container):
+    """
+    Returns a function that sends a POST request to the emulator.
+    Accepts an optional payload (defaults to empty).
+    """
+
+    def _post(payload={}):
+        payload = {
+            k: str(v).lower() if isinstance(v, bool) else v for k, v in payload.items()
+        }
+        return httpx.post(urljoin(sc2api_container, "set"), json=payload)
+
+    return _post
+
+
+@pytest.fixture
+def sc2api_set():
+    return {
+        "state": "ingame",
+        "replay": "false",
+        "autotime": "true",
+        "displaytime": "0",
+        "menu_state": "ScreenHome/ScreenHome",
+        "additional_menu_state": "None",
+        "name1": "player1",
+        "race1": "Terr",
+        "result1": "Victory",
+        "name2": "player2",
+        "race2": "Zerg",
+        "result2": "Defeat",
+        "name3": "player3",
+        "race3": "Terr",
+        "result3": "Defeat",
+        "name4": "player4",
+        "race4": "Terr",
+        "result4": "Victory",
+        "name5": "player5",
+        "race5": "Terr",
+        "result5": "Defeat",
+        "name6": "player6",
+        "race6": "Terr",
+        "result6": "Defeat",
+        "name7": "player7",
+        "race7": "Terr",
+        "result7": "Victory",
+        "name8": "player8",
+        "race8": "Terr",
+        "result8": "Victory",
+        "enabled1": True,
+        "enabled2": True,
+        "enabled3": False,
+        "enabled4": False,
+        "enabled5": False,
+        "enabled6": False,
+        "enabled7": False,
+        "enabled8": False,
+    }
