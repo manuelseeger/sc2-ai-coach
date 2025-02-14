@@ -110,12 +110,15 @@ default_projection:
   players.play_race: 1
   players.result: 1
   players.scaled_rating: 1
-  players.stats: 1
+  players.stats.avg_unspent_resources: 1
   players.toon_handle: 1
   players.build_order.time: 1
   players.build_order.name: 1
   players.build_order.supply: 1
   players.build_order.is_chronoboosted: 1
+  players.worker_stats.worker_micro: 1
+  players.worker_stats.worker_split: 1
+  players.worker_stats.worker_trained_total: 1
   real_length: 1
   stats: 1
   unix_timestamp: 1

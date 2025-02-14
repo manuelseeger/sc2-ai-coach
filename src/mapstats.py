@@ -1,11 +1,13 @@
 import logging
-from typing import Any
+from functools import cached_property
+from typing import Any, ClassVar, Dict
 from urllib.parse import urljoin, urlparse, urlunparse
 
 import httpx
 from bs4 import BeautifulSoup
 from Levenshtein import distance as levenshtein
-from pydantic import HttpUrl
+from pydantic import BaseModel, HttpUrl, computed_field
+from pyodmongo import DbModel, MainBaseModel
 
 from config import config
 
@@ -52,3 +54,101 @@ def update_map_stats(map):
     if stats is not None:
         with open("obs/map_stats.html", "w") as f:
             f.write(stats.prettify())
+
+
+class Matchup(MainBaseModel):
+    matchup: str
+    totalGames: int
+    wins: int
+    losses: int
+
+    @computed_field
+    @cached_property
+    def winrate(self) -> float:
+        return self.wins / self.totalGames
+
+
+class MatchupsByMap(DbModel):
+    map: str
+    matchups: list[Matchup]
+    _collection: ClassVar = "replays"
+    _pipeline: ClassVar = [
+        {"$match": {"players.name": config.student.name}},
+        # unwind the unordered player array so that we have dedicated
+        # objects for student and opponent
+        {
+            "$project": {
+                "map_name": 1,
+                "players": 1,
+                "theplayer": {
+                    "$arrayElemAt": [
+                        "$players",
+                        {"$indexOfArray": ["$players.name", config.student.name]},
+                    ]
+                },
+                "opponent": {
+                    "$arrayElemAt": [
+                        "$players",
+                        {
+                            "$cond": [
+                                {
+                                    "$eq": [
+                                        {
+                                            "$indexOfArray": [
+                                                "$players.name",
+                                                config.student.name,
+                                            ]
+                                        },
+                                        0,
+                                    ]
+                                },
+                                1,
+                                0,
+                            ]
+                        },
+                    ]
+                },
+            }
+        },
+        {"$match": {"$expr": {"$eq": ["$theplayer.play_race", config.student.race]}}},
+        {
+            "$group": {
+                "_id": {
+                    "map_name": "$map_name",
+                    "matchup": {
+                        "$concat": ["$theplayer.play_race", "v", "$opponent.play_race"]
+                    },
+                },
+                "totalGames": {"$sum": 1},
+                "wins": {
+                    "$sum": {"$cond": [{"$eq": ["$theplayer.result", "Win"]}, 1, 0]}
+                },
+                "losses": {
+                    "$sum": {"$cond": [{"$eq": ["$theplayer.result", "Loss"]}, 1, 0]}
+                },
+            }
+        },
+        {
+            "$project": {
+                "map_name": "$_id.map_name",
+                "matchup": "$_id.matchup",
+                "totalGames": 1,
+                "wins": 1,
+                "losses": 1,
+            }
+        },
+        {
+            "$group": {
+                "_id": "$map_name",
+                "matchups": {
+                    "$push": {
+                        "matchup": "$matchup",
+                        "totalGames": "$totalGames",
+                        "wins": "$wins",
+                        "losses": "$losses",
+                    }
+                },
+            }
+        },
+        {"$project": {"_id": 0, "map": "$_id", "matchups": 1}},
+    ]
