@@ -67,7 +67,7 @@ class Result(str, Enum):
 class Player(BaseModel):
     id: int
     name: str
-    type: str
+    type: str = "user"
     race: Race
     result: Result
 
