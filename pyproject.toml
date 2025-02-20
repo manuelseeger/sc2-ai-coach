@@ -27,10 +27,6 @@ dependencies = [
     "watchdog>=6.0.0",
 ]
 
-
-[project.scripts]
-coach = "coach:main"
-
 [project.optional-dependencies]
 standard = [
     "numpy>=2.2.2",
@@ -38,17 +34,38 @@ standard = [
     "opencv-python>=4.11.0.86",
     "openwakeword>=0.6.0",
     "pyaudio>=0.2.14",
+    "scipy>=1.15.1",
+    "soundfile>=0.13.1",
+    "speechrecognition[audio]>=3.14.1",
+    "tesserocr",
+    "torch>=2.6.0",
+    "torchaudio>=2.6.0",
     "transformers>=4.48.3",
     "twitchapi>=4.4.0",
+    "webrtcvad>=2.0.10",
 ]
 
 [tool.uv.sources]
 sc2reader-plugins = { git = "https://github.com/NumberPigeon/sc2reader-plugins.git" }
 spawningtool = { git = "https://github.com/StoicLoofah/spawningtool.git", rev = "master" }
 sc2reader = { git = "https://github.com/ggtracker/sc2reader.git", rev = "upstream" }
+tesserocr = { url = "https://github.com/simonflueckiger/tesserocr-windows_build/releases/download/tesserocr-v2.8.0-tesseract-5.5.0/tesserocr-2.8.0-cp313-cp313-win_amd64.whl" }
+torch = [
+  { index = "pytorch-cu124" },
+]
+torchaudio = [
+  { index = "pytorch-cu124" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
 
 [dependency-groups]
 dev = [
+    "docker>=7.1.0",
+    "ninja>=1.11.1.3",
     "parametrize-from-file>=0.20.0",
     "pytest>=8.3.4",
     "pytest-cov>=6.0.0",
