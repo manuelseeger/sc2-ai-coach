@@ -129,10 +129,104 @@ def sc2api_container():
 @pytest.fixture
 def sc2apiemulator(sc2api_container):
     """
-    Returns a function that sends a POST request to configure the emulator.
+    Returns a function that sends a POST request to the emulator.
+    Accepts an optional payload (defaults to empty).
     """
 
-    def _post(payload: BaseModel):
-        return httpx.post(urljoin(sc2api_container, "set"), json=payload.model_dump())
+    def _post(payload={}):
+        # payload = {
+        #    k: str(v).lower() if isinstance(v, bool) else v for k, v in payload.items()
+        # }
+        return httpx.post(urljoin(sc2api_container, "set"), json=payload)
 
     return _post
+
+
+class Player(BaseModel):
+    id: int
+    enabled: bool
+    name: str
+    race: str
+    result: str
+
+
+class Data(BaseModel):
+    state: str
+    menu_state: str
+    additional_menu_state: str
+    replay: bool
+    players: list[Player]
+    displaytime: int
+    autotime: bool
+    set_at: int = int(time.time())
+
+
+@pytest.fixture
+def sc2api_set():
+    return {
+        "state": "ingame",
+        "menu_state": "ScreenHome/ScreenHome",
+        "additional_menu_state": "None",
+        "replay": False,
+        "autotime": True,
+        "displaytime": 0,
+        "players": [
+            {
+                "id": 1,
+                "name": "player1",
+                "race": "Terr",
+                "result": "Victory",
+                "enabled": True,
+            },
+            {
+                "id": 2,
+                "name": "player2",
+                "race": "Zerg",
+                "result": "Defeat",
+                "enabled": True,
+            },
+            {
+                "id": 3,
+                "name": "player3",
+                "race": "Terr",
+                "result": "Defeat",
+                "enabled": False,
+            },
+            {
+                "id": 4,
+                "name": "player4",
+                "race": "Terr",
+                "result": "Victory",
+                "enabled": False,
+            },
+            {
+                "id": 5,
+                "name": "player5",
+                "race": "Terr",
+                "result": "Defeat",
+                "enabled": False,
+            },
+            {
+                "id": 6,
+                "name": "player6",
+                "race": "Terr",
+                "result": "Defeat",
+                "enabled": False,
+            },
+            {
+                "id": 7,
+                "name": "player7",
+                "race": "Terr",
+                "result": "Victory",
+                "enabled": False,
+            },
+            {
+                "id": 8,
+                "name": "player8",
+                "race": "Terr",
+                "result": "Victory",
+                "enabled": False,
+            },
+        ],
+        "set_at": int(time.time()),
+    }
