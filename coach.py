@@ -17,8 +17,8 @@ from shared import signal_queue
 from src.ai import AICoach
 from src.ai.prompt import Templates
 from src.events import (
-    NewReplayEvent,
     NewMatchEvent,
+    NewReplayEvent,
     TwitchChatEvent,
     TwitchFollowEvent,
     TwitchRaidEvent,
@@ -101,7 +101,7 @@ def main(debug):
         log.info(f"Transcriber: {config.speech_recognition_model}")
     log.info(f"Coach events enabled: {', '.join(config.coach_events)}")
 
-    log.info(f"Starting { 'non-' * ( not config.interactive ) }interactive session")
+    log.info(f"Starting {'non-' * (not config.interactive)}interactive session")
 
     # Main loop: Every 1s get a task from the signal_queue first in first out, and let the session process it
     # On shutdown, close all event listener threads and exit
@@ -286,10 +286,8 @@ class AISession:
     def say(self, message, flush=True):
         """Output a message to the user. Depending on audio config, this uses
         text-to-speech or just writes to the rich log."""
-        if config.audiomode in [AudioMode.text, AudioMode.voice_in]:
-            log.info(message, extra={"role": Role.assistant, "flush": flush})
-        else:
-            log.info(message, extra={"role": Role.assistant, "flush": flush})
+        log.info(message, extra={"role": Role.assistant, "flush": flush})
+        if config.audiomode not in [AudioMode.text, AudioMode.voice_in]:
             tts.feed(message)
 
     def close(self):
@@ -553,7 +551,6 @@ class AISession:
         self.close()
 
     def save_replay_summary(self, replay: Replay):
-
         messages: list[Message] = self.coach.get_conversation()
 
         class Response(BaseModel):

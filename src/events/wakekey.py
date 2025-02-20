@@ -4,11 +4,10 @@ import threading
 import keyboard
 
 from config import config
+from shared import signal_queue
 from src.events import WakeEvent
 
 log = logging.getLogger(f"{config.name}.{__name__}")
-
-from shared import signal_queue
 
 
 class WakeKeyListener(threading.Thread):
