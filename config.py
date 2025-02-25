@@ -1,8 +1,13 @@
+import sys
+from datetime import datetime
 from enum import Enum
+from functools import cached_property
 from glob import glob
+from os.path import join
+from pathlib import Path
 from typing import Annotated, Dict, List, Optional, Tuple, Type
 
-from pydantic import BaseModel, DirectoryPath
+from pydantic import BaseModel, DirectoryPath, computed_field
 from pydantic.networks import UrlConstraints
 from pydantic_core import MultiHostUrl, Url
 from pydantic_settings import (
@@ -85,6 +90,11 @@ class StudentConfig(BaseModel):
         return self.name
 
 
+class TTSConfig(BaseModel):
+    engine: str = "system"
+    voice: Optional[str] = None
+
+
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
         yaml_file=yaml_files,
@@ -106,6 +116,8 @@ class Config(BaseSettings):
     recognizer: RecognizerConfig
     wake_key: str
     interactive: bool = True
+
+    tts: TTSConfig
 
     student: StudentConfig
 
@@ -143,11 +155,20 @@ class Config(BaseSettings):
     last_played_ago_max: int
     match_history_depth: int
 
-    screenshot: str
+    log_dir: DirectoryPath
+    obs_dir: DirectoryPath
+
+    @computed_field
+    @cached_property
+    def screenshot(self) -> str:
+        return join(self.obs_dir, "screenshots", "_maploading.png")
+
     tessdata_dir: str
     obs_ws_pw: str | None = None
 
     season: int
+
+    season_start: Optional[datetime] = None
 
     ladder_maps: List[str]
 
@@ -196,5 +217,33 @@ class Config(BaseSettings):
             YamlConfigSettingsSource(settings_cls),
         )
 
+    def is_initial(self) -> bool:
+        return not Path(self.obs_dir).exists()
+
+    def check_initial(self):
+        if self.is_initial():
+            from rich.prompt import Confirm
+
+            do_init = Confirm.ask("Can't find initialized environment. Initialize now?")
+            if do_init:
+                self.init()
+            else:
+                sys.exit(0)
+
+    def init(self):
+        Path(join(self.obs_dir, "screenshots")).mkdir(parents=True, exist_ok=True)
+        Path(join(self.log_dir)).mkdir(parents=True, exist_ok=True)
+
+        if self.obs_integration:
+            import openwakeword
+
+            openwakeword.utils.download_models()
+
+            from src.io.tts import init_tts
+
+            init_tts()
+
 
 config: Config = Config()
+
+config.check_initial()

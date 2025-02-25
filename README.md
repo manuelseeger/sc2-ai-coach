@@ -35,14 +35,13 @@ Instructions for a minimal setup without voice integration. Text only, "chat wit
 
 ### Python environment
 
-Setup a minimal python environment with Anaconda:
+Developed and tested with Python 3.12.
+
+Install with uv: https://docs.astral.sh/uv/
 
 ```sh
-> conda env create --name aicoach311 --file=environment-cp311-minimal.yml
-> conda activate aicoach311
+> uv sync
 ```
-
-Python 3.11 is the only version that works with all dependencies at this point.
 
 ### Configuration
 
@@ -104,15 +103,17 @@ Commands:
   echo      Echo pretty-printed parsed replay data from a .SC2Replay file
   query     Query the DB for replays and players
   sync      Sync replays and players from replay folder to MongoDB
-  validate  Validate all replays in the DB.  
+  validate  Validate all replays in the DB.
 ```
 
 Run
 
 ```sh
-> python repcli.py --simulation sync players replays --from=2024-01-01 
+> python repcli.py sync --from=2024-01-01 
 ```
-to read all 1v1 ladder replays from beginning of 2024, and add the replays and the players from the replays to the DB. With the `--simulation` flag the replays will not actually be commited to DB. Remove the `--simulation` flag and run again to store all replay in DB.
+to read all 1v1 ladder replays from beginning of 2024, and add the replays and the players from the replays to the DB. 
+
+Use the `--simulation` flag to just read replays but not commit to DB. 
 
 The `replays` collection of the DB should now be populated with replay documents.
 
@@ -153,7 +154,7 @@ Configure a wake hotkey. On pressing this key (combination) AICoach will wake up
 
 Configure student.emoji if you want to show a [different icon](./playground/emojis.txt) in the terminal output.
 
-You can disable interactions with the `interactive` flag. If off, AI coach will speak, but won't listen for input. 
+You can disable interactions with the `interactive` flag. If off, AI coach will speak, but won't listen for input.
 
 ```yaml
 # config.yourname.yml
@@ -231,7 +232,7 @@ Prerequisites:
 - NVidia GPU
 - Microphone
 
-Set up all dependencies from `environment-cp311.yml`. Review [Installation.md](Installation.md) for manual steps required. This will need Python experience and ideally some experience with machine learning with Python.
+Review [Installation.md](Installation.md) for manual steps required. This will need Python experience and ideally some experience with machine learning with Python.
 
 The full version integrates with OBS for interaction between OBS scene and the running AICoach. The OBS setup is not documented here and you can skip this part by keeping `obs_integration=False`.
 

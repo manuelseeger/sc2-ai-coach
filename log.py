@@ -3,11 +3,12 @@ import os
 import warnings
 from datetime import datetime
 
+from rich.traceback import install
+
 from config import config
 
 warnings.filterwarnings("ignore")
 
-from rich.traceback import install
 
 install(show_locals=True)
 
@@ -22,10 +23,6 @@ rootlogger.addHandler(logging.NullHandler())
 log = logging.getLogger(config.name)
 log.propagate = False
 log.setLevel(logging.DEBUG)
-
-
-if not os.path.exists("logs"):
-    os.makedirs("logs")
 
 
 class FlushFilter(logging.Filter):
