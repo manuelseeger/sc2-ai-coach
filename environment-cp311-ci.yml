@@ -29,3 +29,4 @@ dependencies:
       - blizzardapi2
       - parametrize_from_file
       - git+https://github.com/NumberPigeon/sc2reader-plugins.git
+      - docker

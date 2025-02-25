@@ -20,3 +20,5 @@ user_token.json
 *.log
 *.mock
 .venv/
+build/
+dist/
