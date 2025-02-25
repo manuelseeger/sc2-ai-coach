@@ -92,6 +92,7 @@ class BattleNet:
                 locale="en_US",
             )
         except Exception as e:
+            # todo WARNING  Failed to get profile 10161794: strptime() argument 1 must be str, not None
             log.warning(f"Failed to get profile {profile_id}: {e}")
             return
         return BattlenetProfile(**p)

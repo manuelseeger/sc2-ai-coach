@@ -14,9 +14,8 @@ from PIL import Image
 
 from config import config
 from shared import signal_queue
-from src.lib.sc2client import SC2Client
-
 from src.events import NewMatchEvent
+from src.lib.sc2client import SC2Client
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -132,7 +131,6 @@ def wait_for_file(file_path: str, timeout: int = 3, delay: float = 0.1) -> bool:
 
 
 class NewMatchListener(threading.Thread):
-
     sc2client: SC2Client
 
     def __init__(self, name):

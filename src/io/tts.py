@@ -1,6 +1,6 @@
 import logging
 
-from RealtimeTTS import CoquiEngine, SystemEngine, TextToAudioStream
+from RealtimeTTS import KokoroEngine, SystemEngine, TextToAudioStream
 
 from config import config
 
@@ -10,8 +10,9 @@ log = logging.getLogger(f"{config.name}.{__name__}")
 class TTS:
     tts: TextToAudioStream
 
-    def __init__(self):
-        engine = SystemEngine()
+    def __init__(self, engine=None):
+        if engine is None:
+            engine = SystemEngine()
         self.tts = TextToAudioStream(engine)
 
     def feed(self, text: str):
@@ -34,9 +35,29 @@ class TTS:
 
 
 def make_tts_stream():
-    # engine = CoquiEngine(local_models_path=join("obs_tools", "ttsmodels"), speed=1.3)
+    engine = None
+    if config.tts.engine == "kokoro":
+        engine = KokoroEngine()
+        if config.tts.voice:
+            engine.set_voice(config.tts.voice)
 
-    return TTS()
+    if config.tts.engine == "system":
+        engine = SystemEngine()
+
+    return TTS(engine=engine)
+
+
+def init_tts():
+    from RealtimeTTS import KokoroEngine, TextToAudioStream
+
+    engine = KokoroEngine()
+    engine.set_voice(config.tts.voice)
+    text = "Warm up"
+    TextToAudioStream(engine).feed(text).play(muted=True)
+    text = "Hello, this is your friendly AI coach getting ready"
+    TextToAudioStream(engine).feed([text]).play(log_synthesized_text=True)
+
+    engine.shutdown()
 
 
 # https://github.com/snakers4/silero-models?tab=readme-ov-file

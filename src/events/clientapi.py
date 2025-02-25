@@ -4,15 +4,13 @@ from time import sleep
 
 from config import config
 from shared import signal_queue
-
-from src.lib.sc2client import SC2Client, is_live_game
 from src.events import NewMatchEvent
+from src.lib.sc2client import SC2Client, is_live_game
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
 
 class ClientAPIListener(threading.Thread):
-
     last_gameinfo = None
 
     sc2client: SC2Client

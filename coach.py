@@ -25,6 +25,7 @@ from src.events import (
     WakeEvent,
 )
 from src.io.rich_log import RichConsoleLogHandler
+from src.lib.sc2pulse import SC2PulseClient
 from src.playerinfo import resolve_replays_from_current_opponent
 from src.replaydb.db import eq, replaydb
 from src.replaydb.types import AssistantMessage, Metadata, Replay, Role, Session, Usage
@@ -173,6 +174,7 @@ class AISession:
 
     def __init__(self):
         self.update_last_replay()
+        self.set_season()
         self.coach = AICoach()
 
         self.session = Session(
@@ -211,11 +213,16 @@ class AISession:
             self.session.threads.append(value)
             replaydb.db.save(self.session)
 
+    def set_season(self):
+        sc2pulse = SC2PulseClient()
+        season = sc2pulse.get_current_season()
+        config.season_start = season.start
+
     def update_last_replay(self, replay: Replay | None = None):
         if replay is None:
             try:
                 replay = replaydb.get_most_recent()
-            except:
+            except:  # noqa: E722
                 log.error("Error getting most recent replay, is DB runnung?")
                 sys.exit(1)
 

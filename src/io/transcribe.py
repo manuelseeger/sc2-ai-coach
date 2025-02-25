@@ -1,6 +1,6 @@
 import io
 import logging
-import re  # <-- new import
+import re
 from typing import Generator
 
 import numpy as np
@@ -148,12 +148,12 @@ class Transcriber:
         trimmed_duration = end_time - start_time
 
         # Convert start_time/end_time to sample indices.
-        start_sample = int(start_time * sample_rate)
-        end_sample = int(end_time * sample_rate)
-        trimmed_audio = audio_array[start_sample:end_sample]
+        # start_sample = int(start_time * sample_rate)
+        # end_sample = int(end_time * sample_rate)
+        # trimmed_audio = audio_array[start_sample:end_sample]
 
         outputs = self.pipe(
-            trimmed_audio,
+            audio_array,
             chunk_length_s=30,
             batch_size=24,
         )
@@ -168,6 +168,6 @@ class Transcriber:
             log.debug(
                 f"'thank you' match found: {bool(match)} (Trimmed Duration: {trimmed_duration})"
             )
-            if trimmed_duration < 0.2:
-                output = ""
+            # if trimmed_duration < 0.15:
+            ##    output = ""
         return output
