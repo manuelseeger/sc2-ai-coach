@@ -1,4 +1,5 @@
 import logging
+from functools import cached_property
 from itertools import product
 from typing import Any, Optional
 
@@ -57,7 +58,7 @@ class MatchHistory(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @computed_field
-    @property
+    @cached_property
     def race_report(self) -> pd.DataFrame:
         return build_race_report(self.data)
 
@@ -80,7 +81,6 @@ class MatchHistory(BaseModel):
 
 
 def get_sc2pulse_match_history(toon_handle: ToonHandle) -> MatchHistory | None:
-
     sc2pulse = SC2PulseClient(http_client=http_client)
 
     profile_link = toon_handle.to_profile_link()
@@ -149,4 +149,4 @@ def get_sc2pulse_match_history(toon_handle: ToonHandle) -> MatchHistory | None:
         data.append(entry)
     log.debug(f"Found {len(data)} matches for character {sc2pulse_char_id}")
 
-    return MatchHistory(data=pd.DataFrame(data), common=common)
+    return MatchHistory(data=pd.DataFrame(data, columns=columns), common=common)

@@ -7,7 +7,7 @@ from os.path import join
 from pathlib import Path
 from typing import Annotated, Dict, List, Optional, Tuple, Type
 
-from pydantic import BaseModel, DirectoryPath, computed_field
+from pydantic import BaseModel, DirectoryPath, ValidationError, computed_field
 from pydantic.networks import UrlConstraints
 from pydantic_core import MultiHostUrl, Url
 from pydantic_settings import (
@@ -18,6 +18,7 @@ from pydantic_settings import (
     SettingsConfigDict,
     YamlConfigSettingsSource,
 )
+from rich import print
 
 # https://github.com/pydantic/pydantic/pull/7116
 MongoSRVDsn = Annotated[
@@ -195,17 +196,29 @@ class Config(BaseSettings):
         )
 
     def is_initial(self) -> bool:
+        """Check if the environment is initialized
+
+        Right now this doesn't do anything pydantic doesn't do already.
+        But this can be extended in the future to check for example if mongodb views are created."""
         return not Path(self.obs_dir).exists()
 
-    def check_initial(self):
-        if self.is_initial():
+    @classmethod
+    def check_initial(cls):
+        try:
+            config: Config = cls()
+        except ValidationError as e:
+            print(e)
+            sys.exit(1)
+        if config.is_initial():
             from rich.prompt import Confirm
 
             do_init = Confirm.ask("Can't find initialized environment. Initialize now?")
             if do_init:
-                self.init()
+                config.init()
+                print("Initialized environment :white_heavy_check_mark:")
             else:
                 sys.exit(0)
+        return config
 
     def init(self):
         Path(join(self.obs_dir, "screenshots")).mkdir(parents=True, exist_ok=True)
@@ -221,6 +234,4 @@ class Config(BaseSettings):
             init_tts()
 
 
-config: Config = Config()
-
-config.check_initial()
+config: Config = Config.check_initial()
