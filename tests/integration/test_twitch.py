@@ -5,7 +5,6 @@ from tests.conftest import only_in_debugging
 
 @only_in_debugging
 def test_twitch_chat():
-
     session = AISession()
 
     chat = [
@@ -32,4 +31,4 @@ def test_twitch_chat():
     ]
 
     for r in chat:
-        session.handle_twitch_chat(__file__, twitch_chat=r)
+        session.handle_twitch_chat(twitch_chat=r)

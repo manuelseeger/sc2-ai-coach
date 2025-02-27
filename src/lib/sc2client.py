@@ -13,6 +13,14 @@ from config import config
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
+# Module-level constant
+NORMAL_MAP: dict = {
+    "Terr": "Terran",
+    "Prot": "Protoss",
+    "Zerg": "Zerg",
+    "random": "Random",
+}
+
 
 class Screen(str, Enum):
     loading = "ScreenLoading/ScreenLoading"
@@ -37,15 +45,8 @@ class Race(str, Enum):
     zerg = "Zerg"
     random = "random"
 
-    normal_map: dict = {
-        "Terr": "Terran",
-        "Prot": "Protoss",
-        "Zerg": "Zerg",
-        "random": "Random",
-    }
-
     def normalize(self):
-        return self.normal_map.get(self.value)
+        return NORMAL_MAP.get(self.value)
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
@@ -126,7 +127,6 @@ class UIInfo(BaseModel):
 
 
 class SC2Client:
-
     http_client: httpx.Client
 
     def __init__(self, http_client: httpx.Client = None):
@@ -167,7 +167,7 @@ class SC2Client:
             response = self.http_client.get(urljoin(config.sc2_client_url, path))
             if response.status_code == 200:
                 return response.text
-        except ConnectError as e:
+        except ConnectError:
             log.warning("Could not connect to SC2 game client, is SC2 running?")
         return None
 

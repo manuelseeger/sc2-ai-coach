@@ -172,30 +172,7 @@ class Config(BaseSettings):
 
     ladder_maps: List[str]
 
-    default_projection: Dict[str, int] = {
-        "_id": 1,
-        "date": 1,
-        "game_length": 1,
-        "map_name": 1,
-        "players.avg_apm": 1,
-        "players.highest_league": 1,
-        "players.name": 1,
-        "players.messages": 1,
-        "players.pick_race": 1,
-        "players.pid": 1,
-        "players.play_race": 1,
-        "players.result": 1,
-        "players.scaled_rating": 1,
-        "players.stats": 1,
-        "players.toon_handle": 1,
-        "players.build_order.time": 1,
-        "players.build_order.name": 1,
-        "players.build_order.supply": 1,
-        "players.build_order.is_chronoboosted": 1,
-        "real_length": 1,
-        "stats": 1,
-        "unix_timestamp": 1,
-    }
+    default_projection: Dict[str, int]
 
     db_name: str = "SC2"
     mongo_dsn: MongoSRVDsn
