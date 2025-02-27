@@ -2,13 +2,20 @@ import pathlib
 import sys
 import time
 from os.path import exists, join
+from unittest.mock import MagicMock
 from urllib.parse import urljoin
 
 import docker
 import httpx
 import pytest
 from pydantic import BaseModel
+from pytest_mock import MockerFixture
 
+from src.lib.sc2client import NORMAL_MAP as race_map
+from src.lib.sc2client import GameInfo, Race, Result
+from src.lib.sc2client import Player as ApiPlayer
+from src.replaydb.reader import ReplayReader
+from src.replaydb.types import Player as ReplayPlayer
 from tests.critic import LmmCritic
 
 TESTDATA_DIR = "tests/testdata"
@@ -133,11 +140,10 @@ def sc2apiemulator(sc2api_container):
     Accepts an optional payload (defaults to empty).
     """
 
-    def _post(payload={}):
-        # payload = {
-        #    k: str(v).lower() if isinstance(v, bool) else v for k, v in payload.items()
-        # }
-        return httpx.post(urljoin(sc2api_container, "set"), json=payload)
+    def _post(payload: BaseModel):
+        return httpx.post(
+            urljoin(sc2api_container, "set"), json=payload.model_dump_json()
+        )
 
     return _post
 
@@ -230,3 +236,44 @@ def sc2api_set():
         ],
         "set_at": int(time.time()),
     }
+
+
+def replay_to_api_player(replay_player: ReplayPlayer) -> ApiPlayer:
+    if replay_player.result == "Win":
+        result = Result.win
+    elif replay_player.result == "Loss":
+        result = Result.loss
+    else:
+        result = Result.tie
+
+    key = next(k for k, v in race_map.items() if v == replay_player.play_race)
+    race = Race(key)
+    return ApiPlayer(
+        id=replay_player.uid, name=replay_player.name, result=result, race=race
+    )
+
+
+@pytest.fixture
+def sc2api_mock(mocker: MockerFixture, replay_file):
+    reader = ReplayReader()
+    replay = reader.load_replay(replay_file)
+    gameinfo = GameInfo(
+        isReplay=True,
+        displayTime=replay.real_length,
+        players=[replay_to_api_player(p) for p in replay.players],
+    )
+
+    mocker.patch(
+        "src.ai.functions.GetCurrentGameInfo.sc2client.get_gameinfo",
+        return_value=gameinfo,
+    )
+
+    def _mock(time: int = None) -> MagicMock:
+        if time is not None:
+            gameinfo.displayTime = time
+        return mocker.patch(
+            "src.ai.functions.GetCurrentGameInfo.sc2client.get_gameinfo",
+            return_value=gameinfo,
+        )
+
+    return _mock
