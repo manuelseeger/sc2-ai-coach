@@ -133,9 +133,8 @@ def wait_for_file(file_path: str, timeout: int = 3, delay: float = 0.1) -> bool:
 class NewMatchListener(threading.Thread):
     sc2client: SC2Client
 
-    def __init__(self, name):
+    def __init__(self):
         super().__init__()
-        self.name = name
         self._stop_event = threading.Event()
 
         self.sc2client = SC2Client()

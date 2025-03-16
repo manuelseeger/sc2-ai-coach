@@ -12,7 +12,6 @@ from twitchAPI.type import AuthScope, ChatEvent
 
 from config import config
 from shared import signal_queue
-
 from src.events import TwitchChatEvent, TwitchFollowEvent, TwitchRaidEvent
 
 log = logging.getLogger(f"{config.name}.{__name__}")
@@ -25,9 +24,8 @@ USER_SCOPE = [
 
 
 class TwitchListener(threading.Thread):
-    def __init__(self, name):
+    def __init__(self):
         super().__init__()
-        self.name = name
         self.daemon = True
         self._stop_event = threading.Event()
 

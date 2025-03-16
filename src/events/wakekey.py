@@ -11,9 +11,8 @@ log = logging.getLogger(f"{config.name}.{__name__}")
 
 
 class WakeKeyListener(threading.Thread):
-    def __init__(self, name):
+    def __init__(self):
         super().__init__()
-        self.name = name
         self.daemon = True
         self._stop_event = threading.Event()
 

@@ -477,7 +477,7 @@ class PlayerInfo(DbModel):
             "aliases.portraits": 1,
         }
 
-        exclude_keys = convert_projection(exclude)
+        exclude_keys = convert_projection(exclude, model=PlayerInfo)
 
         return self.model_dump_json(
             exclude_unset=True,

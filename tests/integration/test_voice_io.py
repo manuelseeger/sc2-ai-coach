@@ -1,4 +1,5 @@
 import pytest
+from rich import print
 
 from src.io.mic import Microphone
 from src.io.transcribe import Transcriber
@@ -42,5 +43,7 @@ def test_transcribe():
     audio = mic.listen()
 
     text = transcriber.transcribe(audio)
+
+    print(text)
 
     assert text != ""

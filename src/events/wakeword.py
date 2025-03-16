@@ -11,7 +11,6 @@ from openwakeword.model import Model
 
 from config import config
 from shared import signal_queue
-
 from src.events import WakeEvent
 
 onnxruntime.set_default_logger_severity(3)
@@ -37,9 +36,8 @@ owwModel = Model([config.oww_model], inference_framework="onnx")
 
 
 class WakeWordListener(threading.Thread):
-    def __init__(self, name):
+    def __init__(self):
         super().__init__()
-        self.name = name
         self.daemon = True
         self._stop_event = threading.Event()
 

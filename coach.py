@@ -69,19 +69,19 @@ def main(debug):
     if CoachEvent.twitch in config.coach_events:
         from src.events import TwitchListener
 
-        twitch = TwitchListener(name="twitch")
+        twitch = TwitchListener()
         twitch.start()
 
     if CoachEvent.wake in config.coach_events:
         from src.events import WakeListener
 
-        listener = WakeListener(name="listener")
+        listener = WakeListener()
         listener.start()
 
     if CoachEvent.game_start in config.coach_events:
         from src.events import GameStartedListener
 
-        scanner = GameStartedListener(name="scanner")
+        scanner = GameStartedListener()
         scanner.start()
 
     if CoachEvent.new_replay in config.coach_events:

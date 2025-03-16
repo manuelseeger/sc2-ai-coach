@@ -1,4 +1,5 @@
 import logging
+import re
 
 from RealtimeTTS import KokoroEngine, SystemEngine, TextToAudioStream
 
@@ -16,8 +17,9 @@ class TTS:
         self.tts = TextToAudioStream(engine)
 
     def feed(self, text: str):
-        # strip emojies but only emojis from text
-        text = "".join(char for char in text if char.isprintable())
+        text = strip_markdown(text)
+
+        # log.debug(f"Feeding TTS: {text}")
 
         try:
             self.tts.feed(text)
@@ -60,4 +62,32 @@ def init_tts():
     engine.shutdown()
 
 
-# https://github.com/snakers4/silero-models?tab=readme-ov-file
+def strip_markdown(md_text: str):
+    # strip emojies
+    text = "".join(char for char in md_text if char.isprintable())
+    # Remove links
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+
+    # Remove bold/italic (**text**, *text*, __text__, _text_)
+    text = re.sub(r"(\*\*|__)(.*?)\1", r"\2", text)
+    text = re.sub(r"(\*|_)(.*?)\1", r"\2", text)
+
+    # Remove headings (#, ##, ###, etc.)
+    text = re.sub(r"^#+\s*", "", text, flags=re.MULTILINE)
+
+    # Remove inline code (`code`)
+    text = re.sub(r"`(.*?)`", r"\1", text)
+
+    # Remove images while ensuring no extra spaces remain
+    text = re.sub(r"!\[.*?\]\(.*?\)", "", text)
+    text = re.sub(
+        r"\s*!\[.*?\]\(.*?\)\s*", " ", text
+    )  # Extra safeguard for inline images
+
+    # Remove unordered list markers (-, *, +)
+    text = re.sub(r"^\s*[-*+]\s*", "", text, flags=re.MULTILINE)
+
+    # Remove ordered list markers (1., 2., 3.)
+    text = re.sub(r"^\s*\d+\.\s*", "", text, flags=re.MULTILINE)
+
+    return text

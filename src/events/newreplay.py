@@ -27,7 +27,7 @@ def wait_for_delete(file_path: Path, timeout: int = 10) -> bool:
         try:
             os.remove(file_path)
             return True
-        except:
+        except:  # noqa: E722
             sleep(1)
     return False
 

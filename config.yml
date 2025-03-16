@@ -21,7 +21,7 @@ recognizer:
   # minimum audio energy to consider for recording
   energy_threshold: 500
   # seconds of non-speaking audio before a phrase is considered complete
-  pause_threshold: 0.3
+  pause_threshold: 0.9
   # minimum seconds of speaking audio before we consider the speaking audio a phrase - values below this are ignored (for filtering out clicks and pops)
   phrase_threshold: 0.3
   # seconds of non-speaking audio to keep on both sides of the recording
