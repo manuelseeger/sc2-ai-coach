@@ -26,10 +26,10 @@ from src.events import (
 )
 from src.io.rich_log import RichConsoleLogHandler
 from src.lib.sc2pulse import SC2PulseClient
+from src.matchhistory import get_sc2pulse_match_history
 from src.playerinfo import resolve_replays_from_current_opponent
 from src.replaydb.db import eq, replaydb
 from src.replaydb.types import AssistantMessage, Metadata, Replay, Role, Session, Usage
-from src.smurfs import get_sc2pulse_match_history
 
 # Setup: Input output, logging, depending on config
 if config.audiomode in [AudioMode.voice_in, AudioMode.full]:

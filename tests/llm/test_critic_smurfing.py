@@ -2,8 +2,8 @@ import pandas as pd
 import parametrize_from_file
 
 from coach import AISession
+from src.matchhistory import MatchHistory
 from src.replaydb.types import PlayerInfo
-from src.smurfs import MatchHistory
 from tests.conftest import only_in_debugging
 from tests.critic import LmmCritic
 from tests.mocks import MicMock, TranscriberMock, TTSMock
