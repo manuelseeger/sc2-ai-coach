@@ -18,7 +18,7 @@ def test_function_add_metadata(util):
 
     response = util.stream_thread(aicoach)
 
-    message = f"Can you please add the tag 'smurf' to the replay?"
+    message = "Can you please add the tag 'smurf' to the replay?"
 
     response = aicoach.get_response(message)
 
@@ -51,12 +51,12 @@ def test_add_tag_after_replay_summary(replay_file, util):
 
     prompt = Templates.new_replay.render(replacements)
 
-    thread_id = coach.create_thread(prompt)
+    thread_id = coach.create_thread(prompt)  # noqa: F841
 
     response = util.stream_thread(coach)
     print(response)
 
-    message = f"Can you please add the tag 'smurf' to the replay?"
+    message = "Can you please add the tag 'smurf' to the replay?"
 
     response = coach.get_response(message)
     assert isinstance(response, str)
@@ -88,11 +88,11 @@ def test_add_player_tag_after_replay(replay_file, util):
 
     prompt = Templates.new_replay.render(replacements)
 
-    thread_id = coach.create_thread(prompt)
+    thread_id = coach.create_thread(prompt)  # noqa: F841
 
     response = util.stream_thread(coach)
 
-    message = f"Can you please tag this player as a smurf?"
+    message = "Can you please tag this player as a smurf?"
 
     response = coach.get_response(message)
 

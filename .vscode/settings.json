@@ -1,20 +1,18 @@
 {
   "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.codeActionsOnSave": {
       "source.organizeImports": "explicit",
-      "editor.formatOnSave": "explicit"
-    }
+      "editor.formatOnSave": "explicit",
+      "source.fixAll": "explicit"
+    },
+    "editor.formatOnSave": true,
   },
-  "editor.formatOnSave": true,
   "python.testing.pytestArgs": [
     "tests",
     "-rP"
   ],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
-  "isort.args": [
-    "--profile",
-    "black"
-  ]
+  "debugpy.debugJustMyCode": false
 }

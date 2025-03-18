@@ -1,19 +1,27 @@
 import re
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any, ClassVar, Dict, List, Literal, Tuple
+from typing import (
+    Annotated,
+    Any,
+    ClassVar,
+    Dict,
+    List,
+    Literal,
+    Tuple,
+    get_args,
+    get_origin,
+)
 
 import bson
 import pydantic
-from pydantic import AfterValidator, BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 from pydantic_core import CoreSchema, core_schema
 from pyodmongo import DbModel, MainBaseModel
-from typing_extensions import Annotated
 
 from config import AIBackend, config
 from shared import REGION_MAP
-
-from .util import time2secs
+from src.util import time2secs
 
 
 def convert_to_nested_structure(d: dict[str, Any]) -> dict:
@@ -40,11 +48,28 @@ def convert_to_nested_structure(d: dict[str, Any]) -> dict:
     return result
 
 
-def wrap_all_fields(d: dict):
+def wrap_all_fields(d: dict, model: type[BaseModel] | None = None):
+    """
+    Recursively wrap include/eclude dictionary items with "__all__"
+    if the field (from the model) is of type list.
+    https://docs.pydantic.dev/latest/concepts/serialization/#advanced-include-and-exclude
+    """
     for key, value in d.items():
         if isinstance(value, dict) and "__all__" not in value:
-            d[key] = {"__all__": value}
-            wrap_all_fields(value)
+            new_model = None
+            if model is not None and key in model.model_fields:
+                field = model.model_fields[key]
+                if get_origin(field.annotation) is list:
+                    # Wrap only if this field is a list.
+                    d[key] = {"__all__": value}
+                    args = get_args(field.annotation)
+                    if (
+                        args
+                        and isinstance(args[0], type)
+                        and issubclass(args[0], BaseModel)
+                    ):
+                        new_model = args[0]
+            wrap_all_fields(value, new_model)
 
 
 def to_bson_binary(x: Any) -> bson.Binary:
@@ -53,26 +78,14 @@ def to_bson_binary(x: Any) -> bson.Binary:
     return bson.Binary(x)
 
 
-def convert_projection(projection: dict) -> dict:
+def convert_projection(projection: dict, model: type[BaseModel] | None = None) -> dict:
     keys = convert_to_nested_structure(projection)
-    wrap_all_fields(keys)
+    wrap_all_fields(keys, model)
     return keys
-
-
-# example 2-S2-1-6861867
-def _validate_toon_handle(t: str) -> str:
-    if not re.match(r"^\d-S\d-\d-\d+$", t):
-        raise ValueError("Invalid toon handle")
-    return t
 
 
 ReplayId = Annotated[str, Field(min_length=64, max_length=64)]
 
-ToonHandleOld = Annotated[
-    str,
-    Field(min_length=11, max_length=15),
-    AfterValidator(_validate_toon_handle),
-]
 BsonBinary = Annotated[
     bson.Binary,
     pydantic.PlainValidator(to_bson_binary),
@@ -102,7 +115,7 @@ class ToonHandle(str):
         return f"ToonHandle({super().__repr__()})"
 
     def to_profile_link(self) -> str:
-        return f"https://starcraft2.com/en-us/profile/{self.replace('-S2','').replace('-', '/')}"
+        return f"https://starcraft2.com/en-us/profile/{self.replace('-S2', '').replace('-', '/')}"
 
     def to_id(self) -> str:
         return self.split("-")[-1]
@@ -329,10 +342,13 @@ class Replay(DbModel):
         exclude_keys = self._exclude_keys_for_build_order(
             limit=limit, include_workers=include_workers
         )
-        include_keys = convert_projection(projection)
+        include_keys = convert_projection(projection, model=Replay)
 
         return self.model_dump(
-            include=include_keys, exclude=exclude_keys, exclude_unset=True
+            include=include_keys,
+            exclude=exclude_keys,
+            exclude_unset=True,
+            exclude_defaults=True,
         )
 
     def projection_json(self, projection: dict, limit=450, include_workers=True) -> str:
@@ -340,9 +356,12 @@ class Replay(DbModel):
         exclude_keys = self._exclude_keys_for_build_order(
             limit=limit, include_workers=include_workers
         )
-        include_keys = convert_projection(projection)
+        include_keys = convert_projection(projection, model=Replay)
         return self.model_dump_json(
-            include=include_keys, exclude=exclude_keys, exclude_unset=True
+            include=include_keys,
+            exclude=exclude_keys,
+            exclude_unset=True,
+            exclude_defaults=True,
         )
 
     def default_projection_json(self, limit=450, include_workers=True) -> str:
@@ -360,7 +379,7 @@ class Replay(DbModel):
             "players.name": 1,
             "players.play_race": 1,
         }
-        include_keys = convert_projection(projection)
+        include_keys = convert_projection(projection, model=Replay)
         return self.model_dump_json(
             include=include_keys, exclude_unset=True, exclude_defaults=True
         )
@@ -457,7 +476,7 @@ class PlayerInfo(DbModel):
             "aliases.portraits": 1,
         }
 
-        exclude_keys = convert_projection(exclude)
+        exclude_keys = convert_projection(exclude, model=PlayerInfo)
 
         return self.model_dump_json(
             exclude_unset=True,

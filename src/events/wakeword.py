@@ -11,8 +11,7 @@ from openwakeword.model import Model
 
 from config import config
 from shared import signal_queue
-
-from .types import WakeResult
+from src.events import WakeEvent
 
 onnxruntime.set_default_logger_severity(3)
 
@@ -37,9 +36,8 @@ owwModel = Model([config.oww_model], inference_framework="onnx")
 
 
 class WakeWordListener(threading.Thread):
-    def __init__(self, name):
+    def __init__(self):
         super().__init__()
-        self.name = name
         self.daemon = True
         self._stop_event = threading.Event()
 
@@ -71,6 +69,6 @@ class WakeWordListener(threading.Thread):
                 if (datetime.now() - last_score_timestamp).seconds > 5:
                     last_score_timestamp = datetime.now()
                     log.info(f"Model woke up with a score of {score:.2f}")
-                    signal_queue.put(WakeResult(awake=True))
+                    signal_queue.put(WakeEvent(awake=True))
                     owwModel.reset()
                     sleep(5)

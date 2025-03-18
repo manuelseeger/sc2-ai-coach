@@ -21,6 +21,8 @@ jobs:
           environment-file: environment-cp311-ci.yml
           python-version: 3.11
           auto-activate-base: false
+      - name: make log dirs
+        run: mkdir -p logs && mkdir -p obs
       - name: Test with pytest
         # export AICOACH_STUDENT__NAME="zatic" AICOACH_TESSDATA_DIR="/usr/share/tesseract-ocr/4.00/tessdata/" AICOACH_MONGO_DSN="mongodb://localhost:27017" AICOACH_ASSISTANT_ID="XXX" AICOACH_OPENAI_API_KEY="YYY" AICOACH_OPENAI_ORG_ID="ZZZ" AICOACH_OBS_INTEGRATION="False" AICOACH_AUDIOMODE="text" && pytest tests/unit --doctest-modules --junitxml=tests/test-results.xml --cov=. --cov-report=xml --cov-report=html
         run: |

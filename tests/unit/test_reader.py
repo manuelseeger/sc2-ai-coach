@@ -3,7 +3,7 @@ import sc2reader
 
 from src.replaydb.plugins.ReplayStats import is_gg, player_worker_micro
 from src.replaydb.reader import ReplayReader
-from src.replaydb.util import time2secs
+from src.util import time2secs
 from tests.conftest import only_in_debugging
 
 
@@ -60,7 +60,6 @@ def test_default_projection_time(replay_file):
     indirect=True,
 )
 def test_default_projection_chrono(replay_file):
-
     reader = ReplayReader()
     raw_replay = reader.load_replay_raw(replay_file)
 
@@ -69,7 +68,7 @@ def test_default_projection_chrono(replay_file):
     default_projection = replay.default_projection()
 
     assert all(
-        "is_chronoboosted" not in bo or bo["is_chronoboosted"] == True
+        "is_chronoboosted" not in bo or bo["is_chronoboosted"] is True
         for bo in default_projection["players"][0]["build_order"]
     )
 
@@ -82,7 +81,6 @@ def test_default_projection_chrono(replay_file):
     indirect=True,
 )
 def test_default_projection_workers(replay_file):
-
     workers = ["Drone", "Probe", "SCV"]
 
     reader = ReplayReader()
@@ -97,6 +95,32 @@ def test_default_projection_workers(replay_file):
         for bo in default_projection["players"][0]["build_order"]
     ]
     assert all(worker_in_bo)
+
+
+@pytest.mark.parametrize(
+    "replay_file",
+    [
+        "El Dorado ZvP glave into DT.SC2Replay",
+    ],
+    indirect=True,
+)
+def test_default_projection_stats(replay_file):
+    reader = ReplayReader()
+    replay = reader.load_replay(replay_file)
+
+    default_projection = replay.default_projection()
+
+    assert "stats" in default_projection
+    assert "stats" in default_projection["players"][0]
+
+    assert all(
+        "unspent_resources" not in player["stats"]
+        for player in default_projection["players"]
+    )
+    assert all(
+        "worker_active" not in player["stats"]
+        for player in default_projection["players"]
+    )
 
 
 @pytest.mark.parametrize(
@@ -139,7 +163,6 @@ def test_replaystats_worker_micro(replay_file, expected):
     indirect=True,
 )
 def test_apm_tracker_division_by_zero(replay_file):
-
     reader = ReplayReader()
 
     replay_raw = reader.load_replay_raw(replay_file)

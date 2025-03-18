@@ -1,6 +1,9 @@
+import datetime
+
 import pytest
 from rich import print
 
+from config import config
 from src.lib.battlenet import BattleNet
 from src.lib.sc2pulse import SC2PulseClient, SC2PulseRace
 
@@ -31,7 +34,7 @@ def test_get_unmasked_player():
 @pytest.mark.parametrize(
     ("profile_id", "expected_name"),
     [
-        (2372922, "Oreoff"),
+        (2372922, "jay"),
         (691545, "zatic"),
     ],
 )
@@ -43,3 +46,10 @@ def test_get_profile(profile_id, expected_name):
 
     assert profile is not None
     assert profile.summary.displayName == expected_name
+
+
+def test_get_current_season():
+    sc2pulse = SC2PulseClient()
+    season = sc2pulse.get_current_season()
+    assert season.battlenetId == config.season
+    assert season.end > datetime.datetime.now()

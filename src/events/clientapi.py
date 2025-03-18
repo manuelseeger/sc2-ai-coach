@@ -4,22 +4,19 @@ from time import sleep
 
 from config import config
 from shared import signal_queue
-
-from ..lib.sc2client import SC2Client, is_live_game
-from .types import ScanResult
+from src.events import NewMatchEvent
+from src.lib.sc2client import SC2Client, is_live_game
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
 
-class ClientAPIScanner(threading.Thread):
-
+class ClientAPIListener(threading.Thread):
     last_gameinfo = None
 
     sc2client: SC2Client
 
-    def __init__(self, name):
+    def __init__(self):
         super().__init__()
-        self.name = name
         self._stop_event = threading.Event()
 
         self.sc2client = SC2Client()
@@ -53,7 +50,7 @@ class ClientAPIScanner(threading.Thread):
                 opponent, race = self.sc2client.get_opponent(gameinfo)
                 mapname = ""
 
-                scanresult = ScanResult(mapname=mapname, opponent=opponent)
+                scanresult = NewMatchEvent(mapname=mapname, opponent=opponent)
                 signal_queue.put(scanresult)
 
             sleep(1)

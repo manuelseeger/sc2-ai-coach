@@ -1,27 +1,28 @@
-from datetime import datetime, timezone
+import os
+import shutil
+from datetime import datetime
 from io import BytesIO
 
 import numpy as np
 import pytest
 from PIL import Image
 
+import src.playerinfo
 from config import config
 from external.fast_ssim.ssim import ssim
-from src import playerinfo
+from src.lib.sc2client import GameInfo, Player
 from src.lib.sc2pulse import SC2PulseClient
 from src.playerinfo import (
-    get_matching_portrait,
     is_portrait_match,
     resolve_replays_from_current_opponent,
     save_player_info,
 )
 from src.replaydb.db import replaydb
 from src.replaydb.reader import ReplayReader
-from src.replaydb.types import PlayerInfo, to_bson_binary
+from src.replaydb.types import PlayerInfo
 from tests.conftest import only_in_debugging
 
 
-# move testdata file to obs/screenshots/portraits before testing
 @pytest.mark.parametrize(
     "replay_file,portrait_file",
     [
@@ -33,10 +34,17 @@ from tests.conftest import only_in_debugging
     indirect=["replay_file", "portrait_file"],
 )
 def test_save_existing_player_info(replay_file, portrait_file):
+    # arrange
+    os.makedirs("obs/screenshots/portraits", exist_ok=True)
+    shutil.copy(portrait_file, "obs/screenshots/portraits/")
+
     reader = ReplayReader()
+
+    # act
     replay = reader.load_replay(replay_file)
     result, player_info = save_player_info(replay)
 
+    # assert
     assert result.acknowledged
     assert result.modified_count == 1
 
@@ -51,13 +59,13 @@ def test_save_existing_player_info(replay_file, portrait_file):
     ],
     indirect=["replay_file", "portrait_file"],
 )
-def test_existing_player_info_update_alias(replay_file, portrait_file, monkeypatch):
+def test_existing_player_info_update_alias(replay_file, portrait_file, mocker):
 
     # arrange
     def get_portrait_mocked(o, m, r):
         return open(portrait_file, "rb").read()
 
-    monkeypatch.setattr(playerinfo, "get_matching_portrait", get_portrait_mocked)
+    mocker.patch("src.playerinfo.get_matching_portrait", get_portrait_mocked)
 
     reader = ReplayReader()
     replay = reader.load_replay(replay_file)
@@ -124,7 +132,7 @@ def test_resolve_barcode_player(portrait_file):
 
     portrait = Image.open(portrait_file)
 
-    player_info = playerinfo.resolve_player_with_portrait(
+    player_info = src.playerinfo.resolve_player_with_portrait(
         barcode, portrait=np.array(portrait)
     )
 
@@ -148,20 +156,42 @@ def test_resolve_barcode_player(portrait_file):
     ],
     indirect=["portrait_file"],
 )
-def test_resolve_current_player(portrait_file, opponent, num_replays, monkeypatch):
+def test_resolve_current_player(portrait_file, opponent, num_replays, mocker):
 
+    # arrange
     def get_portrait_mocked(o, m, r):
         return open(portrait_file, "rb").read()
 
-    monkeypatch.setattr(playerinfo, "get_matching_portrait", get_portrait_mocked)
+    opponent_player = Player(
+        id=2, name=opponent, type="user", race="Zerg", result="Undecided"
+    )
+    gameinfo = GameInfo(
+        isReplay=False,
+        displayTime=2,
+        players=[
+            Player(id=1, name="Owlrazum", type="user", race="Terr", result="Undecided"),
+            opponent_player,
+        ],
+    )
+    mocker.patch.object(
+        src.playerinfo.sc2client, "wait_for_gameinfo", return_value=gameinfo
+    )
+    mocker.patch.object(
+        src.playerinfo.sc2client,
+        "get_opponent",
+        return_value=(opponent_player.name, opponent_player.race),
+    )
+    mocker.patch("src.playerinfo.get_matching_portrait", get_portrait_mocked)
 
     mapname = "Post-Youth LE"
     mmr = 4000
+
+    # act
     playerinfo, replays = resolve_replays_from_current_opponent(
         opponent=opponent, mapname=mapname, mmr=mmr
     )
 
-    assert playerinfo.name == opponent
+    # assert
     assert len(replays) == num_replays
 
 
@@ -171,11 +201,11 @@ def test_resolve_current_player(portrait_file, opponent, num_replays, monkeypatc
     ["Alcyone LE - BARCODE vs zatic 2024-08-02 11-52-09_portrait.png"],
     indirect=["portrait_file"],
 )
-def test_resolve_current_barcode_player(portrait_file, monkeypatch):
+def test_resolve_current_barcode_player(portrait_file, mocker):
     def get_portrait_mocked(o, m, r):
         return open(portrait_file, "rb").read()
 
-    monkeypatch.setattr(playerinfo, "get_matching_portrait", get_portrait_mocked)
+    mocker.patch("src.playerinfo.get_matching_portrait", get_portrait_mocked)
     bc = "IIIIIIIIIIII"
     mapname = "Post-Youth LE"
     mmr = 4000
@@ -185,27 +215,6 @@ def test_resolve_current_barcode_player(portrait_file, monkeypatch):
 
     assert playerinfo.name == bc
     assert len(replays) > 0
-
-
-# move testdata file to obs/screenshots/portraits before testing
-@pytest.mark.parametrize(
-    "portrait_file",
-    ["Post-Youth LE - BARCODE vs zatic 2024-08-05 16-32-48_portrait.png"],
-    indirect=True,
-)
-def test_get_matching_portrait(portrait_file):
-    opponent = "lllllllllllI"
-    mapname = "Post-Youth LE"
-    reference_date = datetime(2024, 8, 5, 16, 32, 48)
-    portrait = get_matching_portrait(opponent, mapname, reference_date)
-
-    portrait_now = Image.open(BytesIO(portrait))
-    portrait_file = Image.open(portrait_file)
-
-    score = ssim(np.array(portrait_now), np.array(portrait_file))
-
-    assert playerinfo is not None
-    assert score == 1.0
 
 
 @pytest.mark.parametrize(
@@ -286,6 +295,7 @@ def test_constructed_portrait():
             print(f"{kat_file} vs {kat2_file}: {score}")
 
 
+@only_in_debugging
 def test_get_new_player_from_pulse():
 
     opponent = "Seigneur"

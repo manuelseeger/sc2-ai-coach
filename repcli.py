@@ -1,4 +1,3 @@
-import datetime
 import glob
 import json
 import logging
@@ -41,17 +40,18 @@ log.addHandler(RichHandler(show_time=False, rich_tracebacks=True))
 
 reader = ReplayReader()
 
-dformat = lambda x: datetime.fromtimestamp(x).strftime("%Y-%m-%d %H:%M:%S")
+
+def dformat(x):
+    return datetime.fromtimestamp(x).strftime("%Y-%m-%d %H:%M:%S")
 
 
 class Summary(BaseModel):
-
     def to_table(self):
         table = Table(title=self.__class__.__name__)
         table.add_column("Stat", justify="left", style="bold", no_wrap=True)
         table.add_column("Value", justify="left", style="cyan")
         for field_name, field_info in self.model_fields.items():
-            if len(field_info.metadata) > 0 and field_info.metadata[0] == False:
+            if len(field_info.metadata) > 0 and field_info.metadata[0] is False:
                 continue
             table.add_row(field_info.title, str(getattr(self, field_name)))
 
@@ -222,7 +222,7 @@ def validate(logfile):
     for replay in replaydb.find_many_dict(Replay, raw_query={}):
         console.print(f"Validating {basename(replay['filename'])}", end=" ")
         try:
-            rep = Replay(**replay)
+            rep = Replay(**replay)  # noqa: F841
             console.print(":white_heavy_check_mark:")
             summary.valid_replays += 1
 

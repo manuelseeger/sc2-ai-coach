@@ -14,9 +14,8 @@ from PIL import Image
 
 from config import config
 from shared import signal_queue
+from src.events import NewMatchEvent
 from src.lib.sc2client import SC2Client
-
-from .types import ScanResult
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -131,13 +130,11 @@ def wait_for_file(file_path: str, timeout: int = 3, delay: float = 0.1) -> bool:
     return False
 
 
-class LoadingScreenScanner(threading.Thread):
-
+class NewMatchListener(threading.Thread):
     sc2client: SC2Client
 
-    def __init__(self, name):
+    def __init__(self):
         super().__init__()
-        self.name = name
         self._stop_event = threading.Event()
 
         self.sc2client = SC2Client()
@@ -208,7 +205,7 @@ class LoadingScreenScanner(threading.Thread):
                     rename_file(config.screenshot, new_name)
                     save_portrait(opponent_portrait, new_name)
 
-                    scanresult = ScanResult(mapname=map, opponent=opponent)
+                    scanresult = NewMatchEvent(mapname=map, opponent=opponent)
 
                     signal_queue.put(scanresult)
 

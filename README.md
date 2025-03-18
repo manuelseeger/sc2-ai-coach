@@ -1,8 +1,8 @@
-# SC2 AI coach and streaming tools
+# SC2 AI coach
 
 ## AI Coach
 
-[coach.py](coach.py) and [aicoach/aicoach.py](aicoach/aicoach.py) is a GPT-4 powered coach that can help a StarCraft ladder player. It's set up to run with a voice interface during a gaming session and can answer questions from replay history and about opponents such as
+[coach.py](coach.py) is a GPT4 powered coach that can help a StarCraft ladder player. It's set up to run with a voice interface during a gaming session and can answer questions from replay history and about opponents such as
 
 - When did I last play againt this player?
 - What was the opening build order of this player, in summary?
@@ -35,14 +35,13 @@ Instructions for a minimal setup without voice integration. Text only, "chat wit
 
 ### Python environment
 
-Setup a minimal python environment with Anaconda:
+Developed and tested with Python 3.12.
+
+Install with uv: https://docs.astral.sh/uv/
 
 ```sh
-> conda env create --name aicoach311 --file=environment-cp311-minimal.yml
-> conda activate aicoach311
+> uv sync
 ```
-
-Python 3.11 is the only version that works with all dependencies at this point.
 
 ### Configuration
 
@@ -100,17 +99,21 @@ Options:
   --help         Show this message and exit.
 
 Commands:
-  echo   Echo pretty-printed parsed replay data from a .SC2Replay file
-  query  Query the DB for replays and players
-  sync   Sync replays and players from replay folder to MongoDB
+  add       Add one or more replays to the DB
+  echo      Echo pretty-printed parsed replay data from a .SC2Replay file
+  query     Query the DB for replays and players
+  sync      Sync replays and players from replay folder to MongoDB
+  validate  Validate all replays in the DB.
 ```
 
 Run
 
 ```sh
-> python repcli.py --simulation sync players replays --from=2024-01-01 
+> python repcli.py sync --from=2024-01-01 
 ```
-to read all 1v1 ladder replays from beginning of 2024, and add the replays and the players from the replays to the DB. With the `--simulation` flag the replays will not actually be commited to DB. Remove the `--simulation` flag and run again to store all replay in DB.
+to read all 1v1 ladder replays from beginning of 2024, and add the replays and the players from the replays to the DB. 
+
+Use the `--simulation` flag to just read replays but not commit to DB. 
 
 The `replays` collection of the DB should now be populated with replay documents.
 
@@ -136,7 +139,7 @@ If you just want a database with your replays you can skip this step and the nex
 > python build.py
 ```
 
-to build the assistant. You should have a new file [aicoach/assistant.json](aicoach/assistant.json).
+to build the assistant. You should have a new file [assistant.json](assistant.json).
 
 ```sh
 > python build.py --deploy
@@ -151,7 +154,7 @@ Configure a wake hotkey. On pressing this key (combination) AICoach will wake up
 
 Configure student.emoji if you want to show a [different icon](./playground/emojis.txt) in the terminal output.
 
-You can disable interactions with the `interactive` flag. If off, AI coach will speak, but won't listen for input. 
+You can disable interactions with the `interactive` flag. If off, AI coach will speak, but won't listen for input.
 
 ```yaml
 # config.yourname.yml
@@ -229,11 +232,9 @@ Prerequisites:
 - NVidia GPU
 - Microphone
 
-Set up all dependencies from `environment-cp311.yml`. Review [Installation.md](Installation.md) for manual steps required. This will need Python experience and ideally some experience with machine learning with Python.
+Review [Installation.md](Installation.md) for manual steps required. This will need Python experience and ideally some experience with machine learning with Python.
 
-[parse_map_loading_screen.py](obs_tools/parse_map_loading_screen.py) needs you to setup OBS to take a screenshot when the maploading screen is showing in SC2. This is done to read the opponents name faster (before the game clock starts).
-
-The OBS setup is not documented here and you can skip this part by keeping `obs_integration=False`.
+The full version integrates with OBS for interaction between OBS scene and the running AICoach. The OBS setup is not documented here and you can skip this part by keeping `obs_integration=False`.
 
 More features implemented but currently not documented: 
 - Twitch integration, AI coach listens and responds to questions in twitch chat
@@ -251,7 +252,3 @@ Probably a lot...
 - This has only been tested with LotV replays starting from early 2023. Much older replays will likely throw errors.
 - Text mode wake event interferes with SC2 causing lag. Don't use during gaming sessions.
 - The production version is meant to run on Windows. Everything covered in unit tests runs on Win32 and Linux. 
-
-## SC2 map stats
-
-[parse_map_loading_screen.py](obs_tools/parse_map_loading_screen.py) can parse the currently played map from a screenshot and provide a stream overlay with this season's map win/loss statistics by matchup. The statistics are taken from https://sc2replaystats.com/ if a public account exists for the player.

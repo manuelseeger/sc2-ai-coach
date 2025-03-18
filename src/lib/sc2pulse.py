@@ -11,10 +11,9 @@ import httpx
 from pydantic import BaseModel, computed_field
 
 from config import config
-from src.lib.battlenet import toon_handle_from_id
 from src.lib.sc2client import Race as GameInfoRace
 from src.replaydb.types import ToonHandle
-from src.replaydb.util import convert_enum, is_barcode
+from src.util import convert_enum, is_barcode
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -218,8 +217,16 @@ class SC2PulseCommonCharacter(BaseModel):
     # reports:
 
 
-class SC2PulseClient:
+class SC2PulseSeason(BaseModel):
+    id: int
+    year: int
+    start: datetime
+    end: datetime
+    battlenetId: int
+    region: SC2PulseRegion
 
+
+class SC2PulseClient:
     client: httpx.Client
 
     BASE_URL = "https://sc2pulse.nephest.com/sc2/api"
@@ -293,14 +300,15 @@ class SC2PulseClient:
             if len(content["result"]) == 0:
                 break
 
-            matches.extend([SC2PulseLadderMatch(**l) for l in content["result"]])
+            matches.extend(
+                [SC2PulseLadderMatch(**match) for match in content["result"]]
+            )
 
         return matches
 
     def get_character_common(
         self, character_id: int, match_history_depth: int = 10
     ) -> SC2PulseCommonCharacter:
-
         response = self.client.get(
             f"/character/{character_id}/common",
             params={
@@ -321,14 +329,13 @@ class SC2PulseClient:
     def get_teams(
         self, character_ids: List[int], race: SC2PulseRace
     ) -> List[SC2PulseLadderTeam]:
-
         teams = []
         for batch in [
             character_ids[i : i + self.team_batch_size]
             for i in range(0, len(character_ids), self.team_batch_size)
         ]:
             response = self.client.get(
-                f"/group/team",
+                "/group/team",
                 params={
                     "characterId": ",".join(map(str, batch)),
                     "season": config.season,
@@ -348,7 +355,6 @@ class SC2PulseClient:
     def get_unmasked_players(
         self, opponent: str, race: str | Enum, mmr: int
     ) -> List[SC2PulseLadderTeam]:
-
         if isinstance(race, GameInfoRace):
             race = race.convert(SC2PulseRace)
         if isinstance(race, str):
@@ -381,3 +387,12 @@ class SC2PulseClient:
         )
 
         return final_opponent_teams[: self.limit_teams]
+
+    def get_season(self, season_id: int, region: SC2PulseRegion) -> SC2PulseSeason:
+        response = self.client.get(f"/season/list/all?season={season_id}")
+        response.raise_for_status()
+        season = [s for s in response.json() if s["region"] == region.value][0]
+        return SC2PulseSeason(**season)
+
+    def get_current_season(self) -> SC2PulseSeason:
+        return self.get_season(config.season, SC2PulseRegion(config.blizzard_region))

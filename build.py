@@ -1,5 +1,5 @@
 import json
-import os
+import sys
 
 import click
 import httpx
@@ -19,7 +19,13 @@ from src.ai.prompt import Templates
     default=False,
     help="Deploy assistant after building",
 )
-def main(do_deploy):
+@click.option(
+    "--init", "do_init", is_flag=True, default=False, help="Initialize environment"
+)
+def main(do_deploy, do_init):
+    if do_init:
+        config.init()
+        sys.exit(0)
     encoding = tiktoken.get_encoding("cl100k_base")
 
     tools = [

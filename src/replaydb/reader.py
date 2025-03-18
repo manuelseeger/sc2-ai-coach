@@ -72,7 +72,7 @@ class ReplayReader:
     def has_afk_player(self, replay):
         for player in replay.players:
             if player.avg_apm < 10:
-                log.debug(f"has_afk_player: True")
+                log.debug("has_afk_player: True")
                 return True
         return False
 

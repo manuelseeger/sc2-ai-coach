@@ -4,17 +4,15 @@ import threading
 import keyboard
 
 from config import config
-from src.events.types import WakeResult
+from shared import signal_queue
+from src.events import WakeEvent
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
-from shared import signal_queue
-
 
 class WakeKeyListener(threading.Thread):
-    def __init__(self, name):
+    def __init__(self):
         super().__init__()
-        self.name = name
         self.daemon = True
         self._stop_event = threading.Event()
 
@@ -30,4 +28,4 @@ class WakeKeyListener(threading.Thread):
 
     def listen_for_wake_key(self):
         log.debug("Wake key pressed")
-        signal_queue.put(WakeResult(awake=True))
+        signal_queue.put(WakeEvent(awake=True))

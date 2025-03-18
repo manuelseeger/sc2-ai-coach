@@ -9,11 +9,11 @@ from watchdog.observers import Observer
 
 from config import config
 from shared import signal_queue
-from src.events.types import NewReplayResult
+from src.events import NewReplayEvent
 from src.playerinfo import save_player_info
 from src.replaydb.db import replaydb
 from src.replaydb.reader import ReplayReader
-from src.replaydb.util import wait_for_file
+from src.util import wait_for_file
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 log.setLevel(logging.INFO)
@@ -27,7 +27,7 @@ def wait_for_delete(file_path: Path, timeout: int = 10) -> bool:
         try:
             os.remove(file_path)
             return True
-        except:
+        except:  # noqa: E722
             sleep(1)
     return False
 
@@ -41,7 +41,6 @@ class NewReplayHandler(FileSystemEventHandler):
                 self.process_new_file(event.src_path)
 
     def process_new_file(self, file_path: str):
-
         replay_raw = reader.load_replay_raw(file_path)
         if reader.apply_filters(replay_raw):
             log.info(f"New replay {basename(file_path)}")
@@ -53,14 +52,14 @@ class NewReplayHandler(FileSystemEventHandler):
             if not result.acknowledged:
                 log.error(f"Failed to save player info for {replay}")
 
-            signal_queue.put(NewReplayResult(replay=replay))
+            signal_queue.put(NewReplayEvent(replay=replay))
         else:
             if reader.is_instant_leave(replay_raw) or reader.has_afk_player(replay_raw):
                 wait_for_delete(file_path)
                 log.info(f"Deleted {basename(file_path)}")
 
 
-class NewReplayScanner(Observer):
+class NewReplayListener(Observer):
     def __init__(self):
         super().__init__()
         self.event_handler = NewReplayHandler()

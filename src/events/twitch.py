@@ -12,8 +12,7 @@ from twitchAPI.type import AuthScope, ChatEvent
 
 from config import config
 from shared import signal_queue
-
-from .types import TwitchChatResult, TwitchFollowResult, TwitchRaidResult
+from src.events import TwitchChatEvent, TwitchFollowEvent, TwitchRaidEvent
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -25,9 +24,8 @@ USER_SCOPE = [
 
 
 class TwitchListener(threading.Thread):
-    def __init__(self, name):
+    def __init__(self):
         super().__init__()
-        self.name = name
         self.daemon = True
         self._stop_event = threading.Event()
 
@@ -53,7 +51,7 @@ class TwitchListener(threading.Thread):
     async def on_follow(self, follow_event: ChannelFollowEvent):
         log.debug(f"Followed by {follow_event.event.user_name}")
 
-        result = TwitchFollowResult(
+        result = TwitchFollowEvent(
             user=follow_event.event.user_name, event=follow_event.to_dict()
         )
         signal_queue.put(result)
@@ -63,7 +61,7 @@ class TwitchListener(threading.Thread):
             f"Raided by {raid_event.event.from_broadcaster_user_name} with {raid_event.event.viewers} viewers"
         )
 
-        result = TwitchRaidResult(
+        result = TwitchRaidEvent(
             user=raid_event.event.from_broadcaster_user_name,
             viewers=raid_event.event.viewers,
             event=raid_event.to_dict(),
@@ -72,7 +70,7 @@ class TwitchListener(threading.Thread):
 
     async def on_message(self, msg: ChatMessage):
         log.debug(f"Message in {msg.room.name}, {msg.user.name}: {msg.text}")
-        result = TwitchChatResult(
+        result = TwitchChatEvent(
             user=msg.user.name, channel=msg.room.name, message=msg.text
         )
         signal_queue.put(result)

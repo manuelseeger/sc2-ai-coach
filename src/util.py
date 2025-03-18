@@ -40,3 +40,34 @@ def wait_for_file(file_path: str, timeout: int = 3, delay: float = 0.1) -> bool:
             return True
         sleep(delay)
     return False
+
+
+def strip_markdown(md_text: str):
+    # strip emojies
+    text = "".join(char for char in md_text if char.isprintable())
+    # Remove links
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+
+    # Remove bold/italic (**text**, *text*, __text__, _text_)
+    text = re.sub(r"(\*\*|__)(.*?)\1", r"\2", text)
+    text = re.sub(r"(\*|_)(.*?)\1", r"\2", text)
+
+    # Remove headings (#, ##, ###, etc.)
+    text = re.sub(r"^#+\s*", "", text, flags=re.MULTILINE)
+
+    # Remove inline code (`code`)
+    text = re.sub(r"`(.*?)`", r"\1", text)
+
+    # Remove images while ensuring no extra spaces remain
+    text = re.sub(r"!\[.*?\]\(.*?\)", "", text)
+    text = re.sub(
+        r"\s*!\[.*?\]\(.*?\)\s*", " ", text
+    )  # Extra safeguard for inline images
+
+    # Remove unordered list markers (-, *, +)
+    text = re.sub(r"^\s*[-*+]\s*", "", text, flags=re.MULTILINE)
+
+    # Remove ordered list markers (1., 2., 3.)
+    text = re.sub(r"^\s*\d+\.\s*", "", text, flags=re.MULTILINE)
+
+    return text

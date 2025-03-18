@@ -214,7 +214,7 @@ class AICoach:
 
         This creates a new run for the current thread and streams the response from the assistant.
         """
-        message = client.beta.threads.messages.create(
+        message = client.beta.threads.messages.create(  # noqa: F841
             thread_id=self.thread.id,
             role="user",
             content=text,

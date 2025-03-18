@@ -16,19 +16,20 @@ from log import log
 from shared import signal_queue
 from src.ai import AICoach
 from src.ai.prompt import Templates
-from src.events.types import (
-    NewReplayResult,
-    ScanResult,
-    TwitchChatResult,
-    TwitchFollowResult,
-    TwitchRaidResult,
-    WakeResult,
+from src.events import (
+    NewMatchEvent,
+    NewReplayEvent,
+    TwitchChatEvent,
+    TwitchFollowEvent,
+    TwitchRaidEvent,
+    WakeEvent,
 )
 from src.io.rich_log import RichConsoleLogHandler
+from src.lib.sc2pulse import SC2PulseClient
+from src.matchhistory import get_sc2pulse_match_history
 from src.playerinfo import resolve_replays_from_current_opponent
 from src.replaydb.db import eq, replaydb
 from src.replaydb.types import AssistantMessage, Metadata, Replay, Role, Session, Usage
-from src.smurfs import get_sc2pulse_match_history
 
 # Setup: Input output, logging, depending on config
 if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
@@ -66,27 +67,27 @@ def main(debug):
     session = AISession()
 
     if CoachEvent.twitch in config.coach_events:
-        from src.events.twitch import TwitchListener
+        from src.events import TwitchListener
 
-        twitch = TwitchListener(name="twitch")
+        twitch = TwitchListener()
         twitch.start()
 
     if CoachEvent.wake in config.coach_events:
-        from src import WakeListener
+        from src.events import WakeListener
 
-        listener = WakeListener(name="listener")
+        listener = WakeListener()
         listener.start()
 
     if CoachEvent.game_start in config.coach_events:
-        from src import GameStartedScanner
+        from src.events import GameStartedListener
 
-        scanner = GameStartedScanner(name="scanner")
+        scanner = GameStartedListener()
         scanner.start()
 
     if CoachEvent.new_replay in config.coach_events:
-        from src.events.newreplay import NewReplayScanner
+        from src.events import NewReplayListener
 
-        replay_scanner = NewReplayScanner()
+        replay_scanner = NewReplayListener()
         replay_scanner.start()
 
     if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
@@ -101,7 +102,7 @@ def main(debug):
         log.info(f"Transcriber: {config.speech_recognition_model}")
     log.info(f"Coach events enabled: {', '.join(config.coach_events)}")
 
-    log.info(f"Starting { 'non-' * ( not config.interactive ) }interactive session")
+    log.info(f"Starting {'non-' * (not config.interactive)}interactive session")
 
     # Main loop: Every 1s get a task from the signal_queue first in first out, and let the session process it
     # On shutdown, close all event listener threads and exit
@@ -173,6 +174,7 @@ class AISession:
 
     def __init__(self):
         self.update_last_replay()
+        self.set_season()
         self.coach = AICoach()
 
         self.session = Session(
@@ -184,12 +186,12 @@ class AISession:
         replaydb.db.save(self.session)
 
         self.handlers = {
-            TwitchChatResult: self.handle_twitch_chat,
-            TwitchFollowResult: self.handle_twitch_follow,
-            TwitchRaidResult: self.handle_twitch_raid,
-            WakeResult: self.handle_wake,
-            ScanResult: self.handle_game_start,
-            Replay: self.handle_new_replay,
+            TwitchChatEvent: self.handle_twitch_chat,
+            TwitchFollowEvent: self.handle_twitch_follow,
+            TwitchRaidEvent: self.handle_twitch_raid,
+            WakeEvent: self.handle_wake,
+            NewMatchEvent: self.handle_game_start,
+            NewReplayEvent: self.handle_new_replay,
         }
 
     def get_handler(self, task) -> Callable | None:
@@ -211,12 +213,17 @@ class AISession:
             self.session.threads.append(value)
             replaydb.db.save(self.session)
 
+    def set_season(self):
+        sc2pulse = SC2PulseClient()
+        season = sc2pulse.get_current_season()
+        config.season_start = season.start
+
     def update_last_replay(self, replay: Replay | None = None):
         if replay is None:
             try:
                 replay = replaydb.get_most_recent()
-            except:
-                log.error("Error getting most recent replay, is DB runnung?")
+            except:  # noqa: E722
+                log.error("Error getting most recent replay, is DB running?")
                 sys.exit(1)
 
         self.last_map = replay.map_name
@@ -286,10 +293,8 @@ class AISession:
     def say(self, message, flush=True):
         """Output a message to the user. Depending on audio config, this uses
         text-to-speech or just writes to the rich log."""
-        if config.audiomode in [AudioMode.text, AudioMode.voice_in]:
-            log.info(message, extra={"role": Role.assistant, "flush": flush})
-        else:
-            log.info(message, extra={"role": Role.assistant, "flush": flush})
+        log.info(message, extra={"role": Role.assistant, "flush": flush})
+        if config.audiomode not in [AudioMode.text, AudioMode.voice_in]:
             tts.feed(message)
 
     def close(self):
@@ -401,7 +406,7 @@ class AISession:
 
         self.thread_id = self.coach.create_thread(prompt)
 
-    def handle_game_start(self, scanresult: ScanResult):
+    def handle_game_start(self, scanresult: NewMatchEvent):
         """Handle new game event.
 
         This is invoked when a new match is started in SC2.
@@ -427,7 +432,7 @@ class AISession:
         else:
             log.debug("active thread, skipping")
 
-    def handle_wake(self, wakeresult: WakeResult):
+    def handle_wake(self, wakeresult: WakeEvent):
         """Handle a wake event.
 
         This is the user waking up the assistant for a conversation
@@ -444,7 +449,7 @@ class AISession:
         else:
             log.debug("active thread, skipping")
 
-    def handle_new_replay(self, replay_result: NewReplayResult):
+    def handle_new_replay(self, replay_result: NewReplayEvent):
         """Handle a new replay event.
 
         This is invoked when a new replay is added to the replay folder.
@@ -471,7 +476,7 @@ class AISession:
         else:
             log.debug("active thread, skipping")
 
-    def handle_twitch_follow(self, twitch_follow: TwitchFollowResult):
+    def handle_twitch_follow(self, twitch_follow: TwitchFollowEvent):
         """Handle a twitch follow event.
 
         Thanks the follower.
@@ -488,7 +493,7 @@ class AISession:
         log.info(response, extra={"role": Role.assistant})
         self.close()
 
-    def handle_twitch_raid(self, twitch_raid: TwitchRaidResult):
+    def handle_twitch_raid(self, twitch_raid: TwitchRaidEvent):
         """Handle a twitch raid event.
 
         Thanks the raider and welcomes the viewers
@@ -506,7 +511,7 @@ class AISession:
         log.info(response, extra={"role": Role.assistant})
         self.close()
 
-    def handle_twitch_chat(self, twitch_chat: TwitchChatResult):
+    def handle_twitch_chat(self, twitch_chat: TwitchChatEvent):
         """Handle a twitch chat event.
 
         If a viewer says something in chat, figure out if the message is a question, and
@@ -553,7 +558,6 @@ class AISession:
         self.close()
 
     def save_replay_summary(self, replay: Replay):
-
         messages: list[Message] = self.coach.get_conversation()
 
         class Response(BaseModel):

@@ -5,7 +5,7 @@ from time import sleep
 import pytest
 
 from config import config
-from src.events.newreplay import NewReplayHandler, NewReplayScanner
+from src.events.newreplay import NewReplayHandler, NewReplayListener
 
 
 @pytest.mark.parametrize(
@@ -19,7 +19,7 @@ def test_new_replay_added(replay_file, tmp_path: Path, mocker):
     # arrange
     config.replay_folder = tmp_path.absolute().as_posix()
     process_new_file = mocker.patch.object(NewReplayHandler, "process_new_file")
-    new_replay_observer = NewReplayScanner()
+    new_replay_observer = NewReplayListener()
     new_replay_observer.start()
 
     # act

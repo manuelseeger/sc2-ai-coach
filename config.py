@@ -1,8 +1,13 @@
+import sys
+from datetime import datetime
 from enum import Enum
+from functools import cached_property
 from glob import glob
+from os.path import join
+from pathlib import Path
 from typing import Annotated, Dict, List, Optional, Tuple, Type
 
-from pydantic import BaseModel, DirectoryPath
+from pydantic import BaseModel, DirectoryPath, ValidationError, computed_field
 from pydantic.networks import UrlConstraints
 from pydantic_core import MultiHostUrl, Url
 from pydantic_settings import (
@@ -13,6 +18,7 @@ from pydantic_settings import (
     SettingsConfigDict,
     YamlConfigSettingsSource,
 )
+from rich import print
 
 # https://github.com/pydantic/pydantic/pull/7116
 MongoSRVDsn = Annotated[
@@ -85,6 +91,11 @@ class StudentConfig(BaseModel):
         return self.name
 
 
+class TTSConfig(BaseModel):
+    engine: str = "system"
+    voice: Optional[str] = None
+
+
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
         yaml_file=yaml_files,
@@ -106,6 +117,8 @@ class Config(BaseSettings):
     recognizer: RecognizerConfig
     wake_key: str
     interactive: bool = True
+
+    tts: TTSConfig
 
     student: StudentConfig
 
@@ -143,38 +156,24 @@ class Config(BaseSettings):
     last_played_ago_max: int
     match_history_depth: int
 
-    screenshot: str
+    log_dir: DirectoryPath
+    obs_dir: DirectoryPath
+
+    @computed_field
+    @cached_property
+    def screenshot(self) -> str:
+        return join(self.obs_dir, "screenshots", "_maploading.png")
+
     tessdata_dir: str
     obs_ws_pw: str | None = None
 
     season: int
 
+    season_start: Optional[datetime] = None
+
     ladder_maps: List[str]
 
-    default_projection: Dict[str, int] = {
-        "_id": 1,
-        "date": 1,
-        "game_length": 1,
-        "map_name": 1,
-        "players.avg_apm": 1,
-        "players.highest_league": 1,
-        "players.name": 1,
-        "players.messages": 1,
-        "players.pick_race": 1,
-        "players.pid": 1,
-        "players.play_race": 1,
-        "players.result": 1,
-        "players.scaled_rating": 1,
-        "players.stats": 1,
-        "players.toon_handle": 1,
-        "players.build_order.time": 1,
-        "players.build_order.name": 1,
-        "players.build_order.supply": 1,
-        "players.build_order.is_chronoboosted": 1,
-        "real_length": 1,
-        "stats": 1,
-        "unix_timestamp": 1,
-    }
+    default_projection: Dict[str, int]
 
     db_name: str = "SC2"
     mongo_dsn: MongoSRVDsn
@@ -196,5 +195,44 @@ class Config(BaseSettings):
             YamlConfigSettingsSource(settings_cls),
         )
 
+    def is_initial(self) -> bool:
+        """Check if the environment is initialized
 
-config: Config = Config()
+        Right now this doesn't do anything pydantic doesn't do already.
+        But this can be extended in the future to check for example if mongodb views are created.
+        """
+        return not Path(self.obs_dir).exists()
+
+    @classmethod
+    def check_initial(cls):
+        try:
+            config: Config = cls()
+        except ValidationError as e:
+            print(e)
+            sys.exit(1)
+        if config.is_initial():
+            from rich.prompt import Confirm
+
+            do_init = Confirm.ask("Can't find initialized environment. Initialize now?")
+            if do_init:
+                config.init()
+                print("Initialized environment :white_heavy_check_mark:")
+            else:
+                sys.exit(0)
+        return config
+
+    def init(self):
+        Path(join(self.obs_dir, "screenshots")).mkdir(parents=True, exist_ok=True)
+        Path(join(self.log_dir)).mkdir(parents=True, exist_ok=True)
+
+        if self.obs_integration:
+            import openwakeword
+
+            openwakeword.utils.download_models()
+
+            from src.io.tts import init_tts
+
+            init_tts()
+
+
+config: Config = Config.check_initial()

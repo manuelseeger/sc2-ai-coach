@@ -19,7 +19,7 @@ from src.lib.sc2client import SC2Client
 from src.lib.sc2pulse import SC2PulseClient
 from src.replaydb.db import replaydb
 from src.replaydb.types import Alias, PlayerInfo, Replay, to_bson_binary
-from src.replaydb.util import is_aware, is_barcode
+from src.util import is_aware, is_barcode
 
 if config.obs_integration:
     from external.fast_ssim.ssim import ssim
@@ -105,12 +105,11 @@ def portrait_construct_from_bnet(toon_id: int) -> bytes | None:
 
     try:
         profile = battlenet.get_profile(toon_id)
-    except:
+    except:  # noqa: E722
         log.warning(f"Bnet refused profile portrait for toon_id {toon_id}")
         return
 
     if profile:
-
         portrait_bytes = battlenet.get_portrait(profile)
 
         if not portrait_bytes:
@@ -131,7 +130,6 @@ def portrait_construct_from_bnet(toon_id: int) -> bytes | None:
 
 
 def save_player_info(replay: Replay) -> Tuple[DbResponse, PlayerInfo]:
-
     portrait = None
     portrait_constructed = None
 
@@ -184,7 +182,6 @@ def save_player_info(replay: Replay) -> Tuple[DbResponse, PlayerInfo]:
 
 
 def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo | None:
-
     q = elem_match(Alias.name == name, field=PlayerInfo.aliases)
 
     candidates = replaydb.db.find_many(PlayerInfo, query=q)
@@ -279,7 +276,7 @@ def resolve_replays_from_current_opponent(
             playerinfo = resolve_player_with_portrait(opponent, np.array(portrait))
 
     if not race:
-        log.debug(f"Could not get race, is SC2Client running?")
+        log.debug("Could not get race, is SC2Client running?")
 
     if not playerinfo and race:
         log.debug(f"Trying to resolve {opponent} with SC2Pulse")
