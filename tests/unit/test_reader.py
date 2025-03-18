@@ -3,7 +3,7 @@ import sc2reader
 
 from src.replaydb.plugins.ReplayStats import is_gg, player_worker_micro
 from src.replaydb.reader import ReplayReader
-from src.replaydb.util import time2secs
+from src.util import time2secs
 from tests.conftest import only_in_debugging
 
 

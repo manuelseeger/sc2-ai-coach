@@ -21,8 +21,7 @@ from pyodmongo import DbModel, MainBaseModel
 
 from config import AIBackend, config
 from shared import REGION_MAP
-
-from .util import time2secs
+from src.util import time2secs
 
 
 def convert_to_nested_structure(d: dict[str, Any]) -> dict:

@@ -19,7 +19,7 @@ from src.lib.sc2client import SC2Client
 from src.lib.sc2pulse import SC2PulseClient
 from src.replaydb.db import replaydb
 from src.replaydb.types import Alias, PlayerInfo, Replay, to_bson_binary
-from src.replaydb.util import is_aware, is_barcode
+from src.util import is_aware, is_barcode
 
 if config.obs_integration:
     from external.fast_ssim.ssim import ssim
