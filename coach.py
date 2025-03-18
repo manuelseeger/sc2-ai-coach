@@ -223,7 +223,7 @@ class AISession:
             try:
                 replay = replaydb.get_most_recent()
             except:  # noqa: E722
-                log.error("Error getting most recent replay, is DB runnung?")
+                log.error("Error getting most recent replay, is DB running?")
                 sys.exit(1)
 
         self.last_map = replay.map_name
