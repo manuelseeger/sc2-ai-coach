@@ -6,7 +6,7 @@ __pycache__/
 !.env.example
 *config.*.yml
 obs/
-aicoach/assistant.json
+assistant.json
 logs/
 mongodb/mongo-seed/*.json
 tests/coverage/

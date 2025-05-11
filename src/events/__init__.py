@@ -1,5 +1,6 @@
 from config import AudioMode, CoachEvent, config
 from src.events.events import (
+    CastReplayEvent,
     NewMatchEvent,
     NewReplayEvent,
     TwitchChatEvent,
@@ -34,4 +35,5 @@ __all__ = [
     "TwitchFollowEvent",
     "TwitchRaidEvent",
     "NewReplayEvent",
+    "CastReplayEvent",
 ]

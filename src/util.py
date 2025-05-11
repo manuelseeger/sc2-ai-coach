@@ -10,6 +10,13 @@ def time2secs(duration_str: str) -> int:
     return int(minutes) * 60 + int(seconds)
 
 
+def secs2time(seconds: float) -> str:
+    """Convert seconds to a string in the format MM:SS"""
+    minutes = int(seconds // 60)
+    seconds = int(seconds % 60)
+    return f"{minutes:02}:{seconds:02}"
+
+
 def is_barcode(name: str) -> bool:
     return re.match(r"^[IiLl]+$", name) is not None
 

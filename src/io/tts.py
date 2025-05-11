@@ -35,8 +35,11 @@ class TTS:
     def stop(self):
         self.tts.stop()
 
+    def is_speaking(self):
+        return self.tts.is_playing()
 
-def make_tts_stream():
+
+def make_tts_stream() -> TTS:
     engine = None
     if config.tts.engine == "kokoro":
         engine = KokoroEngine()

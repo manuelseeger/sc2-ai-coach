@@ -32,6 +32,8 @@ class Jinja2Loader:
     twitch_chat: Template
     init_twitch: Template
     twitch_follow: Template
+    cast_replay: Template
+    cast_intro: Template
 
     def __init__(self):
         self.env = LoggingEnvironment(
@@ -50,6 +52,8 @@ class Jinja2Loader:
         self.twitch_chat = self.env.get_template("twitch_chat.jinja2")
         self.twitch_follow = self.env.get_template("twitch_follow.jinja2")
         self.twitch_raid = self.env.get_template("twitch_raid.jinja2")
+        self.cast_replay = self.env.get_template("cast_replay.jinja2")
+        self.cast_intro = self.env.get_template("cast_intro.jinja2")
 
     def render(self, template_name: str, replacements: Dict[str, str]) -> str:
         template = self.env.get_template(template_name)
