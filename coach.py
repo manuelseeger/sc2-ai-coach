@@ -567,7 +567,9 @@ class AISession:
         log.debug(replay)
         sc2client = SC2Client()
 
-        opponent = replay.get_player(config.student.name, opponent=True).name
+        opponent = replay.get_opponent_of(config.student.name)
+        player = replay.get_player(config.student.name)
+
         replacements = {
             "replay": str(
                 replay.default_projection_json(limit=600, include_workers=True)
@@ -580,16 +582,16 @@ class AISession:
 
         self.thread_id = self.coach.create_thread("00:00")
 
-        matchup = (
-            replay.get_player(config.student.name).play_race
-            + " vs "
-            + replay.get_opponent_of(config.student.name).play_race
-        )
+        matchup = player.play_race + " vs " + opponent.play_race
 
         intro_replacements = {
             "student": str(config.student.name),
+            "student_color": player.color.name,
+            "student_position": str(player.clock_position),
             "map": str(replay.map_name),
-            "opponent": str(opponent),
+            "opponent": str(opponent.name),
+            "opponent_color": opponent.color.name,
+            "opponent_position": str(opponent.clock_position),
             "league": "Diamond",
             "matchup": matchup,
         }

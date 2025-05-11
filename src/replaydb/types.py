@@ -160,6 +160,7 @@ class Color(MainBaseModel):
     b: int
     g: int
     r: int
+    name: str
 
 
 class ReplayMessage(MainBaseModel):
@@ -237,6 +238,7 @@ class Player(MainBaseModel):
     avg_sq: float
     build_order: List[BuildOrder] = []
     clan_tag: str
+    clock_position: int | None = None
     color: Color
     creep_spread_by_minute: Dict[str, float] | None = None
     highest_league: int
