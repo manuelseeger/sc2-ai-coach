@@ -35,7 +35,7 @@ def test_cast_replay(replay_file, util):
 
     coach.init_additional_instructions(prompt)
 
-    thread_id = coach.create_thread("00:00")
+    coach.create_thread("00:00")
 
     intro_replacements = {
         "student": str(config.student.name),

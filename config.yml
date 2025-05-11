@@ -55,11 +55,11 @@ sc2_client_url: "http://127.0.0.1:6119"
 # AI coach backend, use "Mocked" for testing without an AI backend
 aibackend: "OpenAI"
 # which GPT model to use for OpenAI Assistant API
-gpt_model: "gpt-4o-2024-08-06"
+gpt_model: "gpt-4.1"
 # Cost per prompt token
-gpt_prompt_pricing: 0.0000025
+gpt_prompt_pricing: 0.0000020
 # Cost per completion token
-gpt_completion_pricing: 0.000010
+gpt_completion_pricing: 0.000008
 
 # Which events should the AI coach react to
 coach_events:
@@ -94,15 +94,15 @@ season: 62
 season_start: "2025-01-05"
 # Maps in the current ladder pool
 ladder_maps:
- - Neon Violet Square LE
- - Amygdala
- - Ultralove
- - Abyssal Reef LE
- - Frostline LE
- - Ley Lines
- - Whispers of Gold
- - King's Cove LE
- - El Dorado
+ - Incorporeal
+ - Last Fantasy
+ - Ley Lines LE
+ - Magannatha LE
+ - Persephone
+ - Pylon
+ - Tokamak
+ - Torches
+ - Ultralove LE
 
 # Configure which replay fields to include per default when reading replays
 default_projection:
