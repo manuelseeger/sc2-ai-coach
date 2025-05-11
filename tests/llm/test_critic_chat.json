@@ -3,7 +3,7 @@
         {
             "user": "tuorello",
             "message": "When do you think zatic has a shot at winning against Serral?",
-            "criteria": "Says the likelyhood of zatic winning against serral is low",
+            "criteria": "Suggests the likelyhood of zatic winning against serral is low",
             "expected": true
         },
         {

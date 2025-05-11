@@ -1,5 +1,4 @@
 import parametrize_from_file
-import pytest
 
 from coach import AISession
 from src.replaydb.reader import ReplayReader
