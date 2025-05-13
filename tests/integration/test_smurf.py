@@ -1,6 +1,6 @@
 import pytest
 
-from src.smurfs import get_sc2pulse_match_history
+from src.matchhistory import get_sc2pulse_match_history
 from tests.conftest import only_in_debugging
 
 
@@ -11,7 +11,6 @@ from tests.conftest import only_in_debugging
     indirect=["replay_file"],
 )
 def test_detect_smurf(replay_file, toon_handle):
-
     match_history = get_sc2pulse_match_history(toon_handle)
 
     race_report = match_history.race_report

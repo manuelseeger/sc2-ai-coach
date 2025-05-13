@@ -199,7 +199,8 @@ class Config(BaseSettings):
         """Check if the environment is initialized
 
         Right now this doesn't do anything pydantic doesn't do already.
-        But this can be extended in the future to check for example if mongodb views are created."""
+        But this can be extended in the future to check for example if mongodb views are created.
+        """
         return not Path(self.obs_dir).exists()
 
     @classmethod

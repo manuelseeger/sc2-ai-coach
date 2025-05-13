@@ -3,7 +3,7 @@ import sc2reader
 
 from src.replaydb.plugins.ReplayStats import is_gg, player_worker_micro
 from src.replaydb.reader import ReplayReader
-from src.replaydb.util import time2secs
+from src.util import time2secs
 from tests.conftest import only_in_debugging
 
 
@@ -281,3 +281,26 @@ def test_afk_replay(replay_file):
     replay = reader.load_replay(replay_file)
 
     assert any([p.avg_apm == 0 for p in replay.players])
+
+
+@pytest.mark.parametrize(
+    "replay_file",
+    [
+        "Tokamak LE (6) ZvT 2 base Terran push against gasless.SC2Replay",
+    ],
+    indirect=True,
+)
+def test_replay_colors_positions(replay_file):
+    reader = ReplayReader()
+
+    replay_raw = reader.load_replay_raw(replay_file)
+
+    replay = reader.to_typed_replay(replay_raw)
+
+    p1, p2 = replay.players
+
+    assert p1.color.name.lower() == "red"
+    assert p2.color.name.lower() == "blue"
+
+    assert p1.clock_position == 1
+    assert p2.clock_position == 7

@@ -168,6 +168,6 @@ class Transcriber:
             log.debug(
                 f"'thank you' match found: {bool(match)} (Trimmed Duration: {trimmed_duration})"
             )
-            # if trimmed_duration < 0.15:
-            ##    output = ""
+            if trimmed_duration < 0.1:
+                output = ""
         return output

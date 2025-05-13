@@ -17,6 +17,7 @@ from shared import signal_queue
 from src.ai import AICoach
 from src.ai.prompt import Templates
 from src.events import (
+    CastReplayEvent,
     NewMatchEvent,
     NewReplayEvent,
     TwitchChatEvent,
@@ -25,11 +26,13 @@ from src.events import (
     WakeEvent,
 )
 from src.io.rich_log import RichConsoleLogHandler
+from src.lib.sc2client import SC2Client
 from src.lib.sc2pulse import SC2PulseClient
+from src.matchhistory import get_sc2pulse_match_history
 from src.playerinfo import resolve_replays_from_current_opponent
 from src.replaydb.db import eq, replaydb
 from src.replaydb.types import AssistantMessage, Metadata, Replay, Role, Session, Usage
-from src.smurfs import get_sc2pulse_match_history
+from src.util import secs2time
 
 # Setup: Input output, logging, depending on config
 if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
@@ -69,19 +72,19 @@ def main(debug):
     if CoachEvent.twitch in config.coach_events:
         from src.events import TwitchListener
 
-        twitch = TwitchListener(name="twitch")
+        twitch = TwitchListener()
         twitch.start()
 
     if CoachEvent.wake in config.coach_events:
         from src.events import WakeListener
 
-        listener = WakeListener(name="listener")
+        listener = WakeListener()
         listener.start()
 
     if CoachEvent.game_start in config.coach_events:
         from src.events import GameStartedListener
 
-        scanner = GameStartedListener(name="scanner")
+        scanner = GameStartedListener()
         scanner.start()
 
     if CoachEvent.new_replay in config.coach_events:
@@ -192,6 +195,7 @@ class AISession:
             WakeEvent: self.handle_wake,
             NewMatchEvent: self.handle_game_start,
             NewReplayEvent: self.handle_new_replay,
+            CastReplayEvent: self.handle_cast_replay,
         }
 
     def get_handler(self, task) -> Callable | None:
@@ -223,7 +227,7 @@ class AISession:
             try:
                 replay = replaydb.get_most_recent()
             except:  # noqa: E722
-                log.error("Error getting most recent replay, is DB runnung?")
+                log.error("Error getting most recent replay, is DB running?")
                 sys.exit(1)
 
         self.last_map = replay.map_name
@@ -556,6 +560,61 @@ class AISession:
             self.say(response.answer, flush=False)
 
         self.close()
+
+    def handle_cast_replay(self, cast_result: CastReplayEvent):
+        replay = cast_result.replay
+
+        log.debug(replay)
+        sc2client = SC2Client()
+
+        opponent = replay.get_opponent_of(config.student.name)
+        player = replay.get_player(config.student.name)
+
+        replacements = {
+            "replay": str(
+                replay.default_projection_json(limit=600, include_workers=True)
+            ),
+        }
+
+        prompt = Templates.cast_replay.render(replacements)
+
+        self.coach.init_additional_instructions(prompt)
+
+        self.thread_id = self.coach.create_thread("00:00")
+
+        matchup = player.play_race + " vs " + opponent.play_race
+
+        intro_replacements = {
+            "student": str(config.student.name),
+            "student_color": player.color.name,
+            "student_position": str(player.clock_position),
+            "map": str(replay.map_name),
+            "opponent": str(opponent.name),
+            "opponent_color": opponent.color.name,
+            "opponent_position": str(opponent.clock_position),
+            "league": "Diamond",
+            "matchup": matchup,
+        }
+
+        intro = Templates.cast_intro.render(intro_replacements)
+
+        self.coach.add_message(intro, role="assistant")
+
+        self.say(intro)
+
+        gameinfo = sc2client.wait_for_gameinfo()
+
+        while not gameinfo.is_decided():
+            gameinfo = sc2client.wait_for_gameinfo()
+            timestamp = secs2time(gameinfo.displayTime)
+
+            response = self.chat(timestamp)
+
+            log.debug(f"{timestamp}: {response}")
+            while tts.is_speaking():
+                sleep(1)
+
+        # final summary
 
     def save_replay_summary(self, replay: Replay):
         messages: list[Message] = self.coach.get_conversation()

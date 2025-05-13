@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from src.smurfs import MatchHistory
+from src.matchhistory import MatchHistory
 
 
 @pytest.mark.parametrize(

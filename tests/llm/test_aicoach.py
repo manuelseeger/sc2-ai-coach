@@ -26,7 +26,7 @@ def test_function_smurf_detection(util):
 def test_function_query_build_order(util):
     aicoach = AICoach()
 
-    message = f"My player ID is 'zatic'. Get the build order of the opponent of the last game I played against 'protoss' opponents."
+    message = "My player ID is 'zatic'. Get the build order of the opponent of the last game I played against 'protoss' opponents."
 
     aicoach.create_thread(message)
 
@@ -50,9 +50,9 @@ def test_get_structured_response():
     }
     prompt = Templates.new_replay.render(replacements)
 
-    thread_id = aicoach.create_thread(prompt)
+    aicoach.create_thread(prompt)
 
-    message = f"""Can you please summarize the game in one paragraph? Make sure to mention tech choices, timings, but keep it short. Important to mention are key choices of my opponent in terms of tech and opening units.
+    message = """Can you please summarize the game in one paragraph? Make sure to mention tech choices, timings, but keep it short. Important to mention are key choices of my opponent in terms of tech and opening units.
     
 Also please extract keywords that characterize the game. Focus on the essentials..
         

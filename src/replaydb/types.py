@@ -21,8 +21,7 @@ from pyodmongo import DbModel, MainBaseModel
 
 from config import AIBackend, config
 from shared import REGION_MAP
-
-from .util import time2secs
+from src.util import time2secs
 
 
 def convert_to_nested_structure(d: dict[str, Any]) -> dict:
@@ -161,6 +160,7 @@ class Color(MainBaseModel):
     b: int
     g: int
     r: int
+    name: str
 
 
 class ReplayMessage(MainBaseModel):
@@ -238,6 +238,7 @@ class Player(MainBaseModel):
     avg_sq: float
     build_order: List[BuildOrder] = []
     clan_tag: str
+    clock_position: int | None = None
     color: Color
     creep_spread_by_minute: Dict[str, float] | None = None
     highest_league: int
@@ -477,7 +478,7 @@ class PlayerInfo(DbModel):
             "aliases.portraits": 1,
         }
 
-        exclude_keys = convert_projection(exclude)
+        exclude_keys = convert_projection(exclude, model=PlayerInfo)
 
         return self.model_dump_json(
             exclude_unset=True,

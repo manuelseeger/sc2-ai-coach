@@ -13,7 +13,7 @@ from src.events import NewReplayEvent
 from src.playerinfo import save_player_info
 from src.replaydb.db import replaydb
 from src.replaydb.reader import ReplayReader
-from src.replaydb.util import wait_for_file
+from src.util import wait_for_file
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 log.setLevel(logging.INFO)
@@ -27,7 +27,7 @@ def wait_for_delete(file_path: Path, timeout: int = 10) -> bool:
         try:
             os.remove(file_path)
             return True
-        except:
+        except:  # noqa: E722
             sleep(1)
     return False
 

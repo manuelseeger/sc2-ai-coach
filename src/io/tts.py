@@ -3,6 +3,7 @@ import logging
 from RealtimeTTS import KokoroEngine, SystemEngine, TextToAudioStream
 
 from config import config
+from src.util import strip_markdown
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -16,8 +17,9 @@ class TTS:
         self.tts = TextToAudioStream(engine)
 
     def feed(self, text: str):
-        # strip emojies but only emojis from text
-        text = "".join(char for char in text if char.isprintable())
+        text = strip_markdown(text)
+
+        # log.debug(f"Feeding TTS: {text}")
 
         try:
             self.tts.feed(text)
@@ -33,8 +35,11 @@ class TTS:
     def stop(self):
         self.tts.stop()
 
+    def is_speaking(self):
+        return self.tts.is_playing()
 
-def make_tts_stream():
+
+def make_tts_stream() -> TTS:
     engine = None
     if config.tts.engine == "kokoro":
         engine = KokoroEngine()
@@ -58,6 +63,3 @@ def init_tts():
     TextToAudioStream(engine).feed([text]).play(log_synthesized_text=True)
 
     engine.shutdown()
-
-
-# https://github.com/snakers4/silero-models?tab=readme-ov-file

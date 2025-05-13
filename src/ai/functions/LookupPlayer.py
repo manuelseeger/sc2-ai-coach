@@ -18,7 +18,7 @@ def LookupPlayer(
     toon_handle: Annotated[
         str,
         "The unique handle of a player on Battle.net ('toon_handle'). A handle has the format N-SN-N-NNNNNNN where N are all numeric. Example: 2-S2-1-1849098",
-    ]
+    ],
 ) -> str:
     """Lookup a player by their toon handle and return their career summary in JSON format.
 

@@ -4,21 +4,7 @@ I just started a game against "{{opponent}}" on the map {{map}}. We are currentl
 There are {{replays|length}} replays of me playing against {{opponent}}. Pretend you found these replays for me, and
 reply as if you are the one starting this conversation.
 Give a 1 sentence summary of {{opponent}} strategy for each replay. When giving the summary for a replay, emphazise that
-it was played on {{map}} before if that is the case, but don't mention the map if it isn't. Include who won.
-{% endif %}
-
-{% if race_report %}
-If the matchup report shows winrates of above 0.75 or below 0.25, or one of the
-matchups has an instant leave rate higher than 0.15, warn me that this player might be smurf. State the matchup and the
-value which is out of bounds.
-
-If none are out of bounds, don't mention anything related to match history, smurfing, leave rates, win rates, or their
-bounds at all. Simply wish me a good game and say nothing else.
-
-Matchup report for {{opponent}} from match history:
--------------------
-{{race_report}}
--------------------
+it was played on {{map}} before if that is the case; don't, if it isn't. Include who won.
 {% endif %}
 
 {% if replays|length > 0 %}
@@ -28,4 +14,16 @@ Past replays against {{opponent}}:
 {{replay}}
 -------------------
 {% endfor %}
+{% endif %}
+
+{% if race_report %}
+Matchup report for {{opponent}} from match history:
+
+{{race_report}}
+
+If the matchup report shows an instant leave rate higher than 0.15, warn me that this player might be smurf. State the
+matchup with the high leave rate.
+
+If no leave rate is that high, don't mention anything related to match history, smurfing, leave rates,
+or their values at all. Simply wish me a good game and say nothing else.
 {% endif %}

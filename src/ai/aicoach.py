@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import datetime
-from typing import Callable, Dict, Generator, Optional, Type, TypeVar
+from typing import Callable, Dict, Generator, Literal, Optional, Type, TypeVar
 
 from openai import APIError, AssistantEventHandler, OpenAI
 from openai.lib.streaming import AssistantStreamManager
@@ -116,6 +116,20 @@ class AICoach:
             )
         return self.thread.id
 
+    def add_message(self, message, role: Literal["user", "assistant"] = "user") -> str:
+        """Add a message to the current thread and return the message id. Optionally, add a text message to the thread."""
+        if not self.thread:
+            raise ValueError("No active thread. Please create a thread first.")
+
+        if message:
+            message = client.beta.threads.messages.create(
+                thread_id=self.thread.id,
+                role=role,
+                content=message,
+            )
+            return message.id
+        return ""
+
     def stream_thread(self):
         """Create a new run for the current thread and stream the response from the assistant."""
         with client.beta.threads.runs.stream(
@@ -214,7 +228,7 @@ class AICoach:
 
         This creates a new run for the current thread and streams the response from the assistant.
         """
-        message = client.beta.threads.messages.create(
+        message = client.beta.threads.messages.create(  # noqa: F841
             thread_id=self.thread.id,
             role="user",
             content=text,

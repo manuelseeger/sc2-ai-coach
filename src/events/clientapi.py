@@ -15,9 +15,8 @@ class ClientAPIListener(threading.Thread):
 
     sc2client: SC2Client
 
-    def __init__(self, name):
+    def __init__(self):
         super().__init__()
-        self.name = name
         self._stop_event = threading.Event()
 
         self.sc2client = SC2Client()

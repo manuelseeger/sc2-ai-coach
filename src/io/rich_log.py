@@ -202,7 +202,7 @@ class RichConsoleLogHandler(Handler):
             # the position of the last status, overwriting lines printed between the two statuses.
             self._status_methods[record.funcName] = self._create_status(record=record)
 
-            if record.funcName is not "transcribe":
+            if record.funcName != "transcribe":
                 self._status_methods[record.funcName].stream(record.msg)
         else:
             if record.funcName not in self._status_methods:
@@ -230,7 +230,7 @@ class RichConsoleLogHandler(Handler):
         role = getattr(record, "role", None)
         flush = getattr(record, "flush", False)
 
-        if flush == False:
+        if flush is False:
             return False
 
         if record.funcName in STATUS_METHODS:
