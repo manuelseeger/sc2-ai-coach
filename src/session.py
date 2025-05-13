@@ -509,7 +509,7 @@ class AISession:
 
         # start the game and commentate
         gameinfo = sc2client.wait_for_gameinfo()
-        while gameinfo.displayTime < replay.real_length:
+        while gameinfo.displayTime <= replay.real_length:
             gameinfo = sc2client.wait_for_gameinfo()
             timestamp = secs2time(gameinfo.displayTime)
 
@@ -519,7 +519,11 @@ class AISession:
             while self.tts.is_speaking():
                 sleep(1)
 
-        # final summary
+        summary = self.chat(
+            "The game is over. Give us a nice outro for winner and loser and a very short summary of the game."
+        )
+        self.say(summary)
+        self.close()
 
     def save_replay_summary(self, replay: Replay):
         messages: list[Message] = self.coach.get_conversation()
