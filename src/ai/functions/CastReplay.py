@@ -11,17 +11,26 @@ from src.replaydb.types import Replay
 def CastReplay(
     replay_id: Annotated[
         str,
-        "The unique 64-character ID of a replay. Also called the filehash of the replay.",
+        "The unique ID of a replay. Also called the filehash of the replay.",
     ],
 ) -> str:
     """
-    Start casting a replay.
+    Start casting / commentating a replay.
     """
-    replay: Replay = replaydb.db.find_one(Replay, query=Replay.filehash == replay_id)
+    q = dict()
+    # sanitize LLM input
+    replay_id = replay_id.strip().lower()
+    # LLM likes to give us the unix timestamp (like 1746895208) instead of the filehash, check if numeric
+    # somethimes the LLM hallucinates more characters after the timestamp, so we only check the first 10 characters
+    if replay_id[:10].isnumeric():
+        q = Replay.unix_timestamp == int(replay_id[:10])
+    else:
+        q = Replay.filehash == replay_id
+    replay: Replay = replaydb.db.find_one(Replay, query=q)
     if not replay:
         return f"Replay with ID {replay_id} not found."
 
     event = CastReplayEvent(replay=replay)
     signal_queue.put(event)
 
-    return f"Started casting replay with ID {replay_id}. Thank you!"
+    return f"Casting for {replay_id} started. Thank you, you can close this conversation now!"

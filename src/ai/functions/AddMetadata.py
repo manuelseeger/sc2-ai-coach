@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from config import config
 from src.replaydb.db import eq, replaydb
-from src.replaydb.types import Metadata, ReplayId
+from src.replaydb.types import Metadata
 
 from .base import AIFunction
 
@@ -18,7 +18,7 @@ from ..utils import get_clean_tags
 def AddMetadata(
     replay_id: Annotated[
         str,
-        "The unique 64-character ID of a replay. Also called the filehash of the replay.",
+        "The unique of a replay. Also called the filehash of the replay.",
     ],
     tags: Annotated[
         str,

@@ -224,7 +224,7 @@ coach_events:
 
 ## Advanced setup
 
-Please understand that this is a hobby project and not ready to run without some technical setup. You will need Python experience to get this running. This code is presented as-is and I can't provide support for it.
+Please understand that this is a hobby project the more advances feature are ready to run without some technical setup. This code is presented as-is and I can't provide support for it.
 
 Prerequisites:
 
@@ -241,6 +241,7 @@ More features implemented but currently not documented:
 - Battle.net integration, AI coach can request profile information including portrait for players from battle.net
 - SC2 pulse integration, AI coach can try to unmask barcodes 
 - AI coach can try to determine if we are facing a smurf
+- AI coach can commentate games from replays
 
 ## Limitations
 
