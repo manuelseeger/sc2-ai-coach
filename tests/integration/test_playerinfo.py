@@ -60,7 +60,6 @@ def test_save_existing_player_info(replay_file, portrait_file):
     indirect=["replay_file", "portrait_file"],
 )
 def test_existing_player_info_update_alias(replay_file, portrait_file, mocker):
-
     # arrange
     def get_portrait_mocked(o, m, r):
         return open(portrait_file, "rb").read()
@@ -126,7 +125,6 @@ def test_read_player_portrait(portrait_file):
     indirect=True,
 )
 def test_resolve_barcode_player(portrait_file):
-
     barcode = "IIIIIIIIIIII"
     barcode1 = "2-S2-1-10088973"
 
@@ -157,7 +155,6 @@ def test_resolve_barcode_player(portrait_file):
     indirect=["portrait_file"],
 )
 def test_resolve_current_player(portrait_file, opponent, num_replays, mocker):
-
     # arrange
     def get_portrait_mocked(o, m, r):
         return open(portrait_file, "rb").read()
@@ -264,7 +261,6 @@ def test_match_portrait_filename(portrait_file, map_name, replay_date, expected)
 
 @only_in_debugging
 def test_constructed_portrait():
-    name = "IIIIIIIIIIII"
     kat_from_bnet_profile = Image.open(
         "tests/testdata/portraits/kat_from_bnet.jpg"
     ).resize((95, 95), Image.Resampling.BICUBIC)
@@ -297,7 +293,6 @@ def test_constructed_portrait():
 
 @only_in_debugging
 def test_get_new_player_from_pulse():
-
     opponent = "Seigneur"
     race = "PROTOSS"
     mmr = 4000

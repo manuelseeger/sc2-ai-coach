@@ -53,3 +53,24 @@ def test_get_current_season():
     season = sc2pulse.get_current_season()
     assert season.battlenetId == config.season
     assert season.end > datetime.datetime.now()
+
+
+def test_get_season_bounds():
+    sc2pulse = SC2PulseClient()
+    season = sc2pulse.get_current_season()
+    bounds = sc2pulse.get_league_bounds(season.battlenetId)
+
+    assert bounds.bronze[0][1] < 2000
+    assert bounds is not None
+
+
+def get_division_for_mmr():
+    sc2pulse = SC2PulseClient()
+    season = sc2pulse.get_current_season()
+    bounds = sc2pulse.get_league_bounds(season.battlenetId)
+
+    mmr = 2000
+    division = sc2pulse.get_division_for_mmr(mmr, bounds)
+    assert division is not None
+    assert division.league == "Bronze"
+    assert division.division == 1

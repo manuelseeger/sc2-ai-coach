@@ -1,5 +1,6 @@
-# This is largely a reimplementation of the reveal opponent PS script from SC2Pulse in Python
-# all credit to author nephestdev@gmail.com
+# The unmask barcode functionality is largely a reimplementation of the reveal opponent
+# PS script from SC2Pulse in Python.
+# All credit to author nephestdev@gmail.com
 # https://github.com/sc2-pulse/reveal-sc2-opponent
 
 import logging
@@ -16,6 +17,16 @@ from src.replaydb.types import ToonHandle
 from src.util import convert_enum, is_barcode
 
 log = logging.getLogger(f"{config.name}.{__name__}")
+
+LeagueMap = {
+    0: "Bronze",
+    1: "Silver",
+    2: "Gold",
+    3: "Platinum",
+    4: "Diamond",
+    5: "Master",
+    6: "Grandmaster",
+}
 
 
 class MatchType(str, Enum):
@@ -173,6 +184,39 @@ class SC2PulseLadderMatchParticipant(BaseModel):
 class SC2PulseMap(BaseModel):
     id: int
     name: str
+
+
+class SC2PulseLeagueBounds(BaseModel):
+    region: SC2PulseRegion
+    bounds: dict[int, dict[int, tuple[int, int]]]
+
+    @property
+    def bronze(self) -> dict[int, tuple[int, int]]:
+        return self.bounds[0]
+
+    @property
+    def silver(self) -> dict[int, tuple[int, int]]:
+        return self.bounds[1]
+
+    @property
+    def gold(self) -> dict[int, tuple[int, int]]:
+        return self.bounds[2]
+
+    @property
+    def platinum(self) -> dict[int, tuple[int, int]]:
+        return self.bounds[3]
+
+    @property
+    def diamond(self) -> dict[int, tuple[int, int]]:
+        return self.bounds[4]
+
+    @property
+    def master(self) -> dict[int, tuple[int, int]]:
+        return self.bounds[5]
+
+    @property
+    def grandmaster(self) -> dict[int, tuple[int, int]]:
+        return self.bounds[6]
 
 
 class SC2PulseLadderMatch(BaseModel):
@@ -396,3 +440,50 @@ class SC2PulseClient:
 
     def get_current_season(self) -> SC2PulseSeason:
         return self.get_season(config.season, SC2PulseRegion(config.blizzard_region))
+
+    def get_league_bounds(self, season=config.season) -> SC2PulseLeagueBounds:
+        # https://sc2pulse.nephest.com/sc2/api/ladder/league/bounds?season=62&queue=LOTV_1V1&team-type=ARRANGED&eu=true&bro=true&sil=true&gol=true&pla=true&dia=true&mas=true&gra=true
+
+        response = self.client.get(
+            "/ladder/league/bounds",
+            params={
+                "season": season,
+                "queue": self.queue,
+                "team-type": "ARRANGED",
+                "eu": True if self.region == SC2PulseRegion.EU else False,
+                "kr": True if self.region == SC2PulseRegion.KR else False,
+                "cn": True if self.region == SC2PulseRegion.CN else False,
+                "us": True if self.region == SC2PulseRegion.US else False,
+                "bro": True,
+                "sil": True,
+                "gol": True,
+                "pla": True,
+                "dia": True,
+                "mas": True,
+                "gra": True,
+            },
+        )
+
+        response.raise_for_status()
+        content = response.json()
+        league_bounds = SC2PulseLeagueBounds(
+            region=self.region, bounds=content[self.region.value]
+        )
+        return league_bounds
+
+
+def get_division_for_mmr(
+    mmr: int,
+    league_bounds: SC2PulseLeagueBounds,
+) -> tuple[str, str]:
+    """
+    Get the league and division for a given MMR.
+    """
+    for league, divisions in league_bounds.bounds.items():
+        for division, bounds in divisions.items():
+            if bounds[0] <= mmr <= bounds[1]:
+                return LeagueMap[league], str(division + 1)
+    # return grandmaster if mmr higher than highest master:
+    if mmr > league_bounds.master[0][1]:
+        return "Grandmaster", ""
+    return "Unknown", "Unknown"
