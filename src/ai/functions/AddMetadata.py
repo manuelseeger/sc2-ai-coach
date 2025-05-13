@@ -4,14 +4,13 @@ from typing import Annotated
 from pydantic import ValidationError
 
 from config import config
+from src.ai.utils import get_clean_tags
 from src.replaydb.db import eq, replaydb
 from src.replaydb.types import Metadata
 
 from .base import AIFunction
 
 log = logging.getLogger(f"{config.name}.{__name__}")
-
-from ..utils import get_clean_tags
 
 
 @AIFunction

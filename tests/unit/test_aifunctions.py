@@ -1,4 +1,5 @@
 import pytest
+from pytest_mock import MockerFixture
 
 from src.ai.functions import AddMetadata, AIFunctions
 from src.ai.functions.CastReplay import CastReplay
@@ -65,7 +66,7 @@ def test_clean_tag(tags, expected):
     assert result == expected
 
 
-def test_castreplay_found(mocker):
+def test_castreplay_found(mocker: MockerFixture):
     mock_replay = mocker.create_autospec(Replay, instance=True)
     mock_replaydb = mocker.patch("src.ai.functions.CastReplay.replaydb")
     mock_signal_queue = mocker.patch("src.ai.functions.CastReplay.signal_queue")
@@ -82,7 +83,7 @@ def test_castreplay_found(mocker):
     assert "Casting for" in response
 
 
-def test_castreplay_not_found(mocker):
+def test_castreplay_not_found(mocker: MockerFixture):
     mock_replaydb = mocker.patch("src.ai.functions.CastReplay.replaydb")
     mock_signal_queue = mocker.patch("src.ai.functions.CastReplay.signal_queue")
     mock_replaydb.db.find_one.return_value = None
@@ -92,7 +93,7 @@ def test_castreplay_not_found(mocker):
     mock_signal_queue.put.assert_not_called()
 
 
-def test_castreplay_numeric_id(mocker):
+def test_castreplay_numeric_id(mocker: MockerFixture):
     mock_replay = mocker.create_autospec(Replay, instance=True)
     mock_replaydb = mocker.patch("src.ai.functions.CastReplay.replaydb")
     mock_signal_queue = mocker.patch("src.ai.functions.CastReplay.signal_queue")
