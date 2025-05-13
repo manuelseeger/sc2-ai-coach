@@ -3,12 +3,13 @@ import logging
 from RealtimeTTS import KokoroEngine, SystemEngine, TextToAudioStream
 
 from config import config
+from src.contracts import TTSService
 from src.util import strip_markdown
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
 
-class TTS:
+class TTS(TTSService):
     tts: TextToAudioStream
 
     def __init__(self, engine=None):

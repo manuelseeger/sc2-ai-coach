@@ -1,16 +1,16 @@
 import logging
 from time import time
 
-import numpy as np
 import speech_recognition as sr
 from speech_recognition.audio import AudioData
 
 from config import config
+from src.contracts import MicrophoneService
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
 
-class Microphone:
+class Microphone(MicrophoneService):
     def __init__(self, device_index=None):
         if device_index is None:
             device_index = config.microphone_index

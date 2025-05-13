@@ -18,6 +18,7 @@ from transformers.utils import is_flash_attn_2_available
 from typing_extensions import override
 
 from config import config
+from src.contracts import TranscriberService
 
 transformers.logging.set_verbosity_error()
 
@@ -79,7 +80,7 @@ class GPUWhisperFeatureExtractor(WhisperFeatureExtractor):
         return super().__call__(*args, device=self.device, **kwargs)
 
 
-class Transcriber:
+class Transcriber(TranscriberService):
     def __init__(self):
         self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
