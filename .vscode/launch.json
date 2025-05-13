@@ -96,5 +96,17 @@
       "cwd": "${workspaceFolder}",
       "args": []
     },
+        {
+      "name": "CLI add testdata",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "repcli.py",
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/.env",
+      "args": [
+        "add",
+        "tests/testdata/replays/*"
+      ]
+    },
   ]
 }
