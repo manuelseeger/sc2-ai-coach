@@ -33,6 +33,7 @@ recognizer:
 tts:
   engine: "kokoro"
   voice: "af_heart"
+  speed: 1.25
 
 # Hotkey to call up the AI coach prompt when run in text-in mode
 wake_key: "ctrl+alt+w"

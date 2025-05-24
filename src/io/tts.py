@@ -46,6 +46,8 @@ def make_tts_stream() -> TTS:
         engine = KokoroEngine()
         if config.tts.voice:
             engine.set_voice(config.tts.voice)
+        if config.tts.speed:
+            engine.set_speed(config.tts.speed)
 
     if config.tts.engine == "system":
         engine = SystemEngine()

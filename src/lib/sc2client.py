@@ -173,7 +173,7 @@ class SC2Client:
 
     def wait_for_gameinfo(
         self, timeout: int = 20, delay: float = 0.5, ongoing=False
-    ) -> GameInfo:
+    ) -> GameInfo | None:
         start_time = time()
         while time() - start_time < timeout:
             if ongoing:

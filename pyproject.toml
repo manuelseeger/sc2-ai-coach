@@ -35,10 +35,10 @@ standard = [
   "obsws-python>=1.7.1",
   "onnxruntime>=1.20.1",
   "opencv-python>=4.11.0.86",
-  "openwakeword>=0.6.0",
+  "openwakeword>=0.6.0; sys_platform == 'win32'",
   "pip>=25.0.1",
   "pyaudio>=0.2.14",
-  "realtimetts[kokoro,system]==0.4.47",
+  "realtimetts[kokoro,system]>=0.5.5",
   "scipy>=1.15.1",
   "soundfile>=0.13.1",
   "speechrecognition[audio]>=3.14.1",
@@ -49,6 +49,7 @@ standard = [
   "twitchapi>=4.4.0",
   "webrtcvad>=2.0.10",
 ]
+
 
 [tool.uv.sources]
 sc2reader-plugins = { git = "https://github.com/NumberPigeon/sc2reader-plugins.git" }
@@ -79,3 +80,6 @@ dev = [
 [tool.uv]
 default-groups = ["dev"]
 no-build-isolation-package = ["flash-attn"]
+environments = [
+    "sys_platform == 'win32'" 
+]

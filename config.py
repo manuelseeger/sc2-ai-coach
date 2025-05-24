@@ -94,6 +94,7 @@ class StudentConfig(BaseModel):
 class TTSConfig(BaseModel):
     engine: str = "system"
     voice: Optional[str] = None
+    speed: Optional[float] = 1.0
 
 
 class Config(BaseSettings):

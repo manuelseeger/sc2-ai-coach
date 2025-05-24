@@ -508,14 +508,22 @@ class AISession:
         self.say(intro)
 
         # start the game and commentate
-        gameinfo = sc2client.wait_for_gameinfo()
-        while gameinfo.displayTime <= replay.real_length:
+        while True:
             gameinfo = sc2client.wait_for_gameinfo()
+            if gameinfo is None:
+                msg = "SC2 game client is not running, cannot cast replay"
+                log.error(msg)
+                self.say(msg)
+                self.close()
+                return
+
+            if gameinfo.displayTime >= replay.real_length:
+                break
+
             timestamp = secs2time(gameinfo.displayTime)
-
             response = self.chat(timestamp)
-
             log.debug(f"{timestamp}: {response}")
+
             while self.tts.is_speaking():
                 sleep(1)
 
