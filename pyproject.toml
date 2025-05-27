@@ -79,3 +79,4 @@ dev = [
 [tool.uv]
 default-groups = ["dev"]
 no-build-isolation-package = ["flash-attn"]
+environments = ["sys_platform == 'win32'"]
