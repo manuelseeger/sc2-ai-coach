@@ -1,6 +1,7 @@
 import logging
 
-from RealtimeTTS import KokoroEngine, SystemEngine, TextToAudioStream
+from RealtimeTTS import SystemEngine, TextToAudioStream
+from RealtimeTTS.engines.kokoro_engine import KokoroEngine
 
 from config import config
 from src.contracts import TTSService
@@ -37,7 +38,9 @@ class TTS(TTSService):
         self.tts.stop()
 
     def is_speaking(self):
-        return self.tts.is_playing()
+        # https://github.com/KoljaB/RealtimeTTS/issues/320
+        return self.tts.stream_running and self.tts.is_playing_flag
+        # return self.tts.is_playing()
 
 
 def make_tts_stream() -> TTS:
@@ -59,10 +62,11 @@ def init_tts():
     from RealtimeTTS import KokoroEngine, TextToAudioStream
 
     engine = KokoroEngine()
-    engine.set_voice(config.tts.voice)
+    if config.tts.voice:
+        engine.set_voice(config.tts.voice)
     text = "Warm up"
     TextToAudioStream(engine).feed(text).play(muted=True)
     text = "Hello, this is your friendly AI coach getting ready"
-    TextToAudioStream(engine).feed([text]).play(log_synthesized_text=True)
+    TextToAudioStream(engine).feed(text).play(log_synthesized_text=True)
 
     engine.shutdown()
