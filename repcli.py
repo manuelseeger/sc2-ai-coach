@@ -256,6 +256,11 @@ def players(ctx, query):
     query = json.loads(query)
 
     players = replaydb.db.find_many(PlayerInfo, raw_query=query)
+
+    if not isinstance(players, list):
+        console.print(f":x: Expected list of players, got {type(players).__name__}")
+        return
+
     for player in players:
         console.print_json(str(player))
         if ctx.obj["VERBOSE"]:

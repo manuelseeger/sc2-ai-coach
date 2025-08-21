@@ -77,7 +77,7 @@ def main(debug):
         replay_scanner = NewReplayListener()
         replay_scanner.start()
 
-    if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
+    if config.audiomode in [AudioMode.voice_out, AudioMode.full] and tts is not None:
         tts.feed("Starting TTS")
 
     log.info(f"Audio mode: {str(config.audiomode)}")
@@ -105,7 +105,10 @@ def main(debug):
 
             if session.is_active():
                 session.close()
-            if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
+            if (
+                config.audiomode in [AudioMode.voice_out, AudioMode.full]
+                and tts is not None
+            ):
                 tts.stop()
             if CoachEvent.wake in config.coach_events:
                 listener.stop()

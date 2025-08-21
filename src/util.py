@@ -26,11 +26,15 @@ def is_aware(dt: datetime) -> bool:
 
 
 def splittoon(toon: str) -> tuple[int, int, int]:
-    return tuple(map(int, toon.split("-")))
+    part1_str, part2_str, part3_str = toon.split("-")
+    part1: int = int(part1_str)
+    part2: int = int(part2_str)
+    part3: int = int(part3_str)
+    return part1, part2, part3
 
 
-def convert_enum(enum_value, target_enum: Enum):
-    return target_enum[enum_value.name]
+def convert_enum(enum_value: Enum, target_enum: type[Enum]) -> Enum:
+    return target_enum(enum_value.name)
 
 
 def wait_for_file(file_path: str, timeout: int = 3, delay: float = 0.1) -> bool:

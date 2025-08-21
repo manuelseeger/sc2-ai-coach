@@ -54,7 +54,8 @@ def main(verbose, debug):
             host="localhost", port=4455, password=config.obs_ws_pw, timeout=3
         ) as obs:
             resp = obs.get_version()
-            print(f"OBS Version: {resp.obs_version}")
+            if isinstance(resp, dict):
+                print(f"OBS Version: {resp['obs_version']}")
 
             last_ui = None
             while True:

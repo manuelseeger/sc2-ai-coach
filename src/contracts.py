@@ -1,15 +1,17 @@
 from abc import ABC, abstractmethod
 
+from speech_recognition.audio import AudioData
+
 
 class TranscriberService(ABC):
     @abstractmethod
-    def transcribe(self, audio_file: str) -> str:
+    def transcribe(self, audio: AudioData) -> str:
         pass
 
 
 class MicrophoneService(ABC):
     @abstractmethod
-    def listen(self, duration: int) -> str:
+    def listen(self) -> AudioData | None:
         pass
 
 
