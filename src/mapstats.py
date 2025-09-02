@@ -127,9 +127,9 @@ def update_map_stats(map):
 
 
 def get_season_map_stats(map: str) -> MatchupsByMap | None:
-    q = (Replay.map_name == map) & (Replay.date >= config.season_start)
+    q = (Replay.map_name == map) & (Replay.date >= config.season_start)  # pyright: ignore[reportOperatorIssue]
 
-    maps: list[MatchupsByMap] = replaydb.db.find_many(Model=MatchupsByMap, query=q)
+    maps: list[MatchupsByMap] = replaydb.db.find_many(Model=MatchupsByMap, query=q)  # type: ignore
 
     if len(maps) > 0:
         return maps[0]

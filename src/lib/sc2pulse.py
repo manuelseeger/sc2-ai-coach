@@ -123,6 +123,7 @@ class SC2PulseLadderTeam(BaseModel):
     @computed_field
     @property
     def race(self) -> SC2PulseRace:
+        """Estimate the main race of the player"""
         raceGamesPlayed = {
             attr: getattr(self.members[0], attr, None)
             for attr in [
@@ -137,9 +138,11 @@ class SC2PulseLadderTeam(BaseModel):
             k: v for k, v in raceGamesPlayed.items() if v is not None
         }
         if not existing_attributes:
-            return None
+            # this is not exactly correct, but functionally represents not knowing the main race
+            return SC2PulseRace.random
+
         # Find the attribute with the highest value
-        race_name = max(existing_attributes, key=existing_attributes.get)
+        race_name = max(existing_attributes, key=existing_attributes.get)  # type: ignore
         race_name = race_name.replace("GamesPlayed", "").upper()
 
         return SC2PulseRace(race_name)
@@ -264,6 +267,7 @@ class SC2PulseCommonCharacter(BaseModel):
 class SC2PulseSeason(BaseModel):
     id: int
     year: int
+    number: int
     start: datetime
     end: datetime
     battlenetId: int
@@ -283,7 +287,7 @@ class SC2PulseClient:
 
     limit_teams: int = 5
 
-    def __init__(self, http_client: httpx.Client = None):
+    def __init__(self, http_client: Optional[httpx.Client] = None):
         if http_client:
             self.client = http_client
             self.client.base_url = self.BASE_URL

@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Any, Dict, List, TypeVar, overload
 
 import sc2reader
 from sc2reader.engine.plugins import ContextLoader, CreepTracker
@@ -20,19 +21,20 @@ from .types import Replay
 log = logging.getLogger(config.name)
 
 
-sc2reader.engine.register_plugin(EventSecondCorrector())
-sc2reader.engine.register_plugin(ContextLoader())
-sc2reader.engine.register_plugin(APMTracker())
-sc2reader.engine.register_plugin(CreepTracker())
-sc2reader.engine.register_plugin(WorkerTracker())
-sc2reader.engine.register_plugin(SQTracker())
-sc2reader.engine.register_plugin(PlayerStatsTracker())
+sc2reader.engine.register_plugin(EventSecondCorrector())  # type: ignore
+sc2reader.engine.register_plugin(ContextLoader())  # type: ignore
+sc2reader.engine.register_plugin(APMTracker())  # type: ignore
+sc2reader.engine.register_plugin(CreepTracker())  # type: ignore
+sc2reader.engine.register_plugin(WorkerTracker())  # type: ignore
+sc2reader.engine.register_plugin(SQTracker())  # type: ignore
+sc2reader.engine.register_plugin(PlayerStatsTracker())  # type: ignore
 
 
 factory = sc2reader.factories.DictCachedSC2Factory(cache_max_size=1000)
-factory.register_plugin("Replay", ReplayStats())
+factory.register_plugin("Replay", ReplayStats())  # type: ignore
 factory.register_plugin(
-    "Replay", SpawningTool(include_map_details=config.include_map_details)
+    "Replay",
+    SpawningTool(include_map_details=config.include_map_details),  # type: ignore
 )
 
 
@@ -247,6 +249,21 @@ def replay_to_dict(replay) -> dict:
     }
 
     return convert_keys_to_strings(replay_dict)
+
+
+T = TypeVar("T")
+
+
+@overload
+def convert_keys_to_strings(d: Dict[Any, Any]) -> Dict[str, Any]: ...
+
+
+@overload
+def convert_keys_to_strings(d: List[Any]) -> List[Any]: ...
+
+
+@overload
+def convert_keys_to_strings(d: T) -> T: ...
 
 
 def convert_keys_to_strings(d):

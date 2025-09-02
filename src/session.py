@@ -4,7 +4,7 @@ from time import sleep, time
 from typing import Callable
 
 from Levenshtein import distance as levenshtein
-from openai.types.beta.threads import Message
+from openai.types.beta.threads import Message, TextContentBlock
 from pydantic import BaseModel
 from rich.prompt import Prompt
 
@@ -30,6 +30,27 @@ from src.playerinfo import resolve_replays_from_current_opponent
 from src.replaydb.db import eq, replaydb
 from src.replaydb.types import AssistantMessage, Metadata, Replay, Role, Session, Usage
 from src.util import secs2time
+
+
+class DummyMicrophoneService(MicrophoneService):
+    def listen(self) -> None:
+        return None
+
+
+class DummyTranscriberService(TranscriberService):
+    def transcribe(self, audio) -> str:
+        return ""
+
+
+class DummyTTSService(TTSService):
+    def feed(self, text: str) -> None:
+        pass
+
+    def stop(self) -> None:
+        pass
+
+    def is_speaking(self) -> bool:
+        return False
 
 
 class AISession:
@@ -67,9 +88,9 @@ class AISession:
 
     handlers: dict[type, Callable]
 
-    tts: TTSService | None = None
-    mic: MicrophoneService | None = None
-    transcriber: TranscriberService | None = None
+    tts: TTSService
+    mic: MicrophoneService
+    transcriber: TranscriberService
 
     def __init__(self, tts=None, mic=None, transcriber=None):
         self.update_last_replay()
@@ -94,9 +115,12 @@ class AISession:
             CastReplayEvent: self.handle_cast_replay,
         }
 
-        self.tts = tts
-        self.mic = mic
-        self.transcriber = transcriber
+        # Assign services or dummy implementations
+        self.tts = tts if tts is not None else DummyTTSService()
+        self.mic = mic if mic is not None else DummyMicrophoneService()
+        self.transcriber = (
+            transcriber if transcriber is not None else DummyTranscriberService()
+        )
 
     def get_handler(self, task) -> Callable | None:
         return self.handlers.get(type(task))
@@ -120,6 +144,9 @@ class AISession:
     def set_season(self):
         sc2pulse = SC2PulseClient()
         season = sc2pulse.get_current_season()
+        log.info(
+            f"Current SC2 season is {season.year}-{season.number}, started {season.start}"
+        )
         config.season_start = season.start
 
     def update_last_replay(self, replay: Replay | None = None):
@@ -549,13 +576,14 @@ class AISession:
         meta.tags = response.keywords
         meta.conversation = [
             AssistantMessage(
-                role=m.role,
+                role=Role(m.role),
                 text=m.content[0].text.value,
                 created_at=datetime.fromtimestamp(m.created_at),
             )
             # skip the instruction message which includes the replay as JSON
             for m in messages[::-1][1:]
+            if isinstance(m.content[0], TextContentBlock)
             if m.content[0].text.value
         ]
 
-        replaydb.db.save(meta, query=eq(Metadata.replay, replay.id))
+        replaydb.db.save(meta, query=eq(Metadata.replay, replay.id))  # pyright: ignore[reportArgumentType]
