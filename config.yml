@@ -91,8 +91,8 @@ last_played_ago_max: 2400
 match_history_depth: 100
 
 # Current ladder season
-season: 62
-season_start: "2025-01-05"
+season: 64
+season_start: "2025-07-19"
 # Maps in the current ladder pool
 ladder_maps:
  - Incorporeal
