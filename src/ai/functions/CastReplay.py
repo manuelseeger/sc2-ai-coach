@@ -26,7 +26,7 @@ def CastReplay(
         q = Replay.unix_timestamp == int(replay_id[:10])
     else:
         q = Replay.filehash == replay_id
-    replay: Replay = replaydb.db.find_one(Replay, query=q)
+    replay: Replay = replaydb.db.find_one(Replay, query=q)  # type: ignore
     if not replay:
         return f"Replay with ID {replay_id} not found."
 

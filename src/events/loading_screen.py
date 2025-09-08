@@ -19,7 +19,7 @@ from src.lib.sc2client import SC2Client
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
-cvflags = None
+cvflags: int = cv2.IMREAD_COLOR
 
 # portrait size
 W, H = 105, 105
@@ -53,9 +53,9 @@ def parse_map_loading_screen(filename: str) -> tuple[str, str, str, numpy.ndarra
     image = cv2.imread(filename, flags=cvflags)
 
     if type(image) is not numpy.ndarray:
-        return None
+        raise ValueError("Could not read screenshot image")
 
-    with tesserocr.PyTessBaseAPI(path=config.tessdata_dir) as tess:
+    with tesserocr.PyTessBaseAPI(path=config.tessdata_dir) as tess:  # type: ignore
         x, y, w, h = 940, 900, 670, 100
         ROI = image[y : y + h, x : x + w]
         tess.SetImage(cv2_to_image(ROI))
@@ -71,7 +71,6 @@ def parse_map_loading_screen(filename: str) -> tuple[str, str, str, numpy.ndarra
         tess.SetImage(cv2_to_image(ROI))
         player_right = tess.GetUTF8Text()
 
-    opponent_portrait = None
     if is_student(player_left):
         opponent_portrait = get_right_portrait(image)
     if is_student(player_right):
@@ -89,7 +88,7 @@ def clean_map_name(map, ladder_maps):
     map = map.strip().lower()
     if map not in ladder_maps:
         for ladder_map in ladder_maps:
-            if levenstein(map, ladder_map) < 8:
+            if levenstein(map, ladder_map) < 5:
                 map = ladder_map
                 break
     return map

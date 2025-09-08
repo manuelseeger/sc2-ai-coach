@@ -17,11 +17,10 @@ from src.events.loading_screen import parse_map_loading_screen
     indirect=True,
 )
 def test_cutout_portrait(screenshot_file, portrait_file):
-
     map, player1, player2, opponent_portrait = parse_map_loading_screen(screenshot_file)
 
     portrait = cv2.imread(portrait_file)
-    score = ssim(opponent_portrait, portrait)
+    score = ssim(opponent_portrait, portrait)  # type: ignore
     assert score > 0.9
 
 
@@ -38,11 +37,15 @@ def test_cutout_portrait(screenshot_file, portrait_file):
             "amygdala",
             "",
         ),
+        (
+            "Not Pylon - SandStorm vs zatic 2025-06-24 19-19-47.png",
+            "ultralove",
+            "SandStorm",
+        ),
     ],
     indirect=["screenshot_file"],
 )
 def test_tesseract(screenshot_file, map_name, opponent):
-
     map, player1, player2, opponent_portrait = parse_map_loading_screen(screenshot_file)
 
     assert map.lower() == map_name

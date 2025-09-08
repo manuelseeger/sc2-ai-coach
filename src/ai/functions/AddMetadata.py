@@ -39,7 +39,8 @@ def AddMetadata(
         return False
 
     meta: Metadata = replaydb.db.find_one(
-        Model=Metadata, query=eq(Metadata.replay, replay_id)
+        Model=Metadata,
+        query=eq(Metadata.replay, replay_id),  # type: ignore
     )
     if not meta:
         meta = Metadata(replay=replay_id)

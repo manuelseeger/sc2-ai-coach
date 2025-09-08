@@ -408,7 +408,7 @@ class AssistantMessage(MainBaseModel):
 class Metadata(DbModel):
     replay: ReplayId
     description: str | None = None
-    tags: List[str] | None = None
+    tags: List[str] = []
     conversation: List[AssistantMessage] | None = None
     _collection: ClassVar = "meta"
 
