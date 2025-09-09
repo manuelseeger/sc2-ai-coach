@@ -27,6 +27,7 @@ def build_race_report(df: pd.DataFrame) -> pd.DataFrame:
         matchup_winrate = sum(matchup_df["decision"] == "WIN") / len(matchup_df)
 
         # what is the rate of losses with duration < 45
+        # We use 45 seconds as a threshold for "instant leave" because this is about the time for the initial scout.
         losses = matchup_df[matchup_df["decision"] == "LOSS"]
         if len(losses) == 0:
             instant_leave_rate = 0

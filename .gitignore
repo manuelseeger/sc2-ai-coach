@@ -22,3 +22,5 @@ user_token.json
 .venv/
 build/
 dist/
+.specstory/
+rep.json

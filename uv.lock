@@ -1829,7 +1829,6 @@ requires-dist = [
     { name = "watchdog", specifier = ">=6.0.0" },
     { name = "webrtcvad", marker = "extra == 'standard'", specifier = ">=2.0.10" },
 ]
-provides-extras = ["standard"]
 
 [package.metadata.requires-dev]
 dev = [
