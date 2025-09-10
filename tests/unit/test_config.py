@@ -2,7 +2,7 @@ from config import Config, StudentConfig
 
 
 def test_load_config():
-    config: Config = Config()
+    config: Config = Config()  # type: ignore
     print(config)
     assert isinstance(config.student, StudentConfig)
     assert isinstance(config.deamon_polling_rate, int)

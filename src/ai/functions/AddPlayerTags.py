@@ -1,8 +1,6 @@
 import logging
 from typing import Annotated
 
-from pydantic import ValidationError
-
 from config import config
 from src.replaydb.db import eq, replaydb
 from src.replaydb.types import FieldTypeValidator, PlayerInfo, ToonHandle
@@ -21,7 +19,7 @@ def AddPlayerTags(
     ],
 ) -> bool:
     """Add tags to a player for a given player toon handle"""
-
+    raise NotImplementedError("This function is not implemented yet.")
     tags_parsed = []
     try:
         tags_parsed = tags

@@ -33,7 +33,7 @@ client = OpenAI(
     http_client=http_client,
 )
 
-TBaseModel = TypeVar("T", bound=BaseModel)
+T = TypeVar("T", bound=BaseModel)
 
 
 class AICoach:
@@ -163,9 +163,7 @@ class AICoach:
             buffer += response
         return buffer
 
-    def get_structured_response_poll(
-        self, message, schema: Type[TBaseModel]
-    ) -> TBaseModel:
+    def get_structured_response_poll(self, message, schema: Type[T]) -> T:
         """Get the structured response from the assistant for a given message."""
         message = client.beta.threads.messages.create(
             thread_id=self.thread.id,
@@ -195,9 +193,9 @@ class AICoach:
     def get_structured_response(
         self,
         message,
-        schema: Type[TBaseModel],
+        schema: Type[T],
         additional_instructions: Optional[str] = None,
-    ) -> TBaseModel:
+    ) -> T:
         """Get the structured response from the assistant for a given message."""
         function_tools = [
             tool for tool in self.assistant.tools if tool.type == "function"
