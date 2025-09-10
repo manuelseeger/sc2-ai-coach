@@ -365,6 +365,15 @@ class SC2PulseClient:
             },
         )
         content = response.json()
+        # remove all distinct characters that don't have games played or no current stats
+        content["linkedDistinctCharacters"] = [
+            c
+            for c in content["linkedDistinctCharacters"]
+            if c["totalGamesPlayed"]
+            and c["totalGamesPlayed"] > 0
+            and c["currentStats"]["gamesPlayed"]
+            and c["currentStats"]["gamesPlayed"] > 0
+        ]
         common = SC2PulseCommonCharacter(**content)
 
         if len(common.matches) < match_history_depth:
@@ -425,7 +434,7 @@ class SC2PulseClient:
         active_opponent_teams = [
             team
             for team in close_opponent_teams
-            if (datetime.now(UTC) - team.lastPlayed).seconds
+            if (datetime.now(UTC) - team.lastPlayed).seconds  # type: ignore
             < config.last_played_ago_max
         ]
 
