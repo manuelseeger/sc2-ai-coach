@@ -158,7 +158,7 @@ def save_player_info(replay: Replay) -> Tuple[DbResponse, PlayerInfo]:
         portrait_constructed=portrait_constructed,
     )
 
-    existing_player_info: PlayerInfo = replaydb.find(player_info)
+    existing_player_info: PlayerInfo | None = replaydb.find(player_info)
 
     if existing_player_info:
         player_info = existing_player_info
@@ -182,10 +182,9 @@ def save_player_info(replay: Replay) -> Tuple[DbResponse, PlayerInfo]:
 
 
 def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo | None:
-    q = elem_match(Alias.name == name, field=PlayerInfo.aliases)
+    q = elem_match(Alias.name == name, field=PlayerInfo.aliases)  # type: ignore[arg-type]
 
-    candidates = replaydb.db.find_many(PlayerInfo, query=q)
-
+    candidates: list[PlayerInfo] = replaydb.db.find_many(PlayerInfo, query=q)  # type: ignore[arg-type]
     if len(candidates) == 1:
         return candidates[0]
 
@@ -234,7 +233,7 @@ def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo 
 
 def resolve_replays_from_current_opponent(
     opponent: str, mapname: str, mmr: int
-) -> Tuple[PlayerInfo, List[Replay]]:
+) -> Tuple[PlayerInfo | None, List[Replay]]:
     """Try to identify the opponent.
 
     0: Search in DB for the player name if unique
@@ -253,7 +252,7 @@ def resolve_replays_from_current_opponent(
         log.debug(f"Trying to resolve {opponent} by name")
         # 0 look in DB for player info
         q = PlayerInfo.name == opponent
-        playerinfos = replaydb.db.find_many(PlayerInfo, q)
+        playerinfos: list[PlayerInfo] = replaydb.db.find_many(PlayerInfo, q)  # type: ignore[arg-type]
 
         if len(playerinfos) == 1:
             playerinfo = playerinfos[0]
@@ -299,8 +298,12 @@ def resolve_replays_from_current_opponent(
 
     if playerinfo:
         q = {"players.toon_handle": playerinfo.toon_handle}
-        sort = od_sort((Replay.unix_timestamp, -1))
-        past_replays = replaydb.db.find_many(Replay, raw_query=q, sort=sort)
+        sort = od_sort((Replay.unix_timestamp, -1))  # type: ignore[arg-type]
+        past_replays: list[Replay] = replaydb.db.find_many(
+            Replay,
+            raw_query=q,
+            sort=sort,  # type: ignore[arg-type]
+        )
         return playerinfo, past_replays
     else:
         return None, []

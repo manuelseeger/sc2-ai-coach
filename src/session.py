@@ -145,7 +145,7 @@ class AISession:
         sc2pulse = SC2PulseClient()
         season = sc2pulse.get_current_season()
         log.info(
-            f"Current SC2 season is {season.year}-{season.number}, started {season.start}"
+            f"Current SC2 season is {season.year}-{season.number}, started {season.start.date()}"
         )
         config.season_start = season.start
 

@@ -1,3 +1,5 @@
+from typing import TypeVar
+
 from pydantic_core import ValidationError
 from pymongo.collection import Collection
 from pyodmongo import DbEngine, ResponsePaginate
@@ -9,6 +11,7 @@ from config import config
 from .types import Metadata, PlayerInfo, Replay, Session
 
 SC2Model = Replay | Metadata | Session | PlayerInfo
+T = TypeVar("T", bound=SC2Model)
 
 
 class ReplayDB:
@@ -20,8 +23,8 @@ class ReplayDB:
     def upsert(self, model: SC2Model) -> DbResponse:
         ModelClass = model.__class__
         try:
-            return self.db.save(model, query=eq(ModelClass.id, model.id))
-        except ValidationError as e:
+            return self.db.save(model, query=eq(ModelClass.id, model.id))  # type: ignore[arg-type]
+        except ValidationError:
             # On INSERT, pyodm forces the returned ID into mongo ObjectId and throws since we use a custom ID field
             # Return DbResponse without validation instead
             return DbResponse.model_construct(
@@ -37,16 +40,16 @@ class ReplayDB:
         most_recent = self.db.find_one(
             Model=Replay,
             raw_query={"players.name": config.student.name},
-            sort=sort((Replay.unix_timestamp, -1)),
+            sort=sort((Replay.unix_timestamp, -1)),  # type: ignore[arg-type]
         )
         if most_recent is None:
             raise ValueError(f"No replays found for {config.student.name}")
 
         return most_recent
 
-    def find(self, model: SC2Model) -> SC2Model:
+    def find(self, model: T) -> T | None:
         ModelClass = model.__class__
-        q = eq(ModelClass.id, model.id)
+        q = eq(ModelClass.id, model.id)  # type: ignore[arg-type]
         return self.db.find_one(Model=ModelClass, query=q)
 
     def find_many_dict(self, model, raw_query: dict):
@@ -59,7 +62,7 @@ class ReplayDB:
                 docs_per_page=100,
                 raw_query=raw_query,
                 as_dict=True,
-            )
+            )  # type: ignore[assignment]
             for doc in response.docs:
                 yield doc
 
