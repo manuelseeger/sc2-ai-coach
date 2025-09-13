@@ -55,6 +55,26 @@ def test_default_projection_time(replay_file):
 @pytest.mark.parametrize(
     "replay_file",
     [
+        "Equilibrium LE (84).SC2Replay",
+    ],
+    indirect=True,
+)
+def test_default_projection_id(replay_file):
+    reader = ReplayReader()
+    raw_replay = reader.load_replay_raw(replay_file)
+
+    replay = reader.to_typed_replay(raw_replay)
+
+    default_projection = replay.default_projection()
+
+    assert "_id" not in default_projection
+    assert "id" in default_projection
+    assert len(default_projection["id"]) == 64
+
+
+@pytest.mark.parametrize(
+    "replay_file",
+    [
         "Radhuset Station LE (85) ZvP chrono.SC2Replay",
     ],
     indirect=True,

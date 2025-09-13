@@ -139,7 +139,7 @@ def QueryReplayDB(
             limit=limit,
         )
         results = list(cursor)
-        result_replays = []
+        result_replays: list[Replay] = []
         for result in results:
             try:
                 r = Replay(**result)
@@ -147,15 +147,13 @@ def QueryReplayDB(
             except Exception as e:
                 log.debug(f"Failed to parse replay: {e}")
                 pass
-
+        return [
+            result_replay.projection(limit=limit_time, projection=loads(projection))
+            for result_replay in result_replays
+        ]
     except Exception as e:
         log.error(e)
         return []
-
-    return [
-        result_replay.projection(limit=limit_time, projection=loads(projection))
-        for result_replay in result_replays
-    ]
 
 
 QueryReplayDB.__doc__ = f"""Query the replay database and return JSON representation of all matching replays.

@@ -93,7 +93,7 @@ match_history_depth: 100
 # Current ladder season
 season: 64
 season_start: "2025-07-19"
-# Maps in the current ladder pool
+# Maps in the current ladder pool 
 ladder_maps:
  - Incorporeal
  - Last Fantasy
@@ -107,7 +107,7 @@ ladder_maps:
 
 # Configure which replay fields to include per default when reading replays
 default_projection:
-  _id: 1
+  id: 1
   date: 1
   game_length: 1
   map_name: 1
