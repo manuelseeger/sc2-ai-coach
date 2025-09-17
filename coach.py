@@ -62,8 +62,8 @@ def main(debug):
     if CoachEvent.wake in config.coach_events:
         from src.events import WakeListener
 
-        listener = WakeListener()
-        listener.start()
+        wake = WakeListener()
+        wake.start()
 
     if CoachEvent.game_start in config.coach_events:
         from src.events import GameStartedListener
@@ -111,8 +111,8 @@ def main(debug):
             ):
                 tts.stop()
             if CoachEvent.wake in config.coach_events:
-                listener.stop()
-                listener.join()
+                wake.stop()
+                wake.join()
             if CoachEvent.game_start in config.coach_events:
                 scanner.stop()
                 scanner.join()
