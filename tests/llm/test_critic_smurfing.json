@@ -2,7 +2,7 @@
     "test_detects_smurfing": [
         {
             "resource_file": "match_history_barcode_smurf_2-S2-1-8773156.csv",
-            "criteria": "Answer does include a statement that the player in question might be a smurf. The answer refers to the winrate in TvZ and the instant leave rate in other matchups.",
+            "criteria": "Answer does include a statement that the player in question might be a smurf. The answer refers to the instant leave rate in TvT and/or TvP.",
             "mapname": "amygdala",
             "opponent": "IIIIIIIIIIII",
             "mmr": "4100"

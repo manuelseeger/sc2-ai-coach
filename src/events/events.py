@@ -39,3 +39,7 @@ class TwitchFollowEvent(TwitchEvent):
 class TwitchRaidEvent(TwitchEvent):
     user: str
     viewers: int
+
+
+class CastReplayEvent(EventBase):
+    replay: Replay

@@ -4,10 +4,12 @@
     "editor.codeActionsOnSave": {
       "source.organizeImports": "explicit",
       "editor.formatOnSave": "explicit",
-      "source.fixAll": "explicit"
+      "source.fixAll": "explicit",
+      "source.fixAll.ruff": "explicit", 
     },
     "editor.formatOnSave": true,
   },
+  "ruff.nativeServer": "on",
   "python.testing.pytestArgs": [
     "tests",
     "-rP"

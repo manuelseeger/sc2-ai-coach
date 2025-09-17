@@ -17,7 +17,7 @@ class LogStatus(Status):
     name: str
     buffer: str = ""
 
-    def __init__(self, status: str = "", spinner: str = "dots", name: str = None):
+    def __init__(self, name: str, status: str = "", spinner: str = "dots"):
         self.name = name
         self.buffer = status
         super().__init__(status, console=console, spinner=spinner)
@@ -127,9 +127,9 @@ class RichConsoleLogHandler(Handler):
 
         role = getattr(record, "role", None)
         if role is not None:
-            if record.role == Role.assistant:
+            if role == Role.assistant:
                 emoji = Emojis.aicoach
-            elif record.role == Role.user:
+            elif role == Role.user:
                 emoji = config.student.emoji
             else:
                 emoji = Emojis.mic
@@ -211,9 +211,10 @@ class RichConsoleLogHandler(Handler):
                 )
             self._status_methods[record.funcName].stream(record.msg)
 
-    def _create_status(self, record: LogRecord):
+    def _create_status(self, record: LogRecord) -> LogStatus:
+        # Always return a LogStatus instance for type safety
         if record.funcName == "transcribe":
-            status = console.status(record.msg, spinner="point")
+            status = LogStatus(status=record.msg, spinner="point", name=record.funcName)
         else:
             status = LogStatus(name=record.funcName)
         status.start()

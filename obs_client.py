@@ -54,7 +54,8 @@ def main(verbose, debug):
             host="localhost", port=4455, password=config.obs_ws_pw, timeout=3
         ) as obs:
             resp = obs.get_version()
-            print(f"OBS Version: {resp.obs_version}")
+            if isinstance(resp, dict):
+                print(f"OBS Version: {resp['obs_version']}")
 
             last_ui = None
             while True:
@@ -63,7 +64,7 @@ def main(verbose, debug):
                 with open("logs/time.log", "r") as f:
                     try:
                         last_time = float(f.read())
-                    except:
+                    except:  # noqa: E722
                         last_time = time()
                     diff = time() - last_time
                     if diff > 15:
@@ -120,7 +121,7 @@ def main(verbose, debug):
 
                 last_ui = ui
 
-    except (ConnectionRefusedError, ConnectionError) as e:
+    except (ConnectionRefusedError, ConnectionError):
         print(":x: Can't connect to OBS; Not running or web sockets off?")
 
 

@@ -94,6 +94,7 @@ class StudentConfig(BaseModel):
 class TTSConfig(BaseModel):
     engine: str = "system"
     voice: Optional[str] = None
+    speed: Optional[float] = 1.0
 
 
 class Config(BaseSettings):
@@ -206,7 +207,7 @@ class Config(BaseSettings):
     @classmethod
     def check_initial(cls):
         try:
-            config: Config = cls()
+            config: Config = cls()  # type: ignore
         except ValidationError as e:
             print(e)
             sys.exit(1)
@@ -226,9 +227,9 @@ class Config(BaseSettings):
         Path(join(self.log_dir)).mkdir(parents=True, exist_ok=True)
 
         if self.obs_integration:
-            import openwakeword
+            from openwakeword.utils import download_models
 
-            openwakeword.utils.download_models()
+            download_models()
 
             from src.io.tts import init_tts
 

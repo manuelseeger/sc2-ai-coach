@@ -1,5 +1,6 @@
-# This is largely a reimplementation of the reveal opponent PS script from SC2Pulse in Python
-# all credit to author nephestdev@gmail.com
+# The unmask barcode functionality is largely a reimplementation of the reveal opponent
+# PS script from SC2Pulse in Python.
+# All credit to author nephestdev@gmail.com
 # https://github.com/sc2-pulse/reveal-sc2-opponent
 
 import logging
@@ -16,6 +17,16 @@ from src.replaydb.types import ToonHandle
 from src.util import convert_enum, is_barcode
 
 log = logging.getLogger(f"{config.name}.{__name__}")
+
+LeagueMap = {
+    0: "Bronze",
+    1: "Silver",
+    2: "Gold",
+    3: "Platinum",
+    4: "Diamond",
+    5: "Master",
+    6: "Grandmaster",
+}
 
 
 class MatchType(str, Enum):
@@ -112,6 +123,7 @@ class SC2PulseLadderTeam(BaseModel):
     @computed_field
     @property
     def race(self) -> SC2PulseRace:
+        """Estimate the main race of the player"""
         raceGamesPlayed = {
             attr: getattr(self.members[0], attr, None)
             for attr in [
@@ -126,9 +138,11 @@ class SC2PulseLadderTeam(BaseModel):
             k: v for k, v in raceGamesPlayed.items() if v is not None
         }
         if not existing_attributes:
-            return None
+            # this is not exactly correct, but functionally represents not knowing the main race
+            return SC2PulseRace.random
+
         # Find the attribute with the highest value
-        race_name = max(existing_attributes, key=existing_attributes.get)
+        race_name = max(existing_attributes, key=existing_attributes.get)  # type: ignore
         race_name = race_name.replace("GamesPlayed", "").upper()
 
         return SC2PulseRace(race_name)
@@ -173,6 +187,39 @@ class SC2PulseLadderMatchParticipant(BaseModel):
 class SC2PulseMap(BaseModel):
     id: int
     name: str
+
+
+class SC2PulseLeagueBounds(BaseModel):
+    region: SC2PulseRegion
+    bounds: dict[int, dict[int, tuple[int, int]]]
+
+    @property
+    def bronze(self) -> dict[int, tuple[int, int]]:
+        return self.bounds[0]
+
+    @property
+    def silver(self) -> dict[int, tuple[int, int]]:
+        return self.bounds[1]
+
+    @property
+    def gold(self) -> dict[int, tuple[int, int]]:
+        return self.bounds[2]
+
+    @property
+    def platinum(self) -> dict[int, tuple[int, int]]:
+        return self.bounds[3]
+
+    @property
+    def diamond(self) -> dict[int, tuple[int, int]]:
+        return self.bounds[4]
+
+    @property
+    def master(self) -> dict[int, tuple[int, int]]:
+        return self.bounds[5]
+
+    @property
+    def grandmaster(self) -> dict[int, tuple[int, int]]:
+        return self.bounds[6]
 
 
 class SC2PulseLadderMatch(BaseModel):
@@ -220,6 +267,7 @@ class SC2PulseCommonCharacter(BaseModel):
 class SC2PulseSeason(BaseModel):
     id: int
     year: int
+    number: int
     start: datetime
     end: datetime
     battlenetId: int
@@ -239,7 +287,7 @@ class SC2PulseClient:
 
     limit_teams: int = 5
 
-    def __init__(self, http_client: httpx.Client = None):
+    def __init__(self, http_client: Optional[httpx.Client] = None):
         if http_client:
             self.client = http_client
             self.client.base_url = self.BASE_URL
@@ -317,6 +365,15 @@ class SC2PulseClient:
             },
         )
         content = response.json()
+        # remove all distinct characters that don't have games played or no current stats
+        content["linkedDistinctCharacters"] = [
+            c
+            for c in content["linkedDistinctCharacters"]
+            if c["totalGamesPlayed"]
+            and c["totalGamesPlayed"] > 0
+            and c["currentStats"]["gamesPlayed"]
+            and c["currentStats"]["gamesPlayed"] > 0
+        ]
         common = SC2PulseCommonCharacter(**content)
 
         if len(common.matches) < match_history_depth:
@@ -377,7 +434,7 @@ class SC2PulseClient:
         active_opponent_teams = [
             team
             for team in close_opponent_teams
-            if (datetime.now(UTC) - team.lastPlayed).seconds
+            if (datetime.now(UTC) - team.lastPlayed).seconds  # type: ignore
             < config.last_played_ago_max
         ]
 
@@ -396,3 +453,50 @@ class SC2PulseClient:
 
     def get_current_season(self) -> SC2PulseSeason:
         return self.get_season(config.season, SC2PulseRegion(config.blizzard_region))
+
+    def get_league_bounds(self, season=config.season) -> SC2PulseLeagueBounds:
+        # https://sc2pulse.nephest.com/sc2/api/ladder/league/bounds?season=62&queue=LOTV_1V1&team-type=ARRANGED&eu=true&bro=true&sil=true&gol=true&pla=true&dia=true&mas=true&gra=true
+
+        response = self.client.get(
+            "/ladder/league/bounds",
+            params={
+                "season": season,
+                "queue": self.queue,
+                "team-type": "ARRANGED",
+                "eu": True if self.region == SC2PulseRegion.EU else False,
+                "kr": True if self.region == SC2PulseRegion.KR else False,
+                "cn": True if self.region == SC2PulseRegion.CN else False,
+                "us": True if self.region == SC2PulseRegion.US else False,
+                "bro": True,
+                "sil": True,
+                "gol": True,
+                "pla": True,
+                "dia": True,
+                "mas": True,
+                "gra": True,
+            },
+        )
+
+        response.raise_for_status()
+        content = response.json()
+        league_bounds = SC2PulseLeagueBounds(
+            region=self.region, bounds=content[self.region.value]
+        )
+        return league_bounds
+
+
+def get_division_for_mmr(
+    mmr: int,
+    league_bounds: SC2PulseLeagueBounds,
+) -> tuple[str, str]:
+    """
+    Get the league and division for a given MMR.
+    """
+    for league, divisions in league_bounds.bounds.items():
+        for division, bounds in divisions.items():
+            if bounds[0] <= mmr <= bounds[1]:
+                return LeagueMap[league], str(division + 1)
+    # return grandmaster if mmr higher than highest master:
+    if mmr > league_bounds.master[0][1]:
+        return "Grandmaster", ""
+    return "Unknown", "Unknown"

@@ -29,3 +29,4 @@ def force_valid_json_string(obj) -> str:
         return json.dumps(ast.literal_eval(obj))
     elif isinstance(obj, dict):
         return json.dumps(obj)
+    return str(obj)

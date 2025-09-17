@@ -1,7 +1,10 @@
+# type: ignore[misc]
+# mypy: ignore-errors
+# Fix typing with migration to Responses API
 import json
 import logging
 from datetime import datetime
-from typing import Callable, Dict, Generator, Optional, Type, TypeVar
+from typing import Callable, Dict, Generator, Literal, Optional, Type, TypeVar
 
 from openai import APIError, AssistantEventHandler, OpenAI
 from openai.lib.streaming import AssistantStreamManager
@@ -33,7 +36,7 @@ client = OpenAI(
     http_client=http_client,
 )
 
-TBaseModel = TypeVar("T", bound=BaseModel)
+T = TypeVar("T", bound=BaseModel)
 
 
 class AICoach:
@@ -116,6 +119,20 @@ class AICoach:
             )
         return self.thread.id
 
+    def add_message(self, message, role: Literal["user", "assistant"] = "user") -> str:
+        """Add a message to the current thread and return the message id. Optionally, add a text message to the thread."""
+        if not self.thread:
+            raise ValueError("No active thread. Please create a thread first.")
+
+        if message:
+            message = client.beta.threads.messages.create(
+                thread_id=self.thread.id,
+                role=role,
+                content=message,
+            )
+            return message.id
+        return ""
+
     def stream_thread(self):
         """Create a new run for the current thread and stream the response from the assistant."""
         with client.beta.threads.runs.stream(
@@ -149,9 +166,7 @@ class AICoach:
             buffer += response
         return buffer
 
-    def get_structured_response_poll(
-        self, message, schema: Type[TBaseModel]
-    ) -> TBaseModel:
+    def get_structured_response_poll(self, message, schema: Type[T]) -> T:
         """Get the structured response from the assistant for a given message."""
         message = client.beta.threads.messages.create(
             thread_id=self.thread.id,
@@ -181,9 +196,9 @@ class AICoach:
     def get_structured_response(
         self,
         message,
-        schema: Type[TBaseModel],
+        schema: Type[T],
         additional_instructions: Optional[str] = None,
-    ) -> TBaseModel:
+    ) -> T:
         """Get the structured response from the assistant for a given message."""
         function_tools = [
             tool for tool in self.assistant.tools if tool.type == "function"
@@ -276,6 +291,7 @@ class AICoach:
 
         if len(result_json_string) > 20000:
             log.debug(f"Result too long: {len(result_json_string)}")
+            log.debug(result_json_string)
 
         return (tool_call.id, result_json_string)
 

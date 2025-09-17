@@ -8,6 +8,7 @@ from typing import (
     Dict,
     List,
     Literal,
+    Optional,
     Tuple,
     get_args,
     get_origin,
@@ -128,6 +129,7 @@ class ToonHandle(str):
 
 
 class FieldTypeValidator:
+    @staticmethod
     def validate_toon_handle(v: Any) -> bool:
         class ToonHandleValidator(BaseModel):
             toon_handle: ToonHandle
@@ -138,9 +140,10 @@ class FieldTypeValidator:
         except ValidationError:
             return False
 
+    @staticmethod
     def validate_replay_id(v: Any) -> bool:
         class ReplayIdValidator(BaseModel):
-            id: ReplayId
+            id: ReplayId = Field(...)
 
         try:
             ReplayIdValidator(id=v)
@@ -160,6 +163,7 @@ class Color(MainBaseModel):
     b: int
     g: int
     r: int
+    name: str
 
 
 class ReplayMessage(MainBaseModel):
@@ -237,6 +241,7 @@ class Player(MainBaseModel):
     avg_sq: float
     build_order: List[BuildOrder] = []
     clan_tag: str
+    clock_position: int | None = None
     color: Color
     creep_spread_by_minute: Dict[str, float] | None = None
     highest_league: int
@@ -264,7 +269,7 @@ class Observer(MainBaseModel):
 
 
 class Replay(DbModel):
-    id: ReplayId
+    id: ReplayId = Field(...)
     build: int
     category: str
     date: datetime
@@ -302,6 +307,7 @@ class Replay(DbModel):
                 return player
             if player.name != name and opponent:
                 return player
+        raise ValueError(f"Player with name {name} not found in replay")
 
     def get_opponent_of(self, name: str) -> Player:
         return self.get_player(name, opponent=True)
@@ -331,7 +337,7 @@ class Replay(DbModel):
                         builder_order_ex = player_ex.setdefault("build_order", {})
                         builder_order_ex[i] = {"is_chronoboosted": True}
 
-            return exclude_keys
+        return exclude_keys
 
     def default_projection(self, limit=450, include_workers=True) -> dict:
         """Return a dictionary of replay limited to the default projection fields"""
@@ -402,7 +408,7 @@ class AssistantMessage(MainBaseModel):
 class Metadata(DbModel):
     replay: ReplayId
     description: str | None = None
-    tags: List[str] | None = None
+    tags: List[str] = []
     conversation: List[AssistantMessage] | None = None
     _collection: ClassVar = "meta"
 
@@ -439,7 +445,7 @@ AliasList.__getitem__ = lambda self, x: next(alias for alias in self if alias ==
 
 
 class PlayerInfo(DbModel):
-    id: ToonHandle
+    id: ToonHandle = Field(...)
     name: str
     aliases: AliasList = []
     toon_handle: ToonHandle
@@ -448,7 +454,7 @@ class PlayerInfo(DbModel):
     tags: List[str] | None = None
     _collection: ClassVar = "players"
 
-    def update_aliases(self, seen_on: datetime = None):
+    def update_aliases(self, seen_on: Optional[datetime] = None):
         seen_on = seen_on or datetime.now()
         if self in self.aliases:
             return

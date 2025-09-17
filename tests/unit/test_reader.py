@@ -55,6 +55,26 @@ def test_default_projection_time(replay_file):
 @pytest.mark.parametrize(
     "replay_file",
     [
+        "Equilibrium LE (84).SC2Replay",
+    ],
+    indirect=True,
+)
+def test_default_projection_id(replay_file):
+    reader = ReplayReader()
+    raw_replay = reader.load_replay_raw(replay_file)
+
+    replay = reader.to_typed_replay(raw_replay)
+
+    default_projection = replay.default_projection()
+
+    assert "_id" not in default_projection
+    assert "id" in default_projection
+    assert len(default_projection["id"]) == 64
+
+
+@pytest.mark.parametrize(
+    "replay_file",
+    [
         "Radhuset Station LE (85) ZvP chrono.SC2Replay",
     ],
     indirect=True,
@@ -281,3 +301,26 @@ def test_afk_replay(replay_file):
     replay = reader.load_replay(replay_file)
 
     assert any([p.avg_apm == 0 for p in replay.players])
+
+
+@pytest.mark.parametrize(
+    "replay_file",
+    [
+        "Tokamak LE (6) ZvT 2 base Terran push against gasless.SC2Replay",
+    ],
+    indirect=True,
+)
+def test_replay_colors_positions(replay_file):
+    reader = ReplayReader()
+
+    replay_raw = reader.load_replay_raw(replay_file)
+
+    replay = reader.to_typed_replay(replay_raw)
+
+    p1, p2 = replay.players
+
+    assert p1.color.name.lower() == "red"
+    assert p2.color.name.lower() == "blue"
+
+    assert p1.clock_position == 1
+    assert p2.clock_position == 7

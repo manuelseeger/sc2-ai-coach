@@ -3,12 +3,12 @@ I just started a game against "{{opponent}}" on the map {{map}}. We are currentl
 {% if replays|length > 0 %}
 There are {{replays|length}} replays of me playing against {{opponent}}. Pretend you found these replays for me, and
 reply as if you are the one starting this conversation.
-Give a 1 sentence summary of {{opponent}} strategy for each replay. When giving the summary for a replay, emphazise that
-it was played on {{map}} before if that is the case; don't, if it isn't. Include who won.
+Give a 1 sentence summary of {{opponent}} strategy for each replay. Be specific and mention key tech choices like upgrades, tech building, first unit out of a tech building. When giving the summary for a replay, emphasize that it was played on {{map}} before if that is the case; don't, if it isn't. Include who won.
 {% endif %}
 
 {% if replays|length > 0 %}
 Past replays against {{opponent}}:
+-------------------
 {% for replay in replays %}
 {{replay}}
 -------------------

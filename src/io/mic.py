@@ -1,16 +1,16 @@
 import logging
 from time import time
 
-import numpy as np
 import speech_recognition as sr
 from speech_recognition.audio import AudioData
 
 from config import config
+from src.contracts import MicrophoneService
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
 
-class Microphone:
+class Microphone(MicrophoneService):
     def __init__(self, device_index=None):
         if device_index is None:
             device_index = config.microphone_index
@@ -25,12 +25,11 @@ class Microphone:
 
         self.microphone = sr.Microphone(device_index=self.device_index)
 
-    def listen(self) -> AudioData:
+    def listen(self) -> AudioData | None:
         start_time = time()
         while True:
             with self.microphone as source:
-                audio = self.recognizer.listen(source)
-
+                audio: AudioData = self.recognizer.listen(source)  # type: ignore stream=False does not return Generator
                 return audio
 
             if time() - start_time > 60 * 3:

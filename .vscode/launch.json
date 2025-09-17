@@ -62,9 +62,7 @@
         "--debug",
         "--clean",
         "sync",
-        "--from=2024-01-01",
-        "players",
-        "replays"
+        "--from=2024-01-01"
       ]
     },
     {
@@ -95,6 +93,18 @@
       "envFile": "${workspaceFolder}/.env",
       "cwd": "${workspaceFolder}",
       "args": []
+    },
+        {
+      "name": "CLI add testdata",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "repcli.py",
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/.env",
+      "args": [
+        "add",
+        "tests/testdata/replays/*"
+      ]
     },
   ]
 }

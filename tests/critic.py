@@ -37,7 +37,10 @@ class LmmCritic:
         self.messages.append(
             {"role": "assistant", "content": str(completion.choices[0].message.parsed)},
         )
-        return completion.choices[0].message.parsed
+        parsed: Evaluation | None = completion.choices[0].message.parsed
+        if parsed is None:
+            raise ValueError("No evaluation result was returned by the model.")
+        return parsed
 
     def evaluate_one_shot(self, prompt, response) -> Evaluation:
         completion = self.client.beta.chat.completions.parse(
@@ -49,4 +52,7 @@ class LmmCritic:
             response_format=Evaluation,
         )
 
-        return completion.choices[0].message.parsed
+        parsed: Evaluation | None = completion.choices[0].message.parsed
+        if parsed is None:
+            raise ValueError("No evaluation result was returned by the model.")
+        return parsed

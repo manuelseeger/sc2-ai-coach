@@ -18,6 +18,7 @@ from transformers.utils import is_flash_attn_2_available
 from typing_extensions import override
 
 from config import config
+from src.contracts import TranscriberService
 
 transformers.logging.set_verbosity_error()
 
@@ -79,7 +80,7 @@ class GPUWhisperFeatureExtractor(WhisperFeatureExtractor):
         return super().__call__(*args, device=self.device, **kwargs)
 
 
-class Transcriber:
+class Transcriber(TranscriberService):
     def __init__(self):
         self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
@@ -159,15 +160,19 @@ class Transcriber:
         )
 
         output = ""
-        if outputs and "text" in outputs and len(outputs["text"]) > 0:
-            output = str(outputs["text"]).strip()
+        if outputs:
+            if isinstance(outputs, dict) and "text" in outputs:
+                text_content = outputs["text"]
+                if text_content and len(str(text_content)) > 0:
+                    output = str(text_content).strip()
 
         # Apply "thank you" check using the trimmed duration.
+        # Whisper might hallucinate "thank you" for short clips of background noise (clapping like sounds).
         if output:
             match = re.search(r"(?i)\bthank you\b[\s,.;:!?]*", output.lower())
             log.debug(
                 f"'thank you' match found: {bool(match)} (Trimmed Duration: {trimmed_duration})"
             )
-            # if trimmed_duration < 0.15:
-            ##    output = ""
+            if trimmed_duration < 0.1:
+                output = ""
         return output
