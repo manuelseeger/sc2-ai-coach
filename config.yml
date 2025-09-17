@@ -10,10 +10,13 @@ deamon_polling_rate: 1
 audiomode: "text"
 # Index of the audio device as returned by pyaudio
 microphone_index: 2
-# Which model to use from openwakeword
-oww_model: "hey_jarvis"
-# Sensitivity of the wake word
-oww_sensitivity: 0.65
+# Wake word configuration
+wakeword:
+  engine: "openwakeword"
+  # Which model to use from openwakeword
+  model: "hey_jarvis"
+  # Sensitivity of the wake word
+  sensitivity: 0.65
 # which speech recognition model to use from huggingface speech-to-text
 speech_recognition_model: "openai/whisper-large-v3"
 # Configure speech recognition from microphone

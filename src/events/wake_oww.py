@@ -32,7 +32,7 @@ mic_stream = audio.open(
     input_device_index=MIC_INDEX,
 )
 
-owwModel = Model([config.oww_model], inference_framework="onnx")
+owwModel = Model([config.wakeword.model], inference_framework="onnx")
 
 
 class WakeWordListener(threading.Thread):
@@ -63,9 +63,9 @@ class WakeWordListener(threading.Thread):
 
             prediction = owwModel.predict(audio)
 
-            score = prediction[config.oww_model]
+            score = prediction[config.wakeword.model]  # type: ignore
 
-            if score > config.oww_sensitivity:
+            if score > config.wakeword.sensitivity:
                 if (datetime.now() - last_score_timestamp).seconds > 5:
                     last_score_timestamp = datetime.now()
                     log.info(f"Model woke up with a score of {score:.2f}")

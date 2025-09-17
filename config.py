@@ -5,9 +5,15 @@ from functools import cached_property
 from glob import glob
 from os.path import join
 from pathlib import Path
-from typing import Annotated, Dict, List, Optional, Tuple, Type
+from typing import Annotated, Dict, List, Literal, Optional, Tuple, Type
 
-from pydantic import BaseModel, DirectoryPath, ValidationError, computed_field
+from pydantic import (
+    BaseModel,
+    DirectoryPath,
+    ValidationError,
+    computed_field,
+    model_validator,
+)
 from pydantic.networks import UrlConstraints
 from pydantic_core import MultiHostUrl, Url
 from pydantic_settings import (
@@ -97,6 +103,24 @@ class TTSConfig(BaseModel):
     speed: Optional[float] = 1.0
 
 
+class WakeWordConfig(BaseModel):
+    engine: Literal["openwakeword", "porcupine"] = "openwakeword"
+    model: Optional[str] = None
+    sensitivity: Optional[float] = None
+    porcupine_accesskey: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_openwakeword_fields(self):
+        if self.engine == "openwakeword":
+            if self.model is None:
+                raise ValueError("model is required when engine is 'openwakeword'")
+            if self.sensitivity is None:
+                raise ValueError(
+                    "sensitivity is required when engine is 'openwakeword'"
+                )
+        return self
+
+
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
         yaml_file=yaml_files,
@@ -112,8 +136,7 @@ class Config(BaseSettings):
 
     audiomode: AudioMode = AudioMode.full
     microphone_index: int
-    oww_model: str
-    oww_sensitivity: float
+    wakeword: WakeWordConfig
     speech_recognition_model: str
     recognizer: RecognizerConfig
     wake_key: str
