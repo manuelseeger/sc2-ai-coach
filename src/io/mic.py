@@ -25,12 +25,11 @@ class Microphone(MicrophoneService):
 
         self.microphone = sr.Microphone(device_index=self.device_index)
 
-    def listen(self) -> AudioData:
+    def listen(self) -> AudioData | None:
         start_time = time()
         while True:
             with self.microphone as source:
-                audio = self.recognizer.listen(source)
-
+                audio: AudioData = self.recognizer.listen(source)  # type: ignore stream=False does not return Generator
                 return audio
 
             if time() - start_time > 60 * 3:

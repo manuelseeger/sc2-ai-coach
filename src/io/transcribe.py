@@ -160,10 +160,14 @@ class Transcriber(TranscriberService):
         )
 
         output = ""
-        if outputs and "text" in outputs and len(outputs["text"]) > 0:
-            output = str(outputs["text"]).strip()
+        if outputs:
+            if isinstance(outputs, dict) and "text" in outputs:
+                text_content = outputs["text"]
+                if text_content and len(str(text_content)) > 0:
+                    output = str(text_content).strip()
 
         # Apply "thank you" check using the trimmed duration.
+        # Whisper might hallucinate "thank you" for short clips of background noise (clapping like sounds).
         if output:
             match = re.search(r"(?i)\bthank you\b[\s,.;:!?]*", output.lower())
             log.debug(

@@ -15,7 +15,7 @@ log = logging.getLogger(f"{config.name}.{__name__}")
 
 def toon_handle_from_id(toon_id: str, region: str) -> ToonHandle:
     region_id, realm_id = REGION_MAP[region]
-    return f"{region_id}-S2-{realm_id}-{toon_id}"
+    return ToonHandle(f"{region_id}-S2-{realm_id}-{toon_id}")
 
 
 class BattlenetProfileSummary(BaseModel):
@@ -67,7 +67,7 @@ class BattleNet:
 
     http_client: httpx.Client
 
-    def __init__(self, http_client: httpx.Client = None):
+    def __init__(self, http_client: Optional[httpx.Client] = None):
         if http_client:
             self.http_client = http_client
         else:
@@ -98,13 +98,18 @@ class BattleNet:
         return BattlenetProfile(**p)
 
     def get_portrait(self, profile: BattlenetProfile) -> bytes | None:
-        parts = profile.summary.portrait.path.split("/")
+        # Parse URL path for caching
+        portrait_url = str(profile.summary.portrait)
+        parts = portrait_url.split("/")
         guid = parts[-3]
         basename = parts[-1]
-        cache_path = Path(config.bnet_cache_dir, guid, basename)
 
-        if cache_path.exists():
-            return cache_path.read_bytes()
+        # Only use caching if bnet_cache_dir is set
+        if config.bnet_cache_dir is not None:
+            cache_path = Path(config.bnet_cache_dir, guid, basename)
+
+            if cache_path.exists():
+                return cache_path.read_bytes()
 
         r = self.http_client.get(profile.summary.portrait.unicode_string())
         if r.status_code != 200:
@@ -113,10 +118,10 @@ class BattleNet:
             )
             return
 
-        if config.bnet_cache_dir is None:
-            return r.content
+        # Write to cache if caching is enabled
+        if config.bnet_cache_dir is not None:
+            cache_path = Path(config.bnet_cache_dir, guid, basename)
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            cache_path.write_bytes(r.content)
 
-        # write to cache dir
-        cache_path.parent.mkdir(parents=True, exist_ok=True)
-        cache_path.write_bytes(r.content)
         return r.content
