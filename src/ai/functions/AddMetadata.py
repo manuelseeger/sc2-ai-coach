@@ -29,11 +29,11 @@ def AddMetadata(
     tags_parsed = []
     try:
         tags_parsed = get_clean_tags(tags)
-    except:
-        log.error(f"Invalid tags: {tags}")
+    except Exception as e:
+        log.error(f"Invalid tags: {tags} - Exception: {e}")
         return False
     try:
-        metatry = Metadata(replay=replay_id)
+        Metadata(replay=replay_id)
     except ValidationError:
         log.warning(f"Invalid replay ID: {replay_id}")
         return False

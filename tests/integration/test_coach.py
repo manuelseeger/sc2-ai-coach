@@ -28,7 +28,7 @@ def test_init_from_new_replay(replay_file, mocker):
     assert session.is_active()
     response = session.stream_thread()
 
-    message = f"How would you summarize the game in 1 paragraph? Make sure to include tech choices, timings, but keep it short."
+    message = "How would you summarize the game in 1 paragraph? Make sure to include tech choices, timings, but keep it short."
 
     response = session.chat(message)
 
@@ -54,7 +54,7 @@ def test_init_from_replay_with_nonutf8_chars(replay_file, mocker):
     session.initiate_from_new_replay(replay)
     response = session.stream_thread()
 
-    message = f"How would you summarize the game in 1 paragraph? Make sure to include tech choices, timings, but keep it short."
+    message = "How would you summarize the game in 1 paragraph? Make sure to include tech choices, timings, but keep it short."
 
     response = session.chat(message)
 

@@ -23,8 +23,8 @@ def AddPlayerTags(
     tags_parsed = []
     try:
         tags_parsed = tags
-    except:
-        log.error(f"Invalid tags: {tags}")
+    except Exception as e:
+        log.error(f"Invalid tags: {tags}. Exception: {e}")
         return False
 
     if not FieldTypeValidator.validate_toon_handle(toon_handle):
