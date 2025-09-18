@@ -224,10 +224,9 @@ coach_events:
 
 ## Advanced setup
 
-Please understand that this is a hobby project the more advances feature are ready to run without some technical setup. This code is presented as-is and I can't provide support for it.
+Please understand that this is a hobby project and the more advanced features are not ready to run without some technical setup. This code is presented as-is and I can't provide support for it.
 
 Prerequisites:
-
 - all from minimal setup
 - NVidia GPU
 - Microphone
@@ -236,7 +235,7 @@ Review [Installation.md](Installation.md) for manual steps required. This will n
 
 The full version integrates with OBS for interaction between OBS scene and the running AICoach. The OBS setup is not documented here and you can skip this part by keeping `obs_integration=False`.
 
-More features implemented but currently not documented: 
+More features implemented but not documented: 
 - Twitch integration, AI coach listens and responds to questions in twitch chat
 - Battle.net integration, AI coach can request profile information including portrait for players from battle.net
 - SC2 pulse integration, AI coach can try to unmask barcodes 

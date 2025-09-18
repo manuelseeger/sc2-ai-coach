@@ -555,7 +555,7 @@ class AISession:
                 sleep(1)
 
         summary = self.chat(
-            "The game is over. Give us a nice outro for winner and loser and a very short summary of the game."
+            "The game is over. Give us a short outro for winner and loser and a very short summary of the game."
         )
         self.say(summary)
         self.close()

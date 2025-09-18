@@ -32,7 +32,7 @@ mic_stream = audio.open(
     input_device_index=MIC_INDEX,
 )
 
-owwModel = Model([config.wakeword.model], inference_framework="onnx")
+owwModel = Model([config.wakeword.model], inference_framework="onnx")  # type: ignore
 
 
 class WakeWordListener(threading.Thread):
