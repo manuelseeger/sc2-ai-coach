@@ -4,6 +4,7 @@
 # https://github.com/sc2-pulse/reveal-sc2-opponent
 
 import logging
+import time
 from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, List, Optional
@@ -55,7 +56,7 @@ class SC2PulseRace(str, Enum):
     zerg = "ZERG"
     random = "RANDOM"
 
-    def convert(self, other: Enum):
+    def convert(self, other):
         return convert_enum(self, other)
 
 
@@ -227,7 +228,9 @@ class SC2PulseLadderMatch(BaseModel):
     map: SC2PulseMap
     participants: List[SC2PulseLadderMatchParticipant]
 
-    def get_participant(self, character_id: int) -> SC2PulseLadderMatchParticipant:
+    def get_participant(
+        self, character_id: int
+    ) -> Optional[SC2PulseLadderMatchParticipant]:
         try:
             return next(
                 p
@@ -237,7 +240,9 @@ class SC2PulseLadderMatch(BaseModel):
         except StopIteration:
             return None
 
-    def get_opponent_of(self, character_id: int) -> SC2PulseLadderMatchParticipant:
+    def get_opponent_of(
+        self, character_id: int
+    ) -> Optional[SC2PulseLadderMatchParticipant]:
         try:
             return next(
                 p
@@ -287,17 +292,107 @@ class SC2PulseClient:
 
     limit_teams: int = 5
 
+    # Resilience configuration
+    max_retries: int = 3
+    base_timeout: float = 10.0
+    retry_backoff_factor: float = 2.0
+
     def __init__(self, http_client: Optional[httpx.Client] = None):
         if http_client:
             self.client = http_client
             self.client.base_url = self.BASE_URL
         else:
-            self.client = httpx.Client(base_url=self.BASE_URL)
-        self.region = convert_enum(config.blizzard_region, SC2PulseRegion)
+            self.client = httpx.Client(
+                base_url=self.BASE_URL, timeout=httpx.Timeout(self.base_timeout)
+            )
+        self.region = SC2PulseRegion(config.blizzard_region.value)
+
+    def _make_request_with_retry(
+        self,
+        method: str,
+        url: str,
+        params: Optional[dict] = None,
+        timeout: Optional[float] = None,
+    ) -> Optional[httpx.Response]:
+        """
+        Make an HTTP request with retry logic for resilience.
+
+        Returns None if all retries fail, otherwise returns the response.
+        """
+        if timeout is None:
+            timeout = self.base_timeout
+
+        last_exception = None
+
+        for attempt in range(self.max_retries + 1):
+            try:
+                response = self.client.request(
+                    method=method, url=url, params=params, timeout=timeout
+                )
+
+                # Handle different HTTP status codes
+                if response.status_code == 404:
+                    # 404 is expected for some endpoints when no data is found
+                    return response
+                elif response.status_code >= 500:
+                    # Server errors - retry
+                    log.warning(
+                        f"SC2Pulse server error {response.status_code} on attempt {attempt + 1}/{self.max_retries + 1}"
+                    )
+                    if attempt < self.max_retries:
+                        time.sleep(self.retry_backoff_factor**attempt)
+                        continue
+                    else:
+                        log.error(
+                            f"SC2Pulse server error {response.status_code} after {self.max_retries + 1} attempts"
+                        )
+                        return None
+                else:
+                    # Success or client error (4xx) - don't retry client errors
+                    response.raise_for_status()
+                    return response
+
+            except (httpx.TimeoutException, httpx.ConnectError) as e:
+                # Network issues - retry
+                last_exception = e
+                log.warning(
+                    f"SC2Pulse network error on attempt {attempt + 1}/{self.max_retries + 1}: {str(e)}"
+                )
+                if attempt < self.max_retries:
+                    time.sleep(self.retry_backoff_factor**attempt)
+                    continue
+
+            except httpx.HTTPStatusError as e:
+                # HTTP status errors (4xx client errors) - don't retry
+                if e.response.status_code >= 400 and e.response.status_code < 500:
+                    log.warning(
+                        f"SC2Pulse client error {e.response.status_code}: {str(e)}"
+                    )
+                    return None
+                # For other HTTP errors, treat as retriable
+                last_exception = e
+                log.warning(
+                    f"SC2Pulse HTTP error on attempt {attempt + 1}/{self.max_retries + 1}: {str(e)}"
+                )
+                if attempt < self.max_retries:
+                    time.sleep(self.retry_backoff_factor**attempt)
+                    continue
+
+            except Exception as e:
+                # Unexpected errors - don't retry
+                log.error(f"SC2Pulse unexpected error: {str(e)}")
+                return None
+
+        # All retries failed
+        log.error(
+            f"SC2Pulse API call failed after {self.max_retries + 1} attempts. Last error: {str(last_exception)}"
+        )
+        return None
 
     def character_search_advanced(self, name, caseSensitive=False) -> List[int]:
-        response = self.client.get(
-            "/character/search/advanced",
+        response = self._make_request_with_retry(
+            method="GET",
+            url="/character/search/advanced",
             params={
                 "name": name,
                 "region": self.region.value,
@@ -306,22 +401,39 @@ class SC2PulseClient:
                 "caseSensitive": caseSensitive,
             },
         )
+        if response is None:
+            log.warning(
+                f"Failed to search for character '{name}' - returning empty list"
+            )
+            return []
         if response.status_code == 404:
             return []
-        response.raise_for_status()
-        return [int(c) for c in response.json()]
+        try:
+            return [int(c) for c in response.json()]
+        except (ValueError, TypeError, KeyError) as e:
+            log.error(f"Failed to parse character search response: {str(e)}")
+            return []
 
     def character_search(self, name: str) -> List[SC2PulseDistinctCharacter]:
-        response = self.client.get(
-            "/character/search",
+        response = self._make_request_with_retry(
+            method="GET",
+            url="/character/search",
             params={
                 "term": name,
             },
         )
+        if response is None:
+            log.warning(
+                f"Failed to search for character '{name}' - returning empty list"
+            )
+            return []
         if response.status_code == 404:
             return []
-        response.raise_for_status()
-        return [SC2PulseDistinctCharacter(**c) for c in response.json()]
+        try:
+            return [SC2PulseDistinctCharacter(**c) for c in response.json()]
+        except (ValueError, TypeError, KeyError) as e:
+            log.error(f"Failed to parse character search response: {str(e)}")
+            return []
 
     def _get_character_matches(
         self,
@@ -342,46 +454,66 @@ class SC2PulseClient:
             url = f"/character/{character_id}/matches/{date_after_str}/{MatchType._1V1.value}/{last_match.match.mapId}/1/1/{MatchType._1V1.value}"
 
             log.debug(f"SC2Pulse {url}")
-            response = self.client.get(url, timeout=5)
-            response.raise_for_status()
-            content = response.json()
-            if len(content["result"]) == 0:
+            response = self._make_request_with_retry(method="GET", url=url, timeout=5.0)
+            if response is None:
+                log.warning(
+                    f"Failed to get character matches for character {character_id} - stopping match collection"
+                )
                 break
 
-            matches.extend(
-                [SC2PulseLadderMatch(**match) for match in content["result"]]
-            )
+            try:
+                content = response.json()
+                if len(content["result"]) == 0:
+                    break
+
+                matches.extend(
+                    [SC2PulseLadderMatch(**match) for match in content["result"]]
+                )
+            except (ValueError, TypeError, KeyError) as e:
+                log.error(f"Failed to parse character matches response: {str(e)}")
+                break
 
         return matches
 
     def get_character_common(
         self, character_id: int, match_history_depth: int = 10
-    ) -> SC2PulseCommonCharacter:
-        response = self.client.get(
-            f"/character/{character_id}/common",
+    ) -> Optional[SC2PulseCommonCharacter]:
+        response = self._make_request_with_retry(
+            method="GET",
+            url=f"/character/{character_id}/common",
             params={
                 "matchType": MatchType._1V1.value,
                 "mmrHistoryDepth": "180",
             },
         )
-        content = response.json()
-        # remove all distinct characters that don't have games played or no current stats
-        content["linkedDistinctCharacters"] = [
-            c
-            for c in content["linkedDistinctCharacters"]
-            if c["totalGamesPlayed"]
-            and c["totalGamesPlayed"] > 0
-            and c["currentStats"]["gamesPlayed"]
-            and c["currentStats"]["gamesPlayed"] > 0
-        ]
-        common = SC2PulseCommonCharacter(**content)
-
-        if len(common.matches) < match_history_depth:
-            common.matches = self._get_character_matches(
-                character_id, match_history_depth, common.matches
+        if response is None:
+            log.warning(
+                f"Failed to get character common data for character {character_id}"
             )
+            return None
 
-        return common
+        try:
+            content = response.json()
+            # remove all distinct characters that don't have games played or no current stats
+            content["linkedDistinctCharacters"] = [
+                c
+                for c in content["linkedDistinctCharacters"]
+                if c["totalGamesPlayed"]
+                and c["totalGamesPlayed"] > 0
+                and c["currentStats"]["gamesPlayed"]
+                and c["currentStats"]["gamesPlayed"] > 0
+            ]
+            common = SC2PulseCommonCharacter(**content)
+
+            if len(common.matches) < match_history_depth:
+                common.matches = self._get_character_matches(
+                    character_id, match_history_depth, common.matches
+                )
+
+            return common
+        except (ValueError, TypeError, KeyError) as e:
+            log.error(f"Failed to parse character common response: {str(e)}")
+            return None
 
     def get_teams(
         self, character_ids: List[int], race: SC2PulseRace
@@ -391,8 +523,9 @@ class SC2PulseClient:
             character_ids[i : i + self.team_batch_size]
             for i in range(0, len(character_ids), self.team_batch_size)
         ]:
-            response = self.client.get(
-                "/group/team",
+            response = self._make_request_with_retry(
+                method="GET",
+                url="/group/team",
                 params={
                     "characterId": ",".join(map(str, batch)),
                     "season": config.season,
@@ -400,26 +533,47 @@ class SC2PulseClient:
                     # "race": race.value,
                 },
             )
+            if response is None:
+                log.warning(f"Failed to get teams for batch {batch}, race {race.value}")
+                continue
             if response.status_code == 404:
                 log.debug(f"404 for {batch}, race {race.value}")
             else:
-                response.raise_for_status()
-                pulse_teams = [SC2PulseLadderTeam(**t) for t in response.json()]
-                teams.extend(pulse_teams)
+                try:
+                    pulse_teams = [SC2PulseLadderTeam(**t) for t in response.json()]
+                    teams.extend(pulse_teams)
+                except (ValueError, TypeError, KeyError) as e:
+                    log.error(f"Failed to parse teams response: {str(e)}")
+                    continue
 
         return teams
 
     def get_unmasked_players(
         self, opponent: str, race: str | Enum, mmr: int
     ) -> List[SC2PulseLadderTeam]:
+        # Convert race to SC2PulseRace
         if isinstance(race, GameInfoRace):
-            race = race.convert(SC2PulseRace)
-        if isinstance(race, str):
-            race = SC2PulseRace(race)
+            if race == GameInfoRace.terran:
+                pulse_race = SC2PulseRace.terran
+            elif race == GameInfoRace.protoss:
+                pulse_race = SC2PulseRace.protoss
+            elif race == GameInfoRace.zerg:
+                pulse_race = SC2PulseRace.zerg
+            else:
+                pulse_race = SC2PulseRace.random
+        elif isinstance(race, str):
+            try:
+                pulse_race = SC2PulseRace(race.upper())
+            except ValueError:
+                log.warning(f"Invalid race string '{race}', defaulting to random")
+                pulse_race = SC2PulseRace.random
+        else:
+            # Already SC2PulseRace or other enum
+            pulse_race = race if isinstance(race, SC2PulseRace) else SC2PulseRace.random
 
         char_ids = self.character_search_advanced(opponent)
 
-        teams = self.get_teams(char_ids, race)
+        teams = self.get_teams(char_ids, pulse_race)
 
         delta = (
             config.rating_delta_max_barcode
@@ -445,20 +599,42 @@ class SC2PulseClient:
 
         return final_opponent_teams[: self.limit_teams]
 
-    def get_season(self, season_id: int, region: SC2PulseRegion) -> SC2PulseSeason:
-        response = self.client.get(f"/season/list/all?season={season_id}")
-        response.raise_for_status()
-        season = [s for s in response.json() if s["region"] == region.value][0]
-        return SC2PulseSeason(**season)
+    def get_season(
+        self, season_id: int, region: SC2PulseRegion
+    ) -> Optional[SC2PulseSeason]:
+        response = self._make_request_with_retry(
+            method="GET", url=f"/season/list/all?season={season_id}"
+        )
+        if response is None:
+            log.warning(f"Failed to get season {season_id} for region {region.value}")
+            return None
 
-    def get_current_season(self) -> SC2PulseSeason:
-        return self.get_season(config.season, SC2PulseRegion(config.blizzard_region))
+        try:
+            seasons_data = response.json()
+            season_data = next(
+                (s for s in seasons_data if s["region"] == region.value), None
+            )
+            if season_data is None:
+                log.warning(
+                    f"No season data found for season {season_id}, region {region.value}"
+                )
+                return None
+            return SC2PulseSeason(**season_data)
+        except (ValueError, TypeError, KeyError, StopIteration) as e:
+            log.error(f"Failed to parse season response: {str(e)}")
+            return None
 
-    def get_league_bounds(self, season=config.season) -> SC2PulseLeagueBounds:
+    def get_current_season(self) -> Optional[SC2PulseSeason]:
+        return self.get_season(
+            config.season, SC2PulseRegion(config.blizzard_region.value)
+        )
+
+    def get_league_bounds(self, season=config.season) -> Optional[SC2PulseLeagueBounds]:
         # https://sc2pulse.nephest.com/sc2/api/ladder/league/bounds?season=62&queue=LOTV_1V1&team-type=ARRANGED&eu=true&bro=true&sil=true&gol=true&pla=true&dia=true&mas=true&gra=true
 
-        response = self.client.get(
-            "/ladder/league/bounds",
+        response = self._make_request_with_retry(
+            method="GET",
+            url="/ladder/league/bounds",
             params={
                 "season": season,
                 "queue": self.queue,
@@ -477,12 +653,22 @@ class SC2PulseClient:
             },
         )
 
-        response.raise_for_status()
-        content = response.json()
-        league_bounds = SC2PulseLeagueBounds(
-            region=self.region, bounds=content[self.region.value]
-        )
-        return league_bounds
+        if response is None:
+            log.warning(f"Failed to get league bounds for season {season}")
+            return None
+
+        try:
+            content = response.json()
+            if self.region.value not in content:
+                log.warning(f"No league bounds data for region {self.region.value}")
+                return None
+            league_bounds = SC2PulseLeagueBounds(
+                region=self.region, bounds=content[self.region.value]
+            )
+            return league_bounds
+        except (ValueError, TypeError, KeyError) as e:
+            log.error(f"Failed to parse league bounds response: {str(e)}")
+            return None
 
 
 def get_division_for_mmr(
