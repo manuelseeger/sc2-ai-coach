@@ -2,16 +2,17 @@
 
 ## AI Coach
 
-[coach.py](coach.py) is a GPT4 powered coach that can help a StarCraft ladder player. It's set up to run with a voice interface during a gaming session and can answer questions from replay history and about opponents such as
+[coach.py](coach.py) is a GPT powered coach that can help a StarCraft ladder player. It's set up to run with a voice interface during a gaming session and can answer questions from replay history and about opponents such as
 
-- When did I last play againt this player?
+- When did I last play against this player?
 - What was the opening build order of this player, in summary?
 - Is this player a smurf?
-- Translate the ingame conversion to English please.
+- Who is ahead in the current replay? 
+- Cast the game from replay please
 
 The AI coach is embedded with a voice engine and can be interacted with live during gameplay via microphone.
 
-New chat sessions with the AI coach are initiated when a new ladder game is starting, when a game just finished, or on voice command ("hey jarvis"). The GPT assistant behind AI coach can use mulitple high level capabilities like query a MongoDB replay database, lookup a player's battle net profile, or add data such as comments to a replay. The assistant decides autonomously without explicit programming when to employ a capability.
+New chat sessions with the AI coach are initiated when a new ladder game is starting, when a game just finished, or on voice command. The GPT assistant behind AI coach can use multiple high level capabilities like query a MongoDB replay database, lookup a player's battle net profile, or add data such as comments to a replay. The assistant decides autonomously without explicit programming when to employ a capability.
 
 This is my personal research project to explore the latest in LLM based agents.
 
@@ -82,7 +83,7 @@ and add the MongoDB connection string to the env variable `AICOACH_MONGO_DSN`.
 
 ### Populate DB
 
-Use the tool [repcli.py](repcli.py) to populate your DB with replays. The tools offers a few options:
+Use the tool [repcli.py](repcli.py) to populate your DB with replays. The tool offers a few options:
 
 ```sh
 > python repcli.py --help
@@ -123,7 +124,7 @@ See `python repcli.py sync --help` for more options. You can always repopulate t
 
 Prerequisites:
 
-- Setup an OpenAI account and fund with credits
+- Set up an OpenAI account and fund with credits
 - Create an OpenAI Assistant
 - Create an API key.
 
@@ -228,7 +229,7 @@ Please understand that this is a hobby project and the more advanced features ar
 
 Prerequisites:
 - all from minimal setup
-- NVidia GPU
+- NVIDIA GPU
 - Microphone
 
 Review [Installation.md](Installation.md) for manual steps required. This will need Python experience and ideally some experience with machine learning with Python.
@@ -246,9 +247,9 @@ More features implemented but not documented:
 
 Probably a lot...
 
-- This is meant for competitives 1v1 ladder. Team games, arcade, customs are not supported and either explicidely excluded from replay processing or may cause unexpected behavior.
+- This is meant for competitive 1v1 ladder. Team games, arcade, customs are not supported and either explicitely excluded from replay processing or may cause unexpected behavior.
 - Most of the internal logic relies on the name of a player(s) and thus won't work properly for a student who changes their name from season to season.
-- This has only been tested with EU Battle.net. Possibly some functionality will break on NA/KR, etc
+- This has only been tested with EU Battle.net. Possibly some functionality will break on NA/KR, etc.
 - This has only been tested with LotV replays starting from early 2023. Much older replays will likely throw errors.
 - Text mode wake event interferes with SC2 causing lag. Don't use during gaming sessions.
 - The production version is meant to run on Windows. Everything covered in unit tests runs on Win32 and Linux. 
