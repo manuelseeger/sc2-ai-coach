@@ -10,10 +10,15 @@ deamon_polling_rate: 1
 audiomode: "text"
 # Index of the audio device as returned by pyaudio
 microphone_index: 2
-# Which model to use from openwakeword
-oww_model: "hey_jarvis"
-# Sensitivity of the wake word
-oww_sensitivity: 0.65
+# Wake word configuration
+wakeword:
+  engine: "openwakeword"
+  # Which model to use from openwakeword
+  model: "hey_jarvis"
+  # Sensitivity of the wake word
+  sensitivity: 0.65
+  # Path to porcupine model file (used when engine is "porcupine")
+  porcupine_model_path: "external/porcupine/hey-coach_en_windows_v3_0_0.ppn"
 # which speech recognition model to use from huggingface speech-to-text
 speech_recognition_model: "openai/whisper-large-v3"
 # Configure speech recognition from microphone
@@ -91,19 +96,19 @@ last_played_ago_max: 2400
 match_history_depth: 100
 
 # Current ladder season
-season: 64
-season_start: "2025-07-19"
+season: 65
+season_start: "2025-11-10"
 # Maps in the current ladder pool 
 ladder_maps:
- - Incorporeal
- - Last Fantasy
- - Ley Lines LE
- - Magannatha LE
- - Persephone
- - Pylon
- - Tokamak
- - Torches
- - Ultralove LE
+ - "Celestial Enclave LE"
+ - "10000 Feet LE"
+ - "Old Republic LE"
+ - "White Rabbit LE"
+ - "Tourmaline LE"
+ - "Ruby Rock LE"
+ - "Winter Madness LE"
+ - "Taito Citadel LE"
+ - "Mothership LE"
 
 # Configure which replay fields to include per default when reading replays
 default_projection:

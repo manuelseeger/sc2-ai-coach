@@ -103,6 +103,10 @@ def get_sc2pulse_match_history(toon_handle: ToonHandle) -> MatchHistory | None:
         sc2pulse_char_id, match_history_depth=config.match_history_depth
     )
 
+    if common is None:
+        log.warning(f"Could not get match history for {toon_handle}")
+        return None
+
     columns = [
         "date",
         "duration",
@@ -121,6 +125,13 @@ def get_sc2pulse_match_history(toon_handle: ToonHandle) -> MatchHistory | None:
     for match in common.matches:
         participant = match.get_participant(sc2pulse_char_id)
         opponent = match.get_opponent_of(sc2pulse_char_id)
+
+        # Skip matches where we can't find participant or opponent data
+        if participant is None or opponent is None:
+            log.debug(
+                f"Skipping match {match.match.id} - missing participant or opponent data"
+            )
+            continue
 
         team1 = participant.team if hasattr(participant, "team") else None
         teamState1 = (

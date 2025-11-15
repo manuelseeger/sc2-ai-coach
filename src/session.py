@@ -144,6 +144,9 @@ class AISession:
     def set_season(self):
         sc2pulse = SC2PulseClient()
         season = sc2pulse.get_current_season()
+        if season is None:
+            log.warning("Could not get current SC2 season")
+            return
         log.info(
             f"Current SC2 season is {season.year}-{season.number}, started {season.start.date()}"
         )
@@ -555,7 +558,7 @@ class AISession:
                 sleep(1)
 
         summary = self.chat(
-            "The game is over. Give us a nice outro for winner and loser and a very short summary of the game."
+            "The game is over. Give us a short outro for winner and loser and a very short summary of the game."
         )
         self.say(summary)
         self.close()

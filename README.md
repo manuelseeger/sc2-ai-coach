@@ -2,18 +2,19 @@
 
 ## AI Coach
 
-[coach.py](coach.py) is a GPT4 powered coach that can help a StarCraft ladder player. It's set up to run with a voice interface during a gaming session and can answer questions from replay history and about opponents such as
+[coach.py](coach.py) is an LLM-powered coach that can help a StarCraft ladder player. It's set up to run with a voice interface during a gaming session and can answer questions from replay history and about opponents such as:
 
-- When did I last play againt this player?
+- When did I last play against this player?
 - What was the opening build order of this player, in summary?
 - Is this player a smurf?
-- Translate the ingame conversion to English please.
+- Who is ahead in the current replay? 
+- Cast the game from replay please
 
-The AI coach is embedded with a voice engine and can be interacted with live during gameplay via microphone.
+The AI coach is embedded with a voice engine and can be interacted with live during gameplay via microphone (optional, can run in text-only mode).
 
-New chat sessions with the AI coach are initiated when a new ladder game is starting, when a game just finished, or on voice command ("hey jarvis"). The GPT assistant behind AI coach can use mulitple high level capabilities like query a MongoDB replay database, lookup a player's battle net profile, or add data such as comments to a replay. The assistant decides autonomously without explicit programming when to employ a capability.
+New chat sessions with the AI coach are initiated when a new ladder game is starting, when a game just finished, or on voice command. The LLM assistant can use multiple high-level capabilities such as querying a MongoDB replay database, looking up a player's Battle.net profile, or adding comments to a replay. The assistant decides autonomously without explicit programming when to employ a capability.
 
-This is my personal research project to explore the latest in LLM based agents.
+This is a personal research project to explore LLM-based agents applied to competitive gaming.
 
 ### Examples
 
@@ -45,9 +46,9 @@ Install with uv: https://docs.astral.sh/uv/
 
 ### Configuration
 
-All settings can be done in `config.yml`, or better in a `config.yourname.yml` file in the same directory. Any config.xx.yml file overwrites values from config.yml. So you can simply add a `config.yourname.yml` file and only overwrite your student settings.
+All settings can be done in `config.yml`, or better yet in a `config.yourname.yml` file in the same directory. Any `config.*.yml` file overwrites values from `config.yml`. This allows you to keep your personal settings separate.
 
-Set `replay_folder` to point to where your SC2 ladder replays are being saved.
+At minimum, set `replay_folder` to point to where your SC2 ladder replays are saved:
 
 ```yaml
 # config.yourname.yml
@@ -60,7 +61,7 @@ student:
 
 The rest of the settings will be taken from `config.yml`.
 
-Secrets are configured with environment variables. Either provide them at runtime or put them in a dotenv file, like [.env.example](.env.example). (But copy to `.env` since the example file is ignored).
+Secrets are configured with environment variables. Either provide them at runtime or put them in a `.env` file like [.env.example](.env.example). Note: Copy to `.env` since the example file is ignored by the application.
 
 ### Database
 
@@ -82,7 +83,7 @@ and add the MongoDB connection string to the env variable `AICOACH_MONGO_DSN`.
 
 ### Populate DB
 
-Use the tool [repcli.py](repcli.py) to populate your DB with replays. The tools offers a few options:
+Use the tool [repcli.py](repcli.py) to populate your DB with replays. The tool offers a few options:
 
 ```sh
 > python repcli.py --help
@@ -119,54 +120,59 @@ The `replays` collection of the DB should now be populated with replay documents
 
 See `python repcli.py sync --help` for more options. You can always repopulate the DB from replay files without destroying anything. AICoach does not change anything on the replay data in the DB.
 
-### OpenAI
 
 Prerequisites:
 
-- Setup an OpenAI account and fund with credits
+- Set up an OpenAI account and fund it with credits
 - Create an OpenAI Assistant
-- Create an API key.
+- Create an API key
 
-Add your OpenAI organization, Assistant ID, and API key to the env variables, `AICOACH_ASSISTANT_ID`, `AICOACH_OPENAI_API_KEY`, `AICOACH_OPENAI_ORG_ID`.
+Add your OpenAI organization, Assistant ID, and API key to the environment variables: `AICOACH_ASSISTANT_ID`, `AICOACH_OPENAI_API_KEY`, and `AICOACH_OPENAI_ORG_ID`.
 
-Note on cost: Long conversations can cost up to one dollar ($1.00) in OpenAI API usage. Typically interactions stay below $0.10 however. AICoach will not incur API costs until one of the wake events is triggered - see below.
+The default model is `gpt-4.1` (configurable via `gpt_model` in config).
+
+**Note on cost:** Typically interactions stay below $0.10, but longer session can run up to and over $1.00 in API costs. AICoach will not incur API costs until one of the wake events is triggered.
 
 If you just want a database with your replays you can skip this step and the next or do it later.
 
 ### Build and deploy assistant
 
+If using OpenAI as your AI backend:
+
 ```sh
 > python build.py
 ```
 
-to build the assistant. You should have a new file [assistant.json](assistant.json).
+This generates a new file [assistant.json](assistant.json) with your assistant configuration.
 
 ```sh
 > python build.py --deploy
 ```
 
-to deploy the assistant to OpenAI. Check on https://platform.openai.com/playground if the assistant is initialized with tools and instructions.
+This deploys the assistant to OpenAI. Verify the assistant is properly initialized with tools and instructions at https://platform.openai.com/playground
 
 
 ### (Optional) Additional settings
 
-Configure a wake hotkey. On pressing this key (combination) AICoach will wake up and ask for input. Default: `ctrl+alt+w`.
+Configure a wake hotkey. When pressed, AICoach will wake up and ask for input (default: `ctrl+alt+w`).
 
-Configure student.emoji if you want to show a [different icon](./playground/emojis.txt) in the terminal output.
 
-You can disable interactions with the `interactive` flag. If off, AI coach will speak, but won't listen for input.
+Configure `student.emoji` if you want to show a [different icon](./playground/emojis.txt) in the terminal output.
+
+Disable `interactive` if you want AICoach to speak but not listen for input:
 
 ```yaml
 # config.yourname.yml
 
 replay_folder: "C:\\Users\\yourname\\MyReplays"
+audiomode: "text"
 student:
   name: "yourname"
   race: "Terran"
   emoji: ":woman_student:"
 db_name: "YOURDB"
 wake_key: "ctrl+alt+w"
-interactive: False
+interactive: true
 ```
 
 ## Run AICoach
@@ -175,81 +181,76 @@ interactive: False
 > python coach.py
 ```
 
-This will start a listener which reacts on different events. For each event, AICoach will perform an action and ask the student for input. Input can be typed into the terminal prompt.
+This starts a listener that reacts to configured events. For each event, AICoach performs an action and asks the student for input.
 
-Student can now chat with AICoach. As long as the conversation is kept going, AICoach will ask for input after it gave an answer.
+Students can chat with AICoach. The conversation continues as long as both parties keep engaging. AICoach determines autonomously when a conversation is complete - typically when you thank it or say goodbye.
 
-AICoach determines by itself when the conversation is over. To end a conversation, simply thank AICoach.
+### Events
 
-### Wake event
+AICoach can be triggered by several events, configurable via `coach_events`:
 
-Invoked when the wake key is pressed. AICoach does nothing initially and simply asks for a question.
+#### Wake event
 
-### New replay event
+Invoked when the wake hotkey is pressed. AICoach asks for a question without additional context.
 
-When a new replay is added to the replay folder while AICoach is running, AICoach will:
+#### New replay event
 
-- Add the replay to replay DB
-- Offer to discuss the replay
+When a new replay is added to the replay folder while AICoach is running:
 
-On closing of the conversation, AICoach will save the conversation in `meta` along with a summary and some keywords which characterize the game.
+- Adds the replay to the replay database
+- Offers to discuss the replay with you
 
-### New game event
+On conversation end, AICoach saves the conversation with a summary and keywords characterizing the game to replay metadata.
 
-This is invoked at the very start of an SC2 game (when the in-game clock hits 1 second). AICoach will:
+#### New game event
 
-- Look in the DB for existing replays of the opponent
-- Summarize past strategies of the opponent
-- Ask for follow up questions
+Triggered at the very start of an SC2 game (when the in-game clock hits 1 second):
+
+- Looks in the database for existing replays of the opponent
+- Summarizes the opponent's past strategies
+- Asks for follow-up questions
 
 ### Configure coach events
 
-You can configure which events AICoach should react to with the `coach_events` option.
+Control which events AICoach responds to:
 
 ```yaml
 # config.yourname.yml
 
-replay_folder: "C:\\Users\\yourname\\MyReplays"
-student:
-  name: "yourname"
-  race: "Terran"
-  emoji: ":woman_student:"
-db_name: "YOURDB"
-wake_key: "ctrl+alt+w"
 coach_events:
   - game_start
   - wake
   - new_replay
 ```
 
-## Advanced setup
+## Advanced Setup (Voice + Full Integration)
 
-Please understand that this is a hobby project the more advances feature are ready to run without some technical setup. This code is presented as-is and I can't provide support for it.
+Please note: This is a hobby project and advanced features are not ready to use without technical setup. Code is presented as-is without dedicated support.
 
-Prerequisites:
+**Prerequisites:**
+- All requirements from minimal setup above
+- NVIDIA GPU (for local voice recognition and synthesis)
+- Microphone and speakers
 
-- all from minimal setup
-- NVidia GPU
-- Microphone
+For advanced setup with voice integration, see [Installation.md](Installation.md) for detailed steps. This requires Python experience and familiarity with machine learning tools.
 
-Review [Installation.md](Installation.md) for manual steps required. This will need Python experience and ideally some experience with machine learning with Python.
+### Optional Advanced Features
 
-The full version integrates with OBS for interaction between OBS scene and the running AICoach. The OBS setup is not documented here and you can skip this part by keeping `obs_integration=False`.
+**OBS Integration** (keep `obs_integration=False` to skip):
+- Integrates with OBS for scene control and display
 
-More features implemented but currently not documented: 
-- Twitch integration, AI coach listens and responds to questions in twitch chat
-- Battle.net integration, AI coach can request profile information including portrait for players from battle.net
-- SC2 pulse integration, AI coach can try to unmask barcodes 
-- AI coach can try to determine if we are facing a smurf
-- AI coach can commentate games from replays
+**Additional implemented but undocumented features:**
+- Twitch chat integration - AICoach listens and responds to Twitch chat
+- Battle.net integration - retrieves player profile information and portraits
+- SC2 Pulse integration - can unmask barcode players
+- Smurf detection - analyzes whether opponents are smurfs
+- Replay commentary - AICoach can commentate games from replays
 
 ## Limitations
 
-Probably a lot...
-
-- This is meant for competitives 1v1 ladder. Team games, arcade, customs are not supported and either explicidely excluded from replay processing or may cause unexpected behavior.
-- Most of the internal logic relies on the name of a player(s) and thus won't work properly for a student who changes their name from season to season.
-- This has only been tested with EU Battle.net. Possibly some functionality will break on NA/KR, etc
-- This has only been tested with LotV replays starting from early 2023. Much older replays will likely throw errors.
-- Text mode wake event interferes with SC2 causing lag. Don't use during gaming sessions.
-- The production version is meant to run on Windows. Everything covered in unit tests runs on Win32 and Linux. 
+- **Game type**: Designed for competitive 1v1 ladder only. Team games, arcade, and custom games are not supported and may cause unexpected behavior.
+- **Player names**: Internal logic relies on player names, so changing your Battle.net name between seasons will break some functionality.
+- **Regions**: Primarily tested on EU Battle.net. Some functionality may not work on NA/KR or other regions.
+- **Replay age**: Only tested with LotV replays from early 2023 onwards. Older replays will likely cause errors.
+- **Text mode limitations**: Text mode wake events can cause SC2 lag during gaming sessions. Disable for competetive play.
+- **Platform**: Production code targets Windows. Unit tests pass on both Windows and Linux. 

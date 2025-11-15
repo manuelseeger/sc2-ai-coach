@@ -15,9 +15,12 @@ else:
     from src.events.clientapi import ClientAPIListener as GameStartedListener
 
 if config.audiomode in [AudioMode.full, AudioMode.voice_in]:
-    from src.events.wakeword import WakeWordListener as WakeListener
+    if config.wakeword.engine == "porcupine":
+        from src.events.wake_porcupine import WakeWordListener as WakeListener
+    else:
+        from src.events.wake_oww import WakeWordListener as WakeListener
 else:
-    from src.events.wakekey import WakeKeyListener as WakeListener
+    from src.events.wake_key import WakeKeyListener as WakeListener
 
 if CoachEvent.twitch in config.coach_events:
     from src.events.twitch import TwitchListener

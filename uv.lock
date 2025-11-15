@@ -1289,6 +1289,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pvporcupine"
+version = "3.0.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f8/ac/14c64255c08db0b80315ccc940943fad5fea03f0006b09b45f0b83ced08d/pvporcupine-3.0.5.tar.gz", hash = "sha256:48f92ab10a904b811e69afb18175d2bd4857ccec8be094f42449961a80fa2af1", size = 2535302, upload-time = "2025-02-05T18:37:33.808Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c4/9e/4716d4737a4a6a3de306c97f3cd6040e66ef23ad8b6b8fca80190dbcc3ad/pvporcupine-3.0.5-py3-none-any.whl", hash = "sha256:b80b31a38b1a622e492e19683f60efdcddd1662204830fcad50df90f01723356", size = 2544202, upload-time = "2025-02-05T18:37:30.898Z" },
+]
+
+[[package]]
 name = "pyaudio"
 version = "0.2.14"
 source = { registry = "https://pypi.org/simple" }
@@ -1758,6 +1767,7 @@ standard = [
     { name = "opencv-python", marker = "sys_platform == 'win32'" },
     { name = "openwakeword", marker = "sys_platform == 'win32'" },
     { name = "pip", marker = "sys_platform == 'win32'" },
+    { name = "pvporcupine", marker = "sys_platform == 'win32'" },
     { name = "pyaudio", marker = "sys_platform == 'win32'" },
     { name = "realtimetts", extra = ["kokoro", "system"], marker = "sys_platform == 'win32'" },
     { name = "scipy", marker = "sys_platform == 'win32'" },
@@ -1802,6 +1812,7 @@ requires-dist = [
     { name = "openwakeword", marker = "sys_platform == 'win32' and extra == 'standard'", specifier = ">=0.6.0" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pip", marker = "extra == 'standard'", specifier = ">=25.0.1" },
+    { name = "pvporcupine", marker = "extra == 'standard'", specifier = ">=3.0.5" },
     { name = "pyaudio", marker = "extra == 'standard'", specifier = ">=0.2.14" },
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "pydantic-settings", specifier = ">=2.7.1" },
