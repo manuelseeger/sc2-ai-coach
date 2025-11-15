@@ -108,6 +108,7 @@ class WakeWordConfig(BaseModel):
     model: Optional[str] = None
     sensitivity: Optional[float] = None
     porcupine_accesskey: Optional[str] = None
+    porcupine_model_path: Optional[str] = None
 
     @model_validator(mode="after")
     def validate_openwakeword_fields(self):

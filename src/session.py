@@ -144,6 +144,9 @@ class AISession:
     def set_season(self):
         sc2pulse = SC2PulseClient()
         season = sc2pulse.get_current_season()
+        if season is None:
+            log.warning("Could not get current SC2 season")
+            return
         log.info(
             f"Current SC2 season is {season.year}-{season.number}, started {season.start.date()}"
         )

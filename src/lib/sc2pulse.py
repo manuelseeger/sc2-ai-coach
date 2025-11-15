@@ -629,7 +629,7 @@ class SC2PulseClient:
             config.season, SC2PulseRegion(config.blizzard_region.value)
         )
 
-    def get_league_bounds(self, season=config.season) -> Optional[SC2PulseLeagueBounds]:
+    def get_league_bounds(self, season=config.season) -> SC2PulseLeagueBounds:
         # https://sc2pulse.nephest.com/sc2/api/ladder/league/bounds?season=62&queue=LOTV_1V1&team-type=ARRANGED&eu=true&bro=true&sil=true&gol=true&pla=true&dia=true&mas=true&gra=true
 
         response = self._make_request_with_retry(
@@ -653,22 +653,29 @@ class SC2PulseClient:
             },
         )
 
-        if response is None:
-            log.warning(f"Failed to get league bounds for season {season}")
-            return None
+        if response is not None:
+            try:
+                content = response.json()
+                if self.region.value in content:
+                    league_bounds = SC2PulseLeagueBounds(
+                        region=self.region, bounds=content[self.region.value]
+                    )
+                    return league_bounds
+            except (ValueError, TypeError, KeyError):
+                pass
 
-        try:
-            content = response.json()
-            if self.region.value not in content:
-                log.warning(f"No league bounds data for region {self.region.value}")
-                return None
-            league_bounds = SC2PulseLeagueBounds(
-                region=self.region, bounds=content[self.region.value]
-            )
-            return league_bounds
-        except (ValueError, TypeError, KeyError) as e:
-            log.error(f"Failed to parse league bounds response: {str(e)}")
-            return None
+        # Fallback to defaults if API call fails
+        log.warning("Could not get league bounds from SC2Pulse, using defaults")
+        default_bounds: dict[int, dict[int, tuple[int, int]]] = {
+            0: {0: (1443, 1680), 1: (1207, 1443), 2: (970, 1207)},
+            1: {0: (2080, 2280), 1: (1880, 2080), 2: (1680, 1880)},
+            2: {0: (2547, 2680), 1: (2413, 2547), 2: (2280, 2413)},
+            3: {0: (2947, 3080), 1: (2813, 2947), 2: (2680, 2813)},
+            4: {0: (3827, 4300), 1: (3453, 3827), 2: (3080, 3453)},
+            5: {0: (4673, 4910), 1: (4437, 4673), 2: (4300, 4437)},
+            6: {0: (0, 0), 1: (0, 0), 2: (0, 0)},
+        }
+        return SC2PulseLeagueBounds(region=self.region, bounds=default_bounds)
 
 
 def get_division_for_mmr(

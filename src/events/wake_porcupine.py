@@ -14,13 +14,16 @@ from src.events import WakeEvent
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
-# Initialize Porcupine with the custom keyword file
-keyword_path = str(
-    Path(__file__).parent.parent.parent
-    / "external"
-    / "porcupine"
-    / "hey-coach_en_windows_v3_0_0.ppn"
-)
+# Get porcupine model path from config
+porcupine_model_path = config.wakeword.porcupine_model_path
+if not porcupine_model_path:
+    raise ValueError(
+        "Porcupine model path must be provided in config.wakeword.porcupine_model_path"
+    )
+
+# Resolve path relative to project root
+keyword_path = str(Path(__file__).parent.parent.parent / porcupine_model_path)
+
 access_key = config.wakeword.porcupine_accesskey
 
 if not access_key:
