@@ -1,6 +1,7 @@
 import logging
 from time import time
 
+import pyaudio
 import speech_recognition as sr
 from speech_recognition.audio import AudioData
 
@@ -8,6 +9,9 @@ from config import config
 from src.contracts import MicrophoneService
 
 log = logging.getLogger(f"{config.name}.{__name__}")
+
+
+audio = pyaudio.PyAudio()
 
 
 class Microphone(MicrophoneService):
@@ -22,6 +26,10 @@ class Microphone(MicrophoneService):
         self.recognizer.pause_threshold = config.recognizer.pause_threshold
         self.recognizer.phrase_threshold = config.recognizer.phrase_threshold
         self.recognizer.non_speaking_duration = config.recognizer.non_speaking_duration
+
+        # log the selected audio device:
+        dev = audio.get_device_info_by_index(self.device_index)
+        log.debug(f"Using microphone: {dev['name']}")
 
         self.microphone = sr.Microphone(device_index=self.device_index)
 

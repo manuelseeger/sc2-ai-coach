@@ -94,19 +94,19 @@ last_played_ago_max: 2400
 match_history_depth: 100
 
 # Current ladder season
-season: 64
-season_start: "2025-07-19"
+season: 65
+season_start: "2025-11-10"
 # Maps in the current ladder pool 
 ladder_maps:
- - Incorporeal
- - Last Fantasy
- - Ley Lines LE
- - Magannatha LE
- - Persephone
- - Pylon
- - Tokamak
- - Torches
- - Ultralove LE
+ - "Celestial Enclave LE"
+ - "10000 Feet LE"
+ - "Old Republic LE"
+ - "White Rabbit LE"
+ - "Tourmaline LE"
+ - "Ruby Rock LE"
+ - "Winter Madness LE"
+ - "Taito Citadel LE"
+ - "Mothership LE"
 
 # Configure which replay fields to include per default when reading replays
 default_projection:
