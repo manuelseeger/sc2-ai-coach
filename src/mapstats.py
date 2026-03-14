@@ -152,7 +152,7 @@ def update_map_stats(map):
         env = Environment(loader=FileSystemLoader("templates"))
         template = env.get_template("map_stats.jinja2")
         rendered = template.render(
-            map_stats_season=season_stats, map_stats_today=todays_stats
+            map_name=map, map_stats_season=season_stats, map_stats_today=todays_stats
         )
         with open(stats_html_file, "w") as f:
             f.write(rendered)

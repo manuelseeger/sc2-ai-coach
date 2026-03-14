@@ -1,80 +1,85 @@
-<table class="table table-striped table-condensed" style="margin-bottom:0;">
- <tr>
-  <th>
-   Matchup
-  </th>
-  <th>
-   W/L
-  </th>
-  <th>
-   %
-  </th>
- </tr>
- <tr>
-  <td colspan="3" style="text-align:center;font-weight:bold;">Today</td>
-</tr>
- {% for matchup in map_stats_today.matchups %}
- <tr>
-  <td>
-   {{ matchup.matchup[0] }}v{{ matchup.matchup[matchup.matchup.index('v') + 1] }}
-  </td>
-  <td>
-   {{ matchup.wins }}-{{ matchup.losses }}
-  </td>
-  <td>
-   {{ ((matchup.winrate * 100) | round(0) | int if matchup.winrate is not none else 0) }}%
-  </td>
- </tr>
- {% endfor %}
- {% set total_wins = map_stats_today.matchups | map(attribute='wins') | sum %}
- {% set total_losses = map_stats_today.matchups | map(attribute='losses') | sum %}
- {% set total_games = total_wins + total_losses %}
- {% set win_pct = ((total_wins / total_games) * 100) | round(0) | int if total_games > 0 else 0 %}
- <tr style="font-weight:bold;">
-  <td>
-   Total
-  </td>
-  <td>
-   {{ total_wins }} - {{ total_losses }}
-  </td>
-  <td>
-   {{ win_pct }}%
-  </td>
- </tr>
- 
- <tr>
-  <td colspan="3" style="text-align:center;font-weight:bold;">
-    This Season
-  </td>
-</tr>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Statistics</title>
+    
+    <style>
+        body { 
+            background-color: rgba(0, 0, 0, 0); 
+            margin: 0px auto; 
+            overflow: hidden; 
+            color: #fff;
+            font-family: sans-serif;
+        }
+        .container {
+            
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        table {
+            border-spacing: 4px;
+            border-collapse: separate;
+        }
+        th, td {
+            padding: 6px 16px;
+            text-align: left;
+        }
+        th {
+            font-weight: 600;
+        }
+        tr[style*="font-weight:bold"] {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>{{ map_name }}</h1>
+        <table class="table table-striped table-condensed" style="margin-bottom:0;">
 
- {% for matchup in map_stats_season.matchups %}
- <tr>
-  <td>
-   {{ matchup.matchup[0] }}v{{ matchup.matchup[matchup.matchup.index('v') + 1] }}
-  </td>
-  <td>
-   {{ matchup.wins }}-{{ matchup.losses }}
-  </td>
-  <td>
-   {{ ((matchup.winrate * 100) | round(0) | int if matchup.winrate is not none else 0) }}%
-  </td>
- </tr>
- {% endfor %}
- {% set total_wins = map_stats_season.matchups | map(attribute='wins') | sum %}
- {% set total_losses = map_stats_season.matchups | map(attribute='losses') | sum %}
- {% set total_games = total_wins + total_losses %}
- {% set win_pct = (((total_wins / total_games) if total_games > 0 else 0) * 100) | round(0) | int %}
- <tr style="font-weight:bold;">
-  <td>
-   Total
-  </td>
-  <td>
-   {{ total_wins }} - {{ total_losses }}
-  </td>
-  <td>
-   {{ win_pct }}%
-  </td>
- </tr>
-
-</table>
+            <tr>
+                <td colspan="3" style="text-align:center;font-weight:bold;">Today</td>
+            </tr>
+            {% for matchup in map_stats_today.matchups %}
+            <tr>
+                <td>{{ matchup.matchup[0] }}v{{ matchup.matchup[matchup.matchup.index('v') + 1] }}</td>
+                <td>{{ matchup.wins }}-{{ matchup.losses }}</td>
+                <td>{{ ((matchup.winrate * 100) | round(0) | int if matchup.winrate is not none else 0) }}%</td>
+            </tr>
+            {% endfor %}
+            {% set total_wins = map_stats_today.matchups | map(attribute='wins') | sum %}
+            {% set total_losses = map_stats_today.matchups | map(attribute='losses') | sum %}
+            {% set total_games = total_wins + total_losses %}
+            {% set win_pct = ((total_wins / total_games) * 100) | round(0) | int if total_games > 0 else 0 %}
+            <tr style="font-weight:bold;">
+                <td>Total</td>
+                <td>{{ total_wins }} - {{ total_losses }}</td>
+                <td>{{ win_pct }}%</td>
+            </tr>
+            <tr>
+                <td colspan="3" style="text-align:center;font-weight:bold;">This Season</td>
+            </tr>
+            {% for matchup in map_stats_season.matchups %}
+            <tr>
+                <td>{{ matchup.matchup[0] }}v{{ matchup.matchup[matchup.matchup.index('v') + 1] }}</td>
+                <td>{{ matchup.wins }}-{{ matchup.losses }}</td>
+                <td>{{ ((matchup.winrate * 100) | round(0) | int if matchup.winrate is not none else 0) }}%</td>
+            </tr>
+            {% endfor %}
+            {% set total_wins = map_stats_season.matchups | map(attribute='wins') | sum %}
+            {% set total_losses = map_stats_season.matchups | map(attribute='losses') | sum %}
+            {% set total_games = total_wins + total_losses %}
+            {% set win_pct = (((total_wins / total_games) if total_games > 0 else 0) * 100) | round(0) | int %}
+            <tr style="font-weight:bold;">
+                <td>Total</td>
+                <td>{{ total_wins }} - {{ total_losses }}</td>
+                <td>{{ win_pct }}%</td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

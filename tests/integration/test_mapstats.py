@@ -36,4 +36,5 @@ def test_get_season_map_stats(map_name):
 
 def test_write_map_stats():
     map_name = config.ladder_maps[0]
+    map_name = "Taito Citadel LE"
     update_map_stats(map_name)
