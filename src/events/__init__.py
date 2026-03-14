@@ -14,7 +14,7 @@ if config.obs_integration:
 else:
     from src.events.clientapi import ClientAPIListener as GameStartedListener
 
-if config.audiomode in [AudioMode.full, AudioMode.voice_in]:
+if config.audiomode in [AudioMode.full, AudioMode.voice_in] and config.interactive:
     if config.wakeword.engine == "porcupine":
         from src.events.wake_porcupine import WakeWordListener as WakeListener
     else:

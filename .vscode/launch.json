@@ -59,10 +59,10 @@
       "console": "integratedTerminal",
       "envFile": "${workspaceFolder}/.env",
       "args": [
-        "--debug",
+        
         "--clean",
         "sync",
-        "--from=2024-01-01"
+        "--from=2025-12-01"
       ]
     },
     {

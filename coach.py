@@ -13,13 +13,21 @@ from src.session import AISession
 
 tts, mic, transcriber = None, None, None
 
+rich_handler = RichConsoleLogHandler()
+rich_handler.setLevel(logging.INFO)
+
+log.addHandler(rich_handler)
+
 # Setup: Input output, logging, depending on config
-if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
+if config.audiomode in [AudioMode.voice_in, AudioMode.full] and config.interactive:
     from src.io.mic import Microphone
     from src.io.transcribe import Transcriber
 
     mic = Microphone()
     transcriber = Transcriber()
+
+    if "nvidia broadcast" not in mic.name.lower():
+        log.warning("Using a non-NVIDIA Broadcast microphone")
 
 if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
     from src.io.tts import make_tts_stream
@@ -33,12 +41,6 @@ else:
 
 if config.obs_integration:
     pass
-
-
-rich_handler = RichConsoleLogHandler()
-rich_handler.setLevel(logging.INFO)
-
-log.addHandler(rich_handler)
 
 
 @click.command()

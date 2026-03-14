@@ -15,6 +15,8 @@ audio = pyaudio.PyAudio()
 
 
 class Microphone(MicrophoneService):
+    name: str
+
     def __init__(self, device_index=None):
         if device_index is None:
             device_index = config.microphone_index
@@ -30,6 +32,8 @@ class Microphone(MicrophoneService):
         # log the selected audio device:
         dev = audio.get_device_info_by_index(self.device_index)
         log.debug(f"Using microphone: {dev['name']}")
+
+        self.name = str(dev["name"])
 
         self.microphone = sr.Microphone(device_index=self.device_index)
 
