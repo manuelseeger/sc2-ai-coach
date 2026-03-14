@@ -1,8 +1,11 @@
 import logging
+from datetime import datetime
 from functools import cached_property
 from typing import Any, ClassVar
 from urllib.parse import urlparse, urlunparse
 
+from anyio import Path
+from jinja2 import Environment, FileSystemLoader
 from pydantic import HttpUrl, computed_field
 from pyodmongo import DbModel, MainBaseModel
 
@@ -123,15 +126,25 @@ def add_path_segment(url: HttpUrl, *segments: Any) -> str:
 
 
 def update_map_stats(map):
-    pass
+    season_stats = get_map_stats(map, config.season_start)
+    todays_stats = get_map_stats(
+        map, min_date=datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    )
+    if season_stats is not None:
+        stats_html_file = Path(config.obs_dir) / "map_stats_obs.html"
+        env = Environment(loader=FileSystemLoader("templates"))
+        template = env.get_template("map_stats.jinja2")
+        rendered = template.render(season_stats=season_stats, todays_stats=todays_stats)
+        with open(stats_html_file, "w") as f:
+            f.write(rendered)
 
 
-def get_season_map_stats(map: str) -> MatchupsByMap | None:
-    q = (Replay.map_name == map) & (Replay.date >= config.season_start)  # pyright: ignore[reportOperatorIssue]
+def get_map_stats(map: str, min_date: datetime | None = None) -> MatchupsByMap | None:
+    if min_date is None:
+        min_date = config.season_start
+
+    q = (Replay.map_name == map) & (Replay.date >= min_date)  # pyright: ignore[reportOperatorIssue]
 
     maps: list[MatchupsByMap] = replaydb.db.find_many(Model=MatchupsByMap, query=q)  # type: ignore
 
-    if len(maps) > 0:
-        return maps[0]
-    else:
-        return None
+    return maps[0] if maps else None
