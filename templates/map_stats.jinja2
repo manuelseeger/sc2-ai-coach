@@ -16,13 +16,13 @@
  {% for matchup in map_stats_today.matchups %}
  <tr>
   <td>
-   {{ matchup.matchup }}
+   {{ matchup.matchup[0] }}v{{ matchup.matchup[matchup.matchup.index('v') + 1] }}
   </td>
   <td>
    {{ matchup.wins }}-{{ matchup.losses }}
   </td>
   <td>
-   {{ (matchup.winrate * 100) | round(0) | int }}%
+   {{ ((matchup.winrate * 100) | round(0) | int if matchup.winrate is not none else 0) }}%
   </td>
  </tr>
  {% endfor %}
@@ -51,20 +51,20 @@
  {% for matchup in map_stats_season.matchups %}
  <tr>
   <td>
-   {{ matchup.matchup }}
+   {{ matchup.matchup[0] }}v{{ matchup.matchup[matchup.matchup.index('v') + 1] }}
   </td>
   <td>
    {{ matchup.wins }}-{{ matchup.losses }}
   </td>
   <td>
-   {{ (matchup.winrate * 100) | round(0) | int }}%
+   {{ ((matchup.winrate * 100) | round(0) | int if matchup.winrate is not none else 0) }}%
   </td>
  </tr>
  {% endfor %}
  {% set total_wins = map_stats_season.matchups | map(attribute='wins') | sum %}
  {% set total_losses = map_stats_season.matchups | map(attribute='losses') | sum %}
  {% set total_games = total_wins + total_losses %}
- {% set win_pct = ((total_wins / total_games) * 100) | round(0) | int if total_games > 0 else 0 %}
+ {% set win_pct = (((total_wins / total_games) if total_games > 0 else 0) * 100) | round(0) | int %}
  <tr style="font-weight:bold;">
   <td>
    Total

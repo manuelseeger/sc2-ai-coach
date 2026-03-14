@@ -25,7 +25,7 @@ class Matchup(MainBaseModel):
     @computed_field
     @cached_property
     def winrate(self) -> float:
-        return self.wins / self.totalGames
+        return (self.wins / self.totalGames) if self.totalGames > 0 else 0
 
 
 class MatchupsByMap(DbModel):
@@ -130,11 +130,30 @@ def update_map_stats(map):
     todays_stats = get_map_stats(
         map, min_date=datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     )
+
     if season_stats is not None:
+        # Initialize with empty list if None
+        if todays_stats is None:
+            todays_stats = MatchupsByMap(map=map, matchups=[])
+
+        # Add any missing matchups from season stats with zero values
+        existing_matchups = {m.matchup for m in todays_stats.matchups}
+        for matchup in season_stats.matchups:
+            if matchup.matchup not in existing_matchups:
+                todays_stats.matchups.append(
+                    Matchup(
+                        matchup=matchup.matchup,
+                        totalGames=0,
+                        wins=0,
+                        losses=0,
+                    )
+                )
         stats_html_file = Path(config.obs_dir) / "map_stats_obs.html"
         env = Environment(loader=FileSystemLoader("templates"))
         template = env.get_template("map_stats.jinja2")
-        rendered = template.render(season_stats=season_stats, todays_stats=todays_stats)
+        rendered = template.render(
+            map_stats_season=season_stats, map_stats_today=todays_stats
+        )
         with open(stats_html_file, "w") as f:
             f.write(rendered)
 
