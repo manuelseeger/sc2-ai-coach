@@ -20,8 +20,8 @@ log.addHandler(rich_handler)
 
 # Setup: Input output, logging, depending on config
 if config.audiomode in [AudioMode.voice_in, AudioMode.full] and config.interactive:
+    from src.io import Transcriber
     from src.io.mic import Microphone
-    from src.io.transcribe import Transcriber
 
     mic = Microphone()
     transcriber = Transcriber()
@@ -88,7 +88,7 @@ def main(debug):
         f"AI Backend: {str(config.aibackend)} {config.gpt_model if config.aibackend == AIBackend.openai else ''}"
     )
     if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
-        log.info(f"Transcriber: {config.speech_recognition_model}")
+        log.info(f"Transcriber: {config.transcriber_backend}")
     log.info(f"Coach events enabled: {', '.join(config.coach_events)}")
 
     log.info(f"Starting {'non-' * (not config.interactive)}interactive session")
