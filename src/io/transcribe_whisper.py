@@ -1,6 +1,7 @@
 import io
 import logging
 import re
+from dataclasses import dataclass
 from typing import Generator
 
 import numpy as np
@@ -8,7 +9,6 @@ import soundfile as sf
 import torch
 import transformers
 import webrtcvad
-from pydantic.dataclasses import dataclass
 from scipy.signal import resample
 from speech_recognition.audio import AudioData
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
@@ -131,22 +131,13 @@ class Transcriber(TranscriberService):
 
         sample_rate = 16000
 
-        # Generate frames and detect speech frames using VAD.
-        frames = list(
-            frame_generator(
-                audio=audio.frame_data, frame_duration_ms=30, sample_rate=sample_rate
-            )
-        )
-        speech_flags = [vad.is_speech(frame.data, sample_rate) for frame in frames]
+        # Calculate duration of the input audio
+        trimmed_duration = len(audio_array) / sample_rate
 
-        # Identify the first and last frame indices with speech.
-        speech_indices = [i for i, flag in enumerate(speech_flags) if flag]
-        if not speech_indices:
+        # don't transcribe super short clips
+        if trimmed_duration < 0.3:
+            log.debug(f"Audio too short for transcription: {trimmed_duration:.2f}s")
             return ""
-        first_idx, last_idx = speech_indices[0], speech_indices[-1]
-        start_time = frames[first_idx].timestamp
-        end_time = frames[last_idx].timestamp + frames[last_idx].duration
-        trimmed_duration = end_time - start_time
 
         # Convert start_time/end_time to sample indices.
         # start_sample = int(start_time * sample_rate)
@@ -166,13 +157,18 @@ class Transcriber(TranscriberService):
                 if text_content and len(str(text_content)) > 0:
                     output = str(text_content).strip()
 
-        # Apply "thank you" check using the trimmed duration.
+        # Apply "thank you" and "I am going to" check using the trimmed duration.
         # Whisper might hallucinate "thank you" for short clips of background noise (clapping like sounds).
         if output:
             match = re.search(r"(?i)\bthank you\b[\s,.;:!?]*", output.lower())
             log.debug(
                 f"'thank you' match found: {bool(match)} (Trimmed Duration: {trimmed_duration})"
             )
-            if trimmed_duration < 0.1:
-                output = ""
+            if match and trimmed_duration < 0.5:
+                return ""
+
+            match_going_to = re.search(r"(?i)\bi.?m going to", output.lower())
+            if match_going_to and trimmed_duration < 0.5:
+                return ""
+
         return output

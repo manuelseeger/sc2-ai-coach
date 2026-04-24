@@ -15,6 +15,8 @@ audio = pyaudio.PyAudio()
 
 
 class Microphone(MicrophoneService):
+    name: str
+
     def __init__(self, device_index=None):
         if device_index is None:
             device_index = config.microphone_index
@@ -27,9 +29,15 @@ class Microphone(MicrophoneService):
         self.recognizer.phrase_threshold = config.recognizer.phrase_threshold
         self.recognizer.non_speaking_duration = config.recognizer.non_speaking_duration
 
+        self.recognizer.dynamic_energy_threshold = True
+        self.recognizer.dynamic_energy_adjustment_damping = 0.15
+        self.recognizer.dynamic_energy_ratio = 1.5
+
         # log the selected audio device:
         dev = audio.get_device_info_by_index(self.device_index)
         log.debug(f"Using microphone: {dev['name']}")
+
+        self.name = str(dev["name"])
 
         self.microphone = sr.Microphone(device_index=self.device_index)
 
@@ -37,8 +45,11 @@ class Microphone(MicrophoneService):
         start_time = time()
         while True:
             with self.microphone as source:
-                audio: AudioData = self.recognizer.listen(source)  # type: ignore stream=False does not return Generator
-                return audio
+                try:
+                    audio: AudioData = self.recognizer.listen(source, timeout=20)  # type: ignore stream=False does not return Generator
+                    return audio
+                except sr.WaitTimeoutError:
+                    continue
 
-            if time() - start_time > 60 * 3:
+            if time() - start_time > 60:
                 return None

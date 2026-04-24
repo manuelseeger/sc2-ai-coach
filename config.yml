@@ -21,16 +21,20 @@ wakeword:
   porcupine_model_path: "external/porcupine/hey-coach_en_windows_v3_0_0.ppn"
 # which speech recognition model to use from huggingface speech-to-text
 speech_recognition_model: "openai/whisper-large-v3"
+# transcriber backend to use: "whisper", "canary_qwen", or "xai"
+transcriber_backend: "xai"
+# language hint for xai STT backend (BCP-47 code, e.g. "en", "de")
+xai_stt_language: "en"
 # Configure speech recognition from microphone
 recognizer:
   # minimum audio energy to consider for recording
-  energy_threshold: 500
+  energy_threshold: 300
   # seconds of non-speaking audio before a phrase is considered complete
   pause_threshold: 0.9
   # minimum seconds of speaking audio before we consider the speaking audio a phrase - values below this are ignored (for filtering out clicks and pops)
   phrase_threshold: 0.3
   # seconds of non-speaking audio to keep on both sides of the recording
-  non_speaking_duration: 0.1
+  non_speaking_duration: 0.3
   # how much of the captured audio must be detected as voice for transcribing to start
   speech_threshold: 0.3
 
@@ -61,11 +65,11 @@ sc2_client_url: "http://127.0.0.1:6119"
 # AI coach backend, use "Mocked" for testing without an AI backend
 aibackend: "OpenAI"
 # which GPT model to use for OpenAI Assistant API
-gpt_model: "gpt-4.1"
-# Cost per prompt token
-gpt_prompt_pricing: 0.0000020
-# Cost per completion token
-gpt_completion_pricing: 0.000008
+gpt_model: "gpt-5.4"
+# Cost per million prompt tokens
+gpt_prompt_pricing_per_million: 2.5
+# Cost per million completion tokens
+gpt_completion_pricing_per_million: 15
 
 # Which events should the AI coach react to
 coach_events:
@@ -96,7 +100,7 @@ last_played_ago_max: 2400
 match_history_depth: 100
 
 # Current ladder season
-season: 65
+season: 66
 season_start: "2025-11-10"
 # Maps in the current ladder pool 
 ladder_maps:

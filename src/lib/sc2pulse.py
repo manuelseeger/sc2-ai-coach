@@ -660,7 +660,9 @@ class SC2PulseClient:
                     league_bounds = SC2PulseLeagueBounds(
                         region=self.region, bounds=content[self.region.value]
                     )
-                    return league_bounds
+                    # SC2Pulse league bounds might be zero on a new season?
+                    if all(v != 0 for v in league_bounds.diamond[0]):
+                        return league_bounds
             except (ValueError, TypeError, KeyError):
                 pass
 

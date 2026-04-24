@@ -93,6 +93,7 @@ class BattleNet:
             )
         except Exception as e:
             # todo WARNING  Failed to get profile 10161794: strptime() argument 1 must be str, not None
+            # Failed to get profile 1226383: time data '2026-04-23T13:41:38Z' does not match format '%Y-%m-%dT%H:%M:%S.%fZ'
             log.warning(f"Failed to get profile {profile_id}: {e}")
             return
         return BattlenetProfile(**p)

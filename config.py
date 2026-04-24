@@ -69,6 +69,12 @@ class AIBackend(str, Enum):
     mocked = "Mocked"
 
 
+class TranscriberBackend(str, Enum):
+    whisper = "whisper"
+    canary_qwen = "canary_qwen"
+    xai = "xai"
+
+
 class AudioMode(str, Enum):
     text = "text"
     voice_in = "in"
@@ -139,6 +145,9 @@ class Config(BaseSettings):
     microphone_index: int
     wakeword: WakeWordConfig
     speech_recognition_model: str
+    transcriber_backend: TranscriberBackend = TranscriberBackend.whisper
+    xai_api_key: Optional[str] = None
+    xai_stt_language: str = "en"
     recognizer: RecognizerConfig
     wake_key: str
     interactive: bool = True
@@ -152,8 +161,18 @@ class Config(BaseSettings):
     openai_org_id: str
     assistant_id: str
     gpt_model: str
-    gpt_prompt_pricing: float
-    gpt_completion_pricing: float
+    gpt_prompt_pricing_per_million: float
+    gpt_completion_pricing_per_million: float
+
+    @property
+    def gpt_prompt_pricing(self) -> float:
+        """Return price per token in dollars."""
+        return self.gpt_prompt_pricing_per_million / 1_000_000
+
+    @property
+    def gpt_completion_pricing(self) -> float:
+        """Return price per token in dollars."""
+        return self.gpt_completion_pricing_per_million / 1_000_000
 
     coach_events: List[CoachEvent] = [
         CoachEvent.wake,

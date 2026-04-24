@@ -73,8 +73,10 @@ def parse_map_loading_screen(filename: str) -> tuple[str, str, str, numpy.ndarra
 
     if is_student(player_left):
         opponent_portrait = get_right_portrait(image)
-    if is_student(player_right):
+    elif is_student(player_right):
         opponent_portrait = get_left_portrait(image)
+    else:
+        opponent_portrait = numpy.zeros((H, W, 3), dtype=numpy.uint8)
 
     return (
         mapname.strip().lower(),
