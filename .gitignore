@@ -24,3 +24,6 @@ build/
 dist/
 .specstory/
 rep.json
+.ruff_cache/
+.pytest_cache/
+.claude/
