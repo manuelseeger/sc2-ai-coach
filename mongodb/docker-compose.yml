@@ -7,9 +7,10 @@ services:
     env_file:
       - .env
     volumes:
+      - mongodb_data:/data/db
       - ./mongo-init/:/docker-entrypoint-initdb.d/:ro
     ports:
-      - 27017:27017
+      - 27018:27017
       - 9229:9229
 
   mongo-seed:
@@ -22,3 +23,6 @@ services:
       - ./mongo-seed:/mongo-seed
     command:
       /mongo-seed/import.sh
+
+volumes:
+  mongodb_data:
