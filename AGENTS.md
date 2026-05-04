@@ -17,3 +17,9 @@ Working environment is project root. Business logic goes into src/. So make sure
 ## Tools
 
 Use MongoDB MCP to inspect the local DB (readonly).
+
+## Running the app
+
+During developement, testing, you may run: 
+- The CLI
+- The full app in text-only mode
