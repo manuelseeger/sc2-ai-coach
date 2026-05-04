@@ -157,6 +157,7 @@ class Config(BaseSettings):
     student: StudentConfig
 
     aibackend: AIBackend
+    openai_endpoint: Optional[str] = None
     openai_api_key: str
     openai_org_id: str
     assistant_id: str

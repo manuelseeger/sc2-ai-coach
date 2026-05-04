@@ -23,18 +23,12 @@ from openai.types.beta.threads.run import Usage
 from pydantic import BaseModel
 
 from config import config
-from shared import http_client
 
 from .functions import AIFunctions
+from .openai_provider import get_openai_client
 from .prompt import Templates
 
 log = logging.getLogger(f"{config.name}.{__name__}")
-
-client = OpenAI(
-    api_key=config.openai_api_key,
-    organization=config.openai_org_id,
-    http_client=http_client,
-)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -51,9 +45,10 @@ class AICoach:
 
     assistant: Assistant
 
-    def __init__(self):
+    def __init__(self, client: OpenAI | None = None):
         """Initializes the AICoach object with the assistant and additional instructions."""
-        self.assistant: Assistant = client.beta.assistants.retrieve(
+        self.client = client or get_openai_client()
+        self.assistant: Assistant = self.client.beta.assistants.retrieve(
             assistant_id=config.assistant_id
         )
 
@@ -79,7 +74,7 @@ class AICoach:
 
     def get_thread_usage(self, thread_id: str) -> Usage:
         """Returns the accumulated usages of all runs of the current thread."""
-        runs = client.beta.threads.runs.list(thread_id=thread_id)
+        runs = self.client.beta.threads.runs.list(thread_id=thread_id)
         thread_usage = Usage(completion_tokens=0, prompt_tokens=0, total_tokens=0)
         for run in runs.data:
             if run.status == "completed":
@@ -91,7 +86,7 @@ class AICoach:
 
     def get_most_recent_message(self):
         """Return the most recent message sent by the assistant."""
-        messages = client.beta.threads.messages.list(
+        messages = self.client.beta.threads.messages.list(
             thread_id=self.thread.id, order="desc", limit=1
         )
         if messages.data[0].role != "assistant":
@@ -101,18 +96,18 @@ class AICoach:
 
     def get_conversation(self):
         """Returns the conversation history of the current thread."""
-        messages = client.beta.threads.messages.list(thread_id=self.thread.id)
+        messages = self.client.beta.threads.messages.list(thread_id=self.thread.id)
         return messages.data
 
     def create_thread(self, message=None) -> str:
         """Create a new thread and return the thread id. Optionally, add a text message to the thread."""
-        self.thread: Thread = client.beta.threads.create()
+        self.thread: Thread = self.client.beta.threads.create()
 
         log.debug(f"Created thread {self.thread.id}")
         self.threads[self.thread.id] = self.thread
 
         if message:
-            client.beta.threads.messages.create(
+            self.client.beta.threads.messages.create(
                 thread_id=self.thread.id,
                 role="user",
                 content=message,
@@ -125,7 +120,7 @@ class AICoach:
             raise ValueError("No active thread. Please create a thread first.")
 
         if message:
-            message = client.beta.threads.messages.create(
+            message = self.client.beta.threads.messages.create(
                 thread_id=self.thread.id,
                 role=role,
                 content=message,
@@ -135,7 +130,7 @@ class AICoach:
 
     def stream_thread(self):
         """Create a new run for the current thread and stream the response from the assistant."""
-        with client.beta.threads.runs.stream(
+        with self.client.beta.threads.runs.stream(
             thread_id=self.thread.id,
             assistant_id=self.assistant.id,
             additional_instructions=self.additional_instructions,
@@ -154,7 +149,7 @@ class AICoach:
 
     def get_thread(self, thread_id: str) -> Thread:
         """Return the thread object for a given thread id."""
-        return client.beta.threads.retrieve(thread_id=thread_id)
+        return self.client.beta.threads.retrieve(thread_id=thread_id)
 
     def get_response(self, message) -> str:
         """Get the response from the assistant for a given message.
@@ -168,7 +163,7 @@ class AICoach:
 
     def get_structured_response_poll(self, message, schema: Type[T]) -> T:
         """Get the structured response from the assistant for a given message."""
-        message = client.beta.threads.messages.create(
+        message = self.client.beta.threads.messages.create(
             thread_id=self.thread.id,
             role="user",
             content=message,
@@ -177,7 +172,7 @@ class AICoach:
             tool for tool in self.assistant.tools if tool.type == "function"
         ]
 
-        new_run = client.beta.threads.runs.create_and_poll(
+        new_run = self.client.beta.threads.runs.create_and_poll(
             thread_id=self.thread.id,
             assistant_id=self.assistant.id,
             tools=function_tools,  # structured output requires only function tools
@@ -229,12 +224,12 @@ class AICoach:
 
         This creates a new run for the current thread and streams the response from the assistant.
         """
-        message = client.beta.threads.messages.create(  # noqa: F841
+        message = self.client.beta.threads.messages.create(  # noqa: F841
             thread_id=self.thread.id,
             role="user",
             content=text,
         )
-        with client.beta.threads.runs.stream(
+        with self.client.beta.threads.runs.stream(
             thread_id=self.thread.id,
             assistant_id=self.assistant.id,
             additional_instructions=self.additional_instructions,
@@ -304,7 +299,7 @@ class AICoach:
         ]
 
         log.debug(f"submitting tool outputs: {tool_outputs}")
-        run = client.beta.threads.runs.submit_tool_outputs_stream(
+        run = self.client.beta.threads.runs.submit_tool_outputs_stream(
             thread_id=self.thread.id, run_id=run_id, tool_outputs=tool_outputs
         )
 

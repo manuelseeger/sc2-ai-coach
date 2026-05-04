@@ -5,10 +5,10 @@ from rich import print
 from config import config
 from src.ai import AICoach
 from src.ai.prompt import Templates
-from tests.conftest import LmmCritic, only_in_debugging
+from tests.conftest import LmmCritic
 
 
-@only_in_debugging
+# @only_in_debugging
 @parametrize_from_file
 def test_twitch_chat(user, message, criteria, expected, util, critic: LmmCritic):
     """Actor / CritiC testing of LMM responses.

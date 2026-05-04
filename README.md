@@ -127,7 +127,7 @@ Prerequisites:
 - Create an OpenAI Assistant
 - Create an API key
 
-Add your OpenAI organization, Assistant ID, and API key to the environment variables: `AICOACH_ASSISTANT_ID`, `AICOACH_OPENAI_API_KEY`, and `AICOACH_OPENAI_ORG_ID`.
+Add your OpenAI organization, Assistant ID, and API key to the environment variables: `AICOACH_ASSISTANT_ID`, `AICOACH_OPENAI_API_KEY`, and `AICOACH_OPENAI_ORG_ID`. If you are using a custom OpenAI-compatible endpoint, also set `AICOACH_OPENAI_ENDPOINT`.
 
 The default model is `gpt-4.1` (configurable via `gpt_model` in config).
 

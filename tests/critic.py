@@ -1,7 +1,7 @@
 from openai import OpenAI
 from pydantic import BaseModel
 
-from config import config
+from src.ai.openai_provider import get_openai_client
 
 
 class Evaluation(BaseModel):
@@ -14,10 +14,8 @@ class LmmCritic:
     instructions: str
     messages: list
 
-    def __init__(self):
-        self.client = OpenAI(
-            api_key=config.openai_api_key, organization=config.openai_org_id
-        )
+    def __init__(self, client: OpenAI | None = None):
+        self.client = client or get_openai_client()
 
     def init(self, instructions: str):
         self.instructions = instructions

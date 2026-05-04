@@ -64,6 +64,8 @@ sc2_client_url: "http://127.0.0.1:6119"
 
 # AI coach backend, use "Mocked" for testing without an AI backend
 aibackend: "OpenAI"
+# Optional custom OpenAI endpoint. Leave empty for the default OpenAI API.
+openai_endpoint:
 # which GPT model to use for OpenAI Assistant API
 gpt_model: "gpt-5.4"
 # Cost per million prompt tokens

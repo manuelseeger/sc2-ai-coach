@@ -10,7 +10,7 @@ dependencies = [
   "httpx>=0.28.1",
   "jinja2>=3.1.5",
   "keyboard>=0.13.5",
-  "openai>=2.33.0",
+  "openai>=1.62.0",
   "pandas>=2.2.3",
   "pydantic>=2.10.6",
   "pydantic-settings>=2.7.1",
@@ -29,27 +29,31 @@ dependencies = [
 
 [project.optional-dependencies]
 standard = [
-  "accelerate>=1.4.0",
-  #"flash-attn>=2.7.0.post2",
-  "nemo-toolkit[asr]>=2.7.2",
   "numpy",
   "obsws-python>=1.7.1",
-  "onnxruntime>=1.25",
   "opencv-python>=4.11.0.86",
-  "openwakeword>=0.6.0; sys_platform == 'win32'",
-  "pip>=25.0.1",
   "pvporcupine>=3.0.5",
   "pyaudio>=0.2.14",
   "realtimetts[kokoro,system]>=0.5.7",
-  "scipy>=1.15.1",
   "soundfile>=0.13.1",
   "speechrecognition[audio]>=3.14.1",
   "tesserocr",
-  "torch>=2.6.0",
-  "torchaudio>=2.6.0",
-  "transformers>=4.48.3",
   "twitchapi>=4.4.0",
+]
+whisper = [
+  #"flash-attn>=2.7.0.post2",
+  "scipy>=1.15.1",
+  "torch>=2.6.0",
+  "transformers>=4.48.3",
   "webrtcvad>=2.0.10",
+]
+nemo = [
+  "nemo-toolkit[asr]>=2.7.2",
+]
+openwakeword = [
+  "onnxruntime>=1.25",
+  "openwakeword>=0.6.0; sys_platform == 'win32'",
+  "torch>=2.6.0",
 ]
 
 
@@ -79,6 +83,7 @@ dev = [
   "ruff>=0.13.0",
   "setuptools>=75.8.0",
 ]
+
 
 [tool.uv]
 default-groups = ["dev"]

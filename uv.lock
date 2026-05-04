@@ -2233,15 +2233,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pip"
-version = "26.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/73/7e/d2b04004e1068ad4fdfa2f227b839b5d03e602e47cdbbf49de71137c9546/pip-26.1.tar.gz", hash = "sha256:81e13ebcca3ffa8cc85e4deff5c27e1ee26dea0aa7fc2f294a073ac208806ff3", size = 1840316 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/7a/be4bd8bcbb24ea475856dd68159d78b03b2bb53dae369f69c9606b8888f5/pip-26.1-py3-none-any.whl", hash = "sha256:4e8486d821d814b77319acb7b9e8bf5a4ee7590a643e7cb21029f209be8573c1", size = 1812804 },
-]
-
-[[package]]
 name = "platformdirs"
 version = "4.9.6"
 source = { registry = "https://pypi.org/simple" }
@@ -3020,26 +3011,30 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-standard = [
-    { name = "accelerate", marker = "sys_platform == 'win32'" },
+nemo = [
     { name = "nemo-toolkit", extra = ["asr"], marker = "sys_platform == 'win32'" },
+]
+openwakeword = [
+    { name = "onnxruntime", marker = "sys_platform == 'win32'" },
+    { name = "openwakeword", marker = "sys_platform == 'win32'" },
+    { name = "torch", marker = "sys_platform == 'win32'" },
+]
+standard = [
     { name = "numpy", marker = "sys_platform == 'win32'" },
     { name = "obsws-python", marker = "sys_platform == 'win32'" },
-    { name = "onnxruntime", marker = "sys_platform == 'win32'" },
     { name = "opencv-python", marker = "sys_platform == 'win32'" },
-    { name = "openwakeword", marker = "sys_platform == 'win32'" },
-    { name = "pip", marker = "sys_platform == 'win32'" },
     { name = "pvporcupine", marker = "sys_platform == 'win32'" },
     { name = "pyaudio", marker = "sys_platform == 'win32'" },
     { name = "realtimetts", extra = ["kokoro", "system"], marker = "sys_platform == 'win32'" },
-    { name = "scipy", marker = "sys_platform == 'win32'" },
     { name = "soundfile", marker = "sys_platform == 'win32'" },
     { name = "speechrecognition", extra = ["audio"], marker = "sys_platform == 'win32'" },
     { name = "tesserocr", marker = "sys_platform == 'win32'" },
-    { name = "torch", marker = "sys_platform == 'win32'" },
-    { name = "torchaudio", marker = "sys_platform == 'win32'" },
-    { name = "transformers", marker = "sys_platform == 'win32'" },
     { name = "twitchapi", marker = "sys_platform == 'win32'" },
+]
+whisper = [
+    { name = "scipy", marker = "sys_platform == 'win32'" },
+    { name = "torch", marker = "sys_platform == 'win32'" },
+    { name = "transformers", marker = "sys_platform == 'win32'" },
     { name = "webrtcvad", marker = "sys_platform == 'win32'" },
 ]
 
@@ -3058,22 +3053,20 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "accelerate", marker = "extra == 'standard'", specifier = ">=1.4.0" },
     { name = "blizzardapi2", specifier = ">2" },
     { name = "click", specifier = ">=8.1.8" },
     { name = "climage", specifier = ">=0.2.2" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "jinja2", specifier = ">=3.1.5" },
     { name = "keyboard", specifier = ">=0.13.5" },
-    { name = "nemo-toolkit", extras = ["asr"], marker = "extra == 'standard'", specifier = ">=2.7.2" },
+    { name = "nemo-toolkit", extras = ["asr"], marker = "extra == 'nemo'", specifier = ">=2.7.2" },
     { name = "numpy", marker = "extra == 'standard'" },
     { name = "obsws-python", marker = "extra == 'standard'", specifier = ">=1.7.1" },
-    { name = "onnxruntime", marker = "extra == 'standard'", specifier = ">=1.25" },
-    { name = "openai", specifier = ">=2.33.0" },
+    { name = "onnxruntime", marker = "extra == 'openwakeword'", specifier = ">=1.25" },
+    { name = "openai", specifier = ">=1.62.0" },
     { name = "opencv-python", marker = "extra == 'standard'", specifier = ">=4.11.0.86" },
-    { name = "openwakeword", marker = "sys_platform == 'win32' and extra == 'standard'", specifier = ">=0.6.0" },
+    { name = "openwakeword", marker = "sys_platform == 'win32' and extra == 'openwakeword'", specifier = ">=0.6.0" },
     { name = "pandas", specifier = ">=2.2.3" },
-    { name = "pip", marker = "extra == 'standard'", specifier = ">=25.0.1" },
     { name = "pvporcupine", marker = "extra == 'standard'", specifier = ">=3.0.5" },
     { name = "pyaudio", marker = "extra == 'standard'", specifier = ">=0.2.14" },
     { name = "pydantic", specifier = ">=2.10.6" },
@@ -3086,19 +3079,19 @@ requires-dist = [
     { name = "rich", specifier = ">=13.9.4" },
     { name = "sc2reader", git = "https://github.com/ggtracker/sc2reader.git?rev=upstream" },
     { name = "sc2reader-plugins", git = "https://github.com/NumberPigeon/sc2reader-plugins.git" },
-    { name = "scipy", marker = "extra == 'standard'", specifier = ">=1.15.1" },
+    { name = "scipy", marker = "extra == 'whisper'", specifier = ">=1.15.1" },
     { name = "soundfile", marker = "extra == 'standard'", specifier = ">=0.13.1" },
     { name = "spawningtool", git = "https://github.com/StoicLoofah/spawningtool.git?rev=master" },
     { name = "speechrecognition", extras = ["audio"], marker = "extra == 'standard'", specifier = ">=3.14.1" },
     { name = "tabulate", specifier = ">=0.9.0" },
     { name = "tesserocr", marker = "extra == 'standard'", url = "https://github.com/simonflueckiger/tesserocr-windows_build/releases/download/tesserocr-v2.8.0-tesseract-5.5.0/tesserocr-2.8.0-cp312-cp312-win_amd64.whl" },
     { name = "tiktoken", specifier = ">=0.8.0" },
-    { name = "torch", marker = "extra == 'standard'", specifier = ">=2.6.0", index = "https://download.pytorch.org/whl/cu124" },
-    { name = "torchaudio", marker = "extra == 'standard'", specifier = ">=2.6.0", index = "https://download.pytorch.org/whl/cu124" },
-    { name = "transformers", marker = "extra == 'standard'", specifier = ">=4.48.3" },
+    { name = "torch", marker = "extra == 'openwakeword'", specifier = ">=2.6.0", index = "https://download.pytorch.org/whl/cu124" },
+    { name = "torch", marker = "extra == 'whisper'", specifier = ">=2.6.0", index = "https://download.pytorch.org/whl/cu124" },
+    { name = "transformers", marker = "extra == 'whisper'", specifier = ">=4.48.3" },
     { name = "twitchapi", marker = "extra == 'standard'", specifier = ">=4.4.0" },
     { name = "watchdog", specifier = ">=6.0.0" },
-    { name = "webrtcvad", marker = "extra == 'standard'", specifier = ">=2.0.10" },
+    { name = "webrtcvad", marker = "extra == 'whisper'", specifier = ">=2.0.10" },
 ]
 
 [package.metadata.requires-dev]
@@ -3739,18 +3732,6 @@ dependencies = [
 wheels = [
     { url = "https://download-r2.pytorch.org/whl/cu124/torch-2.6.0%2Bcu124-cp312-cp312-win_amd64.whl", hash = "sha256:3313061c1fec4c7310cf47944e84513dcd27b6173b72a349bb7ca68d0ee6e9c0" },
     { url = "https://download-r2.pytorch.org/whl/cu124/torch-2.6.0%2Bcu124-cp313-cp313-win_amd64.whl", hash = "sha256:519330eef09534acad8110b6f423d2fe58c1d8e9ada999ed077a637a0021f908" },
-]
-
-[[package]]
-name = "torchaudio"
-version = "2.6.0+cu124"
-source = { registry = "https://download.pytorch.org/whl/cu124" }
-dependencies = [
-    { name = "torch", marker = "sys_platform == 'win32'" },
-]
-wheels = [
-    { url = "https://download-r2.pytorch.org/whl/cu124/torchaudio-2.6.0%2Bcu124-cp312-cp312-win_amd64.whl", hash = "sha256:004ff6bcee0ac78747253c09db67d281add4308a9b87a7bf1769da5914998639" },
-    { url = "https://download-r2.pytorch.org/whl/cu124/torchaudio-2.6.0%2Bcu124-cp313-cp313-win_amd64.whl", hash = "sha256:231eddbfd8bafd06b2c9f55cd6f33e61f58b25b19f2d51382a95e8f12887689f" },
 ]
 
 [[package]]
