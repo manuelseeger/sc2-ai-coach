@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from datetime import datetime
 from enum import Enum
@@ -18,7 +20,8 @@ import bson
 import pydantic
 from pydantic import BaseModel, Field, ValidationError
 from pydantic_core import CoreSchema, core_schema
-from pyodmongo import DbModel, MainBaseModel
+from pymongo import ASCENDING, IndexModel
+from pyodmongo import DbModel, Id, MainBaseModel
 
 from config import AIBackend, config
 from shared import REGION_MAP
@@ -394,6 +397,141 @@ class Replay(DbModel):
         return self.__str__()
 
 
+class AIConversationTrigger(str, Enum):
+    wake = "wake"
+    game_start = "game_start"
+    new_replay = "new_replay"
+    twitch_chat = "twitch_chat"
+    twitch_follow = "twitch_follow"
+    twitch_raid = "twitch_raid"
+    cast_replay = "cast_replay"
+    replay_summary = "replay_summary"
+
+
+class AIConversationStatus(str, Enum):
+    active = "active"
+    closed = "closed"
+    archived = "archived"
+    failed = "failed"
+
+
+class AIConversationItemType(str, Enum):
+    message = "message"
+    function_call = "function_call"
+    function_call_output = "function_call_output"
+    reasoning = "reasoning"
+    summary = "summary"
+
+
+class AIMessageRole(str, Enum):
+    user = "user"
+    assistant = "assistant"
+    system = "system"
+    developer = "developer"
+    tool = "tool"
+
+
+class AIContentPart(MainBaseModel):
+    type: str = "text"
+    text: str
+
+
+class AIConversation(DbModel):
+    session: Session | Id | None = None
+    trigger: AIConversationTrigger
+    status: AIConversationStatus = AIConversationStatus.active
+    closed_at: datetime | None = None
+
+    developer_instructions: str | None = None
+    handler_context: str | None = None
+    prompt_template: str | None = None
+    prompt_version: str | None = None
+
+    replay_id: str | None = None
+    map_name: str | None = None
+    opponent: str | None = None
+    twitch_user: str | None = None
+    title: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    item_count: int = 0
+    last_item_at: datetime | None = None
+    last_response_id: str | None = None
+    total_input_tokens: int = 0
+    total_cached_tokens: int = 0
+    total_output_tokens: int = 0
+    total_tokens: int = 0
+    total_cost: float = 0
+
+    _collection: ClassVar = "ai_conversations"
+    _indexes: ClassVar = [
+        IndexModel(
+            [("session", ASCENDING), ("trigger", ASCENDING), ("created_at", ASCENDING)]
+        )
+    ]
+
+
+class AIConversationItem(DbModel):
+    conversation: AIConversation | Id
+    session: Session | Id | None = None
+    type: AIConversationItemType
+    order: int
+
+    role: AIMessageRole | None = None
+    content: list[AIContentPart] = Field(default_factory=list)
+
+    call_id: str | None = None
+    name: str | None = None
+    arguments: dict[str, Any] | None = None
+    output: str | None = None
+
+    response_id: str | None = None
+    response_model: str | None = None
+    status: str | None = None
+    raw_item: dict[str, Any] | None = None
+
+    source: str | None = None
+    included_in_context: bool = True
+    metadata: dict[str, Any] | None = Field(default_factory=dict)
+
+    _collection: ClassVar = "ai_conversation_items"
+    _indexes: ClassVar = [
+        IndexModel(
+            [("conversation", ASCENDING), ("order", ASCENDING)],
+            unique=True,
+            partialFilterExpression={"conversation": {"$exists": True}},
+        ),
+        IndexModel([("conversation", ASCENDING), ("created_at", ASCENDING)]),
+    ]
+
+
+class AIResponseRecord(DbModel):
+    conversation: AIConversation | Id
+    session: Session | Id | None = None
+    response_id: str | None = None
+    model: str | None = None
+    status: str | None = None
+    streamed: bool = False
+
+    input_tokens: int = 0
+    cached_tokens: int = 0
+    output_tokens: int = 0
+    total_tokens: int = 0
+    input_cost: float = 0
+    cached_input_cost: float = 0
+    output_cost: float = 0
+    total_cost: float = 0
+
+    raw_usage: dict[str, Any] | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    _collection: ClassVar = "ai_responses"
+    _indexes: ClassVar = [
+        IndexModel([("conversation", ASCENDING), ("created_at", ASCENDING)]),
+        IndexModel([("response_id", ASCENDING)], unique=True, sparse=True),
+    ]
+
+
 class Role(str, Enum):
     user = "user"
     assistant = "assistant"
@@ -409,7 +547,7 @@ class Metadata(DbModel):
     replay: ReplayId
     description: str | None = None
     tags: List[str] = []
-    conversation: List[AssistantMessage] | None = None
+    replay_summary_conversation: AIConversation | Id | None = None
     _collection: ClassVar = "meta"
 
 
@@ -501,10 +639,17 @@ class Usage(MainBaseModel):
 
 
 class Session(DbModel):
-    usages: list[Usage] = []
-    threads: list[str] = []
+    conversations: list[AIConversation | Id] = []
+    current_conversation: AIConversation | Id | None = None
+    twitch_conversation: AIConversation | Id | None = None
     ai_backend: AIBackend
     session_date: datetime
     completion_pricing: float
     prompt_pricing: float
+    cached_prompt_pricing: float = 0
+    total_input_tokens: int = 0
+    total_cached_tokens: int = 0
+    total_output_tokens: int = 0
+    total_tokens: int = 0
+    total_cost: float = 0
     _collection: ClassVar = "sessions"

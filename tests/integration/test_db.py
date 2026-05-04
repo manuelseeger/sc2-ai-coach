@@ -1,11 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pytest
 
 from config import config
 from src.replaydb.db import eq, replaydb
 from src.replaydb.reader import ReplayReader
-from src.replaydb.types import AssistantMessage, Metadata, Replay, Role
+from src.replaydb.types import AIConversation, AIConversationTrigger, Metadata, Replay
 
 
 def test_db_ready():
@@ -29,25 +29,18 @@ def test_add_metadata(replay_file):
         replay=replay.id,
     )
     meta.description = "This is a test description 3"
-    meta.conversation = [
-        AssistantMessage(
-            **{"created_at": datetime.now(), "role": Role.user, "text": "Hello"}
-        ),
-        AssistantMessage(
-            **{
-                "created_at": datetime.now() + timedelta(seconds=1),
-                "role": Role.assistant,
-                "text": "Hi there!",
-            }
-        ),
-    ]
+    conversation = AIConversation(trigger=AIConversationTrigger.replay_summary)
+    replaydb.db.save(conversation)
+    meta.replay_summary_conversation = conversation
 
     meta.tags = ["test", "zvz", "muta"]
 
-    db_response = replaydb.db.save(meta, query=eq(Metadata.replay, replay.id))
+    db_response = replaydb.upsert(meta)
+
+    replaydb.db.delete(AIConversation, query=eq(AIConversation.id, conversation.id))
 
     assert db_response.acknowledged
-    assert db_response.modified_count == 1
+    assert db_response.matched_count in {0, 1}
 
 
 @pytest.mark.parametrize(

@@ -8,10 +8,14 @@ from pyodmongo.queries import eq, sort
 
 from config import config
 
-from .types import Metadata, PlayerInfo, Replay, Session
+from .types import (
+    Metadata,
+    PlayerInfo,
+    Replay,
+)
 
-SC2Model = Replay | Metadata | Session | PlayerInfo
-T = TypeVar("T", bound=SC2Model)
+ReplayDBUpsertModel = Replay | Metadata | PlayerInfo
+T = TypeVar("T", bound=ReplayDBUpsertModel)
 
 
 class ReplayDB:
@@ -20,7 +24,7 @@ class ReplayDB:
         self.replays: Collection = self.db._db["replays"]
         self.meta: Collection = self.db._db["replays.meta"]
 
-    def upsert(self, model: SC2Model) -> DbResponse:
+    def upsert(self, model: ReplayDBUpsertModel) -> DbResponse:
         ModelClass = model.__class__
         try:
             return self.db.save(model, query=eq(ModelClass.id, model.id))  # type: ignore[arg-type]
