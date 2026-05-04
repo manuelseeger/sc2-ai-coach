@@ -50,7 +50,7 @@ class Summary(BaseModel):
         table = Table(title=self.__class__.__name__)
         table.add_column("Stat", justify="left", style="bold", no_wrap=True)
         table.add_column("Value", justify="left", style="cyan")
-        for field_name, field_info in self.model_fields.items():
+        for field_name, field_info in type(self).model_fields.items():
             if len(field_info.metadata) > 0 and field_info.metadata[0] is False:
                 continue
             table.add_row(field_info.title, str(getattr(self, field_name)))

@@ -94,7 +94,7 @@
       "cwd": "${workspaceFolder}",
       "args": []
     },
-        {
+    {
       "name": "CLI add testdata",
       "type": "debugpy",
       "request": "launch",
