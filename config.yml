@@ -145,4 +145,4 @@ default_projection:
   unix_timestamp: 1
 
 # Name of the MongoDB database where the replay collection is stored
-db_name: "SC2"
+db_name: "SC2AICOACH"

@@ -220,7 +220,7 @@ class Config(BaseSettings):
 
     default_projection: Dict[str, int]
 
-    db_name: str = "SC2"
+    db_name: str
     mongo_dsn: MongoSRVDsn
 
     @classmethod
@@ -271,7 +271,8 @@ class Config(BaseSettings):
         Path(join(self.log_dir)).mkdir(parents=True, exist_ok=True)
 
         if self.obs_integration:
-            from openwakeword.utils import download_models
+            if self.wakeword.engine == "openwakeword":
+                from openwakeword.utils import download_models
 
             download_models()
 

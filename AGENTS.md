@@ -13,3 +13,7 @@ Use:
 - the mocker fixture to mock in tests
 
 Working environment is project root. Business logic goes into src/. So make sure to import from "src.".
+
+## Tools
+
+Use MongoDB MCP to inspect the local DB (readonly).

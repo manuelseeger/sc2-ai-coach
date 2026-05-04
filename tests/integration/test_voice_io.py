@@ -1,8 +1,8 @@
 import pytest
 from rich import print
 
+from src.io import Transcriber
 from src.io.mic import Microphone
-from src.io.transcribe_whisper import Transcriber
 from src.io.tts import make_tts_stream
 
 
