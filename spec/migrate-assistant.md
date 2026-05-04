@@ -24,7 +24,7 @@ In scope:
 - `src/ai/functions/base.py` — adjust JSON schema output for Responses tool format
 - `src/session.py` — rename `thread_id`/`threads` → `conversation_id`/`conversations`, update usage calc, update conversation-dump logic for `save_replay_summary`
 - `src/replaydb/types.py` — `Usage`, `Session` model field renames
-- `pyproject.toml`, `uv.lock` — bump OpenAI SDK to a version that exposes `client.responses` and `client.conversations`; add `respx` as a dev dependency for HTTP-level SDK contract tests
+- `pyproject.toml`, `uv.lock` — bumped OpenAI SDK to `openai>=2.33.0` / locked `openai==2.33.0`; add `respx` later as a dev dependency for HTTP-level SDK contract tests
 - `build.py` — **delete**
 - `assistant.json` — delete (generated artifact; remove from repo)
 - `config.py`, `config.yml`, `.env.example`, `README.md`, `Installation.md`, `.github/workflows/ci.yml`, `.vscode/launch.json` — drop `assistant_id`, `AICOACH_ASSISTANT_ID`, and build/deploy launch paths; update model default; update docs
@@ -57,7 +57,7 @@ Out of scope:
 6. **Reasoning models** — Add `reasoning_effort: "medium"` as a config option with a safe default; tune later if we see latency issues during live gameplay. Only pass `reasoning={"effort": config.reasoning_effort}` when the SDK/model accepts it; keep the code path tolerant because non-reasoning models may reject the parameter.
   Decision: include now.
 
-7. **OpenAI SDK version** — Current lockfile has `openai==1.62.0`, and a local check showed `OpenAI(...)` exposes `beta` but not `responses` or `conversations`. The migration must start by upgrading the SDK and lockfile, then verifying the exact Python method names and typed event objects.
+7. **OpenAI SDK version** — Upgraded and verified on 2026-05-04. `pyproject.toml` now requires `openai>=2.33.0`, and `uv.lock` resolves `openai==2.33.0`. Local introspection confirmed `OpenAI(api_key="test")` exposes `responses`, `conversations`, and the legacy `beta` namespace. The migration should use the verified method/type names recorded in Chapter 0 below.
 
 8. **Tool strict mode** — Use `strict: true` now. Responses function tools support strict Structured Outputs, and the stricter contract is worth doing during the migration because tool calls are central to this app. Current `QueryReplayDB` has defaulted optional params (`projection`, `sort`, `limit`, `limit_time`), so the args-model layer must make that behavior explicit: model-facing schemas should be strict-compatible, while the invocation wrapper maps `None`/missing-like values back to the same defaults the Python functions use today.
 
@@ -125,23 +125,78 @@ Each chapter is a self-contained commit. Chapter titles are suggested commit sub
 
 **Goal:** Make the target APIs available locally before changing app code.
 
+**Status:** Completed during spec prep on 2026-05-04.
+
 **Changes:**
-- `pyproject.toml`: raise `openai` to a version that exposes `client.responses` and `client.conversations`.
-- `uv.lock`: refresh with `uv lock` / `uv sync`.
-- Add a short throwaway verification note or test fixture output while implementing:
-  - `hasattr(OpenAI(...), "responses")` is true.
-  - `hasattr(OpenAI(...), "conversations")` is true.
-  - Confirm exact method names for:
-    - `client.conversations.create(...)`
-    - `client.conversations.items.create(...)`
-    - `client.conversations.items.list(...)`
-    - `client.responses.create(...)`
-- Confirm the exact message item shapes for user and assistant seed items. Do this against SDK docs or by logging the returned object from a dev API call.
-- Confirm streaming event names and payloads by logging one raw stream with text-only output and one raw stream with a function call.
+- Ran `uv add --upgrade openai`, then raised the project lower bound with `uv add "openai>=2.33.0"`.
+- `pyproject.toml`: `openai>=2.33.0`.
+- `uv.lock`: `openai==2.33.0`.
 
-**Verify:** Local Python introspection shows both APIs exist. A minimal Responses call with `model=config.gpt_model` either succeeds or fails with a clear model-availability message.
+**Verified SDK surface:**
+- `hasattr(OpenAI(api_key="test"), "responses")` is `True`.
+- `hasattr(OpenAI(api_key="test"), "conversations")` is `True`.
+- `client.responses` is `openai.resources.responses.responses.Responses`.
+- `client.conversations` is `openai.resources.conversations.conversations.Conversations`.
+- `client.conversations.items` is `openai.resources.conversations.items.Items`.
 
-**Notes:** This chapter may require updating tests/mocks that import OpenAI typed beta classes if those classes move or if the new SDK changes transitive typing behavior.
+**Verified method names:**
+- `client.responses.create(...) -> Response | Stream[ResponseStreamEvent]`
+- `client.responses.stream(...) -> ResponseStreamManager[...]`
+- `client.responses.parse(...) -> ParsedResponse[...]`
+- `client.conversations.create(items=..., metadata=...) -> Conversation`
+- `client.conversations.items.create(conversation_id, items=..., include=...) -> ConversationItemList`
+- `client.conversations.items.list(conversation_id, after=..., limit=..., order="asc" | "desc") -> SyncConversationCursorPage[ConversationItem]`
+
+**Verified reasoning parameter types:**
+- `responses.create(...)` streaming and non-streaming params accept `reasoning: Optional[Reasoning]`.
+- `Reasoning.effort` is typed as one of `"none"`, `"minimal"`, `"low"`, `"medium"`, `"high"`, or `"xhigh"`.
+- `Reasoning.summary` / `Reasoning.generate_summary` are typed as `"auto"`, `"concise"`, or `"detailed"`.
+
+**Verified message/input shapes:**
+- Simple request input can use the easy message shape:
+  ```python
+  {"role": "user", "content": text}
+  ```
+  `EasyInputMessageParam` also supports `role="assistant"`, `role="system"`, and `role="developer"`.
+- Explicit user/developer/system message items can use:
+  ```python
+  {
+      "type": "message",
+      "role": "user",
+      "content": [{"type": "input_text", "text": text}],
+  }
+  ```
+- Assistant seed items should use the easy message shape unless the implementation specifically needs a full output message object:
+  ```python
+  {"role": "assistant", "content": intro_text}
+  ```
+  The full `ResponseOutputMessageParam` shape requires `id`, `status`, `type`, `role="assistant"`, and output-text content with `annotations`, so the easy shape is simpler for `handle_cast_replay` seeding.
+- Function-call output input is:
+  ```python
+  {
+      "type": "function_call_output",
+      "call_id": function_call.call_id,
+      "output": json_result,
+  }
+  ```
+
+**Verified function tool/schema helpers:**
+- Responses function tool params are flat: `FunctionToolParam` has required `type="function"`, `name`, `parameters`, and `strict`, plus optional `description`.
+- `openai.pydantic_function_tool(Model)` exists and emits a strict schema, but its return shape is Chat-style nested: `{"type": "function", "function": {...}}`.
+- The SDK exposes `openai.lib._pydantic.to_strict_json_schema(Model)`, which emits the strict JSON Schema directly. Use this helper for the `parameters` value in the flat Responses tool shape.
+
+**Verified streaming/function-call event types:**
+- Text delta: `ResponseTextDeltaEvent`, `event.type == "response.output_text.delta"`, text in `event.delta`.
+- Text done: `ResponseTextDoneEvent`, `event.type == "response.output_text.done"`, final text in `event.text`.
+- Function-call argument streaming is available as:
+  - `ResponseFunctionCallArgumentsDeltaEvent`, `event.type == "response.function_call_arguments.delta"`
+  - `ResponseFunctionCallArgumentsDoneEvent`, `event.type == "response.function_call_arguments.done"`
+- Completed output item: `ResponseOutputItemDoneEvent`, `event.type == "response.output_item.done"`; a function call arrives as `event.item.type == "function_call"` with `name`, `arguments`, and `call_id`.
+- Response completed: `ResponseCompletedEvent`, `event.type == "response.completed"`, response in `event.response`.
+
+**Remaining live verification for Chapter 3:** A minimal Responses call with `model=config.gpt_model` should either succeed or fail with a clear model-availability message. This requires real OpenAI credentials and should be done when wiring the first live request, not during offline SDK introspection.
+
+**Notes:** `uv add --upgrade openai` refreshed many packages in `uv.lock` because the project uses broad lower-bound constraints. The intentional direct dependency change is `openai>=2.33.0`; review the wider lockfile churn before committing if you want a narrower dependency update.
 
 ### Chapter 1 — Strip Assistants API surface, fail loudly
 
@@ -169,10 +224,10 @@ Each chapter is a self-contained commit. Chapter titles are suggested commit sub
 
 There are two up-to-date OpenAI-supported options:
 
-1. **Core `openai` SDK: `openai.pydantic_function_tool(Model)`**
-   - Generates a strict JSON schema from a Pydantic `BaseModel`.
-   - Can auto-parse tool-call arguments when using `client.responses.parse(...)` / related parsing helpers.
-   - Does **not** turn an arbitrary Python function signature into a callable tool by itself; we still need a small registry that maps tool name → callable and validates arguments before invocation.
+1. **Core `openai` SDK: Pydantic schema helpers**
+  - `openai.lib._pydantic.to_strict_json_schema(Model)` generates the strict JSON schema from a Pydantic `BaseModel`.
+  - `openai.pydantic_function_tool(Model)` also exists, but the verified SDK 2.33.0 return shape is Chat-style nested (`{"type":"function","function":{...}}`), so do not use it directly as a Responses tool definition.
+  - The SDK does **not** turn an arbitrary Python function signature into a callable tool by itself; we still need a small registry that maps tool name → callable and validates arguments before invocation.
 
 2. **OpenAI Agents SDK: `@function_tool` from `openai-agents`**
    - Does exactly the ergonomic thing: inspect a Python function signature, parse docstrings with `griffe`, build a Pydantic model/schema, and provide an invoker.
@@ -214,8 +269,15 @@ There are two up-to-date OpenAI-supported options:
           "strict": True,
       }
   ```
-- Implement `strict_json_schema(model)` using the OpenAI SDK helper if available. Prefer the SDK path if `openai.pydantic_function_tool(...)` or an exported strict-schema helper produces the exact Responses tool shape. If the SDK helper only returns a Chat Completions-style nested tool, convert it to the flat Responses shape rather than maintaining our own schema mutator.
-- If a local fallback is needed, it must recursively enforce the strict-schema rules OpenAI expects:
+- Implement `strict_json_schema(model)` as a thin wrapper around the verified SDK helper:
+  ```python
+  from openai.lib._pydantic import to_strict_json_schema
+
+  def strict_json_schema(model: type[BaseModel]) -> dict[str, Any]:
+      return to_strict_json_schema(model)
+  ```
+- Do not pass `openai.pydantic_function_tool(...)` directly to Responses. SDK 2.33.0 emits a nested Chat-style shape; Responses needs the flat `{"type":"function","name":...,"parameters":...,"strict":True}` shape shown above.
+- If the private SDK helper path moves in a future SDK, add a local fallback that recursively enforces the strict-schema rules OpenAI expects:
   - every object has `additionalProperties: false`;
   - every object lists all `properties` keys in `required`;
   - optional/defaulted behavior is represented as nullable types, not omitted properties;
@@ -226,7 +288,7 @@ There are two up-to-date OpenAI-supported options:
   return tool.call(args)
   ```
   `tool.call(...)` is where `projection=None`, `sort=None`, `limit=None`, and `limit_time=None` become omitted keyword args for `QueryReplayDB`, preserving today's defaults.
-- During Chapter 0, verify strict tool acceptance with one minimal Responses call that includes all migrated tool schemas. This should fail fast if the schema is not strict-compatible.
+- During Chapter 3, verify strict tool acceptance with one minimal live Responses call that includes all migrated tool schemas. This should fail fast if the schema is not strict-compatible.
 - Add a unit test: `tests/unit/test_function_schema.py` snapshotting each generated strict tool definition, asserting `strict is True`, asserting nested objects have `additionalProperties: false`, asserting all properties are required, and validating sample JSON/null arguments through the Pydantic args model and invocation adapter.
 
 **Verify:** New unit test passes.
@@ -247,7 +309,7 @@ There are two up-to-date OpenAI-supported options:
   - stable initial prompt first;
   - handler-specific extra instructions next;
   - date/timestamp block last for better prompt-cache prefix stability.
-- Add `_reasoning_param() -> dict | None` and only include it when config/model support is confirmed in Chapter 0.
+- Add `_reasoning_param() -> dict | None` and include it as `{"effort": config.reasoning_effort}` when configured. SDK 2.33.0 accepts a `reasoning` param on `responses.create(...)`; live model availability remains part of the Chapter 3 smoke test.
 - Rename `thread` / `thread_id` → `conversation` / `conversation_id` throughout the class.
 - `src/session.py`: replace `thread_id` property with `conversation_id`; replace `self.session.threads` usage with `self.session.conversations`. Do not wire streaming or tool calls yet — just get `handle_wake` working end-to-end in text mode.
 - `src/replaydb/types.py`:
@@ -292,8 +354,7 @@ There are two up-to-date OpenAI-supported options:
   - `response.output_item.done` with `item.type == "function_call"` → buffer the call; don't yield anything.
   - `response.completed` → if buffered function calls exist, dispatch them (see below) and continue the stream with a follow-up streaming `responses.create(...)` feeding `function_call_output` items. Recurse via `_process_event` the same way the old code did.
   - All other events: ignore.
-- `stream_thread()` becomes a thin wrapper calling `chat("")`? No — today `stream_thread()` is called after seeding the conversation with a context message in `create_thread(initial_message)`. In the new world, we can seed the conversation at `conversations.create` time and then call `responses.create` with no new user input (empty `input=[]`), which asks the model to respond based on the seeded items.
-- Confirm in Chapter 0 whether empty `input=[]` is accepted. If not, use a neutral internal user prompt such as `"Continue."` or seed via conversation items and call `responses.create` with the minimum valid input shape required by the SDK.
+- `stream_thread()` becomes a thin wrapper around a conversation-only streaming response. Today `stream_thread()` is called after seeding the conversation with a context message in `create_thread(initial_message)`. In SDK 2.33.0, `responses.create(...)` accepts `input` as optional, so call `responses.create(conversation=..., model=..., instructions=..., tools=..., stream=True)` without `input` rather than sending `chat("")` or a synthetic user prompt.
 - Update `session.py::stream_thread` and `session.py::chat` to use the new interface. Most of the call sites just work.
 
 **Verify:** Run `coach.py` end-to-end with wake, game_start, and new_replay events. Tool calls should stream text interleaved with pauses while the tool runs. The goodbye-phrase detection (`good luck, have fun`) still works.
@@ -306,9 +367,10 @@ There are two up-to-date OpenAI-supported options:
 
 **Changes:**
 - `AICoach.get_structured_response(text, schema, *, additional_instructions=None) -> T`:
-  - Build `text_format = {"format": {"type":"json_schema", "name": schema.__name__, "schema": schema.model_json_schema(), "strict": True}}`.
+  - Prefer the SDK 2.33.0 parser path: `client.responses.parse(..., text_format=schema)` for the final structured-response request.
+  - If tool calls are needed before the final answer, run the Chapter 4 tool-call loop first and feed `function_call_output` items back until the model produces the final structured response.
   - Run the tool-call loop from Chapter 4 (structured output can still need tool calls — see `TwitchChatResponse` and replay summary).
-  - Final text response should be valid JSON per the schema; parse with `schema.model_validate_json(resp.output_text)`.
+  - Return the parsed schema instance from the SDK when available; otherwise parse `resp.output_text` with `schema.model_validate_json(...)` as a local fallback.
 - Delete `get_structured_response_poll` (Assistants-specific; replaced by the single path above).
 - Update call sites in `session.py`:
   - `handle_twitch_chat`: same flow; uses chat conversation ID.
@@ -333,7 +395,7 @@ There are two up-to-date OpenAI-supported options:
   completion_price = usage.output_tokens * config.gpt_completion_pricing
   ```
 - Add `gpt_cached_prompt_pricing_per_million: float` to config and expose `gpt_cached_prompt_pricing` as dollars per token, mirroring `gpt_prompt_pricing` and `gpt_completion_pricing`.
-- Add `reasoning_effort: str | None = "medium"` to config. Valid values should be constrained after Chapter 0 confirms the SDK/model accepted values.
+- Add `reasoning_effort: Literal["none", "minimal", "low", "medium", "high", "xhigh"] | None = "medium"` to config. These are the values typed by SDK 2.33.0's `Reasoning.effort`.
 - Guard against double-counting usage for the long-lived Twitch chat conversation: either record usage deltas per close or mark persisted usage by response ID.
 
 **Verify:** After a session that included tool calls, Mongo `sessions` document shows non-zero `cached_tokens` on subsequent conversations within the same session.
@@ -358,7 +420,7 @@ There are two up-to-date OpenAI-supported options:
 **Goal:** Port `handle_cast_replay`'s pattern of seeding the conversation with an assistant-role message (today's `coach.add_message(intro, role="assistant")`).
 
 **Changes:**
-- `AICoach.add_message(text, role) -> None`: calls `client.conversations.items.create(conversation_id, items=[{"type":"message","role":role,"content":[{"type":"input_text","text":text}] if role == "user" else [{"type":"output_text","text":text}]}])`. (Double-check the exact item shape against the Conversations API docs — `output_text` is what assistant items contain.)
+- `AICoach.add_message(text, role) -> None`: calls `client.conversations.items.create(conversation_id, items=[{"role": role, "content": text}])` for user, assistant, system, or developer seed messages. SDK 2.33.0 verifies this easy message shape via `EasyInputMessageParam`; use the full typed message shape only if a future implementation needs per-content-part metadata.
 - No changes needed in `session.py::handle_cast_replay`; the call site already expects `add_message(..., role="assistant")`.
 
 **Verify:** Trigger a cast-replay, confirm the intro is both spoken and persisted as an assistant item in the conversation, and subsequent timestamped prompts build on top of it.
