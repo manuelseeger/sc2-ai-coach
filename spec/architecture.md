@@ -6,7 +6,7 @@ SC2 AI Coach is an LLM-powered conversational coaching system for StarCraft II p
 
 **Version**: 0.6.0  
 **Language**: Python 3.12+  
-**Primary Frameworks**: OpenAI Assistants API, Pydantic, PyODMongo  
+**Primary Frameworks**: OpenAI SDK via a shared sync client provider, OpenAI Assistants API, Pydantic, PyODMongo  
 **Deployment**: Local development with optional voice I/O and streaming integrations
 
 ---
@@ -152,11 +152,20 @@ Each handler typically:
 #### 3. AI Integration: `src/ai/`
 
 **`aicoach.py`**: Wrapper around OpenAI Assistants API
+- Obtains its SDK client from `src.ai.openai_provider.get_openai_client()` unless a test injects a client explicitly
 - Manages Assistant configuration and thread lifecycle
 - Implements streaming response handling
 - Processes function calls from LLM (tool use)
 - Tracks token usage per thread
 - Event handling via custom `AssistantEventHandler`
+
+**`openai_provider.py`**: Shared sync OpenAI SDK client provider
+- Centralizes construction of the project's `OpenAI` client so application code and reusable tests do not create SDK clients directly
+- Reads `openai_endpoint`, `openai_api_key`, and `openai_org_id` from `config.py`
+- Reuses the SSL context from `shared.py` for SDK HTTP transport verification
+- Normalizes the SDK base URL to `https://api.openai.com/v1/` for the default OpenAI API or `{openai_endpoint}/openai/v1/` for custom endpoints
+- Applies endpoint-specific authorization through an `httpx` request hook: `Authorization: Bearer ...` for default OpenAI and `api-key: ...` for custom/Azure-style endpoints
+- Caches the sync SDK client and HTTP client until the provider is closed
 
 **`prompt.py`**: Jinja2 template management
 - Templates stored in `src/ai/prompts/`
@@ -398,10 +407,12 @@ classDiagram
 - Environment variable injection
 - Multi-file config support (`config.*.yml`)
 - Type-safe configuration models
+- Provides OpenAI SDK configuration consumed by `src.ai.openai_provider`: `openai_endpoint`, `openai_api_key`, and `openai_org_id`
 
 **`shared.py`**: Shared global state
 - `signal_queue`: Thread-safe task queue
 - `http_client`: Shared httpx client for connection pooling
+- `ctx`: shared SSL context based on Certifi, reused by the OpenAI SDK provider and shared HTTP client
 - `REGION_MAP`: Battle.net region/realm mappings
 
 **`log.py`**: Logging setup
@@ -532,7 +543,7 @@ sequenceDiagram
 ## Key Technologies & Dependencies
 
 ### Core Libraries
-- **LLM**: `openai` (v1.62.0) - OpenAI Assistants API with streaming
+- **LLM**: `openai` (v2.33.0+) - OpenAI SDK accessed through `src.ai.openai_provider`; current runtime still uses the Assistants API while the migration to Responses + Conversations is in progress
 - **Database**: `pyodmongo` (v1.4.6) - Pydantic ODM for MongoDB
 - **Replay Parsing**: `sc2reader` + `sc2reader-plugins` + `spawningtool`
 - **Configuration**: `pydantic` (v2.10.6), `pydantic-settings` (v2.7.1)
@@ -610,6 +621,7 @@ db_name: "sc2coach"
 # AI Configuration
 aibackend: "OpenAI"
 gpt_model: "gpt-4o"
+openai_endpoint: null  # optional; custom endpoints normalize to {endpoint}/openai/v1/
 assistant_id: "asst_..."
 
 # Audio Configuration
@@ -635,8 +647,9 @@ interactive: true
 ### Environment Variables
 Secrets in `.env` file:
 - `AICOACH_MONGO_DSN` - MongoDB connection string
-- `OPENAI_API_KEY` - OpenAI API key
-- `OPENAI_ORG_ID` - OpenAI organization ID
+- `AICOACH_OPENAI_API_KEY` - OpenAI API key used by the shared SDK client provider
+- `AICOACH_OPENAI_ORG_ID` - OpenAI organization ID forwarded to the SDK client when configured
+- `AICOACH_OPENAI_ENDPOINT` - Optional OpenAI-compatible endpoint. Empty/default values use `https://api.openai.com/v1/`; custom values are normalized to `{endpoint}/openai/v1/` and use `api-key` authorization.
 - `BLIZZARD_CLIENT_ID`, `BLIZZARD_CLIENT_SECRET` - Battle.net OAuth
 - `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` - Twitch API credentials
 
@@ -691,7 +704,7 @@ Standalone process for OBS scene switching:
 **LLM Testing Strategy**:
 - `tests/llm/test_critic_*.py` - Files test LLM reasoning with real recorded conversations
 - JSON files store expected conversations for replay testing
-- `critic.py` - Uses LLM to evaluate LLM outputs ("LLM as judge")
+- `critic.py` - Uses LLM to evaluate LLM outputs ("LLM as judge") and obtains its default SDK client from `src.ai.openai_provider.get_openai_client()`
 
 **Coverage**:
 - Uses `pytest-cov` for coverage reporting
@@ -701,6 +714,8 @@ Standalone process for OBS scene switching:
 **Mocking**:
 - `pytest-mock` for dependency injection
 - Mocked services for Twitch, Battle.net, voice I/O in tests
+- OpenAI-facing tests can inject clients directly into `AICoach` or `LmmCritic`; reusable code should default through `src.ai.openai_provider` rather than constructing `OpenAI(...)` inline
+- `tests/unit/test_openai_provider.py` covers default-vs-custom endpoint normalization, SSL context reuse, authorization headers, and provider use by `AICoach` / `LmmCritic`
 
 ---
 
