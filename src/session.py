@@ -29,7 +29,7 @@ from src.mapstats import update_map_stats
 from src.matchhistory import get_sc2pulse_match_history
 from src.playerinfo import resolve_replays_from_current_opponent
 from src.replaydb.db import replaydb
-from src.replaydb.types import AIConversationTrigger, Replay, Role, Session
+from src.replaydb.types import AIConversationTrigger, Metadata, Replay, Role, Session
 from src.util import secs2time
 
 
@@ -139,11 +139,10 @@ class AISession:
     @conversation_id.setter
     def conversation_id(self, value):
         self._conversation_id = value
-        if value is not None:
-            self.session.current_conversation = value
-            if value not in self.session.conversations:
-                self.session.conversations.append(value)
-            replaydb.db.save(self.session)
+        self.session.current_conversation = value
+        if value is not None and value not in self.session.conversations:
+            self.session.conversations.append(value)
+        replaydb.db.save(self.session)
 
     def set_season(self):
         sc2pulse = SC2PulseClient()
@@ -243,6 +242,10 @@ class AISession:
     def close(self):
         log.info("Closing conversation")
         self.calculate_usage()
+        if self.conversation_id and self.conversation_id != self.twitch_conversation_id:
+            conversation = conversation_store.get_conversation(self.conversation_id)
+            if conversation is not None:
+                conversation_store.close_conversation(conversation)
         self.conversation_id = None
 
     def is_active(self):
@@ -321,7 +324,10 @@ class AISession:
             prompt = Templates.new_game.render(replacements)
 
         if prompt is not None:
-            self.conversation_id = self.coach.create_conversation(prompt)
+            self.conversation_id = self.coach.create_conversation(
+                prompt,
+                trigger=AIConversationTrigger.game_start,
+            )
         else:
             self.say(Templates.new_game_empty.render(replacements), flush=False)
 
@@ -339,7 +345,10 @@ class AISession:
         }
         prompt = Templates.new_replay.render(replacements)
 
-        self.conversation_id = self.coach.create_conversation(prompt)
+        self.conversation_id = self.coach.create_conversation(
+            prompt,
+            trigger=AIConversationTrigger.new_replay,
+        )
 
     def handle_game_start(self, scanresult: NewMatchEvent):
         """Handle new game event.
@@ -442,7 +451,10 @@ class AISession:
             "student": config.student.name,
         }
         prompt = Templates.twitch_follow.render(replacements)
-        self.conversation_id = self.coach.create_conversation(prompt)
+        self.conversation_id = self.coach.create_conversation(
+            prompt,
+            trigger=AIConversationTrigger.twitch_follow,
+        )
         response = self.stream_conversation()
         log.info(response, extra={"role": Role.assistant})
         self.close()
@@ -460,7 +472,10 @@ class AISession:
             "student": config.student.name,
         }
         prompt = Templates.twitch_raid.render(replacements)
-        self.conversation_id = self.coach.create_conversation(prompt)
+        self.conversation_id = self.coach.create_conversation(
+            prompt,
+            trigger=AIConversationTrigger.twitch_raid,
+        )
         response = self.stream_conversation()
         log.info(response, extra={"role": Role.assistant})
         self.close()
@@ -489,7 +504,9 @@ class AISession:
             answer: str
 
         if not self.twitch_conversation_id:
-            self.twitch_conversation_id = self.coach.create_conversation()
+            self.twitch_conversation_id = self.coach.create_conversation(
+                trigger=AIConversationTrigger.twitch_chat
+            )
             self.session.twitch_conversation = self.twitch_conversation_id
             replaydb.db.save(self.session)
         else:
@@ -537,7 +554,10 @@ class AISession:
         }
         prompt = Templates.cast_replay.render(replacements)
         self.coach.init_additional_instructions(prompt)
-        self.conversation_id = self.coach.create_conversation("00:00")
+        self.conversation_id = self.coach.create_conversation(
+            "00:00",
+            trigger=AIConversationTrigger.cast_replay,
+        )
 
         # collect intro data and start with intro
         matchup = player.play_race + " vs " + opponent.play_race
@@ -587,6 +607,27 @@ class AISession:
         self.close()
 
     def save_replay_summary(self, replay: Replay):
-        log.warning(
-            "Skipping replay summary persistence until structured Responses and metadata linking are migrated"
+        if not self.conversation_id:
+            log.warning("Cannot save replay summary without an active conversation")
+            return
+
+        class ReplaySummary(BaseModel):
+            description: str
+            tags: list[str]
+
+        replay_summary: ReplaySummary = self.coach.get_structured_response(
+            message=Templates.summary.render(),
+            schema=ReplaySummary,
         )
+
+        meta = replaydb.db.find_one(
+            Model=Metadata,
+            query=Metadata.replay == replay.id,  # type: ignore[arg-type]
+        )
+        if meta is None:
+            meta = Metadata(replay=replay.id)
+
+        meta.description = replay_summary.description
+        meta.tags = replay_summary.tags
+        meta.replay_summary_conversation = self.conversation_id
+        replaydb.upsert(meta)

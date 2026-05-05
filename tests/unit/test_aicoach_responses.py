@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 import pytest
+from pydantic import BaseModel
 
 from src.ai.aicoach import AICoach
 from src.ai.state import ConversationStore
@@ -187,6 +188,52 @@ class FakeStreamingToolLoopResponsesAPI:
 class FakeStreamingToolLoopClient:
     def __init__(self):
         self.responses = FakeStreamingToolLoopResponsesAPI()
+
+
+class FakeStructuredResponsesAPI:
+    def __init__(self):
+        self.calls: list[dict] = []
+
+    def create(self, **kwargs):
+        self.calls.append(kwargs)
+        if len(self.calls) == 1:
+            return SimpleNamespace(
+                id="resp-structured-1",
+                model="gpt-4.1-mini",
+                status="completed",
+                output=[
+                    SimpleNamespace(
+                        type="function_call",
+                        call_id="call-structured-1",
+                        name="QueryReplayDB",
+                        arguments='{"filter": "{}", "projection": null, "sort": null, "limit": 1, "limit_time": null}',
+                    )
+                ],
+                usage={
+                    "input_tokens": 24,
+                    "output_tokens": 4,
+                    "total_tokens": 28,
+                    "input_tokens_details": {"cached_tokens": 0},
+                },
+            )
+
+        return SimpleNamespace(
+            id="resp-structured-2",
+            model="gpt-4.1-mini",
+            status="completed",
+            output_text='{"is_question": true, "answer": "Yes, your last game was on Dynasty."}',
+            usage={
+                "input_tokens": 33,
+                "output_tokens": 9,
+                "total_tokens": 42,
+                "input_tokens_details": {"cached_tokens": 0},
+            },
+        )
+
+
+class FakeStructuredClient:
+    def __init__(self):
+        self.responses = FakeStructuredResponsesAPI()
 
 
 @pytest.fixture(autouse=True)
@@ -397,3 +444,56 @@ def test_chat_streams_then_executes_tool_loop(cleanup_ai_conversations, mocker):
     second_input = client.responses.calls[1]["input"]
     assert second_input[1]["type"] == "function_call"
     assert second_input[2]["type"] == "function_call_output"
+
+
+def test_get_structured_response_executes_tool_loop_and_parses_schema(
+    cleanup_ai_conversations,
+    mocker,
+):
+    class TwitchChatResponse(BaseModel):
+        is_question: bool
+        answer: str
+
+    client = FakeStructuredClient()
+    coach = AICoach(client=client)
+    query_tool = coach.functions["QueryReplayDB"]
+    invoke_spy = mocker.patch.object(
+        query_tool,
+        "invoke",
+        return_value=[{"map_name": "Dynasty", "unix_timestamp": 1700000000}],
+    )
+
+    conversation_id = coach.create_conversation(
+        trigger=AIConversationTrigger.twitch_chat,
+        metadata={"test_scope": "unit_aicoach_structured_response"},
+    )
+    conversation = coach.store.get_conversation(conversation_id)
+    assert conversation is not None
+    cleanup_ai_conversations["conversations"].append(conversation)
+
+    response = coach.get_structured_response(
+        message="Is this a question?",
+        schema=TwitchChatResponse,
+        additional_instructions="Return strict JSON only.",
+    )
+
+    response_records = coach.store._replaydb.db.find_many(
+        Model=AIResponseRecord,
+        query=(AIResponseRecord.response_id == "resp-structured-1")
+        | (AIResponseRecord.response_id == "resp-structured-2"),
+    )
+    cleanup_ai_conversations["response_records"].extend(response_records)
+
+    items = coach.get_conversation_items()
+    assert response.is_question is True
+    assert response.answer == "Yes, your last game was on Dynasty."
+    assert invoke_spy.call_count == 1
+    assert len(client.responses.calls) == 2
+    assert client.responses.calls[0]["text"]["format"]["type"] == "json_schema"
+    assert client.responses.calls[0]["text"]["format"]["strict"] is True
+    assert "Return strict JSON only." in client.responses.calls[0]["instructions"]
+    assert items[0].role.value == "user"
+    assert items[1].type.value == "function_call"
+    assert items[2].type.value == "function_call_output"
+    assert items[3].role.value == "assistant"
+    assert items[3].content[0].text.startswith('{"is_question": true')

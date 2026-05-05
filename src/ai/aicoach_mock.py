@@ -69,7 +69,7 @@ class AICoachMock(AICoach):
         return BaseModel.model_validate(self._usage_totals)
 
     @override
-    def create_conversation(self, message=None):
+    def create_conversation(self, message=None, *args, **kwargs):
         self.active_conversation_id = uuid4().hex
         sleep(0.5)
         return self.active_conversation_id
@@ -91,7 +91,13 @@ class AICoachMock(AICoach):
             yield token
 
     @override
-    def get_structured_response(self, message, schema: type[T]) -> T:
+    def get_structured_response(
+        self,
+        message,
+        schema: type[T],
+        additional_instructions: str | None = None,
+    ) -> T:
+        del message, additional_instructions
         raise NotImplementedError
 
     @override

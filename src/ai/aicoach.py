@@ -12,6 +12,7 @@ from src.ai.state import ConversationStore, conversation_store
 from src.replaydb.types import AIMessageRole
 
 from .functions import AIFunctions, responses_tools
+from .functions.base import strict_json_schema
 from .openai_provider import get_openai_client
 from .prompt import Templates
 
@@ -50,20 +51,26 @@ class AICoach:
             "Responses usage aggregation lands in a later chapter"
         )
 
-    def get_most_recent_message(self):
+    def get_latest_assistant_message(self) -> str:
         """Return the most recent persisted assistant message for the active conversation."""
-        messages = self.get_conversation()
+        messages = self.get_conversation_items()
         for item in reversed(messages):
             if item.role == AIMessageRole.assistant and item.content:
                 return item.content[0].text
         log.warning("Assistant sent no message")
         return ""
 
-    def get_conversation(self):
+    def get_most_recent_message(self):
+        return self.get_latest_assistant_message()
+
+    def get_conversation_items(self):
         """Return the persisted conversation history for the active conversation."""
         if self.active_conversation_id is None:
             return []
         return self.store.list_items(self.active_conversation_id, included_only=False)
+
+    def get_conversation(self):
+        return self.get_conversation_items()
 
     def create_conversation(
         self,
@@ -183,10 +190,14 @@ class AICoach:
         conversation,
         *,
         include_tools: bool,
+        additional_instructions: str | None = None,
+        response_format: dict[str, Any] | None = None,
     ) -> Any:
         request_kwargs = self._build_response_request(
             conversation,
             include_tools=include_tools,
+            additional_instructions=additional_instructions,
+            response_format=response_format,
         )
         self._trace_request(conversation, request_kwargs)
         response = self.client.responses.create(**request_kwargs)
@@ -198,10 +209,15 @@ class AICoach:
         conversation,
         *,
         include_tools: bool,
+        additional_instructions: str | None = None,
+        response_format: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         request_kwargs = {
             "model": config.gpt_model,
-            "instructions": self._render_instructions(conversation),
+            "instructions": self._render_instructions(
+                conversation,
+                additional_instructions=additional_instructions,
+            ),
             "input": self._assemble_input(conversation),
             "store": False,
             "prompt_cache_key": self._prompt_cache_key(conversation),
@@ -217,9 +233,17 @@ class AICoach:
         reasoning = self._reasoning_param()
         if reasoning is not None:
             request_kwargs["reasoning"] = reasoning
+
+        if response_format is not None:
+            request_kwargs["text"] = {"format": response_format}
         return request_kwargs
 
-    def _render_instructions(self, conversation) -> str:
+    def _render_instructions(
+        self,
+        conversation,
+        *,
+        additional_instructions: str | None = None,
+    ) -> str:
         sections = [
             Templates.initial_instructions.render(
                 {"student": str(config.student.name)}
@@ -233,6 +257,10 @@ class AICoach:
         handler_context = (conversation.handler_context or "").strip()
         if handler_context:
             sections.append(handler_context)
+
+        inline_instructions = (additional_instructions or "").strip()
+        if inline_instructions:
+            sections.append(inline_instructions)
 
         sections.append(
             Templates.additional_instructions.render(
@@ -465,9 +493,7 @@ class AICoach:
         return str(value)
 
     def get_structured_response_poll(self, message, schema: Type[T]) -> T:
-        raise NotImplementedError(
-            "Structured Responses migration lands in a later chapter"
-        )
+        return self.get_structured_response(message=message, schema=schema)
 
     def get_structured_response(
         self,
@@ -475,9 +501,66 @@ class AICoach:
         schema: Type[T],
         additional_instructions: Optional[str] = None,
     ) -> T:
-        raise NotImplementedError(
-            "Structured Responses migration lands in a later chapter"
+        if self.active_conversation_id is None:
+            self.create_conversation()
+
+        message_text = str(message).strip()
+        if not message_text:
+            raise ValueError("Structured response requests require a message")
+
+        conversation_id = self.get_conversation_id()
+        if conversation_id is None:
+            raise ValueError(
+                "No active conversation. Please create a conversation first."
+            )
+
+        conversation = self.store.get_conversation(conversation_id)
+        if conversation is None:
+            raise ValueError(f"Conversation {conversation_id} not found")
+
+        self.store.append_message(
+            conversation, role=AIMessageRole.user, text=message_text
         )
+        response_format = self._structured_response_format(schema)
+
+        for _ in range(self.max_tool_iterations):
+            conversation = self.store.get_conversation(conversation_id)
+            if conversation is None:
+                raise ValueError(f"Conversation {conversation_id} not found")
+
+            response = self._create_response(
+                conversation,
+                include_tools=True,
+                additional_instructions=additional_instructions,
+                response_format=response_format,
+            )
+            function_calls = self._extract_function_calls(response)
+            if function_calls:
+                self.store.record_response(conversation, response)
+                self._execute_function_calls(conversation, function_calls)
+                continue
+
+            response_text = self._extract_response_text(response)
+            self.store.append_assistant_response(
+                conversation,
+                text=response_text,
+                response_id=getattr(response, "id", None),
+                model=getattr(response, "model", None),
+            )
+            self.store.record_response(conversation, response)
+            return schema.model_validate_json(response_text)
+
+        raise RuntimeError(
+            f"Structured tool loop exceeded max iterations for conversation {conversation_id}"
+        )
+
+    def _structured_response_format(self, schema: Type[T]) -> dict[str, Any]:
+        return {
+            "type": "json_schema",
+            "name": schema.__name__,
+            "schema": strict_json_schema(schema),
+            "strict": True,
+        }
 
     def chat(
         self, text, response_format=None, tools=None

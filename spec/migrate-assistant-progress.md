@@ -144,3 +144,37 @@
 - Sent follow-up command: `quit`
 - Observed the prompt return after the streamed answer and a clean session shutdown with usage totals, confirming the text REPL now exercises the live streaming Responses path end to end.
 - Non-blocking environment note: the terminal still prints the same PowerShell profile shell-integration error before commands start, but the Chapter 7 app test completed successfully and the error is outside repo code.
+
+## Chapter 8
+
+- Implemented stateless structured Responses in [src/ai/aicoach.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/aicoach.py): `get_structured_response(...)` now appends the user message to the local conversation, sends a Responses request with strict JSON schema output, reuses the Chapter 6 tool loop, persists the final assistant JSON payload as an assistant message, records the `AIResponseRecord`, and validates the result via `schema.model_validate_json(...)`.
+- Added `_structured_response_format(...)` in [src/ai/aicoach.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/aicoach.py), backed by the existing `strict_json_schema(...)` helper from [src/ai/functions/base.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/functions/base.py), and wired `_build_response_request(...)` / `_render_instructions(...)` to support per-request structured-output settings and temporary additional instructions.
+- Added Chapter 10 compatibility accessors in [src/ai/aicoach.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/aicoach.py): `get_conversation_items()` and `get_latest_assistant_message()` now back the older `get_conversation()` / `get_most_recent_message()` names.
+- Updated [src/ai/aicoach_mock.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/aicoach_mock.py) so the mock surface still matches the migrated `create_conversation(...)` and `get_structured_response(...)` signatures.
+
+## Chapter 9
+
+- Completed session-side conversation trigger wiring in [src/session.py](c:/Users/seeg/dev/sc2-ai-coach/src/session.py):
+	- game start conversations now persist with `AIConversationTrigger.game_start`
+	- new replay conversations now persist with `AIConversationTrigger.new_replay`
+	- Twitch follow / raid conversations now persist with `AIConversationTrigger.twitch_follow` / `AIConversationTrigger.twitch_raid`
+	- the reusable Twitch chat conversation now persists with `AIConversationTrigger.twitch_chat`
+	- cast replay conversations now persist with `AIConversationTrigger.cast_replay`
+- Tightened `AISession.conversation_id` persistence in [src/session.py](c:/Users/seeg/dev/sc2-ai-coach/src/session.py) so `Session.current_conversation` is updated on both activation and close, while `Session.conversations` still accumulates the local conversation references.
+- Updated `AISession.close()` in [src/session.py](c:/Users/seeg/dev/sc2-ai-coach/src/session.py) so non-Twitch event conversations are marked closed in the local `ConversationStore`, while the session-scoped Twitch chat conversation remains reusable across chat events.
+
+## Chapter 10
+
+- Implemented replay-summary persistence in [src/session.py](c:/Users/seeg/dev/sc2-ai-coach/src/session.py): `save_replay_summary(...)` now calls `AICoach.get_structured_response(...)` within the active replay conversation using [src/ai/prompts/summary.jinja2](c:/Users/seeg/dev/sc2-ai-coach/src/ai/prompts/summary.jinja2), upserts `Metadata.description` and `Metadata.tags`, and links `Metadata.replay_summary_conversation` to that same local conversation instead of copying transcript state into metadata.
+- No additional schema change was needed for Chapter 10 because [src/replaydb/types.py](c:/Users/seeg/dev/sc2-ai-coach/src/replaydb/types.py) had already been migrated earlier to store `Metadata.replay_summary_conversation` as a conversation reference.
+- Added focused session coverage in [tests/unit/test_session_conversations.py](c:/Users/seeg/dev/sc2-ai-coach/tests/unit/test_session_conversations.py) for non-Twitch vs Twitch close behavior, trigger selection for Twitch flows, and replay-summary metadata linking.
+- Added focused structured-output coverage in [tests/unit/test_aicoach_responses.py](c:/Users/seeg/dev/sc2-ai-coach/tests/unit/test_aicoach_responses.py) for the strict JSON-schema Responses tool loop and parsed Pydantic result.
+
+## Validation
+
+- Verified the focused Chapter 8-10 unit slice with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_aicoach_responses.py tests/unit/test_session_conversations.py tests/unit/test_session_repl.py -q`
+- Result: `12 passed`
+- Verified the broader adjacent unit slice with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_aicoach_responses.py tests/unit/test_session_conversations.py tests/unit/test_session_repl.py tests/unit/test_coach_text_chat.py tests/unit/test_ai_state.py -q`
+- Result: `21 passed`
+- Verified replay metadata persistence with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/integration/test_db.py -q`
+- Result: `5 passed`
