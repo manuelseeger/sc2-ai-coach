@@ -122,3 +122,25 @@
 - Verified the explicit `repl` conversation trigger with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_session_repl.py tests/unit/test_ai_state.py tests/unit/test_aicoach_responses.py -q`
 - Result: `10 passed`
 - Non-blocking environment note: the terminal prints a PowerShell profile shell-integration error before commands start, but the app and tests completed successfully and the error is outside repo code.
+
+## Chapter 7
+
+- Implemented stateless streaming Responses chat in [src/ai/aicoach.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/aicoach.py): `AICoach.chat(...)` now appends the user message once, calls `client.responses.create(..., stream=True)`, yields `response.output_text.delta` chunks as they arrive, and persists the final assistant message only after `response.completed`.
+- Implemented `AICoach.stream_conversation()` in [src/ai/aicoach.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/aicoach.py) so existing game-start, replay, follow, raid, and other no-new-user-input handlers can stream from the active local conversation without falling back to the Chapter 5 text path.
+- Reused the Chapter 6 stateless request builder during streaming, so every streamed request still sends rendered `instructions`, full local `input`, `store=False`, `prompt_cache_key`, optional reasoning params, and strict tool definitions when enabled.
+- Added a shared streaming cycle in [src/ai/aicoach.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/aicoach.py) that buffers text deltas, captures the completed response object, records one streamed `AIResponseRecord`, and then executes any returned function calls before starting the next stateless streaming request.
+- Preserved the Chapter 6 local tool transcript shape during streaming: persisted `function_call` and `function_call_output` items are replayed into the follow-up streamed request so the model sees the same local history continuity as in the non-streaming path.
+- Added focused Chapter 7 unit coverage in [tests/unit/test_aicoach_responses.py](c:/Users/seeg/dev/sc2-ai-coach/tests/unit/test_aicoach_responses.py) for plain streamed text completion and for a streamed tool loop that emits a function call first and the final assistant text on the follow-up stream.
+
+## Validation
+
+- Verified Chapter 7 unit coverage with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_aicoach_responses.py -q`
+- Result: `5 passed`
+- Verified the immediate app-facing unit slice with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_aicoach_responses.py tests/unit/test_coach_text_chat.py tests/unit/test_session_repl.py tests/unit/test_rich_log.py -q`
+- Result: `10 passed`
+- Ran the first full app Chapter 7 streaming test with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe coach.py --repl --debug`
+- Sent prompt: `Reply with exactly 'stream-ok' and nothing else.`
+- Observed live streamed assistant output in the REPL: `stream-ok`
+- Sent follow-up command: `quit`
+- Observed the prompt return after the streamed answer and a clean session shutdown with usage totals, confirming the text REPL now exercises the live streaming Responses path end to end.
+- Non-blocking environment note: the terminal still prints the same PowerShell profile shell-integration error before commands start, but the Chapter 7 app test completed successfully and the error is outside repo code.

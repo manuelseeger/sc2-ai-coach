@@ -106,7 +106,16 @@ class AICoach:
         return str(item.id)
 
     def stream_conversation(self):
-        raise NotImplementedError("Responses streaming lands in a later chapter")
+        if self.active_conversation_id is None:
+            self.create_conversation()
+
+        conversation_id = self.get_conversation_id()
+        if conversation_id is None:
+            raise ValueError(
+                "No active conversation. Please create a conversation first."
+            )
+
+        yield from self._stream_until_done(conversation_id)
 
     def stream_thread(self):
         return self.stream_conversation()
@@ -473,4 +482,120 @@ class AICoach:
     def chat(
         self, text, response_format=None, tools=None
     ) -> Generator[str, None, None]:
-        raise NotImplementedError("Responses streaming chat lands in a later chapter")
+        del response_format, tools
+
+        if self.active_conversation_id is None:
+            self.create_conversation()
+
+        message_text = str(text).strip()
+        if not message_text:
+            return
+
+        conversation_id = self.get_conversation_id()
+        if conversation_id is None:
+            raise ValueError(
+                "No active conversation. Please create a conversation first."
+            )
+
+        conversation = self.store.get_conversation(conversation_id)
+        if conversation is None:
+            raise ValueError(f"Conversation {conversation_id} not found")
+
+        self.store.append_message(
+            conversation, role=AIMessageRole.user, text=message_text
+        )
+        yield from self._stream_until_done(conversation_id)
+
+    def _stream_until_done(self, conversation_id: str) -> Generator[str, None, None]:
+        for _ in range(self.max_tool_iterations):
+            conversation = self.store.get_conversation(conversation_id)
+            if conversation is None:
+                raise ValueError(f"Conversation {conversation_id} not found")
+
+            response, streamed_text = yield from self._stream_response_cycle(
+                conversation,
+                include_tools=True,
+            )
+            function_calls = self._extract_function_calls(response)
+            response_text = self._extract_response_text(response)
+
+            if response_text and not streamed_text:
+                yield response_text
+
+            if response_text:
+                self.store.append_assistant_response(
+                    conversation,
+                    text=response_text,
+                    response_id=getattr(response, "id", None),
+                    model=getattr(response, "model", None),
+                )
+
+            self.store.record_response(conversation, response, streamed=True)
+
+            if function_calls:
+                self._execute_function_calls(conversation, function_calls)
+                continue
+
+            return
+
+        log.warning(
+            f"Tool loop exceeded max iterations for conversation {conversation_id}"
+        )
+        yield "I could not complete that request after several tool calls."
+
+    def _stream_response_cycle(
+        self,
+        conversation,
+        *,
+        include_tools: bool,
+    ) -> Generator[str, None, tuple[Any, str]]:
+        request_kwargs = self._build_response_request(
+            conversation,
+            include_tools=include_tools,
+        )
+        request_kwargs["stream"] = True
+        self._trace_request(conversation, request_kwargs)
+
+        stream = self.client.responses.create(**request_kwargs)
+        response_text_buffer: list[str] = []
+        completed_response = None
+
+        if hasattr(stream, "__enter__") and hasattr(stream, "__exit__"):
+            with stream as managed_stream:
+                for event in managed_stream:
+                    event_type = self._item_value(event, "type")
+                    if event_type == "response.output_text.delta":
+                        delta = self._item_value(event, "delta")
+                        if delta:
+                            delta_text = str(delta)
+                            response_text_buffer.append(delta_text)
+                            yield delta_text
+                    elif event_type == "response.completed":
+                        completed_response = self._item_value(event, "response")
+
+                if completed_response is None:
+                    completed_response = getattr(
+                        managed_stream, "get_final_response", lambda: None
+                    )()
+        else:
+            for event in stream:
+                event_type = self._item_value(event, "type")
+                if event_type == "response.output_text.delta":
+                    delta = self._item_value(event, "delta")
+                    if delta:
+                        delta_text = str(delta)
+                        response_text_buffer.append(delta_text)
+                        yield delta_text
+                elif event_type == "response.completed":
+                    completed_response = self._item_value(event, "response")
+
+            if completed_response is None:
+                completed_response = getattr(
+                    stream, "get_final_response", lambda: None
+                )()
+
+        if completed_response is None:
+            raise RuntimeError("Streaming response ended without a completed response")
+
+        self._trace_response(conversation, completed_response)
+        return completed_response, "".join(response_text_buffer)
