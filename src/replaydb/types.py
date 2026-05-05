@@ -18,7 +18,7 @@ from typing import (
 
 import bson
 import pydantic
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from pydantic_core import CoreSchema, core_schema
 from pymongo import ASCENDING, IndexModel
 from pyodmongo import DbModel, Id, MainBaseModel
@@ -469,6 +469,13 @@ class AIConversation(DbModel):
             [("session", ASCENDING), ("trigger", ASCENDING), ("created_at", ASCENDING)]
         )
     ]
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def _default_metadata(cls, value: dict[str, Any] | None) -> dict[str, Any]:
+        if value is None:
+            return {}
+        return value
 
 
 class AIConversationItem(DbModel):

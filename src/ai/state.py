@@ -26,6 +26,8 @@ def _to_dict(value: Any) -> dict[str, Any]:
         return value
     if hasattr(value, "model_dump"):
         return value.model_dump()
+    if hasattr(value, "__dict__"):
+        return dict(vars(value))
     return dict(value)
 
 

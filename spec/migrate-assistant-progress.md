@@ -35,6 +35,14 @@
 - Defaulted tool arguments now use required nullable schema fields and are translated back to omitted Python kwargs in the invocation adapter.
 - Added `responses_tools()` to [src/ai/functions/__init__.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/functions/__init__.py) so later Responses calls can request the strict flat tool definitions directly.
 
+## Chapter 5
+
+- Implemented the first stateless non-streaming Responses path in [src/ai/aicoach.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/aicoach.py): local conversation history is replayed on every `client.responses.create(...)` call, with `store=False`, rendered `instructions`, `_include_param()`, `_reasoning_param()`, and `_prompt_cache_key()` helpers.
+- `AICoach.create_conversation(...)` now accepts the Chapter 5 trigger/context metadata while preserving the current call sites that pass the initial prompt positionally.
+- Added cheap compatibility aliases `create_thread()` and `stream_thread()` in [src/ai/aicoach.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/aicoach.py) so older tests and callers still resolve during the migration.
+- Added focused Chapter 5 unit coverage in [tests/unit/test_aicoach_responses.py](c:/Users/seeg/dev/sc2-ai-coach/tests/unit/test_aicoach_responses.py) for request assembly, instruction rendering, persistence of assistant messages, and response-record creation.
+- Hardened [src/ai/state.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/state.py) `_to_dict()` so response-record persistence accepts simple attribute objects used by focused tests in addition to SDK models.
+
 ## Validation
 
 - Added focused tests in [tests/unit/test_ai_state.py](c:/Users/seeg/dev/sc2-ai-coach/tests/unit/test_ai_state.py).
@@ -43,3 +51,34 @@
 - Result: `10 passed`
 - Verified Chapters 3 and 4 with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_openai_provider.py tests/unit/test_aifunctions.py tests/unit/test_function_schema.py tests/unit/test_config.py tests/unit/test_ai_state.py -q`
 - Result: `36 passed`
+- Verified Chapter 5 unit path with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_aicoach_responses.py -q`
+- Result: `1 passed`
+- After switching to a deployed model and removing stale legacy Mongo indexes on `ai_conversation_items`, the live Chapter 5 smoke test returned `smoke-ok` with endpoint `https://scd-oai-e2e-coco-001.openai.azure.com/` and model `gpt-5.4-mini`.
+- Added a temporary Chapter 5 bridge in [src/session.py](c:/Users/seeg/dev/sc2-ai-coach/src/session.py) so `AISession.chat()` falls back to `AICoach.get_response()` while streaming chat remains unimplemented.
+- Verified a session-level smoke script through [src/session.py](c:/Users/seeg/dev/sc2-ai-coach/src/session.py) returned `session-ok`, confirming `AISession.chat()` now reaches the live Responses path.
+- Current recommended live roundtrip confirmation is the session-level smoke script below, which bypasses unrelated replay/season dependencies and exercises the real `AISession -> AICoach -> Responses API` path:
+
+	`@'`
+	`from src.session import AISession`
+	``
+	`AISession.update_last_replay = lambda self, replay=None: None`
+	`AISession.set_season = lambda self: None`
+	``
+	`session = AISession()`
+	`session.last_map = "Test Map LE"`
+	`session.last_opponent = "TestOpponent"`
+	`session.last_mmr = 4000`
+	`session.last_rep_id = "test-replay"`
+	``
+	`session.conversation_id = session.coach.create_conversation(`
+	`    "We are running an AISession smoke test.",`
+	`    trigger="wake",`
+	`    metadata={"test_scope": "session_chat_smoke"},`
+	`)`
+	`response = session.chat("Reply with exactly 'session-ok' and nothing else.")`
+	`print(f"conversation_id={session.conversation_id}")`
+	`print(f"response={response}")`
+	`session.close()`
+	`'@ | c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -`
+
+- Expected result for that live smoke script: `response=session-ok`.

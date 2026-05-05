@@ -220,11 +220,17 @@ class AISession:
         """Input the message to AI coach, and output the response.
 
         Additionally return the buffered response as string."""
-        buffer = ""
-        for response in self.coach.chat(message):
-            buffer += response
-            self.say(response)
-        return buffer
+        try:
+            buffer = ""
+            for response in self.coach.chat(message):
+                buffer += response
+                self.say(response)
+            return buffer
+        except NotImplementedError:
+            response = self.coach.get_response(message)
+            if response:
+                self.say(response)
+            return response
 
     def say(self, message, flush=True):
         """Output a message to the user. Depending on audio config, this uses

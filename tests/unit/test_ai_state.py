@@ -168,3 +168,12 @@ def test_chapter_one_models_round_trip_in_db(cleanup_ai_state):
 
     assert found is not None
     assert found.id == conversation.id
+
+
+def test_ai_conversation_metadata_defaults_when_none():
+    conversation = AIConversation(
+        trigger=AIConversationTrigger.wake,
+        metadata=None,
+    )
+
+    assert conversation.metadata == {}
