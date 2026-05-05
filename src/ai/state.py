@@ -5,6 +5,7 @@ from typing import Any, cast
 from pyodmongo import Id
 from pyodmongo.queries import eq, sort
 
+from config import config
 from src.replaydb.db import replaydb
 from src.replaydb.types import (
     AIContentPart,
@@ -66,7 +67,7 @@ class ConversationStore:
     ) -> AIConversation:
         conversation = AIConversation(
             trigger=AIConversationTrigger(trigger),
-            session=session,
+            session=self._session_ref(session),
             handler_context=handler_context,
             metadata=metadata or {},
         )
@@ -248,8 +249,18 @@ class ConversationStore:
             cached_tokens=cached_tokens,
             output_tokens=output_tokens,
             total_tokens=total_tokens,
+            input_cost=self._input_cost(
+                response_data.get("model"), input_tokens, cached_tokens
+            ),
+            cached_input_cost=self._cached_input_cost(
+                response_data.get("model"), cached_tokens
+            ),
+            output_cost=self._output_cost(response_data.get("model"), output_tokens),
             raw_usage=usage or None,
             metadata=metadata,
+        )
+        record.total_cost = (
+            record.input_cost + record.cached_input_cost + record.output_cost
         )
         self._replaydb.db.save(record)
         conversation.last_response_id = response_id
@@ -259,6 +270,16 @@ class ConversationStore:
         conversation.total_tokens += total_tokens
         conversation.total_cost += record.total_cost
         self._replaydb.db.save(conversation)
+
+        session = self._get_session(conversation.session)
+        if session is not None:
+            session.total_input_tokens += input_tokens
+            session.total_cached_tokens += cached_tokens
+            session.total_output_tokens += output_tokens
+            session.total_tokens += total_tokens
+            session.total_cost += record.total_cost
+            self._replaydb.db.save(session)
+
         return record
 
     def _next_order(self, conversation: AIConversation) -> int:
@@ -320,6 +341,45 @@ class ConversationStore:
         if response_record.id is None:
             raise ValueError("Response record must be saved before deletion")
         return response_record.id
+
+    def _get_session(self, session: Session | Id | None) -> Session | None:
+        if session is None:
+            return None
+        if isinstance(session, Session):
+            if session.id is None:
+                return None
+            session_id = session.id
+        else:
+            session_id = session
+        return self._replaydb.db.find_one(
+            Model=Session,
+            query=eq(Session.id, session_id),  # type: ignore[arg-type]
+        )
+
+    def _input_cost(
+        self,
+        model_name: str | None,
+        input_tokens: int,
+        cached_tokens: int,
+    ) -> float:
+        pricing = config.get_model_pricing(model_name)
+        effective_input_tokens = max(0, input_tokens - cached_tokens)
+        return effective_input_tokens * pricing.prompt
+
+    def _cached_input_cost(self, model_name: str | None, cached_tokens: int) -> float:
+        pricing = config.get_model_pricing(model_name)
+        return cached_tokens * pricing.cached_prompt
+
+    def _output_cost(self, model_name: str | None, output_tokens: int) -> float:
+        pricing = config.get_model_pricing(model_name)
+        return output_tokens * pricing.completion
+
+    def _session_ref(self, session: Session | None) -> Session | Id | None:
+        if session is None:
+            return None
+        if session.id is None:
+            raise ValueError("Session must be saved before use")
+        return session.id
 
 
 conversation_store = ConversationStore()

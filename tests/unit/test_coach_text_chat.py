@@ -8,9 +8,16 @@ from src.events import ReplEvent
 class FakeSession:
     def __init__(self, *args, **kwargs):
         self.tasks: list[object] = []
+        self.closed = False
 
     def handle(self, task: object) -> None:
         self.tasks.append(task)
+
+    def is_active(self) -> bool:
+        return False
+
+    def close(self) -> None:
+        self.closed = True
 
 
 class FakeQueue:
@@ -21,7 +28,7 @@ class FakeQueue:
     def put(self, item: object) -> None:
         self.items.append(item)
 
-    def get(self) -> object:
+    def get(self, timeout=None) -> object:
         if not self.items:
             raise AssertionError("queue was empty")
         return self.items.pop(0)
@@ -88,3 +95,20 @@ def test_trace_option_is_forwarded_to_session(mocker):
     session_ctor.assert_called_once_with(
         tts=mocker.ANY, mic=None, transcriber=None, trace=True
     )
+
+
+def test_keyboard_interrupt_in_main_loop_exits_cleanly(mocker):
+    fake_session = FakeSession()
+    session_ctor = mocker.patch.object(coach, "AISession", return_value=fake_session)
+    mock_queue = mocker.Mock()
+    mock_queue.get.side_effect = KeyboardInterrupt()
+    mocker.patch.object(coach, "signal_queue", mock_queue)
+    log_info = mocker.patch.object(coach.log, "info")
+
+    result = CliRunner().invoke(coach.main, [])
+
+    assert result.exit_code == 0
+    session_ctor.assert_called_once_with(
+        tts=mocker.ANY, mic=None, transcriber=None, trace=False
+    )
+    log_info.assert_any_call("Shutting down ...")

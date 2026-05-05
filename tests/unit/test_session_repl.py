@@ -18,6 +18,9 @@ def test_handle_repl_starts_and_closes_conversation(mocker):
 
     session.handle_repl(ReplEvent())
 
-    create_conversation.assert_called_once_with(trigger=AIConversationTrigger.repl)
+    create_conversation.assert_called_once_with(
+        trigger=AIConversationTrigger.repl,
+        session=session.session,
+    )
     converse.assert_called_once_with()
     close.assert_called_once_with()

@@ -675,18 +675,6 @@ Each chapter is a self-contained commit.
 
 **Verify:** A tool-call conversation records multiple `AIResponseRecord` documents without double counting. Subsequent repeated-prefix calls show cached-token accounting when the API returns it, and conversation/session totals match the sum of response records.
 
-### Chapter 12 - Document context packing deferral
-
-**Goal:** Keep the migration intentionally scoped to local state correctness and stateless Responses API orchestration.
-
-**Changes:**
-
-- Do not implement a context packer, summarizer, token budget, or old-message pruning as part of this migration.
-- Leave the request assembler on full local-history replay for the first stateless implementation.
-- Add comments or docs near the assembler explaining that compaction is out of scope for this migration and must preserve function-call/output pairs and replay seed context when added later.
-- Ensure tests for this migration assert correct full-history assembly rather than compacted-history behavior.
-
-**Verify:** The implementation contains no context-packing code path or summarization maintenance job, and request-assembly tests cover full-history replay.
 
 ### Chapter 13 - Offline OpenAI test harness
 

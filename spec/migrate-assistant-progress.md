@@ -170,6 +170,30 @@
 - Added focused session coverage in [tests/unit/test_session_conversations.py](c:/Users/seeg/dev/sc2-ai-coach/tests/unit/test_session_conversations.py) for non-Twitch vs Twitch close behavior, trigger selection for Twitch flows, and replay-summary metadata linking.
 - Added focused structured-output coverage in [tests/unit/test_aicoach_responses.py](c:/Users/seeg/dev/sc2-ai-coach/tests/unit/test_aicoach_responses.py) for the strict JSON-schema Responses tool loop and parsed Pydantic result.
 
+## Chapter 11
+
+- Added a built-in model pricing registry in [src/pricing.py](c:/Users/seeg/dev/sc2-ai-coach/src/pricing.py), populated from the OpenAI pricing page for the main current models: `gpt-5.5`, `gpt-5.5-pro`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`, `gpt-5.4-pro`, `gpt-5.3-chat-latest`, `gpt-5.3-codex`, `gpt-realtime-1.5`, and `gpt-realtime-mini`.
+- Extended [config.py](c:/Users/seeg/dev/sc2-ai-coach/config.py) with `gpt_cached_prompt_pricing_per_million`, `model_pricing_per_million`, `reasoning_effort`, and `reasoning_continuity_enabled`, plus `Config.get_model_pricing(...)` so config can override built-in pricing defaults either per model or for the active `gpt_model`.
+- Updated [config.yml](c:/Users/seeg/dev/sc2-ai-coach/config.yml) so pricing defaults come from the built-in lookup table unless explicitly overridden in config.
+- Completed per-response pricing in [src/ai/state.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/state.py): `record_response(...)` now derives input, cached-input, output, and total cost from the response model pricing while preserving `response_id` deduplication.
+- Updated [src/ai/state.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/state.py) so new `AIResponseRecord` creation increments denormalized token and cost totals on both the owning `AIConversation` and its `Session`.
+- Updated [src/session.py](c:/Users/seeg/dev/sc2-ai-coach/src/session.py) so sessions persist `cached_prompt_pricing` on creation and `calculate_usage()` reloads local aggregate totals instead of overwriting them from only the current conversation.
+- Follow-up fix after live validation: [src/ai/aicoach.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/aicoach.py) and [src/session.py](c:/Users/seeg/dev/sc2-ai-coach/src/session.py) now pass the persisted `Session` into each new conversation created by `AISession`, so `AIResponseRecord` rollups actually reach session-level token and cost totals in normal app flows such as wake and REPL conversations.
+- Follow-up fix after another live validation: [coach.py](c:/Users/seeg/dev/sc2-ai-coach/coach.py) now polls `signal_queue.get(timeout=0.5)` instead of blocking indefinitely, so after a conversation closes the app remains interruptible with `Ctrl+C` while waiting for the next wake event.
+- Added focused Chapter 11 unit coverage in [tests/unit/test_ai_state.py](c:/Users/seeg/dev/sc2-ai-coach/tests/unit/test_ai_state.py) for response-cost math and session aggregate updates, and in [tests/unit/test_config.py](c:/Users/seeg/dev/sc2-ai-coach/tests/unit/test_config.py) for built-in pricing lookup plus config override precedence.
+- Added focused live-path regression coverage in [tests/unit/test_session_conversations.py](c:/Users/seeg/dev/sc2-ai-coach/tests/unit/test_session_conversations.py), [tests/unit/test_session_repl.py](c:/Users/seeg/dev/sc2-ai-coach/tests/unit/test_session_repl.py), and [tests/unit/test_coach_text_chat.py](c:/Users/seeg/dev/sc2-ai-coach/tests/unit/test_coach_text_chat.py) to assert that `AISession` creates session-linked conversations and that the main loop exits cleanly on `KeyboardInterrupt`.
+
+## Validation
+
+- Verified the focused Chapter 11 unit slice with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_ai_state.py tests/unit/test_config.py -q`
+- Result: `11 passed`
+- Verified the broader adjacent unit slice with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_aicoach_responses.py tests/unit/test_session_conversations.py tests/unit/test_session_repl.py tests/unit/test_ai_state.py tests/unit/test_config.py -q`
+- Result: `24 passed`
+- Verified the focused main-loop interruption slice with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_coach_text_chat.py -q`
+- Result: `4 passed`
+- Verified the adjacent coach/session slice with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_coach_text_chat.py tests/unit/test_session_repl.py tests/unit/test_session_conversations.py -q`
+- Result: `11 passed`
+
 ## Validation
 
 - Verified the focused Chapter 8-10 unit slice with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_aicoach_responses.py tests/unit/test_session_conversations.py tests/unit/test_session_repl.py -q`

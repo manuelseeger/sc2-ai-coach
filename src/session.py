@@ -102,6 +102,7 @@ class AISession:
             session_date=datetime.now(),
             completion_pricing=config.gpt_completion_pricing,
             prompt_pricing=config.gpt_prompt_pricing,
+            cached_prompt_pricing=config.gpt_cached_prompt_pricing,
             ai_backend=config.aibackend,
         )
         replaydb.db.save(self.session)
@@ -254,18 +255,17 @@ class AISession:
     def calculate_usage(self):
         """Calculate the usage and cost of the AI backend for the current conversation
         and save it to the session in the DB."""
-        if not self.conversation_id:
+        if self.session.id is None:
             return
-        conversation = conversation_store.get_conversation(self.conversation_id)
-        if conversation is None:
+        reloaded = replaydb.db.find_one(
+            Model=Session,
+            query=Session.id == self.session.id,  # type: ignore[arg-type]
+        )
+        if reloaded is None:
             return
-        self.session.total_input_tokens = conversation.total_input_tokens
-        self.session.total_cached_tokens = conversation.total_cached_tokens
-        self.session.total_output_tokens = conversation.total_output_tokens
-        self.session.total_tokens = conversation.total_tokens
-        self.session.total_cost = conversation.total_cost
+        self.session = reloaded
         log.info(
-            f"Total tokens: {conversation.total_tokens} (~${conversation.total_cost:.2f})"
+            f"Total tokens: {self.session.total_tokens} (~${self.session.total_cost:.2f})"
         )
         replaydb.db.save(self.session)
 
@@ -327,6 +327,7 @@ class AISession:
             self.conversation_id = self.coach.create_conversation(
                 prompt,
                 trigger=AIConversationTrigger.game_start,
+                session=self.session,
             )
         else:
             self.say(Templates.new_game_empty.render(replacements), flush=False)
@@ -348,6 +349,7 @@ class AISession:
         self.conversation_id = self.coach.create_conversation(
             prompt,
             trigger=AIConversationTrigger.new_replay,
+            session=self.session,
         )
 
     def handle_game_start(self, scanresult: NewMatchEvent):
@@ -385,7 +387,7 @@ class AISession:
 
         log.debug(wakeresult)
         if not self.is_active():
-            self.conversation_id = self.coach.create_conversation()
+            self.conversation_id = self.coach.create_conversation(session=self.session)
 
             done = self.converse()
             if done:
@@ -403,7 +405,8 @@ class AISession:
         log.debug(repl_result)
         if not self.is_active():
             self.conversation_id = self.coach.create_conversation(
-                trigger=AIConversationTrigger.repl
+                trigger=AIConversationTrigger.repl,
+                session=self.session,
             )
 
             done = self.converse()
@@ -454,6 +457,7 @@ class AISession:
         self.conversation_id = self.coach.create_conversation(
             prompt,
             trigger=AIConversationTrigger.twitch_follow,
+            session=self.session,
         )
         response = self.stream_conversation()
         log.info(response, extra={"role": Role.assistant})
@@ -475,6 +479,7 @@ class AISession:
         self.conversation_id = self.coach.create_conversation(
             prompt,
             trigger=AIConversationTrigger.twitch_raid,
+            session=self.session,
         )
         response = self.stream_conversation()
         log.info(response, extra={"role": Role.assistant})
@@ -505,7 +510,8 @@ class AISession:
 
         if not self.twitch_conversation_id:
             self.twitch_conversation_id = self.coach.create_conversation(
-                trigger=AIConversationTrigger.twitch_chat
+                trigger=AIConversationTrigger.twitch_chat,
+                session=self.session,
             )
             self.session.twitch_conversation = self.twitch_conversation_id
             replaydb.db.save(self.session)
@@ -557,6 +563,7 @@ class AISession:
         self.conversation_id = self.coach.create_conversation(
             "00:00",
             trigger=AIConversationTrigger.cast_replay,
+            session=self.session,
         )
 
         # collect intro data and start with intro

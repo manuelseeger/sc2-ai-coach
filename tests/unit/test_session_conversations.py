@@ -107,7 +107,8 @@ def test_handle_twitch_chat_creates_and_reuses_twitch_conversation(mocker):
     session.handle_twitch_chat(second_event)
 
     create_conversation.assert_called_once_with(
-        trigger=AIConversationTrigger.twitch_chat
+        trigger=AIConversationTrigger.twitch_chat,
+        session=session.session,
     )
     set_active_conversation.assert_called_once_with(TWITCH_CONVERSATION_ID)
     assert get_structured_response.call_count == 2
@@ -115,6 +116,26 @@ def test_handle_twitch_chat_creates_and_reuses_twitch_conversation(mocker):
     assert session.session.twitch_conversation == TWITCH_CONVERSATION_ID
     say.assert_called()
     assert close.call_count == 2
+
+
+def test_handle_wake_creates_session_linked_conversation(mocker):
+    mocker.patch.object(AISession, "update_last_replay", autospec=True)
+    mocker.patch.object(AISession, "set_season", autospec=True)
+    session = AISession()
+
+    create_conversation = mocker.patch.object(
+        session.coach,
+        "create_conversation",
+        return_value=CONVERSATION_ID,
+    )
+    converse = mocker.patch.object(session, "converse", return_value=True)
+    close = mocker.patch.object(session, "close")
+
+    session.handle_wake(SimpleNamespace(awake=True))
+
+    create_conversation.assert_called_once_with(session=session.session)
+    converse.assert_called_once_with()
+    close.assert_called_once_with()
 
 
 def test_save_replay_summary_upserts_metadata_linked_to_active_conversation(mocker):

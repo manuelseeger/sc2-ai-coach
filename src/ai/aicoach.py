@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from config import config
 from src.ai.state import ConversationStore, conversation_store
-from src.replaydb.types import AIMessageRole
+from src.replaydb.types import AIMessageRole, Session
 
 from .functions import AIFunctions, responses_tools
 from .functions.base import strict_json_schema
@@ -77,12 +77,14 @@ class AICoach:
         initial_message: str | None = None,
         *,
         trigger: str = "wake",
+        session: Session | None = None,
         handler_context: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> str:
         """Create a new local conversation and optionally seed it with a user message."""
         conversation = self.store.create_conversation(
             trigger=trigger,
+            session=session,
             initial_message=initial_message,
             handler_context=handler_context,
             metadata=metadata,

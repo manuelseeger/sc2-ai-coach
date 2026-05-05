@@ -1,7 +1,6 @@
 import logging
 import queue
 import sys
-from time import sleep
 
 import click
 
@@ -92,7 +91,7 @@ def main(debug, repl, trace):
     # On shutdown, close all event listener threads and exit
     while True:
         try:
-            task = signal_queue.get()
+            task = signal_queue.get(timeout=0.5)
             session.handle(task)
             signal_queue.task_done()
             if repl and isinstance(task, ReplEvent):
@@ -122,8 +121,6 @@ def main(debug, repl, trace):
                 twitch.stop()
                 twitch.join()
             sys.exit(0)
-        finally:
-            sleep(1)
 
 
 def _build_services() -> tuple[
