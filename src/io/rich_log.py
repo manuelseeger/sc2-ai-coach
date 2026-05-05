@@ -90,7 +90,7 @@ class RichConsoleLogHandler(Handler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._last = None
+        self._last_signature = None
 
         self.fqn = None
 
@@ -113,10 +113,11 @@ class RichConsoleLogHandler(Handler):
         if record.levelno < logging.INFO:
             return
 
-        if self._last == record.msg:
+        signature = self._record_signature(record)
+        if self._last_signature == signature:
             return
 
-        self._last = record.msg
+        self._last_signature = signature
 
         emoji = get_emoji(record.name, record.funcName)
 
@@ -163,6 +164,16 @@ class RichConsoleLogHandler(Handler):
 
     def get_fqn(self, name: str, funcName: str):
         return f"{name}.{funcName}"
+
+    def _record_signature(self, record: LogRecord) -> tuple:
+        return (
+            record.name,
+            record.funcName,
+            record.levelno,
+            record.msg,
+            getattr(record, "role", None),
+            getattr(record, "flush", False),
+        )
 
     def print(self, message, emoji=Emojis.aicoach, style=None, flush: bool = False):
         if flush:

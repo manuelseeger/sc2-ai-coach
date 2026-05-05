@@ -17,7 +17,7 @@ def is_default_openai_endpoint(endpoint: str | None) -> bool:
 def resolve_openai_base_url(endpoint: str | None) -> str:
     if is_default_openai_endpoint(endpoint):
         return DEFAULT_OPENAI_BASE_URL
-    return f"{endpoint.rstrip('/')}/openai/v1/"
+    return f"{str(endpoint).rstrip('/')}/openai/v1/"
 
 
 class OpenAIClientProvider:

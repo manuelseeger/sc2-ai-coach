@@ -399,6 +399,7 @@ class Replay(DbModel):
 
 class AIConversationTrigger(str, Enum):
     wake = "wake"
+    repl = "repl"
     game_start = "game_start"
     new_replay = "new_replay"
     twitch_chat = "twitch_chat"

@@ -23,12 +23,22 @@ def _to_dict(value: Any) -> dict[str, Any]:
     if value is None:
         return {}
     if isinstance(value, dict):
-        return value
+        return {key: _normalize_value(item) for key, item in value.items()}
     if hasattr(value, "model_dump"):
-        return value.model_dump()
+        return _to_dict(value.model_dump())
     if hasattr(value, "__dict__"):
-        return dict(vars(value))
-    return dict(value)
+        return {key: _normalize_value(item) for key, item in vars(value).items()}
+    return {key: _normalize_value(item) for key, item in dict(value).items()}
+
+
+def _normalize_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _normalize_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_normalize_value(item) for item in value]
+    if hasattr(value, "model_dump") or hasattr(value, "__dict__"):
+        return _to_dict(value)
+    return value
 
 
 def _get_nested(data: dict[str, Any], *path: str, default: Any = None) -> Any:

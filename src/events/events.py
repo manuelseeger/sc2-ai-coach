@@ -22,6 +22,10 @@ class WakeEvent(EventBase):
     awake: bool
 
 
+class ReplEvent(EventBase):
+    startup: bool = True
+
+
 class TwitchEvent(EventBase):
     channel: Optional[str] = None
     event: Optional[dict] = None

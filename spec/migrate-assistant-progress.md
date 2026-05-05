@@ -82,3 +82,43 @@
 	`'@ | c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -`
 
 - Expected result for that live smoke script: `response=session-ok`.
+
+## Chapter 6
+
+- Implemented a shared non-streaming Responses request builder plus tool loop in [src/ai/aicoach.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/aicoach.py): requests now pass `tools=responses_tools()` when enabled, replay persisted `function_call` and `function_call_output` items back through `input`, and loop until the model returns a final assistant message.
+- Added local function-call parsing tolerant of SDK objects, dicts, and simple fake objects, then persisted tool calls and outputs through [src/ai/state.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/state.py)'s existing ordered item store.
+- Tool execution now routes through the Chapter 4 `AIFunction.invoke(...)` adapter, with structured error outputs for unknown tools and local exceptions rather than crashing the text path.
+- Added a direct text-only REPL mode in [coach.py](c:/Users/seeg/dev/sc2-ai-coach/coach.py) via `--repl`; the final version is queue-driven, starts by enqueueing a dedicated startup `ReplEvent`, and reuses the normal `AISession.converse()` loop rather than a custom CLI-owned REPL loop.
+- Adjusted the `--repl` flow in [coach.py](c:/Users/seeg/dev/sc2-ai-coach/coach.py) to override `config.audiomode` to `AudioMode.text` before service setup, so the existing audio/service initialization and `AISession.converse()` logic naturally stay text-only without an extra session flag.
+- Added `ReplEvent` in [src/events/events.py](c:/Users/seeg/dev/sc2-ai-coach/src/events/events.py) and routed it through [src/session.py](c:/Users/seeg/dev/sc2-ai-coach/src/session.py), so startup REPL conversations now enter the app through the same event-dispatch path as other session triggers.
+- Extended [src/replaydb/types.py](c:/Users/seeg/dev/sc2-ai-coach/src/replaydb/types.py) with `AIConversationTrigger.repl` and updated [src/session.py](c:/Users/seeg/dev/sc2-ai-coach/src/session.py) so REPL-started conversations persist with an explicit `repl` trigger instead of reusing `wake`.
+- Added a CLI `--trace` switch in [coach.py](c:/Users/seeg/dev/sc2-ai-coach/coach.py) and request/response trace logging in [src/ai/aicoach.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/aicoach.py); when enabled, the app now dumps full rendered `instructions`, assembled `input`, tool definitions, and normalized raw Responses payloads to the normal log files.
+- Fixed the text REPL prompt getting stuck after the first assistant response by changing duplicate suppression in [src/io/rich_log.py](c:/Users/seeg/dev/sc2-ai-coach/src/io/rich_log.py) to include `flush`/role/function in the dedupe signature. This allows the final non-flush assistant log line to close the active rich status and return control to `Prompt.ask()`.
+- Added focused Chapter 6 unit coverage in [tests/unit/test_aicoach_responses.py](c:/Users/seeg/dev/sc2-ai-coach/tests/unit/test_aicoach_responses.py) for the non-streaming tool loop and in [tests/unit/test_coach_text_chat.py](c:/Users/seeg/dev/sc2-ai-coach/tests/unit/test_coach_text_chat.py) for the direct text REPL routing.
+- Added focused Chapter 6 follow-up unit coverage in [tests/unit/test_session_repl.py](c:/Users/seeg/dev/sc2-ai-coach/tests/unit/test_session_repl.py) for REPL event handling and trigger persistence, and in [tests/unit/test_rich_log.py](c:/Users/seeg/dev/sc2-ai-coach/tests/unit/test_rich_log.py) for the flush-to-final-message console transition that unblocks the REPL prompt.
+- Hardened response-record metadata normalization in [src/ai/state.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/state.py) so nested fake SDK objects are serialized before persistence; this fixed the first failing Chapter 6 unit test run.
+
+## Validation
+
+- Verified focused Chapter 6 unit coverage with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_aicoach_responses.py tests/unit/test_coach_text_chat.py -q`
+- Result: `3 passed`
+- Ran the first full app Chapter 6 test with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe coach.py --repl --debug`
+- Sent prompt: `When did I play my last game?`
+- Observed live tool loop in app logs: `Executing tool QueryReplayDB ...` followed by `Tool QueryReplayDB completed`
+- Observed DB-backed final answer from the model: `Your last game was today on Tokamak LE. You were zatic and won.`
+- Verified the event-driven REPL startup path with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_coach_text_chat.py tests/unit/test_session_repl.py tests/unit/test_aicoach_responses.py -q`
+- Result: `4 passed`
+- Verified the `--repl` audiomode override path with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_coach_text_chat.py tests/unit/test_session_repl.py tests/unit/test_aicoach_responses.py -q`
+- Result: `5 passed`
+- Verified the trace-logging CLI path with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_aicoach_responses.py tests/unit/test_coach_text_chat.py tests/unit/test_session_repl.py -q`
+- Result: `7 passed`
+- Ran a live trace-enabled app check with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe coach.py --repl --trace`
+- Observed `LLM request trace` and `LLM response trace` entries written to [logs/20260505-122129-obs_watcher.log](c:/Users/seeg/dev/sc2-ai-coach/logs/20260505-122129-obs_watcher.log), including rendered instructions, assembled input, tool definitions, and raw normalized response payload.
+- Verified the rich-log REPL prompt fix with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_rich_log.py tests/unit/test_coach_text_chat.py tests/unit/test_session_repl.py tests/unit/test_aicoach_responses.py -q`
+- Result: `8 passed` (plus two unrelated `speech_recognition` deprecation warnings from third-party dependencies)
+- Ran a live multi-turn REPL check with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe coach.py --repl --trace`
+- Sent prompts: `When did I play my last game?` then `What map was it on?`
+- Observed that the prompt returned after the first assistant answer and again after the second answer, confirming the REPL no longer gets stuck after the first response.
+- Verified the explicit `repl` conversation trigger with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_session_repl.py tests/unit/test_ai_state.py tests/unit/test_aicoach_responses.py -q`
+- Result: `10 passed`
+- Non-blocking environment note: the terminal prints a PowerShell profile shell-integration error before commands start, but the app and tests completed successfully and the error is outside repo code.

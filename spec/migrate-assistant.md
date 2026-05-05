@@ -550,16 +550,44 @@ Each chapter is a self-contained commit.
 
 ### Chapter 6 - Non-streaming tool loop
 
-**Goal:** Support function calls in stateless non-streaming calls.
+**Goal:** Support function calls in stateless non-streaming calls and make a true text-mode app test possible before streaming is implemented.
 
 **Changes:**
 
-- Make `AICoach.get_response(text)` loop until the model returns no function calls.
-- Persist each function call and function output as local items before the follow-up request.
-- Reassemble the full context for every loop iteration.
-- Log tool invocations at the same level as today.
+- Keep Chapter 5's non-streaming request path as the foundation, but refactor it into shared private helpers instead of duplicating logic:
+  - one helper that builds `responses.create(...)` kwargs from a local `AIConversation`;
+  - one helper that invokes a Responses request and records the returned `AIResponseRecord`;
+  - one helper that extracts final assistant text;
+  - one helper that extracts completed function-call output items;
+  - one helper that executes and persists tool calls.
+- Pass `tools=responses_tools()` to `client.responses.create(...)` from the shared request helper when tools are enabled. Keep `store=False`, rendered `instructions`, full local `input`, `prompt_cache_key`, `include`, and `reasoning` behavior from Chapter 5.
+- Parse Responses function-call items from SDK response objects. The primary expected shape is `response.output` entries with `type == "function_call"`, `call_id`, `name`, and `arguments` as JSON text. The parser should tolerate SDK model objects, dictionaries, and simple fake objects so unit tests can stay lightweight.
+- Extend the local request assembler so persisted `AIConversationItem(type="function_call")` rows are replayed as Responses input function-call items, not only `function_call_output` rows. Stateless follow-up calls must include both the model's function call and the app's function output.
+- Make `AICoach.get_response(text)` append the user message once, then loop until the model returns no function calls:
+  1. assemble full local context;
+  2. call `client.responses.create(...)` with tools enabled;
+  3. record the response;
+  4. if function calls are present, persist each function call, execute the matching local `AIFunction`, persist each function-call output, and repeat from step 1;
+  5. if no function calls are present, persist the final assistant message and return its text.
+- Add a small maximum tool-iteration guard, either hardcoded for Chapter 6 or configurable as `max_tool_iterations`, to avoid infinite model/tool loops.
+- Tool execution must use the existing `AIFunction.invoke(...)` adapter from Chapter 4 so strict argument validation and nullable-default handling stay in one place.
+- Unknown tool names and local tool exceptions should not crash the text app. Persist a `function_call_output` containing a structured error string and let the model produce the final user-facing response.
+- Log tool invocations, tool outputs, unknown tools, and tool exceptions at the same level and style as the current app logging.
+- Ensure the shared function-call parsing/execution helpers are usable by Chapter 7 streaming and Chapter 8 structured outputs. Streaming should later call the same "persist and execute tool calls" helper after the current stream completes instead of reimplementing tool handling.
+- Add a direct pre-streaming text app path:
+  - add a Click option in `coach.py`, recommended `--repl`, that constructs `AISession` and enters a simple text REPL immediately without starting wake/game/replay/Twitch listener threads;
+  - add `AISession.start_text_chat()` or an equivalent method that creates a wake conversation, prompts with `Prompt.ask(config.student.emoji)`, calls `session.chat(text)`, and exits on `quit`, `exit`, keyboard interrupt, or existing goodbye detection;
+  - keep the existing event-driven main loop unchanged for normal app behavior.
+- Keep the temporary Chapter 5 `AISession.chat()` fallback to non-streaming `AICoach.get_response(...)` until Chapter 7 replaces streaming. Do not implement streaming in Chapter 6.
+- Add fake unit tests for the complete non-streaming tool loop:
+  - fake Responses first returns a `QueryReplayDB` function call;
+  - a fake local `QueryReplayDB` function returns a small replay-like payload;
+  - fake Responses then receives the full local transcript, including function call and function output, and returns final assistant text;
+  - assert local conversation item order is user message, function call, function output, assistant message.
+- Add a non-live app-level text test for the new text REPL path by patching `Prompt.ask` with a query followed by `quit` and using a fake coach/client. This test verifies app routing without requiring live OpenAI credentials.
+- Document an opt-in live/manual test command for this chapter: `python coach.py --repl --debug`. The manual prompt should explicitly ask the coach to query replay DB data, for example: "Query my replay database for the latest replays against Protoss and summarize the maps."
 
-**Verify:** A fake model emits `QueryReplayDB`, the local tool runs, the fake receives a `function_call_output` item in the next request, and final text is returned.
+**Verify:** A fake model emits `QueryReplayDB`, the local tool runs, the fake receives both the original `function_call` and the `function_call_output` in the next stateless request, and final text is returned. The app can also be run with `python coach.py --repl --debug`; in text mode, a replay-database question can trigger `QueryReplayDB`, execute the tool locally, send the tool output back to the model, and print the final response. Mongo contains a local transcript with `message`, `function_call`, `function_call_output`, and final assistant `message` items in order.
 
 ### Chapter 7 - Streaming Responses
 

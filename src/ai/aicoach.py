@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime
 from hashlib import sha256
@@ -10,7 +11,7 @@ from config import config
 from src.ai.state import ConversationStore, conversation_store
 from src.replaydb.types import AIMessageRole
 
-from .functions import AIFunctions
+from .functions import AIFunctions, responses_tools
 from .openai_provider import get_openai_client
 from .prompt import Templates
 
@@ -26,16 +27,19 @@ class AICoach:
         self,
         client: OpenAI | None = None,
         store: ConversationStore | None = None,
+        trace: bool = False,
     ):
         """Initialize the coach with the shared OpenAI client and local conversation store."""
         self.client = client or get_openai_client()
         self.store = store or conversation_store
+        self.trace = trace
         self.active_conversation_id: str | None = None
         self.init_additional_instructions()
         self._init_functions()
 
     def _init_functions(self):
         self.functions = {function.name: function for function in AIFunctions}
+        self.max_tool_iterations = 8
 
     def init_additional_instructions(self, more_instructions: str = ""):
         """Store optional per-conversation developer guidance for future requests."""
@@ -138,6 +142,54 @@ class AICoach:
             conversation, role=AIMessageRole.user, text=message_text
         )
 
+        for _ in range(self.max_tool_iterations):
+            conversation = self.store.get_conversation(conversation_id)
+            if conversation is None:
+                raise ValueError(f"Conversation {conversation_id} not found")
+
+            response = self._create_response(conversation, include_tools=True)
+            function_calls = self._extract_function_calls(response)
+            if function_calls:
+                self.store.record_response(conversation, response)
+                self._execute_function_calls(conversation, function_calls)
+                continue
+
+            response_text = self._extract_response_text(response)
+            self.store.append_assistant_response(
+                conversation,
+                text=response_text,
+                response_id=getattr(response, "id", None),
+                model=getattr(response, "model", None),
+            )
+            self.store.record_response(conversation, response)
+            return response_text
+
+        log.warning(
+            f"Tool loop exceeded max iterations for conversation {conversation_id}"
+        )
+        return "I could not complete that request after several tool calls."
+
+    def _create_response(
+        self,
+        conversation,
+        *,
+        include_tools: bool,
+    ) -> Any:
+        request_kwargs = self._build_response_request(
+            conversation,
+            include_tools=include_tools,
+        )
+        self._trace_request(conversation, request_kwargs)
+        response = self.client.responses.create(**request_kwargs)
+        self._trace_response(conversation, response)
+        return response
+
+    def _build_response_request(
+        self,
+        conversation,
+        *,
+        include_tools: bool,
+    ) -> dict[str, Any]:
         request_kwargs = {
             "model": config.gpt_model,
             "instructions": self._render_instructions(conversation),
@@ -146,6 +198,9 @@ class AICoach:
             "prompt_cache_key": self._prompt_cache_key(conversation),
         }
 
+        if include_tools:
+            request_kwargs["tools"] = responses_tools()
+
         include = self._include_param()
         if include is not None:
             request_kwargs["include"] = include
@@ -153,19 +208,7 @@ class AICoach:
         reasoning = self._reasoning_param()
         if reasoning is not None:
             request_kwargs["reasoning"] = reasoning
-
-        response = self.client.responses.create(**request_kwargs)
-        response_text = self._extract_response_text(response)
-
-        self.store.append_assistant_response(
-            conversation,
-            text=response_text,
-            response_id=getattr(response, "id", None),
-            model=getattr(response, "model", None),
-        )
-        self.store.record_response(conversation, response)
-
-        return response_text
+        return request_kwargs
 
     def _render_instructions(self, conversation) -> str:
         sections = [
@@ -212,6 +255,14 @@ class AICoach:
             return {
                 "role": item.role.value,
                 "content": text,
+            }
+
+        if item.type == "function_call" and item.call_id and item.name:
+            return {
+                "type": "function_call",
+                "call_id": item.call_id,
+                "name": item.name,
+                "arguments": json.dumps(item.arguments or {}, default=str),
             }
 
         if (
@@ -265,6 +316,144 @@ class AICoach:
 
         log.warning("Response completed without assistant text")
         return ""
+
+    def _extract_function_calls(self, response: Any) -> list[dict[str, Any]]:
+        function_calls: list[dict[str, Any]] = []
+        for item in getattr(response, "output", None) or []:
+            item_type = self._item_value(item, "type")
+            if item_type != "function_call":
+                continue
+
+            name = self._item_value(item, "name")
+            call_id = self._item_value(item, "call_id")
+            arguments = self._item_value(item, "arguments")
+            if not name or not call_id:
+                continue
+
+            parsed_arguments = self._parse_function_arguments(arguments)
+            function_calls.append(
+                {
+                    "name": str(name),
+                    "call_id": str(call_id),
+                    "arguments": parsed_arguments,
+                    "response_id": getattr(response, "id", None),
+                }
+            )
+
+        return function_calls
+
+    def _execute_function_calls(
+        self,
+        conversation,
+        function_calls: list[dict[str, Any]],
+    ) -> None:
+        for function_call in function_calls:
+            name = function_call["name"]
+            call_id = function_call["call_id"]
+            arguments = function_call["arguments"]
+            response_id = function_call.get("response_id")
+
+            self.store.append_function_call(
+                conversation,
+                call_id=call_id,
+                name=name,
+                arguments=arguments,
+                response_id=response_id,
+            )
+            log.info(f"Executing tool {name} with call_id={call_id}")
+
+            tool = self.functions.get(name)
+            if tool is None:
+                output = json.dumps({"error": f"Unknown tool: {name}"})
+                log.warning(f"Unknown tool requested by model: {name}")
+            else:
+                try:
+                    result = tool.invoke(arguments)
+                    output = self._stringify_tool_output(result)
+                    log.info(f"Tool {name} completed")
+                except Exception as exc:  # noqa: BLE001
+                    log.exception(f"Tool {name} failed")
+                    output = json.dumps(
+                        {"error": f"Tool {name} failed", "details": str(exc)}
+                    )
+
+            self.store.append_function_call_output(
+                conversation,
+                call_id=call_id,
+                output=output,
+            )
+
+    def _parse_function_arguments(self, arguments: Any) -> dict[str, Any]:
+        if arguments is None:
+            return {}
+        if isinstance(arguments, dict):
+            return arguments
+        if isinstance(arguments, str):
+            try:
+                parsed = json.loads(arguments)
+            except json.JSONDecodeError:
+                log.warning(
+                    "Function call arguments were not valid JSON: %s", arguments
+                )
+                return {}
+            return parsed if isinstance(parsed, dict) else {}
+        if hasattr(arguments, "model_dump"):
+            parsed = arguments.model_dump(mode="python")
+            return parsed if isinstance(parsed, dict) else {}
+        return {}
+
+    def _stringify_tool_output(self, result: Any) -> str:
+        if isinstance(result, str):
+            return result
+        return json.dumps(result, default=str)
+
+    def _item_value(self, item: Any, key: str) -> Any:
+        if isinstance(item, dict):
+            return item.get(key)
+        return getattr(item, key, None)
+
+    def _trace_request(self, conversation: Any, request_kwargs: dict[str, Any]) -> None:
+        if not self.trace:
+            return
+        payload = {
+            "conversation_id": str(getattr(conversation, "id", "")),
+            "request": self._normalize_trace_value(request_kwargs),
+        }
+        log.debug(
+            "LLM request trace\n%s",
+            json.dumps(payload, indent=2, ensure_ascii=False, default=str),
+        )
+
+    def _trace_response(self, conversation: Any, response: Any) -> None:
+        if not self.trace:
+            return
+        payload = {
+            "conversation_id": str(getattr(conversation, "id", "")),
+            "response": self._normalize_trace_value(response),
+        }
+        log.debug(
+            "LLM response trace\n%s",
+            json.dumps(payload, indent=2, ensure_ascii=False, default=str),
+        )
+
+    def _normalize_trace_value(self, value: Any) -> Any:
+        if value is None or isinstance(value, (str, int, float, bool)):
+            return value
+        if isinstance(value, dict):
+            return {
+                str(key): self._normalize_trace_value(item)
+                for key, item in value.items()
+            }
+        if isinstance(value, (list, tuple)):
+            return [self._normalize_trace_value(item) for item in value]
+        if hasattr(value, "model_dump"):
+            return self._normalize_trace_value(value.model_dump(mode="python"))
+        if hasattr(value, "__dict__"):
+            return {
+                str(key): self._normalize_trace_value(item)
+                for key, item in vars(value).items()
+            }
+        return str(value)
 
     def get_structured_response_poll(self, message, schema: Type[T]) -> T:
         raise NotImplementedError(

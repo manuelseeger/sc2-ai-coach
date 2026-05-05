@@ -17,6 +17,7 @@ from src.events import (
     CastReplayEvent,
     NewMatchEvent,
     NewReplayEvent,
+    ReplEvent,
     TwitchChatEvent,
     TwitchFollowEvent,
     TwitchRaidEvent,
@@ -28,7 +29,7 @@ from src.mapstats import update_map_stats
 from src.matchhistory import get_sc2pulse_match_history
 from src.playerinfo import resolve_replays_from_current_opponent
 from src.replaydb.db import replaydb
-from src.replaydb.types import Replay, Role, Session
+from src.replaydb.types import AIConversationTrigger, Replay, Role, Session
 from src.util import secs2time
 
 
@@ -92,10 +93,10 @@ class AISession:
     mic: MicrophoneService
     transcriber: TranscriberService
 
-    def __init__(self, tts=None, mic=None, transcriber=None):
+    def __init__(self, tts=None, mic=None, transcriber=None, trace: bool = False):
         self.update_last_replay()
         self.set_season()
-        self.coach = AICoach()
+        self.coach = AICoach(trace=trace)
 
         self.session = Session(
             session_date=datetime.now(),
@@ -110,6 +111,7 @@ class AISession:
             TwitchFollowEvent: self.handle_twitch_follow,
             TwitchRaidEvent: self.handle_twitch_raid,
             WakeEvent: self.handle_wake,
+            ReplEvent: self.handle_repl,
             NewMatchEvent: self.handle_game_start,
             NewReplayEvent: self.handle_new_replay,
             CastReplayEvent: self.handle_cast_replay,
@@ -375,6 +377,25 @@ class AISession:
         log.debug(wakeresult)
         if not self.is_active():
             self.conversation_id = self.coach.create_conversation()
+
+            done = self.converse()
+            if done:
+                self.close()
+        else:
+            log.debug("active thread, skipping")
+
+    def handle_repl(self, repl_result: ReplEvent):
+        """Handle startup REPL event.
+
+        This reuses the normal session conversation loop, but starts immediately
+        when the app is launched with --repl.
+        """
+
+        log.debug(repl_result)
+        if not self.is_active():
+            self.conversation_id = self.coach.create_conversation(
+                trigger=AIConversationTrigger.repl
+            )
 
             done = self.converse()
             if done:
