@@ -1,5 +1,7 @@
 import logging
 
+from pydantic import BaseModel, ConfigDict
+
 from config import config
 from src.lib.sc2client import GameInfo, SC2Client
 
@@ -10,8 +12,11 @@ log = logging.getLogger(f"{config.name}.{__name__}")
 sc2client = SC2Client()
 
 
-@AIFunction
-def GetCurrentGameInfo() -> str:
+class GetCurrentGameInfoArgs(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+def _get_current_game_info() -> str:
     """Returns information on the currently ongoing SC2 game. You can use this to retrieve information
     from a live game or currently playing replay such as the current game time or names of the players.
 
@@ -31,3 +36,10 @@ def GetCurrentGameInfo() -> str:
         return gameinfo.model_dump_json()
     else:
         return "{}"
+
+
+GetCurrentGameInfo = AIFunction(
+    fn=_get_current_game_info,
+    args_model=GetCurrentGameInfoArgs,
+    name="GetCurrentGameInfo",
+)

@@ -98,14 +98,10 @@ def test_provider_adds_api_key_header_for_custom_endpoint(mocker):
 
 def test_aicoach_uses_injected_client():
     client = MagicMock()
-    assistant = MagicMock()
-    client.beta.assistants.retrieve.return_value = assistant
 
     coach = AICoach(client=client)
 
     assert coach.client is client
-    assert coach.assistant is assistant
-    client.beta.assistants.retrieve.assert_called_once()
 
 
 def test_lmmcritic_uses_provider_by_default(mocker):

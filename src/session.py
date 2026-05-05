@@ -4,7 +4,6 @@ from time import sleep, time
 from typing import Callable
 
 from Levenshtein import distance as levenshtein
-from openai.types.beta.threads import Message, TextContentBlock
 from pydantic import BaseModel
 from rich.prompt import Prompt
 
@@ -12,6 +11,7 @@ from config import AudioMode, config
 from log import log
 from src.ai import AICoach
 from src.ai.prompt import Templates
+from src.ai.state import conversation_store
 from src.contracts import MicrophoneService, TranscriberService, TTSService
 from src.events import (
     CastReplayEvent,
@@ -28,7 +28,7 @@ from src.mapstats import update_map_stats
 from src.matchhistory import get_sc2pulse_match_history
 from src.playerinfo import resolve_replays_from_current_opponent
 from src.replaydb.db import eq, replaydb
-from src.replaydb.types import AssistantMessage, Metadata, Replay, Role, Session, Usage
+from src.replaydb.types import Metadata, Replay, Role, Session
 from src.util import secs2time
 
 
@@ -80,9 +80,9 @@ class AISession:
     last_map: str
     last_opponent: str
     last_mmr: int = 4000
-    _thread_id: str | None = None
+    _conversation_id: str | None = None
     last_rep_id: str
-    chat_thread_id: str | None = None
+    twitch_conversation_id: str | None = None
 
     session: Session
 
@@ -131,14 +131,16 @@ class AISession:
             handler(task)
 
     @property
-    def thread_id(self):
-        return self._thread_id
+    def conversation_id(self):
+        return self._conversation_id
 
-    @thread_id.setter
-    def thread_id(self, value):
-        self._thread_id = value
+    @conversation_id.setter
+    def conversation_id(self, value):
+        self._conversation_id = value
         if value is not None:
-            self.session.threads.append(value)
+            self.session.current_conversation = value
+            if value not in self.session.conversations:
+                self.session.conversations.append(value)
             replaydb.db.save(self.session)
 
     def set_season(self):
@@ -173,14 +175,14 @@ class AISession:
 
         if not config.interactive:
             sleep(1)
-            log.info("No input, closing thread")
+            log.info("No input, closing conversation")
             sleep(1)
             return True
 
         start_time = time()
         while True:
             if time() - start_time > 60 * 3:
-                log.info("No input, closing thread")
+                log.info("No input, closing conversation")
                 return True
             if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
                 audio = self.mic.listen()
@@ -204,12 +206,12 @@ class AISession:
             if self.is_goodbye(response):
                 return True
 
-    def stream_thread(self) -> str:
-        """Stream an active thead with the AI coach, and output the response.
+    def stream_conversation(self) -> str:
+        """Stream an active conversation with the AI coach, and output the response.
 
         Additionally return the buffered response as string."""
         buffer = ""
-        for message in self.coach.stream_thread():
+        for message in self.coach.stream_conversation():
             buffer += message
             self.say(message)
         return buffer
@@ -231,37 +233,29 @@ class AISession:
         self.tts.feed(message)
 
     def close(self):
-        log.info("Closing thread")
+        log.info("Closing conversation")
         self.calculate_usage()
-        self.thread_id = None
+        self.conversation_id = None
 
     def is_active(self):
-        return self.thread_id is not None
+        return self.conversation_id is not None
 
     def calculate_usage(self):
-        """Calculate the usage and cost of the AI backend for the current thread
+        """Calculate the usage and cost of the AI backend for the current conversation
         and save it to the session in the DB."""
-        if not self.thread_id:
+        if not self.conversation_id:
             return
-        token_usage = self.coach.get_thread_usage(self.thread_id)
-
-        prompt_price = round(token_usage.prompt_tokens * config.gpt_prompt_pricing, 2)
-        completion_price = round(
-            token_usage.completion_tokens * config.gpt_completion_pricing, 2
-        )
-        prompt_price = prompt_price if prompt_price > 0 else 0.01
-        completion_price = completion_price if completion_price > 0 else 0.01
-
+        conversation = conversation_store.get_conversation(self.conversation_id)
+        if conversation is None:
+            return
+        self.session.total_input_tokens = conversation.total_input_tokens
+        self.session.total_cached_tokens = conversation.total_cached_tokens
+        self.session.total_output_tokens = conversation.total_output_tokens
+        self.session.total_tokens = conversation.total_tokens
+        self.session.total_cost = conversation.total_cost
         log.info(
-            f"Total tokens: {token_usage.total_tokens} (~${(prompt_price + completion_price):.2f})"
+            f"Total tokens: {conversation.total_tokens} (~${conversation.total_cost:.2f})"
         )
-        usage = Usage(
-            completion_tokens=token_usage.completion_tokens,
-            prompt_tokens=token_usage.prompt_tokens,
-            total_tokens=token_usage.total_tokens,
-            thread_id=self.thread_id,
-        )
-        self.session.usages.append(usage)
         replaydb.db.save(self.session)
 
     def is_goodbye(self, response: str):
@@ -319,7 +313,7 @@ class AISession:
             prompt = Templates.new_game.render(replacements)
 
         if prompt is not None:
-            self.thread_id = self.coach.create_thread(prompt)
+            self.conversation_id = self.coach.create_conversation(prompt)
         else:
             self.say(Templates.new_game_empty.render(replacements), flush=False)
 
@@ -337,7 +331,7 @@ class AISession:
         }
         prompt = Templates.new_replay.render(replacements)
 
-        self.thread_id = self.coach.create_thread(prompt)
+        self.conversation_id = self.coach.create_conversation(prompt)
 
     def handle_game_start(self, scanresult: NewMatchEvent):
         """Handle new game event.
@@ -357,7 +351,7 @@ class AISession:
                 scanresult.mapname, scanresult.opponent, self.last_mmr
             )
             if self.is_active():
-                response = self.stream_thread()
+                response = self.stream_conversation()
                 log.info(response, extra={"role": Role.assistant})
                 done = self.converse()
                 if done:
@@ -374,7 +368,7 @@ class AISession:
 
         log.debug(wakeresult)
         if not self.is_active():
-            self.thread_id = self.coach.create_thread()
+            self.conversation_id = self.coach.create_conversation()
 
             done = self.converse()
             if done:
@@ -395,7 +389,7 @@ class AISession:
         if not self.is_active():
             log.debug("New replay detected")
             self.initiate_from_new_replay(replay)
-            response = self.stream_thread()
+            response = self.stream_conversation()
             log.info(response, extra={"role": Role.assistant})
             done = self.converse()
             if done:
@@ -421,8 +415,8 @@ class AISession:
             "student": config.student.name,
         }
         prompt = Templates.twitch_follow.render(replacements)
-        self.thread_id = self.coach.create_thread(prompt)
-        response = self.stream_thread()
+        self.conversation_id = self.coach.create_conversation(prompt)
+        response = self.stream_conversation()
         log.info(response, extra={"role": Role.assistant})
         self.close()
 
@@ -439,8 +433,8 @@ class AISession:
             "student": config.student.name,
         }
         prompt = Templates.twitch_raid.render(replacements)
-        self.thread_id = self.coach.create_thread(prompt)
-        response = self.stream_thread()
+        self.conversation_id = self.coach.create_conversation(prompt)
+        response = self.stream_conversation()
         log.info(response, extra={"role": Role.assistant})
         self.close()
 
@@ -451,7 +445,7 @@ class AISession:
         if so, answer it.
 
         This is different than the other event handlers in that the assistent reuses the same
-        thread for all chat messages, so that it can properly answer follow up questions. So
+        conversation for all chat messages, so that it can properly answer follow up questions. So
         AICoach keeps a memory of the entire chat history.
         """
 
@@ -467,12 +461,14 @@ class AISession:
             is_question: bool
             answer: str
 
-        if not self.chat_thread_id:
-            self.chat_thread_id = self.coach.create_thread()
+        if not self.twitch_conversation_id:
+            self.twitch_conversation_id = self.coach.create_conversation()
+            self.session.twitch_conversation = self.twitch_conversation_id
+            replaydb.db.save(self.session)
         else:
-            self.coach.set_active_thread(self.chat_thread_id)
+            self.coach.set_active_conversation(self.twitch_conversation_id)
 
-        self.thread_id = self.chat_thread_id
+        self.conversation_id = self.twitch_conversation_id
 
         response: TwitchChatResponse = self.coach.get_structured_response(
             message=prompt,
@@ -514,7 +510,7 @@ class AISession:
         }
         prompt = Templates.cast_replay.render(replacements)
         self.coach.init_additional_instructions(prompt)
-        self.thread_id = self.coach.create_thread("00:00")
+        self.conversation_id = self.coach.create_conversation("00:00")
 
         # collect intro data and start with intro
         matchup = player.play_race + " vs " + opponent.play_race
@@ -564,29 +560,6 @@ class AISession:
         self.close()
 
     def save_replay_summary(self, replay: Replay):
-        messages: list[Message] = self.coach.get_conversation()
-
-        class Response(BaseModel):
-            summary: str
-            keywords: list[str]
-
-        response = self.coach.get_structured_response(
-            message=Templates.summary.render(), schema=Response
+        log.warning(
+            "Skipping replay summary persistence until structured Responses and metadata linking are migrated"
         )
-
-        log.info(f"Added tags '{','.join(response.keywords)} to replay'")
-        meta: Metadata = Metadata(replay=replay.id, description=response.summary)
-        meta.tags = response.keywords
-        meta.conversation = [
-            AssistantMessage(
-                role=Role(m.role),
-                text=m.content[0].text.value,
-                created_at=datetime.fromtimestamp(m.created_at),
-            )
-            # skip the instruction message which includes the replay as JSON
-            for m in messages[::-1][1:]
-            if isinstance(m.content[0], TextContentBlock)
-            if m.content[0].text.value
-        ]
-
-        replaydb.db.save(meta, query=eq(Metadata.replay, replay.id))  # pyright: ignore[reportArgumentType]

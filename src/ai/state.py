@@ -75,7 +75,9 @@ class ConversationStore:
 
         return conversation
 
-    def get_conversation(self, conversation: AIConversation) -> AIConversation | None:
+    def get_conversation(
+        self, conversation: AIConversation | Id | str
+    ) -> AIConversation | None:
         conversation_id = self._require_conversation_id(conversation)
         return self._replaydb.db.find_one(
             Model=AIConversation,
@@ -168,7 +170,7 @@ class ConversationStore:
         return item
 
     def list_items(
-        self, conversation: AIConversation, included_only: bool = True
+        self, conversation: AIConversation | Id | str, included_only: bool = True
     ) -> list[AIConversationItem]:
         conversation_id = self._require_conversation_id(conversation)
         query = eq(AIConversationItem.conversation, conversation_id)  # type: ignore[arg-type]
@@ -284,14 +286,18 @@ class ConversationStore:
             response_query = eq(AIResponseRecord.id, response_id)  # type: ignore[arg-type]
             self._replaydb.db.delete(AIResponseRecord, query=response_query)
 
-    def _require_conversation(self, conversation: AIConversation) -> AIConversation:
+    def _require_conversation(self, conversation: AIConversation | Id | str) -> AIConversation:
         conversation_id = self._require_conversation_id(conversation)
         found = self.get_conversation(conversation)
         if found is None:
             raise ValueError(f"Conversation {conversation_id} not found")
         return found
 
-    def _require_conversation_id(self, conversation: AIConversation) -> Id:
+    def _require_conversation_id(self, conversation: AIConversation | Id | str) -> Id:
+        if isinstance(conversation, str):
+            return cast(Id, conversation)
+        if not isinstance(conversation, AIConversation):
+            return conversation
         if conversation.id is None:
             raise ValueError("Conversation must be saved before use")
         return conversation.id

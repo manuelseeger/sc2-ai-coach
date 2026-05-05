@@ -1,12 +1,10 @@
 import random
-from threading import Thread
 from time import sleep
-from typing import Callable, Dict, Generator
+from typing import Generator
 from uuid import uuid4
 
 import tiktoken
-from openai.types.beta.threads import Message, Text, TextContentBlock
-from openai.types.beta.threads.run import Usage
+from pydantic import BaseModel
 from typing_extensions import override
 
 from .aicoach import AICoach, T
@@ -53,16 +51,13 @@ encoding = tiktoken.get_encoding("cl100k_base")
 
 
 class AICoachMock(AICoach):
-    thread_id: str = None
-    threads: Dict[str, Thread] = {}
-    thread: Thread = None
-
-    _usages: list[Usage] = []
-
-    functions: Dict[str, Callable] = {}
-
     def __init__(self):
-        self._init_functions()
+        super().__init__(client=object())
+        self._usage_totals = {
+            "completion_tokens": 0,
+            "prompt_tokens": 0,
+            "total_tokens": 0,
+        }
         self.set_data(data)
 
     def set_data(self, data):
@@ -71,21 +66,16 @@ class AICoachMock(AICoach):
 
     @override
     def get_thread_usage(self, thread_id: str) -> Usage:
-        thread_usage = Usage(completion_tokens=0, prompt_tokens=0, total_tokens=0)
-        for usage in self._usages:
-            thread_usage.completion_tokens += usage.completion_tokens
-            thread_usage.prompt_tokens += usage.prompt_tokens
-            thread_usage.total_tokens += usage.total_tokens
-        return thread_usage
+        return BaseModel.model_validate(self._usage_totals)
 
     @override
-    def create_thread(self, message=None):
-        self.thread_id = uuid4().hex
+    def create_conversation(self, message=None):
+        self.active_conversation_id = uuid4().hex
         sleep(0.5)
-        return self.thread_id
+        return self.active_conversation_id
 
     @override
-    def stream_thread(self) -> Generator[str, None, None]:
+    def stream_conversation(self) -> Generator[str, None, None]:
         sleep(1)
         for token in self.generate_stream():
             yield token
@@ -105,24 +95,13 @@ class AICoachMock(AICoach):
         raise NotImplementedError
 
     @override
-    def get_conversation(self) -> list[Message]:
-        return [
-            Message(
-                content=[
-                    TextContentBlock(
-                        text=Text(value=msg.get("text"), annotations=[]), type="text"
-                    )
-                ],
-                id=uuid4().hex,
-                created_at=0,
-                file_ids=[],
-                object="thread.message",
-                role=msg.get("role"),
-                status="completed",
-                thread_id=self.thread_id,
-            )
-            for msg in self._data
-        ]
+    def get_conversation(self) -> list[dict[str, str]]:
+        return list(self._data)
+
+    @override
+    def add_message(self, message, role="user") -> str:
+        self._data.append({"role": role, "text": message})
+        return uuid4().hex
 
     def generate_stream(self):
         msg = next(
@@ -138,10 +117,6 @@ class AICoachMock(AICoach):
         completion_tokens = random.randint(10, 200)
         prompt_tokens = random.randint(2400, 2700)
         total_tokens = completion_tokens + prompt_tokens
-        self._usages.append(
-            Usage(
-                completion_tokens=completion_tokens,
-                prompt_tokens=prompt_tokens,
-                total_tokens=total_tokens,
-            )
-        )
+        self._usage_totals["completion_tokens"] += completion_tokens
+        self._usage_totals["prompt_tokens"] += prompt_tokens
+        self._usage_totals["total_tokens"] += total_tokens

@@ -1,22 +1,30 @@
 import functools
 import inspect
 import json
+from typing import Any, Callable, Mapping
 
-BASE_SCHEMA_MAP = {
-    "bool": "boolean",
-    "int": "integer",
-    "float": "number",
-    "str": "string",
-}
+from openai.lib._pydantic import to_strict_json_schema
+from pydantic import BaseModel
+
+
+def strict_json_schema(model: type[BaseModel]) -> dict[str, Any]:
+    return to_strict_json_schema(model)
 
 
 class AIFunction:
-    """Decorator for AI functions. Decorated functions will be added to the
-    assistant's tools on build."""
-
-    def __init__(self, fn):
+    def __init__(
+        self,
+        *,
+        fn: Callable[..., Any],
+        args_model: type[BaseModel],
+        name: str | None = None,
+        description: str | None = None,
+    ):
         functools.update_wrapper(self, fn)
         self.fn = fn
+        self.args_model = args_model
+        self.name = name or fn.__name__
+        self.description = inspect.cleandoc(description or inspect.getdoc(fn) or "")
 
     def __call__(self, *args, **kwargs):
         return self.fn(*args, **kwargs)
@@ -24,36 +32,20 @@ class AIFunction:
     def __str__(self):
         return json.dumps(self.json(), indent=2)
 
-    def json(self):
-        return function_definition(self.fn)
-
-
-def type_to_schema_type(type: str):
-    return BASE_SCHEMA_MAP.get(type, str(type))
-
-
-def function_definition(fn):
-    """Return a JSON schema definition for the decorated function."""
-    sig = inspect.signature(fn)
-
-    args = {
-        name: {
-            "type": type_to_schema_type(parameter.annotation.__origin__.__name__),
-            "description": parameter.annotation.__metadata__[0],
+    def invoke(self, arguments: Mapping[str, Any] | BaseModel | None = None) -> Any:
+        validated = self.args_model.model_validate(arguments or {})
+        kwargs = {
+            key: value
+            for key, value in validated.model_dump(mode="python").items()
+            if value is not None
         }
-        for name, parameter in sig.parameters.items()
-    }
+        return self.fn(**kwargs)
 
-    return {
-        "name": fn.__name__,
-        "description": inspect.getdoc(fn),
-        "parameters": {
-            "type": "object",
-            "properties": args,
-            "required": [
-                name
-                for name, parameter in sig.parameters.items()
-                if parameter.default == inspect.Parameter.empty
-            ],
-        },
-    }
+    def json(self) -> dict[str, Any]:
+        return {
+            "type": "function",
+            "name": self.name,
+            "description": self.description,
+            "parameters": strict_json_schema(self.args_model),
+            "strict": True,
+        }

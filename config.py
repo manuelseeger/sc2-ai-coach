@@ -160,7 +160,6 @@ class Config(BaseSettings):
     openai_endpoint: Optional[str] = None
     openai_api_key: str
     openai_org_id: str
-    assistant_id: str
     gpt_model: str
     gpt_prompt_pricing_per_million: float
     gpt_completion_pricing_per_million: float

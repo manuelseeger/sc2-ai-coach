@@ -1,6 +1,7 @@
 import logging
 from typing import Annotated
 
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic import ValidationError
 
 from config import config
@@ -13,8 +14,18 @@ from .base import AIFunction
 log = logging.getLogger(f"{config.name}.{__name__}")
 
 
-@AIFunction
-def AddMetadata(
+class AddMetadataArgs(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    replay_id: str = Field(
+        description="The unique of a replay. Also called the filehash of the replay."
+    )
+    tags: str = Field(
+        description="A list of keywords to add to the replay, comma separated. Example: 'smurf, cheese, proxy'"
+    )
+
+
+def _add_metadata(
     replay_id: Annotated[
         str,
         "The unique of a replay. Also called the filehash of the replay.",
@@ -53,3 +64,10 @@ def AddMetadata(
     replaydb.upsert(meta)
 
     return True
+
+
+AddMetadata = AIFunction(
+    fn=_add_metadata,
+    args_model=AddMetadataArgs,
+    name="AddMetadata",
+)

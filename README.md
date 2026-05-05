@@ -124,33 +124,15 @@ See `python repcli.py sync --help` for more options. You can always repopulate t
 Prerequisites:
 
 - Set up an OpenAI account and fund it with credits
-- Create an OpenAI Assistant
 - Create an API key
 
-Add your OpenAI organization, Assistant ID, and API key to the environment variables: `AICOACH_ASSISTANT_ID`, `AICOACH_OPENAI_API_KEY`, and `AICOACH_OPENAI_ORG_ID`. If you are using a custom OpenAI-compatible endpoint, also set `AICOACH_OPENAI_ENDPOINT`.
+Add your OpenAI organization and API key to the environment variables: `AICOACH_OPENAI_API_KEY` and `AICOACH_OPENAI_ORG_ID`. If you are using a custom OpenAI-compatible endpoint, also set `AICOACH_OPENAI_ENDPOINT`.
 
 The default model is `gpt-4.1` (configurable via `gpt_model` in config).
 
 **Note on cost:** Typically interactions stay below $0.10, but longer session can run up to and over $1.00 in API costs. AICoach will not incur API costs until one of the wake events is triggered.
 
 If you just want a database with your replays you can skip this step and the next or do it later.
-
-### Build and deploy assistant
-
-If using OpenAI as your AI backend:
-
-```sh
-> python build.py
-```
-
-This generates a new file [assistant.json](assistant.json) with your assistant configuration.
-
-```sh
-> python build.py --deploy
-```
-
-This deploys the assistant to OpenAI. Verify the assistant is properly initialized with tools and instructions at https://platform.openai.com/playground
-
 
 ### (Optional) Additional settings
 

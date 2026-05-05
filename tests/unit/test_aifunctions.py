@@ -29,7 +29,7 @@ def test_force_valid_json_string(json_input, expected):
     AIFunctions,
 )
 def test_max_docstring_length(f):
-    assert len(f.__doc__) < 1024
+    assert len(f.description) < 1024
 
 
 def test_function_meta_wrong_input():

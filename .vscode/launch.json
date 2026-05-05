@@ -41,17 +41,6 @@
       }
     },
     {
-      "name": "Build and Deploy",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "build.py",
-      "console": "integratedTerminal",
-      "envFile": "${workspaceFolder}/.env",
-      "args": [
-        "--deploy"
-      ]
-    },
-    {
       "name": "CLI full sync",
       "type": "debugpy",
       "request": "launch",

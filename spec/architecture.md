@@ -151,13 +151,10 @@ Each handler typically:
 
 #### 3. AI Integration: `src/ai/`
 
-**`aicoach.py`**: Wrapper around OpenAI Assistants API
+**`aicoach.py`**: Wrapper around the OpenAI Responses migration surface
 - Obtains its SDK client from `src.ai.openai_provider.get_openai_client()` unless a test injects a client explicitly
-- Manages Assistant configuration and thread lifecycle
-- Implements streaming response handling
-- Processes function calls from LLM (tool use)
-- Tracks token usage per thread
-- Event handling via custom `AssistantEventHandler`
+- Owns local conversation lifecycle while the Responses migration is in progress
+- Rebuilds streaming, tool execution, and structured output incrementally across migration chapters
 
 **`openai_provider.py`**: Shared sync OpenAI SDK client provider
 - Centralizes construction of the project's `OpenAI` client so application code and reusable tests do not create SDK clients directly
@@ -543,7 +540,7 @@ sequenceDiagram
 ## Key Technologies & Dependencies
 
 ### Core Libraries
-- **LLM**: `openai` (v2.33.0+) - OpenAI SDK accessed through `src.ai.openai_provider`; current runtime still uses the Assistants API while the migration to Responses + Conversations is in progress
+- **LLM**: `openai` (v2.33.0+) - OpenAI SDK accessed through `src.ai.openai_provider`; the project is migrating from Assistants to stateless Responses calls backed by local MongoDB conversation state
 - **Database**: `pyodmongo` (v1.4.6) - Pydantic ODM for MongoDB
 - **Replay Parsing**: `sc2reader` + `sc2reader-plugins` + `spawningtool`
 - **Configuration**: `pydantic` (v2.10.6), `pydantic-settings` (v2.7.1)
@@ -622,8 +619,6 @@ db_name: "sc2coach"
 aibackend: "OpenAI"
 gpt_model: "gpt-4o"
 openai_endpoint: null  # optional; custom endpoints normalize to {endpoint}/openai/v1/
-assistant_id: "asst_..."
-
 # Audio Configuration
 audiomode: "full"  # text | voice_in | voice_out | full
 speech_recognition_model: "openai/whisper-large-v3"
