@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from config import config
 from src.ai.state import ConversationStore, conversation_store
-from src.replaydb.types import AIConversationItem, AIMessageRole
+from src.replaydb.types import AIMessageRole
 
 from .functions import AIFunctions
 from .openai_provider import get_openai_client
@@ -50,7 +50,9 @@ class AICoach:
         self.additional_instructions += "\n\n" + more_instructions
 
     def get_thread_usage(self, thread_id: str):
-        raise NotImplementedError("Responses usage aggregation lands in a later chapter")
+        raise NotImplementedError(
+            "Responses usage aggregation lands in a later chapter"
+        )
 
     def get_most_recent_message(self):
         """Return the most recent persisted assistant message for the active conversation."""
@@ -80,7 +82,9 @@ class AICoach:
     def add_message(self, message, role: Literal["user", "assistant"] = "user") -> str:
         """Persist a local conversation message and return its item id."""
         if self.active_conversation_id is None:
-            raise ValueError("No active conversation. Please create a conversation first.")
+            raise ValueError(
+                "No active conversation. Please create a conversation first."
+            )
         if not message:
             return ""
         item = self.store.append_message(
@@ -103,10 +107,14 @@ class AICoach:
         return self.active_conversation_id
 
     def get_response(self, message) -> str:
-        raise NotImplementedError("Responses non-streaming chat lands in a later chapter")
+        raise NotImplementedError(
+            "Responses non-streaming chat lands in a later chapter"
+        )
 
     def get_structured_response_poll(self, message, schema: Type[T]) -> T:
-        raise NotImplementedError("Structured Responses migration lands in a later chapter")
+        raise NotImplementedError(
+            "Structured Responses migration lands in a later chapter"
+        )
 
     def get_structured_response(
         self,
@@ -114,7 +122,9 @@ class AICoach:
         schema: Type[T],
         additional_instructions: Optional[str] = None,
     ) -> T:
-        raise NotImplementedError("Structured Responses migration lands in a later chapter")
+        raise NotImplementedError(
+            "Structured Responses migration lands in a later chapter"
+        )
 
     def chat(
         self, text, response_format=None, tools=None

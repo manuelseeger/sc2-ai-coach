@@ -27,8 +27,8 @@ from src.lib.sc2pulse import SC2PulseClient, get_division_for_mmr
 from src.mapstats import update_map_stats
 from src.matchhistory import get_sc2pulse_match_history
 from src.playerinfo import resolve_replays_from_current_opponent
-from src.replaydb.db import eq, replaydb
-from src.replaydb.types import Metadata, Replay, Role, Session
+from src.replaydb.db import replaydb
+from src.replaydb.types import Replay, Role, Session
 from src.util import secs2time
 
 

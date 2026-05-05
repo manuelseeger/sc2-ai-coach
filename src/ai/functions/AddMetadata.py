@@ -1,8 +1,7 @@
 import logging
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from config import config
 from src.ai.utils import get_clean_tags

@@ -103,27 +103,27 @@ F: {{"players.build_order": {{$elemMatch: {{"name": "Oracle"}}}} ,"players": {{$
 
 
 class QueryReplayDBArgs(BaseModel):
-  model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid")
 
-  filter: str = Field(
-    description='A MongoDB query document to run against the replay collection. Example query to get replays for a player called Driftoss: {"players.name": "Driftoss"}'
-  )
-  projection: str | None = Field(
-    ...,
-    description='A MongoDB projection document to specifiy which fields of the document to return. Example projection to get only the map name for returned replays: {"map_name": 1}. Set null to use the local default projection.',
-  )
-  sort: str | None = Field(
-    ...,
-    description='A MongoDB sort document to specify how to sort the returned documents. Example to sort by game length: {"game_length": -1}. Set null to use the local default sort.',
-  )
-  limit: int | None = Field(
-    ...,
-    description="An integer to specify the maximum number of documents to return. Set null to use the local default of 10.",
-  )
-  limit_time: int | None = Field(
-    ...,
-    description="An integer to specify the maximum number of seconds to include results from. When limit_time is given, arrays in the result set are filtered to only include elements up to that time. Set null to use the local default of 600.",
-  )
+    filter: str = Field(
+        description='A MongoDB query document to run against the replay collection. Example query to get replays for a player called Driftoss: {"players.name": "Driftoss"}'
+    )
+    projection: str | None = Field(
+        ...,
+        description='A MongoDB projection document to specifiy which fields of the document to return. Example projection to get only the map name for returned replays: {"map_name": 1}. Set null to use the local default projection.',
+    )
+    sort: str | None = Field(
+        ...,
+        description='A MongoDB sort document to specify how to sort the returned documents. Example to sort by game length: {"game_length": -1}. Set null to use the local default sort.',
+    )
+    limit: int | None = Field(
+        ...,
+        description="An integer to specify the maximum number of documents to return. Set null to use the local default of 10.",
+    )
+    limit_time: int | None = Field(
+        ...,
+        description="An integer to specify the maximum number of seconds to include results from. When limit_time is given, arrays in the result set are filtered to only include elements up to that time. Set null to use the local default of 600.",
+    )
 
 
 def _query_replay_db(
@@ -132,7 +132,7 @@ def _query_replay_db(
         'A MongoDB query document to run against the replay collection. Example query to get replays for a player called Driftoss: {"players.name": "Driftoss"}',
     ],
     projection: Annotated[
-      str,
+        str,
         'A MongoDB projection document to specifiy which fields of the document to return. Example projection to get only the map name for returned replays: {"map_name": 1}. This is optional and defaults to returning all fields.',
     ] = dumps(config.default_projection),
     sort: Annotated[
@@ -140,11 +140,11 @@ def _query_replay_db(
         'A MongoDB sort document to specify how to sort the returned documents. Example to sort by game length: {"game_length": -1}. This is optional and defaults to sorting by unix_timestamp, descending.',
     ] = '{"unix_timestamp": -1}',
     limit: Annotated[
-      int,
+        int,
         "An integer to specify the maximum number of documents to return. This is optional and defaults to 10.",
     ] = 10,
     limit_time: Annotated[
-      int,
+        int,
         "An integer to specify the maximum number of seconds to include results from. When limit_time is given, arrays in the result set are filtered to only include elements up to that time. This is optional.",
     ] = 600,
 ) -> list:

@@ -286,7 +286,9 @@ class ConversationStore:
             response_query = eq(AIResponseRecord.id, response_id)  # type: ignore[arg-type]
             self._replaydb.db.delete(AIResponseRecord, query=response_query)
 
-    def _require_conversation(self, conversation: AIConversation | Id | str) -> AIConversation:
+    def _require_conversation(
+        self, conversation: AIConversation | Id | str
+    ) -> AIConversation:
         conversation_id = self._require_conversation_id(conversation)
         found = self.get_conversation(conversation)
         if found is None:

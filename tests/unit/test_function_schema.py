@@ -2,8 +2,8 @@ import pytest
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from src.ai.functions import AIFunctions, responses_tools
-from src.ai.functions.QueryReplayDB import QueryReplayDB
 from src.ai.functions.base import AIFunction
+from src.ai.functions.QueryReplayDB import QueryReplayDB
 
 
 def test_responses_tool_definitions_match_registry():
