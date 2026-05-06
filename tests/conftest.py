@@ -10,8 +10,8 @@ import docker
 import httpx
 import pytest
 from pydantic import BaseModel
-from pytest_mock import MockerFixture
 from pymongo import MongoClient
+from pytest_mock import MockerFixture
 
 from tests.support import pytest_services
 
