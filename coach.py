@@ -33,8 +33,9 @@ def main(debug, repl, trace):
 
     if repl:
         config.audiomode = AudioMode.text
+        signal_queue.put(ReplEvent())
 
-    tts, mic, transcriber = _build_services()
+    tts, mic, transcriber = _build_io_services()
 
     # Build session and initialize event handlers
     # Each handler is a threading.thread that listens for configured events
@@ -82,9 +83,6 @@ def main(debug, repl, trace):
 
     log.info(f"Starting {'non-' * (not config.interactive)}interactive session")
 
-    if repl:
-        signal_queue.put(ReplEvent())
-
     # Main loop: Every 1s get a task from the signal_queue first in first out, and let the session process it
     # On shutdown, close all event listener threads and exit
     while True:
@@ -121,7 +119,7 @@ def main(debug, repl, trace):
             sys.exit(0)
 
 
-def _build_services() -> tuple[
+def _build_io_services() -> tuple[
     TTSService | None,
     MicrophoneService | None,
     TranscriberService | None,
