@@ -4,7 +4,7 @@ import sys
 
 import click
 
-from config import AIBackend, AudioMode, CoachEvent, config
+from config import AudioMode, CoachEvent, config
 from log import log
 from shared import signal_queue
 from src.contracts import MicrophoneService, TranscriberService, TTSService
@@ -75,9 +75,7 @@ def main(debug, repl, trace):
 
     log.info(f"Audio mode: {str(config.audiomode)}")
     log.info(f"OBS integration: {str(config.obs_integration)}")
-    log.info(
-        f"AI Backend: {str(config.aibackend)} {config.gpt_model if config.aibackend == AIBackend.openai else ''}"
-    )
+    log.info(f"AI Backend: {str(config.aibackend)} {config.gpt_model}")
     if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
         log.info(f"Transcriber: {config.transcriber_backend}")
     log.info(f"Coach events enabled: {', '.join(config.coach_events)}")

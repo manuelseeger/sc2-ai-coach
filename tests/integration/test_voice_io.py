@@ -1,6 +1,10 @@
 import pytest
 from rich import print
 
+pytest.importorskip("RealtimeTTS")
+pytest.importorskip("speech_recognition")
+pytest.importorskip("soundfile")
+
 from src.io import Transcriber
 from src.io.mic import Microphone
 from src.io.tts import make_tts_stream

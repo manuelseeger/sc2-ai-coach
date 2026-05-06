@@ -122,3 +122,21 @@ def test_lmmcritic_uses_injected_client(mocker):
 
     assert critic.client is client
     provider.assert_not_called()
+
+
+def test_lmmcritic_uses_responses_structured_output():
+    client = MagicMock()
+    client.responses.create.return_value = SimpleNamespace(
+        output_text='{"passed": true, "justification": "looks good"}'
+    )
+    critic = LmmCritic(client=client)
+    critic.init("Judge the answer strictly.")
+
+    result = critic.evaluate("QUESTION: hi", "ANSWER: hello")
+
+    assert result.passed is True
+    request = client.responses.create.call_args.kwargs
+    assert request["instructions"] == "Judge the answer strictly."
+    assert request["store"] is False
+    assert request["text"]["format"]["type"] == "json_schema"
+    assert "Response under evaluation" in request["input"][0]["content"]

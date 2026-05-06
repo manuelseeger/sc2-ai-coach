@@ -62,7 +62,7 @@ def test_get_response_assembles_full_history_and_persists_response(
     assert response_record is not None
     cleanup_ai_conversations["response_records"].append(response_record)
 
-    items = coach.get_conversation()
+    items = coach.get_conversation_items()
     assert response_text == "Coach reply"
     assert len(client.responses.calls) == 1
     assert client.responses.calls[0]["store"] is False
@@ -147,7 +147,7 @@ def test_get_response_executes_tool_loop_and_replays_tool_transcript(
     )
     cleanup_ai_conversations["response_records"].extend(response_records)
 
-    items = coach.get_conversation()
+    items = coach.get_conversation_items()
     assert response_text == "Your most recent game was yesterday."
     assert len(client.responses.calls) == 2
     assert client.responses.calls[0]["tools"]
@@ -242,7 +242,7 @@ def test_chat_streams_text_and_persists_streamed_response(cleanup_ai_conversatio
     assert response_record is not None
     cleanup_ai_conversations["response_records"].append(response_record)
 
-    items = coach.get_conversation()
+    items = coach.get_conversation_items()
     assert chunks == ["Coach ", "streamed reply"]
     assert len(client.responses.calls) == 1
     assert client.responses.calls[0]["stream"] is True
@@ -322,7 +322,7 @@ def test_chat_streams_then_executes_tool_loop(cleanup_ai_conversations, mocker):
     )
     cleanup_ai_conversations["response_records"].extend(response_records)
 
-    items = coach.get_conversation()
+    items = coach.get_conversation_items()
     assert chunks == ["You played ", "on Dynasty."]
     assert len(client.responses.calls) == 2
     assert client.responses.calls[0]["stream"] is True

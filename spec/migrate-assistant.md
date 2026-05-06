@@ -410,7 +410,7 @@ In scope:
 
 - `src/ai/aicoach.py` - full rewrite around stateless Responses API calls and local state.
 - `src/ai/openai_provider.py` - remain the single provider for sync OpenAI clients.
-- `src/ai/aicoach_mock.py`, `tests/support/fake_openai.py` - replace beta/Thread mock strategy.
+- `tests/support/fake_openai.py` - replace beta/Thread mock strategy.
 - `src/ai/functions/base.py` - strict Responses tool schema and invocation adapter.
 - `src/session.py` - rename thread concepts to local conversation concepts; persist active and Twitch conversation IDs; calculate usage from local response records.
 - `src/replaydb/types.py` - add `AIConversation`, `AIConversationItem`, `AIResponseRecord`, enums, updated `Session` model, and the replay metadata conversation link.
@@ -695,7 +695,7 @@ Each chapter is a self-contained commit.
       call_id="call_query_1",
   )
   ```
-- Remove beta imports from `src/ai/aicoach_mock.py` or delete it in favor of injected fakes.
+- Remove the old AI mock backend in favor of injected fakes.
 - Add focused `respx` SDK-contract tests for the real SDK JSON and SSE shapes used by `AICoach`.
 - Mark live OpenAI tests as opt-in only.
 

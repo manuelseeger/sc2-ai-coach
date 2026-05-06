@@ -1,6 +1,7 @@
-import cv2
 import numpy
 import pytest
+
+cv2 = pytest.importorskip("cv2")
 
 from external.fast_ssim.ssim import ssim
 from src.events.loading_screen import parse_map_loading_screen

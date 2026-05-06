@@ -150,7 +150,7 @@
 - Implemented stateless structured Responses in [src/ai/aicoach.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/aicoach.py): `get_structured_response(...)` now appends the user message to the local conversation, sends a Responses request with strict JSON schema output, reuses the Chapter 6 tool loop, persists the final assistant JSON payload as an assistant message, records the `AIResponseRecord`, and validates the result via `schema.model_validate_json(...)`.
 - Added `_structured_response_format(...)` in [src/ai/aicoach.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/aicoach.py), backed by the existing `strict_json_schema(...)` helper from [src/ai/functions/base.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/functions/base.py), and wired `_build_response_request(...)` / `_render_instructions(...)` to support per-request structured-output settings and temporary additional instructions.
 - Added Chapter 10 compatibility accessors in [src/ai/aicoach.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/aicoach.py): `get_conversation_items()` and `get_latest_assistant_message()` now back the older `get_conversation()` / `get_most_recent_message()` names.
-- Updated [src/ai/aicoach_mock.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/aicoach_mock.py) so the mock surface still matches the migrated `create_conversation(...)` and `get_structured_response(...)` signatures.
+- Updated the temporary AI test-double surface so it matched the migrated `create_conversation(...)` and `get_structured_response(...)` signatures.
 
 ## Chapter 9
 
@@ -221,3 +221,30 @@
 - Result: `21 passed`
 - Verified the remaining live-only LLM files now opt out cleanly by default with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/llm/test_aicoach.py tests/llm/test_function_metadata.py tests/llm/test_replay_timestamps.py tests/llm/test_twitch_chat.py -q`
 - Result: `4 skipped`
+
+## Chapter 14
+
+- Updated user-facing setup docs in [README.md](../README.md) to describe stateless OpenAI Responses calls, local MongoDB conversation/tool/usage persistence, the current default `gpt_model`, configurable pricing/reasoning settings, and the `coach.py --repl` text-only path.
+- Updated [config.yml](../config.yml) so the model comment names the OpenAI Responses API rather than the removed Assistants API.
+- Updated [spec/architecture.md](architecture.md) so the architecture now describes OpenAI Responses plus local MongoDB conversation state, local conversation IDs, response usage records, and post-migration future work.
+- Removed the stale `assistant.json` ignore entry from [.gitignore](../.gitignore), deleted the old local `assistant.json` Assistants artifact, and inspected the ignored [.env.example](../.env.example), which already no longer contained `AICOACH_ASSISTANT_ID`.
+
+## Chapter 15
+
+- Removed final migration compatibility shims from [src/ai/aicoach.py](../src/ai/aicoach.py): `create_thread()`, `stream_thread()`, `get_thread_usage()`, `get_most_recent_message()`, `get_conversation()`, and `get_structured_response_poll()`.
+- Updated unit, integration, and live-only LLM tests to use `create_conversation()`, `stream_conversation()`, and `get_conversation_items()` where they still referenced thread-era helper names.
+- Migrated [tests/critic.py](../tests/critic.py) off `client.beta.chat.completions.parse(...)` and onto `client.responses.create(..., store=False)` with strict JSON-schema structured output.
+- Removed stale `Usage` and `AssistantMessage` models from [src/replaydb/types.py](../src/replaydb/types.py) after confirming response records and conversation items are the post-migration state surface.
+- Cleaned stale thread-oriented comments/log messages in [src/session.py](../src/session.py) while removing the temporary mocked AI backend after thread usage compatibility was removed.
+- Hardened minimal unit-test collection by making optional voice transcriber imports lazy in [src/io/__init__.py](../src/io/__init__.py), avoiding runtime import of `speech_recognition` in [src/contracts.py](../src/contracts.py), and skipping the OpenCV loading-screen unit test when `cv2` is not installed.
+- Adjusted [tests/unit/test_reader.py](../tests/unit/test_reader.py) so the clock-position assertion reflects `config.include_map_details`; local user config may disable map details, in which case spawningtool does not populate clock positions.
+
+## Validation
+
+- Verified the focused Responses/session cleanup slice with: `tests/unit/test_aicoach_responses.py tests/unit/test_openai_provider.py tests/unit/test_session_conversations.py tests/unit/test_session_repl.py tests/llm/test_critic_chat.py`
+- Result: `20 passed`
+- Verified touched live/debug-only test files collect or skip before optional full-app imports with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/llm/test_aicoach.py tests/llm/test_function_metadata.py tests/llm/test_twitch_chat.py tests/llm/test_replay_timestamps.py tests/llm/test_critic_replay.py tests/llm/test_critic_smurfing.py tests/llm/test_replay_cast.py tests/integration/test_coach.py tests/integration/test_twitch.py -q`
+- Result: `9 skipped` with no collection errors; pytest returns exit code 1 because every selected module was skipped.
+- Verified the unit suite with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit -q`
+- Result: `131 passed, 3 skipped`
+- Full `pytest -q` is intentionally not green in the current local environment because integration/LLM tests still depend on live services, seeded local data, optional standard extras, or external credentials; those are outside the current unit-test-only validation scope.

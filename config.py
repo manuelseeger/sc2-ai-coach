@@ -75,7 +75,6 @@ class CoachEvent(str, Enum):
 
 class AIBackend(str, Enum):
     openai = "OpenAI"
-    mocked = "Mocked"
 
 
 class TranscriberBackend(str, Enum):

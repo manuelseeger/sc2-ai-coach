@@ -46,11 +46,6 @@ class AICoach:
         """Store optional per-conversation developer guidance for future requests."""
         self.additional_instructions = more_instructions.strip()
 
-    def get_thread_usage(self, thread_id: str):
-        raise NotImplementedError(
-            "Responses usage aggregation lands in a later chapter"
-        )
-
     def get_latest_assistant_message(self) -> str:
         """Return the most recent persisted assistant message for the active conversation."""
         messages = self.get_conversation_items()
@@ -60,17 +55,11 @@ class AICoach:
         log.warning("Assistant sent no message")
         return ""
 
-    def get_most_recent_message(self):
-        return self.get_latest_assistant_message()
-
     def get_conversation_items(self):
         """Return the persisted conversation history for the active conversation."""
         if self.active_conversation_id is None:
             return []
         return self.store.list_items(self.active_conversation_id, included_only=False)
-
-    def get_conversation(self):
-        return self.get_conversation_items()
 
     def create_conversation(
         self,
@@ -95,9 +84,6 @@ class AICoach:
         self.active_conversation_id = str(conversation.id)
         log.debug(f"Created conversation {self.active_conversation_id}")
         return self.active_conversation_id
-
-    def create_thread(self, message: str | None = None) -> str:
-        return self.create_conversation(initial_message=message)
 
     def add_message(self, message, role: Literal["user", "assistant"] = "user") -> str:
         """Persist a local conversation message and return its item id."""
@@ -125,9 +111,6 @@ class AICoach:
             )
 
         yield from self._stream_until_done(conversation_id)
-
-    def stream_thread(self):
-        return self.stream_conversation()
 
     def set_active_conversation(self, conversation_id: str):
         conversation = self.store.get_conversation(conversation_id)
@@ -493,9 +476,6 @@ class AICoach:
                 for key, item in vars(value).items()
             }
         return str(value)
-
-    def get_structured_response_poll(self, message, schema: Type[T]) -> T:
-        return self.get_structured_response(message=message, schema=schema)
 
     def get_structured_response(
         self,

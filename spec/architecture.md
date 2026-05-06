@@ -6,7 +6,7 @@ SC2 AI Coach is an LLM-powered conversational coaching system for StarCraft II p
 
 **Version**: 0.6.0  
 **Language**: Python 3.12+  
-**Primary Frameworks**: OpenAI SDK via a shared sync client provider, OpenAI Assistants API, Pydantic, PyODMongo  
+**Primary Frameworks**: OpenAI SDK Responses API via a shared sync client provider, Pydantic, PyODMongo  
 **Deployment**: Local development with optional voice I/O and streaming integrations
 
 ---
@@ -125,13 +125,13 @@ graph TB
 **Configuration-driven setup**:
 - Audio modes: `text`, `voice_in`, `voice_out`, `full`
 - Coach events: `wake`, `game_start`, `new_replay`, `twitch`
-- AI backends: OpenAI (default), Mocked (testing)
+- AI backend: OpenAI
 
 #### 2. Session Management: `src/session.py`
 **Responsibility**: Orchestrates conversation sessions and event handling
 
 **Key Class: `AISession`**
-- Maintains conversation state: active thread ID, last opponent, last map, MMR estimates
+- Maintains conversation state: active local conversation ID, last opponent, last map, MMR estimates
 - Records session metadata in MongoDB including token usage and costs
 - Implements handlers for each event type:
   - `handle_game_start()` - New ladder match detected
@@ -145,16 +145,17 @@ graph TB
 **Handler Pattern**:
 Each handler typically:
 1. Grounds LLM context with event-specific data (opponent info, replay summary, etc.)
-2. Initiates a new conversation thread or continues existing one
+2. Initiates a new local conversation or continues an existing one
 3. Manages conversation loop (user input → LLM → response)
 4. Exits upon conversation completion
 
 #### 3. AI Integration: `src/ai/`
 
-**`aicoach.py`**: Wrapper around the OpenAI Responses migration surface
+**`aicoach.py`**: Wrapper around stateless OpenAI Responses calls
 - Obtains its SDK client from `src.ai.openai_provider.get_openai_client()` unless a test injects a client explicitly
-- Owns local conversation lifecycle while the Responses migration is in progress
-- Rebuilds streaming, tool execution, and structured output incrementally across migration chapters
+- Owns the local conversation lifecycle backed by MongoDB through `src.ai.state.ConversationStore`
+- Replays persisted messages, function calls, and function outputs on each Responses request with `store=False`
+- Implements non-streaming chat, streaming chat, tool execution loops, structured outputs, tracing, and response usage/cost persistence
 
 **`openai_provider.py`**: Shared sync OpenAI SDK client provider
 - Centralizes construction of the project's `OpenAI` client so application code and reusable tests do not create SDK clients directly
@@ -186,7 +187,7 @@ All functions decorated with `@AIFunction` for automatic registration.
 
 ```mermaid
 graph LR
-    LLM["OpenAI Assistant
+    LLM["OpenAI Responses
     LLM"]
     FC["Function Calling
     Event Handler"]
@@ -444,7 +445,7 @@ sequenceDiagram
         Session->>DB: Map statistics
     end
     
-    Session->>LLM: Create thread with context
+    Session->>LLM: Create local conversation with context
     LLM->>LLM: Generate response
     LLM->>TTS: Stream response
     TTS->>TTS: Synthesize audio
@@ -460,7 +461,7 @@ sequenceDiagram
     Note over Mic,Session: User says goodbye
     Session->>Session: Exit conversation
     
-    Session->>DB: Save thread ID & usage
+    Session->>DB: Save conversation ID & response usage
 ```
 
 1. **Detection**: `GameStartedListener` thread detects loading screen via OCR
@@ -474,11 +475,11 @@ sequenceDiagram
    - PlayerX's recent match history from SC2Pulse
    - Map statistics from database
 7. **LLM Grounding**: Renders `new_game.jinja2` template with gathered data
-8. **Thread Creation**: Creates new OpenAI thread with grounding message
+8. **Conversation Creation**: Creates a new local conversation with the grounding message
 9. **LLM Interaction**: Streams assistant response, feeding to TTS
 10. **Conversation Loop**: Listens for mic input, transcribes, sends to LLM, repeats
 11. **Termination**: User says "goodbye" or similar, handler exits
-12. **Session Recording**: Thread ID and usage saved to MongoDB session record
+12. **Session Recording**: Conversation ID and response usage totals are saved to MongoDB
 
 ### Example Flow: Replay Analysis
 
@@ -505,7 +506,7 @@ sequenceDiagram
     
     Queue->>Session: handle_new_replay(event)
     Session->>DB: Query replay stats
-    Session->>LLM: Create thread with summary
+    Session->>LLM: Create local conversation with summary
     
     LLM->>LLM: Analyze build order, mistakes, suggestions
     LLM-->>Session: Response
@@ -540,7 +541,7 @@ sequenceDiagram
 ## Key Technologies & Dependencies
 
 ### Core Libraries
-- **LLM**: `openai` (v2.33.0+) - OpenAI SDK accessed through `src.ai.openai_provider`; the project is migrating from Assistants to stateless Responses calls backed by local MongoDB conversation state
+- **LLM**: `openai` (v2.33.0+) - OpenAI SDK accessed through `src.ai.openai_provider`; all model calls use stateless Responses requests backed by local MongoDB conversation state
 - **Database**: `pyodmongo` (v1.4.6) - Pydantic ODM for MongoDB
 - **Replay Parsing**: `sc2reader` + `sc2reader-plugins` + `spawningtool`
 - **Configuration**: `pydantic` (v2.10.6), `pydantic-settings` (v2.7.1)
@@ -617,8 +618,10 @@ db_name: "sc2coach"
 
 # AI Configuration
 aibackend: "OpenAI"
-gpt_model: "gpt-4o"
+gpt_model: "gpt-5.4"
 openai_endpoint: null  # optional; custom endpoints normalize to {endpoint}/openai/v1/
+reasoning_effort: "medium"
+reasoning_continuity_enabled: false
 # Audio Configuration
 audiomode: "full"  # text | voice_in | voice_out | full
 speech_recognition_model: "openai/whisper-large-v3"
@@ -884,8 +887,8 @@ Based on code structure, potential extensions:
 - **Multi-LLM Support**: AICoach wrapper could support other LLM providers
 - **Web Interface**: Session management could be exposed via REST API
 - **Multi-player Support**: Database schema supports multiple students
-- **Coach Personas**: Different assistant IDs could provide varied coaching styles
-- **Replace Assistant API**: API is deprecated, move to Responses or another API
+- **Coach Personas**: Different prompt templates or runtime instruction profiles could provide varied coaching styles
+- **Context Management**: Add local conversation summarization and token-budget packing for long sessions
 
 ---
 

@@ -22,9 +22,9 @@ def test_function_add_metadata(util):
 
     message = f"Can you please pull up the replay with the ID '{rep_id}'. Who did I play against? What was the map?"
 
-    aicoach.create_thread(message)
+    aicoach.create_conversation(message)
 
-    response = util.stream_thread(aicoach)
+    response = util.stream_conversation(aicoach)
 
     message = "Can you please add the tag 'smurf' to the replay?"
 
@@ -59,9 +59,9 @@ def test_add_tag_after_replay_summary(replay_file, util):
 
     prompt = Templates.new_replay.render(replacements)
 
-    thread_id = coach.create_thread(prompt)  # noqa: F841
+    coach.create_conversation(prompt)
 
-    response = util.stream_thread(coach)
+    response = util.stream_conversation(coach)
     print(response)
 
     message = "Can you please add the tag 'smurf' to the replay?"
@@ -96,9 +96,9 @@ def test_add_player_tag_after_replay(replay_file, util):
 
     prompt = Templates.new_replay.render(replacements)
 
-    thread_id = coach.create_thread(prompt)  # noqa: F841
+    coach.create_conversation(prompt)
 
-    response = util.stream_thread(coach)
+    response = util.stream_conversation(coach)
 
     message = "Can you please tag this player as a smurf?"
 

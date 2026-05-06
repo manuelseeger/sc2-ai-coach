@@ -545,12 +545,6 @@ class Role(str, Enum):
     assistant = "assistant"
 
 
-class AssistantMessage(MainBaseModel):
-    created_at: datetime
-    role: Role
-    text: str
-
-
 class Metadata(DbModel):
     replay: ReplayId
     description: str | None = None
@@ -637,13 +631,6 @@ class PlayerInfo(DbModel):
 
     def __repr__(self) -> str:
         return self.__str__()
-
-
-class Usage(MainBaseModel):
-    thread_id: str
-    completion_tokens: int = 0
-    prompt_tokens: int = 0
-    total_tokens: int = 0
 
 
 class Session(DbModel):

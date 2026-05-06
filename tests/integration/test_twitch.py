@@ -1,9 +1,14 @@
+import sys
+
+import pytest
+
+if sys.gettrace() is None:
+    pytest.skip("Skipping debug-only integration test.", allow_module_level=True)
+
 from coach import AISession
 from src.events import TwitchChatEvent
-from tests.conftest import only_in_debugging
 
 
-@only_in_debugging
 def test_twitch_chat():
     session = AISession()
 

@@ -58,8 +58,8 @@ class AISession:
     """Represents one gaming session with the AI coach.
 
     Holds some session state:
-    - current assistant thread
-    - current thread handling twitch chat
+    - current local conversation
+    - current local conversation handling twitch chat
     - last player + replay we faced
 
     Records the session in the replaydb, and calculates the usage and cost
@@ -376,12 +376,12 @@ class AISession:
                 if done:
                     self.close()
         else:
-            log.debug("active thread, skipping")
+            log.debug("active conversation, skipping")
 
     def handle_wake(self, wakeresult: WakeEvent):
         """Handle a wake event.
 
-        This is the user waking up the assistant for a conversation
+        This is the user waking up the coach for a conversation
         without additional context.
         """
 
@@ -393,7 +393,7 @@ class AISession:
             if done:
                 self.close()
         else:
-            log.debug("active thread, skipping")
+            log.debug("active conversation, skipping")
 
     def handle_repl(self, repl_result: ReplEvent):
         """Handle startup REPL event.
@@ -413,7 +413,7 @@ class AISession:
             if done:
                 self.close()
         else:
-            log.debug("active thread, skipping")
+            log.debug("active conversation, skipping")
 
     def handle_new_replay(self, replay_result: NewReplayEvent):
         """Handle a new replay event.
@@ -440,7 +440,7 @@ class AISession:
 
                 self.close()
         else:
-            log.debug("active thread, skipping")
+            log.debug("active conversation, skipping")
 
     def handle_twitch_follow(self, twitch_follow: TwitchFollowEvent):
         """Handle a twitch follow event.

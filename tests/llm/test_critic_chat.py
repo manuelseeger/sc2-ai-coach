@@ -68,7 +68,7 @@ def test_twitch_chat(user, message, criteria, expected, util, critic: LmmCritic)
         answer: str
 
     prompt = Templates.twitch_chat.render(replacements)
-    thread_id = aicoach.create_thread(prompt)
+    aicoach.create_conversation(prompt)
 
     critic_init = "You are given questions by users and answers to those questions. Determine whether the answer satisfies the evaluation criteria.\n\n"
     critic_init += "EVALUATION CRITERIA: " + criteria

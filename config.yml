@@ -62,11 +62,11 @@ student:
 # Address of the SC2 game client server
 sc2_client_url: "http://127.0.0.1:6119"
 
-# AI coach backend, use "Mocked" for testing without an AI backend
+# AI coach backend
 aibackend: "OpenAI"
 # Optional custom OpenAI endpoint. Leave empty for the default OpenAI API.
 openai_endpoint:
-# which GPT model to use for OpenAI Assistant API
+# Which GPT model to use for OpenAI Responses API calls.
 gpt_model: "gpt-5.4"
 # Optional per-model pricing overrides. If omitted, built-in defaults are used.
 # model_pricing_per_million:

@@ -51,7 +51,7 @@ def test_get_viewer_replay(viewer, message, replay_file, mocker):
         answer: str
 
     prompt = Templates.twitch_chat.render(replacements)
-    thread_id = aicoach.create_thread(prompt)  # noqa: F841
+    aicoach.create_conversation(prompt)
 
     # act
     response: ChatResponse = aicoach.get_structured_response(

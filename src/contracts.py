@@ -1,6 +1,10 @@
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Any
 
-from speech_recognition.audio import AudioData
+if TYPE_CHECKING:
+    from speech_recognition.audio import AudioData
+else:
+    AudioData = Any
 
 
 class TranscriberService(ABC):

@@ -71,9 +71,9 @@ def prompt_file(request):
 
 class Util:
     @staticmethod
-    def stream_thread(coach):
+    def stream_conversation(coach):
         buffer = ""
-        for message in coach.stream_thread():
+        for message in coach.stream_conversation():
             buffer += message
         return buffer
 
