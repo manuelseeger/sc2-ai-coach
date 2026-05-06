@@ -16,6 +16,8 @@ from src.replaydb.types import (
     Session,
 )
 
+pytestmark = pytest.mark.mongo
+
 
 class FakeUsage(BaseModel):
     input_tokens: int = 0

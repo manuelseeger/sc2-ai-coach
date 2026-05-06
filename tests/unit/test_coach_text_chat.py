@@ -72,7 +72,7 @@ def test_text_chat_option_overrides_audiomode_to_text(mocker):
         captured["audiomode"] = config.audiomode
         return object(), None, None
 
-    mocker.patch.object(coach, "_build_services", side_effect=fake_build_services)
+    mocker.patch.object(coach, "_build_io_services", side_effect=fake_build_services)
 
     try:
         result = CliRunner().invoke(coach.main, ["--repl"])

@@ -8,6 +8,16 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27018:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval \"db.adminCommand('ping').ok\""
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
     steps:
       - name: Dependencies
         run: sudo add-apt-repository ppa:alex-p/tesseract-ocr5 -y && sudo apt update && sudo apt install ffmpeg libsm6 libxext6 tesseract-ocr tesseract-ocr-eng libtesseract-dev libleptonica-dev pkg-config -y
@@ -22,9 +32,10 @@ jobs:
         run: mkdir -p logs && mkdir -p obs
       - name: Test with pytest
         run: |
-          uv run pytest tests/unit --doctest-modules --junitxml=tests/test-results.xml --cov=. --cov-report=xml --cov-report=html
+          uv run pytest tests/unit --test-mongo=external --doctest-modules --junitxml=tests/test-results.xml --cov=. --cov-report=xml --cov-report=html
         env:
           AICOACH_MONGO_DSN: mongodb://localhost:27018
+          AICOACH_DB_NAME: SC2AICOACH_TEST
           AICOACH_OPENAI_API_KEY: "YYY"
           AICOACH_OPENAI_ORG_ID: "ZZZ"
           AICOACH_OPENAI_ENDPOINT: ""

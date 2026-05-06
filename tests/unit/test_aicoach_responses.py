@@ -12,6 +12,8 @@ from tests.support.fake_openai import (
     make_response,
 )
 
+pytestmark = pytest.mark.mongo
+
 
 @pytest.fixture(autouse=True)
 def cleanup_ai_conversations():
