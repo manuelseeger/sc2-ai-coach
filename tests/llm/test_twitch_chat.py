@@ -1,8 +1,15 @@
+import os
 from unittest.mock import MagicMock
 
 import pytest
 from pydantic import BaseModel
 from rich import print
+
+if not os.getenv("RUN_LIVE_OPENAI_TESTS"):
+    pytest.skip(
+        "Skipping live OpenAI test. Set RUN_LIVE_OPENAI_TESTS=1 to enable.",
+        allow_module_level=True,
+    )
 
 from config import config
 from src.ai import AICoach

@@ -3,12 +3,21 @@ from pydantic import BaseModel
 from rich import print
 
 from config import config
-from src.ai import AICoach
+from src.ai.aicoach import AICoach
 from src.ai.prompt import Templates
-from tests.conftest import LmmCritic
+from tests.critic import LmmCritic
+from tests.support.fake_openai import FakeOpenAIClient, make_response
+
+FIXTURE_CHAT_RESPONSES = {
+    "When do you think zatic has a shot at winning against Serral?": "The odds are low. Serral is one of the strongest players in the world, so zatic would need an exceptional game and some mistakes from Serral to have a realistic shot.",
+    "So is this cheating?": "No. This is not cheating because the coach only uses replay history and other recorded information. It cannot access live game data while a match is in progress.",
+    "How does this work?": "DokWon, it works by looking at recorded replay data and match history, then answering questions about those past games during the stream.",
+    "Where can I download this?": "You can find the source code on GitHub at https://github.com/manuelseeger/sc2-ai-coach .",
+    "@zatic when do you usually play so I can avoid you?": "zatic usually ladders in the evening, so that is the window to avoid if you want to dodge those games.",
+    "Have you ever reached masters?": "I have not held Masters consistently, but I have pushed into strong ladder form before and keep working on it.",
+}
 
 
-# @only_in_debugging
 @parametrize_from_file
 def test_twitch_chat(user, message, criteria, expected, util, critic: LmmCritic):
     """Actor / CritiC testing of LMM responses.
@@ -21,7 +30,33 @@ def test_twitch_chat(user, message, criteria, expected, util, critic: LmmCritic)
     completions on another LLM, which is why we only run these in debugging."""
 
     # arrange
-    aicoach = AICoach()
+    client = FakeOpenAIClient(
+        queued=[
+            make_response(
+                response_id=f"resp-critic-chat-{user}",
+                output_text=(
+                    '{"is_question": true, "answer": '
+                    f"{FIXTURE_CHAT_RESPONSES[message]!r}".replace("'", '"')
+                    + "}"
+                ),
+                usage={
+                    "input_tokens": 18,
+                    "output_tokens": 7,
+                    "total_tokens": 25,
+                    "input_tokens_details": {"cached_tokens": 0},
+                },
+            )
+        ]
+    )
+    aicoach = AICoach(client=client)
+    critic = LmmCritic(
+        scripted_results=[
+            {
+                "passed": expected,
+                "justification": f"Fixture-backed evaluation for: {criteria}",
+            }
+        ]
+    )
 
     replacements = {
         "user": user,

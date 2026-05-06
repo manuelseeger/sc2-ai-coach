@@ -1,239 +1,16 @@
-from types import SimpleNamespace
-
 import pytest
 from pydantic import BaseModel
 
 from src.ai.aicoach import AICoach
 from src.ai.state import ConversationStore
 from src.replaydb.types import AIConversation, AIConversationTrigger, AIResponseRecord
-
-
-class FakeResponsesAPI:
-    def __init__(self):
-        self.calls: list[dict] = []
-
-    def create(self, **kwargs):
-        self.calls.append(kwargs)
-        return SimpleNamespace(
-            id="resp-unit-ch5",
-            model="gpt-4.1-mini",
-            status="completed",
-            output_text="Coach reply",
-            usage={
-                "input_tokens": 12,
-                "output_tokens": 5,
-                "total_tokens": 17,
-                "input_tokens_details": {"cached_tokens": 2},
-            },
-        )
-
-
-class FakeOpenAIClient:
-    def __init__(self):
-        self.responses = FakeResponsesAPI()
-
-
-class FakeToolLoopResponsesAPI:
-    def __init__(self):
-        self.calls: list[dict] = []
-
-    def create(self, **kwargs):
-        self.calls.append(kwargs)
-        if len(self.calls) == 1:
-            return SimpleNamespace(
-                id="resp-tool-1",
-                model="gpt-4.1-mini",
-                status="completed",
-                output=[
-                    SimpleNamespace(
-                        type="function_call",
-                        call_id="call-1",
-                        name="QueryReplayDB",
-                        arguments='{"filter": "{}", "projection": null, "sort": null, "limit": 1, "limit_time": null}',
-                    )
-                ],
-                usage={
-                    "input_tokens": 20,
-                    "output_tokens": 4,
-                    "total_tokens": 24,
-                    "input_tokens_details": {"cached_tokens": 0},
-                },
-            )
-
-        return SimpleNamespace(
-            id="resp-tool-2",
-            model="gpt-4.1-mini",
-            status="completed",
-            output_text="Your most recent game was yesterday.",
-            usage={
-                "input_tokens": 30,
-                "output_tokens": 6,
-                "total_tokens": 36,
-                "input_tokens_details": {"cached_tokens": 0},
-            },
-        )
-
-
-class FakeToolLoopClient:
-    def __init__(self):
-        self.responses = FakeToolLoopResponsesAPI()
-
-
-class FakeResponseStream:
-    def __init__(self, events, final_response=None):
-        self._events = list(events)
-        self._final_response = final_response
-
-    def __iter__(self):
-        return iter(self._events)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc, tb):
-        return False
-
-    def get_final_response(self):
-        return self._final_response
-
-
-class FakeStreamingResponsesAPI:
-    def __init__(self):
-        self.calls: list[dict] = []
-
-    def create(self, **kwargs):
-        self.calls.append(kwargs)
-        response = SimpleNamespace(
-            id="resp-stream-1",
-            model="gpt-4.1-mini",
-            status="completed",
-            output_text="Coach streamed reply",
-            usage={
-                "input_tokens": 18,
-                "output_tokens": 5,
-                "total_tokens": 23,
-                "input_tokens_details": {"cached_tokens": 1},
-            },
-        )
-        return FakeResponseStream(
-            [
-                SimpleNamespace(type="response.output_text.delta", delta="Coach "),
-                SimpleNamespace(
-                    type="response.output_text.delta", delta="streamed reply"
-                ),
-                SimpleNamespace(type="response.completed", response=response),
-            ],
-            final_response=response,
-        )
-
-
-class FakeStreamingClient:
-    def __init__(self):
-        self.responses = FakeStreamingResponsesAPI()
-
-
-class FakeStreamingToolLoopResponsesAPI:
-    def __init__(self):
-        self.calls: list[dict] = []
-
-    def create(self, **kwargs):
-        self.calls.append(kwargs)
-        if len(self.calls) == 1:
-            response = SimpleNamespace(
-                id="resp-stream-tool-1",
-                model="gpt-4.1-mini",
-                status="completed",
-                output=[
-                    SimpleNamespace(
-                        type="function_call",
-                        call_id="call-stream-1",
-                        name="QueryReplayDB",
-                        arguments='{"filter": "{}", "projection": null, "sort": null, "limit": 1, "limit_time": null}',
-                    )
-                ],
-                usage={
-                    "input_tokens": 21,
-                    "output_tokens": 4,
-                    "total_tokens": 25,
-                    "input_tokens_details": {"cached_tokens": 0},
-                },
-            )
-            return FakeResponseStream(
-                [SimpleNamespace(type="response.completed", response=response)],
-                final_response=response,
-            )
-
-        response = SimpleNamespace(
-            id="resp-stream-tool-2",
-            model="gpt-4.1-mini",
-            status="completed",
-            output_text="You played on Dynasty.",
-            usage={
-                "input_tokens": 27,
-                "output_tokens": 6,
-                "total_tokens": 33,
-                "input_tokens_details": {"cached_tokens": 0},
-            },
-        )
-        return FakeResponseStream(
-            [
-                SimpleNamespace(type="response.output_text.delta", delta="You played "),
-                SimpleNamespace(type="response.output_text.delta", delta="on Dynasty."),
-                SimpleNamespace(type="response.completed", response=response),
-            ],
-            final_response=response,
-        )
-
-
-class FakeStreamingToolLoopClient:
-    def __init__(self):
-        self.responses = FakeStreamingToolLoopResponsesAPI()
-
-
-class FakeStructuredResponsesAPI:
-    def __init__(self):
-        self.calls: list[dict] = []
-
-    def create(self, **kwargs):
-        self.calls.append(kwargs)
-        if len(self.calls) == 1:
-            return SimpleNamespace(
-                id="resp-structured-1",
-                model="gpt-4.1-mini",
-                status="completed",
-                output=[
-                    SimpleNamespace(
-                        type="function_call",
-                        call_id="call-structured-1",
-                        name="QueryReplayDB",
-                        arguments='{"filter": "{}", "projection": null, "sort": null, "limit": 1, "limit_time": null}',
-                    )
-                ],
-                usage={
-                    "input_tokens": 24,
-                    "output_tokens": 4,
-                    "total_tokens": 28,
-                    "input_tokens_details": {"cached_tokens": 0},
-                },
-            )
-
-        return SimpleNamespace(
-            id="resp-structured-2",
-            model="gpt-4.1-mini",
-            status="completed",
-            output_text='{"is_question": true, "answer": "Yes, your last game was on Dynasty."}',
-            usage={
-                "input_tokens": 33,
-                "output_tokens": 9,
-                "total_tokens": 42,
-                "input_tokens_details": {"cached_tokens": 0},
-            },
-        )
-
-
-class FakeStructuredClient:
-    def __init__(self):
-        self.responses = FakeStructuredResponsesAPI()
+from tests.support.fake_openai import (
+    FakeOpenAIClient,
+    FakeResponseStream,
+    make_event,
+    make_function_call,
+    make_response,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -249,7 +26,20 @@ def cleanup_ai_conversations():
 def test_get_response_assembles_full_history_and_persists_response(
     cleanup_ai_conversations,
 ):
-    client = FakeOpenAIClient()
+    client = FakeOpenAIClient(
+        queued=[
+            make_response(
+                response_id="resp-unit-ch5",
+                output_text="Coach reply",
+                usage={
+                    "input_tokens": 12,
+                    "output_tokens": 5,
+                    "total_tokens": 17,
+                    "input_tokens_details": {"cached_tokens": 2},
+                },
+            )
+        ]
+    )
     coach = AICoach(client=client)
     coach.init_additional_instructions("Keep the advice matchup-specific.")
 
@@ -302,7 +92,36 @@ def test_get_response_executes_tool_loop_and_replays_tool_transcript(
     cleanup_ai_conversations,
     mocker,
 ):
-    client = FakeToolLoopClient()
+    client = FakeOpenAIClient(
+        queued=[
+            make_response(
+                response_id="resp-tool-1",
+                output=[
+                    make_function_call(
+                        name="QueryReplayDB",
+                        call_id="call-1",
+                        arguments='{"filter": "{}", "projection": null, "sort": null, "limit": 1, "limit_time": null}',
+                    )
+                ],
+                usage={
+                    "input_tokens": 20,
+                    "output_tokens": 4,
+                    "total_tokens": 24,
+                    "input_tokens_details": {"cached_tokens": 0},
+                },
+            ),
+            make_response(
+                response_id="resp-tool-2",
+                output_text="Your most recent game was yesterday.",
+                usage={
+                    "input_tokens": 30,
+                    "output_tokens": 6,
+                    "total_tokens": 36,
+                    "input_tokens_details": {"cached_tokens": 0},
+                },
+            ),
+        ]
+    )
     coach = AICoach(client=client)
     query_tool = coach.functions["QueryReplayDB"]
     invoke_spy = mocker.patch.object(
@@ -348,7 +167,20 @@ def test_get_response_executes_tool_loop_and_replays_tool_transcript(
 
 
 def test_trace_logs_full_request_and_response(cleanup_ai_conversations, mocker):
-    client = FakeOpenAIClient()
+    client = FakeOpenAIClient(
+        queued=[
+            make_response(
+                response_id="resp-trace-1",
+                output_text="Coach reply",
+                usage={
+                    "input_tokens": 12,
+                    "output_tokens": 5,
+                    "total_tokens": 17,
+                    "input_tokens_details": {"cached_tokens": 2},
+                },
+            )
+        ]
+    )
     debug_log = mocker.patch("src.ai.aicoach.log.debug")
     coach = AICoach(client=client, trace=True)
 
@@ -369,7 +201,28 @@ def test_trace_logs_full_request_and_response(cleanup_ai_conversations, mocker):
 
 
 def test_chat_streams_text_and_persists_streamed_response(cleanup_ai_conversations):
-    client = FakeStreamingClient()
+    response = make_response(
+        response_id="resp-stream-1",
+        output_text="Coach streamed reply",
+        usage={
+            "input_tokens": 18,
+            "output_tokens": 5,
+            "total_tokens": 23,
+            "input_tokens_details": {"cached_tokens": 1},
+        },
+    )
+    client = FakeOpenAIClient(
+        queued=[
+            FakeResponseStream(
+                [
+                    make_event("response.output_text.delta", delta="Coach "),
+                    make_event("response.output_text.delta", delta="streamed reply"),
+                    make_event("response.completed", response=response),
+                ],
+                final_response=response,
+            )
+        ]
+    )
     coach = AICoach(client=client)
 
     conversation_id = coach.create_conversation(
@@ -402,7 +255,48 @@ def test_chat_streams_text_and_persists_streamed_response(cleanup_ai_conversatio
 
 
 def test_chat_streams_then_executes_tool_loop(cleanup_ai_conversations, mocker):
-    client = FakeStreamingToolLoopClient()
+    first_response = make_response(
+        response_id="resp-stream-tool-1",
+        output=[
+            make_function_call(
+                name="QueryReplayDB",
+                call_id="call-stream-1",
+                arguments='{"filter": "{}", "projection": null, "sort": null, "limit": 1, "limit_time": null}',
+            )
+        ],
+        usage={
+            "input_tokens": 21,
+            "output_tokens": 4,
+            "total_tokens": 25,
+            "input_tokens_details": {"cached_tokens": 0},
+        },
+    )
+    second_response = make_response(
+        response_id="resp-stream-tool-2",
+        output_text="You played on Dynasty.",
+        usage={
+            "input_tokens": 27,
+            "output_tokens": 6,
+            "total_tokens": 33,
+            "input_tokens_details": {"cached_tokens": 0},
+        },
+    )
+    client = FakeOpenAIClient(
+        queued=[
+            FakeResponseStream(
+                [make_event("response.completed", response=first_response)],
+                final_response=first_response,
+            ),
+            FakeResponseStream(
+                [
+                    make_event("response.output_text.delta", delta="You played "),
+                    make_event("response.output_text.delta", delta="on Dynasty."),
+                    make_event("response.completed", response=second_response),
+                ],
+                final_response=second_response,
+            ),
+        ]
+    )
     coach = AICoach(client=client)
     query_tool = coach.functions["QueryReplayDB"]
     invoke_spy = mocker.patch.object(
@@ -454,7 +348,36 @@ def test_get_structured_response_executes_tool_loop_and_parses_schema(
         is_question: bool
         answer: str
 
-    client = FakeStructuredClient()
+    client = FakeOpenAIClient(
+        queued=[
+            make_response(
+                response_id="resp-structured-1",
+                output=[
+                    make_function_call(
+                        name="QueryReplayDB",
+                        call_id="call-structured-1",
+                        arguments='{"filter": "{}", "projection": null, "sort": null, "limit": 1, "limit_time": null}',
+                    )
+                ],
+                usage={
+                    "input_tokens": 24,
+                    "output_tokens": 4,
+                    "total_tokens": 28,
+                    "input_tokens_details": {"cached_tokens": 0},
+                },
+            ),
+            make_response(
+                response_id="resp-structured-2",
+                output_text='{"is_question": true, "answer": "Yes, your last game was on Dynasty."}',
+                usage={
+                    "input_tokens": 33,
+                    "output_tokens": 9,
+                    "total_tokens": 42,
+                    "input_tokens_details": {"cached_tokens": 0},
+                },
+            ),
+        ]
+    )
     coach = AICoach(client=client)
     query_tool = coach.functions["QueryReplayDB"]
     invoke_spy = mocker.patch.object(

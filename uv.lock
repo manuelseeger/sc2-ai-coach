@@ -2878,6 +2878,18 @@ wheels = [
 ]
 
 [[package]]
+name = "respx"
+version = "0.23.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/43/98/4e55c9c486404ec12373708d015ebce157966965a5ebe7f28ff2c784d41b/respx-0.23.1.tar.gz", hash = "sha256:242dcc6ce6b5b9bf621f5870c82a63997e8e82bc7c947f9ffe272b8f3dd5a780", size = 29243 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1d/4a/221da6ca167db45693d8d26c7dc79ccfc978a440251bf6721c9aaf251ac0/respx-0.23.1-py2.py3-none-any.whl", hash = "sha256:b18004b029935384bccfa6d7d9d74b4ec9af73a081cc28600fffc0447f4b8c1a", size = 25557 },
+]
+
+[[package]]
 name = "rfc3986"
 version = "1.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3004,6 +3016,7 @@ dependencies = [
     { name = "sc2reader", marker = "sys_platform == 'win32'" },
     { name = "sc2reader-plugins", marker = "sys_platform == 'win32'" },
     { name = "spawningtool", marker = "sys_platform == 'win32'" },
+    { name = "tabulate", marker = "sys_platform == 'win32'" },
     { name = "watchdog", marker = "sys_platform == 'win32'" },
 ]
 
@@ -3044,6 +3057,7 @@ dev = [
     { name = "pytest", marker = "sys_platform == 'win32'" },
     { name = "pytest-cov", marker = "sys_platform == 'win32'" },
     { name = "pytest-mock", marker = "sys_platform == 'win32'" },
+    { name = "respx", marker = "sys_platform == 'win32'" },
     { name = "ruff", marker = "sys_platform == 'win32'" },
     { name = "setuptools", marker = "sys_platform == 'win32'" },
 ]
@@ -3079,6 +3093,7 @@ requires-dist = [
     { name = "soundfile", marker = "extra == 'standard'", specifier = ">=0.13.1" },
     { name = "spawningtool", git = "https://github.com/StoicLoofah/spawningtool.git?rev=master" },
     { name = "speechrecognition", extras = ["audio"], marker = "extra == 'standard'", specifier = ">=3.14.1" },
+    { name = "tabulate", specifier = ">=0.10.0" },
     { name = "tesserocr", marker = "extra == 'standard'", url = "https://github.com/simonflueckiger/tesserocr-windows_build/releases/download/tesserocr-v2.8.0-tesseract-5.5.0/tesserocr-2.8.0-cp312-cp312-win_amd64.whl" },
     { name = "torch", marker = "extra == 'openwakeword'", specifier = ">=2.6.0", index = "https://download.pytorch.org/whl/cu124" },
     { name = "torch", marker = "extra == 'whisper'", specifier = ">=2.6.0", index = "https://download.pytorch.org/whl/cu124" },
@@ -3097,6 +3112,7 @@ dev = [
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "pytest-cov", specifier = ">=6.0.0" },
     { name = "pytest-mock", specifier = ">=3.14.0" },
+    { name = "respx", specifier = ">=0.22.0" },
     { name = "ruff", specifier = ">=0.13.0" },
     { name = "setuptools", specifier = ">=75.8.0" },
 ]

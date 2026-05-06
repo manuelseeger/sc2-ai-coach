@@ -1,3 +1,13 @@
+import os
+
+import pytest
+
+if not os.getenv("RUN_LIVE_OPENAI_TESTS"):
+    pytest.skip(
+        "Skipping live OpenAI test. Set RUN_LIVE_OPENAI_TESTS=1 to enable.",
+        allow_module_level=True,
+    )
+
 from pydantic import BaseModel
 from rich import print
 

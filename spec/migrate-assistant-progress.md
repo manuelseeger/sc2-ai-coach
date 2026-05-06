@@ -202,3 +202,22 @@
 - Result: `21 passed`
 - Verified replay metadata persistence with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/integration/test_db.py -q`
 - Result: `5 passed`
+
+## Chapter 13
+
+- Added a reusable offline Responses harness in [tests/support/fake_openai.py](c:/Users/seeg/dev/sc2-ai-coach/tests/support/fake_openai.py) with queued `responses.create(...)` results, streaming event iteration, and helper builders for response objects, function-call items, and stream events.
+- Migrated [tests/unit/test_aicoach_responses.py](c:/Users/seeg/dev/sc2-ai-coach/tests/unit/test_aicoach_responses.py) off bespoke per-test fake clients onto the shared harness so the request assembly, tool loop, streaming, and structured-output slices all exercise one common fake SDK surface.
+- Extended [tests/critic.py](c:/Users/seeg/dev/sc2-ai-coach/tests/critic.py) with deterministic `scripted_results` support so fixture-driven tests can run fully offline without calling `client.beta.chat.completions.parse(...)`.
+- Reworked [tests/llm/test_critic_chat.py](c:/Users/seeg/dev/sc2-ai-coach/tests/llm/test_critic_chat.py) into an offline fixture-backed Responses test: it now uses the existing `test_critic_chat.json` cases, injects a scripted fake `AICoach` client, and evaluates the resulting structured reply through scripted critic outcomes instead of a live critic model.
+- Added [tests/unit/test_openai_responses_sdk_contract.py](c:/Users/seeg/dev/sc2-ai-coach/tests/unit/test_openai_responses_sdk_contract.py) with `respx`-backed SDK contract coverage for the exact non-streaming function-call shape and streaming `response.output_text.delta` / `response.completed` event shapes consumed by [src/ai/aicoach.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/aicoach.py).
+- Added `respx` to the dev dependency group in [pyproject.toml](c:/Users/seeg/dev/sc2-ai-coach/pyproject.toml) for those SDK contract tests.
+- Marked the remaining live OpenAI LLM files as explicit opt-in at module import time in [tests/llm/test_aicoach.py](c:/Users/seeg/dev/sc2-ai-coach/tests/llm/test_aicoach.py), [tests/llm/test_function_metadata.py](c:/Users/seeg/dev/sc2-ai-coach/tests/llm/test_function_metadata.py), [tests/llm/test_replay_timestamps.py](c:/Users/seeg/dev/sc2-ai-coach/tests/llm/test_replay_timestamps.py), and [tests/llm/test_twitch_chat.py](c:/Users/seeg/dev/sc2-ai-coach/tests/llm/test_twitch_chat.py) so default test collection no longer imports heavy runtime/audio surfaces or attempts live OpenAI calls unless `RUN_LIVE_OPENAI_TESTS=1` is set.
+
+## Validation
+
+- Synced the new Chapter 13 test dependency with: `uv sync`
+- Result: `respx==0.23.1` installed in the workspace venv
+- Verified the focused Chapter 13 harness slice with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/unit/test_aicoach_responses.py tests/unit/test_openai_provider.py tests/unit/test_openai_responses_sdk_contract.py tests/llm/test_critic_chat.py -q`
+- Result: `21 passed`
+- Verified the remaining live-only LLM files now opt out cleanly by default with: `c:/Users/seeg/dev/sc2-ai-coach/.venv/Scripts/python.exe -m pytest tests/llm/test_aicoach.py tests/llm/test_function_metadata.py tests/llm/test_replay_timestamps.py tests/llm/test_twitch_chat.py -q`
+- Result: `4 skipped`

@@ -1,3 +1,4 @@
+import os
 import pathlib
 import sys
 import time
@@ -25,6 +26,15 @@ def only_in_debugging(func):
     """Decorator to skip tests unless a debugger is attached."""
     if sys.gettrace() is None:  # No debugger is attached
         func = pytest.mark.skip(reason="Skipping because not in debugging mode.")(func)
+    return func
+
+
+def only_with_live_openai(func):
+    """Decorator to skip live OpenAI tests unless explicitly enabled."""
+    if not os.getenv("RUN_LIVE_OPENAI_TESTS"):
+        func = pytest.mark.skip(
+            reason="Skipping live OpenAI test. Set RUN_LIVE_OPENAI_TESTS=1 to enable."
+        )(func)
     return func
 
 
