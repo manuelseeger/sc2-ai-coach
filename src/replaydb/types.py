@@ -437,6 +437,28 @@ class AIContentPart(MainBaseModel):
     text: str
 
 
+def _data(value: Any) -> dict[str, Any]:
+    if value is None:
+        return {}
+    if isinstance(value, dict):
+        return {key: _value(item) for key, item in value.items()}
+    if hasattr(value, "model_dump"):
+        return _data(value.model_dump(mode="python"))
+    if hasattr(value, "__dict__"):
+        return {key: _value(item) for key, item in vars(value).items()}
+    return {key: _value(item) for key, item in dict(value).items()}
+
+
+def _value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return _data(value)
+    if isinstance(value, (list, tuple)):
+        return [_value(item) for item in value]
+    if hasattr(value, "model_dump") or hasattr(value, "__dict__"):
+        return _data(value)
+    return value
+
+
 class AIConversation(DbModel):
     session: Session | Id | None = None
     trigger: AIConversationTrigger
@@ -477,6 +499,22 @@ class AIConversation(DbModel):
         if value is None:
             return {}
         return value
+
+    def close(self) -> None:
+        self.status = AIConversationStatus.closed
+        self.closed_at = datetime.now()
+
+    def add_item(self, item: AIConversationItem) -> None:
+        self.last_item_at = item.created_at
+        self.item_count += 1
+
+    def add_response_record(self, record: AIResponseRecord) -> None:
+        self.last_response_id = record.response_id
+        self.total_input_tokens += record.input_tokens
+        self.total_cached_tokens += record.cached_tokens
+        self.total_output_tokens += record.output_tokens
+        self.total_tokens += record.total_tokens
+        self.total_cost += record.total_cost
 
 
 class AIConversationItem(DbModel):
@@ -538,6 +576,54 @@ class AIResponseRecord(DbModel):
         IndexModel([("conversation", ASCENDING), ("created_at", ASCENDING)]),
         IndexModel([("response_id", ASCENDING)], unique=True, sparse=True),
     ]
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def _default_metadata(cls, value: dict[str, Any] | None) -> dict[str, Any]:
+        if value is None:
+            return {}
+        return value
+
+    @classmethod
+    def from_response(
+        cls,
+        conversation: AIConversation,
+        response: Any,
+        streamed: bool = False,
+    ) -> AIResponseRecord:
+        response_data = _data(response)
+        usage = _data(response_data.get("usage"))
+        input_details = _data(usage.get("input_tokens_details"))
+        response_id = response_data.get("id") or response_data.get("response_id")
+        model = response_data.get("model")
+
+        input_tokens = int(usage.get("input_tokens") or 0)
+        cached_tokens = int(input_details.get("cached_tokens") or 0)
+        output_tokens = int(usage.get("output_tokens") or 0)
+        total_tokens = int(usage.get("total_tokens") or input_tokens + output_tokens)
+
+        pricing = config.get_model_pricing(model)
+        input_cost = max(0, input_tokens - cached_tokens) * pricing.prompt
+        cached_input_cost = cached_tokens * pricing.cached_prompt
+        output_cost = output_tokens * pricing.completion
+
+        return cls(
+            conversation=conversation,
+            session=conversation.session,
+            response_id=response_id,
+            model=model,
+            status=response_data.get("status"),
+            streamed=streamed,
+            input_tokens=input_tokens,
+            cached_tokens=cached_tokens,
+            output_tokens=output_tokens,
+            total_tokens=total_tokens,
+            input_cost=input_cost,
+            cached_input_cost=cached_input_cost,
+            output_cost=output_cost,
+            total_cost=input_cost + cached_input_cost + output_cost,
+            raw_usage=usage or None,
+        )
 
 
 class Role(str, Enum):
@@ -648,3 +734,10 @@ class Session(DbModel):
     total_tokens: int = 0
     total_cost: float = 0
     _collection: ClassVar = "sessions"
+
+    def add_response_record(self, record: AIResponseRecord) -> None:
+        self.total_input_tokens += record.input_tokens
+        self.total_cached_tokens += record.cached_tokens
+        self.total_output_tokens += record.output_tokens
+        self.total_tokens += record.total_tokens
+        self.total_cost += record.total_cost
