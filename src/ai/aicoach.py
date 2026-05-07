@@ -337,6 +337,9 @@ class AICoach:
         if fragments:
             return "".join(fragments)
 
+        if any(self._item_value(item, "type") == "function_call" for item in output):
+            return ""
+
         log.warning("Response completed without assistant text")
         return ""
 
@@ -383,7 +386,11 @@ class AICoach:
                 arguments=arguments,
                 response_id=response_id,
             )
-            log.info(f"Executing tool {name} with call_id={call_id}")
+            log.info(
+                "Executing tool %s with input %s",
+                name,
+                json.dumps(arguments, default=str, sort_keys=True),
+            )
 
             tool = self.functions.get(name)
             if tool is None:

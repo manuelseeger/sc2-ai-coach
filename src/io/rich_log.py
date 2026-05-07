@@ -157,7 +157,7 @@ class RichConsoleLogHandler(Handler):
         else:
             style = None
 
-        msg = record.msg
+        msg = record.getMessage()
 
         self.print(msg, emoji=emoji, style=style, flush=flush)
         self.fqn = self.get_fqn(record.name, record.funcName)
@@ -166,11 +166,12 @@ class RichConsoleLogHandler(Handler):
         return f"{name}.{funcName}"
 
     def _record_signature(self, record: LogRecord) -> tuple:
+        message = record.getMessage()
         return (
             record.name,
             record.funcName,
             record.levelno,
-            record.msg,
+            message,
             getattr(record, "role", None),
             getattr(record, "flush", False),
         )

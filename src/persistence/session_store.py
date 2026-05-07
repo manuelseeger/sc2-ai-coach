@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from pydantic import Field
 from pyodmongo import DbModel, Id
 from pyodmongo.queries import eq
 
 from config import AIBackend
-from src.persistence.conversation_store import AIResponseRecord
 from src.persistence.database import MongoDatabase, get_database
+
+if TYPE_CHECKING:
+    from src.persistence.conversation_store import AIResponseRecord
 
 
 class Session(DbModel):
@@ -108,8 +110,8 @@ class SessionStore:
 
     def _id(self, value: Session | Id | str) -> Id:
         if isinstance(value, str):
-            return value
+            return Id(value)
         model_id = getattr(value, "id", value)
         if model_id is None:
             raise ValueError("Session must be saved before use")
-        return model_id
+        return Id(model_id)

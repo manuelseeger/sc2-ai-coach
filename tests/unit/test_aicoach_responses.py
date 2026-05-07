@@ -129,6 +129,8 @@ def test_get_response_executes_tool_loop_and_replays_tool_transcript(
         ]
     )
     coach = AICoach(client=client)
+    warning_log = mocker.patch("src.ai.aicoach.log.warning")
+    info_log = mocker.patch("src.ai.aicoach.log.info")
     query_tool = coach.functions["QueryReplayDB"]
     invoke_spy = mocker.patch.object(
         query_tool,
@@ -166,6 +168,17 @@ def test_get_response_executes_tool_loop_and_replays_tool_transcript(
     assert "Hecate LE" in items[2].output
     assert items[3].role.value == "assistant"
     assert items[3].content[0].text == "Your most recent game was yesterday."
+    assert not any(
+        call.args and call.args[0] == "Response completed without assistant text"
+        for call in warning_log.call_args_list
+    )
+    assert any(
+        call.args
+        and call.args[0] == "Executing tool %s with input %s"
+        and call.args[1] == "QueryReplayDB"
+        and '"limit": 1' in call.args[2]
+        for call in info_log.call_args_list
+    )
 
     second_input = client.responses.calls[1]["input"]
     assert second_input[1]["type"] == "function_call"

@@ -82,6 +82,7 @@ dev = [
   "respx>=0.22.0",
   "ruff>=0.13.0",
   "setuptools>=75.8.0",
+  "tiktoken>=0.12.0",
 ]
 
 

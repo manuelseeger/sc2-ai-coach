@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, ClassVar, TypeVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar, TypeVar, cast
 
 from pydantic import Field, field_validator
 from pymongo import ASCENDING, IndexModel
@@ -17,6 +17,9 @@ from src.replays.types import (
     AIConversationTrigger,
     AIMessageRole,
 )
+
+if TYPE_CHECKING:
+    from src.persistence.session_store import Session
 
 ModelT = TypeVar("ModelT")
 
@@ -192,7 +195,7 @@ class AIResponseRecord(DbModel):
         output_cost = output_tokens * pricing.completion
 
         return cls(
-            conversation=conversation.id,
+            conversation=Id(conversation.id),
             session=conversation.session,
             response_id=response_id,
             model=model,
@@ -351,7 +354,7 @@ class ConversationStore:
         if record.response_id is not None:
             existing = self.db.find_one(
                 Model=AIResponseRecord,
-                query=AIResponseRecord.response_id == record.response_id,
+                query=AIResponseRecord.response_id == record.response_id,  # type: ignore
             )
             if existing is not None:
                 return existing
@@ -384,7 +387,7 @@ class ConversationStore:
             self.db.delete(AIResponseRecord, query=response_query)
 
     def save(self, model: ModelT) -> ModelT:
-        self.db.save(model)
+        self.db.save(model)  # type: ignore
         return model
 
     def _next_order(self, conversation: AIConversation) -> int:

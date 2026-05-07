@@ -3061,6 +3061,7 @@ dev = [
     { name = "ruff", marker = "sys_platform == 'win32'" },
     { name = "setuptools", marker = "sys_platform == 'win32'" },
     { name = "testcontainers", extra = ["mongodb"], marker = "sys_platform == 'win32'" },
+    { name = "tiktoken", marker = "sys_platform == 'win32'" },
 ]
 
 [package.metadata]
@@ -3117,6 +3118,7 @@ dev = [
     { name = "ruff", specifier = ">=0.13.0" },
     { name = "setuptools", specifier = ">=75.8.0" },
     { name = "testcontainers", extras = ["mongodb"], specifier = ">=4.13.2" },
+    { name = "tiktoken", specifier = ">=0.12.0" },
 ]
 
 [[package]]
@@ -3698,6 +3700,23 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f0/f7/00111968245f33389ea749cc8490366ed711c125dd475bfa2035d7fc8dde/tidyexc-0.10.0.tar.gz", hash = "sha256:06472f8894a282f944e6a102c5f6c5a58bb681589d58bbe1795c3905639581be", size = 20964 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8f/45/34d2de24e0973cdbd1839f030f5bda4ab25fa7993735382ed91d7afdff38/tidyexc-0.10.0-py3-none-any.whl", hash = "sha256:26d6e3252e2bc58d9ad254b48bdca2bcf1f765d309e360563d32a7ac47085535", size = 10626 },
+]
+
+[[package]]
+name = "tiktoken"
+version = "0.12.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "regex", marker = "sys_platform == 'win32'" },
+    { name = "requests", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7d/ab/4d017d0f76ec3171d469d80fc03dfbb4e48a4bcaddaa831b31d526f05edc/tiktoken-0.12.0.tar.gz", hash = "sha256:b18ba7ee2b093863978fcb14f74b3707cdc8d4d4d3836853ce7ec60772139931", size = 37806 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/81/10/b8523105c590c5b8349f2587e2fdfe51a69544bd5a76295fc20f2374f470/tiktoken-0.12.0-cp312-cp312-win_amd64.whl", hash = "sha256:ffc5288f34a8bc02e1ea7047b8d041104791d2ddbf42d1e5fa07822cbffe16bd", size = 878694 },
+    { url = "https://files.pythonhosted.org/packages/8e/32/45d02e2e0ea2be3a9ed22afc47d93741247e75018aac967b713b2941f8ea/tiktoken-0.12.0-cp313-cp313-win_amd64.whl", hash = "sha256:b8a0cd0c789a61f31bf44851defbd609e8dd1e2c8589c614cc1060940ef1f697", size = 879117 },
+    { url = "https://files.pythonhosted.org/packages/93/e0/6cc82a562bc6365785a3ff0af27a2a092d57c47d7a81d9e2295d8c36f011/tiktoken-0.12.0-cp313-cp313t-win_amd64.whl", hash = "sha256:dc2dd125a62cb2b3d858484d6c614d136b5b848976794edfb63688d539b8b93f", size = 878777 },
+    { url = "https://files.pythonhosted.org/packages/80/57/ce64fd16ac390fafde001268c364d559447ba09b509181b2808622420eec/tiktoken-0.12.0-cp314-cp314-win_amd64.whl", hash = "sha256:399c3dd672a6406719d84442299a490420b458c44d3ae65516302a99675888f3", size = 921067 },
+    { url = "https://files.pythonhosted.org/packages/af/df/c7891ef9d2712ad774777271d39fdef63941ffba0a9d59b7ad1fd2765e57/tiktoken-0.12.0-cp314-cp314t-win_amd64.whl", hash = "sha256:f61c0aea5565ac82e2ec50a05e02a6c44734e91b51c10510b084ea1b8e633a71", size = 920667 },
 ]
 
 [[package]]
