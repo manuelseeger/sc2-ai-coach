@@ -19,9 +19,9 @@ from src.playerinfo import (
     save_player_info,
 )
 from src.replays.reader import ReplayReader
+from tests.conftest import only_in_debugging
 
 replay_store = get_replay_store()
-from tests.conftest import only_in_debugging
 
 
 @pytest.mark.parametrize(
