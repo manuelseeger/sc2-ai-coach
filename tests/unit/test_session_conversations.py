@@ -2,8 +2,8 @@ from types import SimpleNamespace
 
 from pydantic import BaseModel
 
-from src.persistence.replay_store import Metadata
 from src.events import TwitchChatEvent, TwitchFollowEvent
+from src.persistence.replay_store import Metadata
 from src.replays.types import AIConversationTrigger
 from src.session import AISession
 

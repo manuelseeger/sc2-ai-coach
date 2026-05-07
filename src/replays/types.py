@@ -10,7 +10,6 @@ from typing import (
     Dict,
     List,
     Literal,
-    Optional,
     Tuple,
     get_args,
     get_origin,

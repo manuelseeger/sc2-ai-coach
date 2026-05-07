@@ -12,14 +12,13 @@ from config import config
 from external.fast_ssim.ssim import ssim
 from src.lib.sc2client import GameInfo, Player
 from src.lib.sc2pulse import SC2PulseClient
+from src.persistence.replay_store import PlayerInfo, get_replay_store
 from src.playerinfo import (
     is_portrait_match,
     resolve_replays_from_current_opponent,
     save_player_info,
 )
-from src.persistence.replay_store import get_replay_store
 from src.replays.reader import ReplayReader
-from src.persistence.replay_store import PlayerInfo
 
 replay_store = get_replay_store()
 from tests.conftest import only_in_debugging
@@ -72,7 +71,9 @@ def test_existing_player_info_update_alias(replay_file, portrait_file, mocker):
     replay = reader.load_replay(replay_file)
     opponent_handle = replay.get_opponent_of(config.student.name).toon_handle
 
-    player_info = replay_store.db.find_one(PlayerInfo, raw_query={"_id": opponent_handle})
+    player_info = replay_store.db.find_one(
+        PlayerInfo, raw_query={"_id": opponent_handle}
+    )
 
     # act
     result, new_player_info = save_player_info(replay)

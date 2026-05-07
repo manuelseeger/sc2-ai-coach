@@ -3,12 +3,12 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, ClassVar, TypeVar, cast
 
-from config import config
 from pydantic import Field, field_validator
 from pymongo import ASCENDING, IndexModel
 from pyodmongo import DbModel, Id
 from pyodmongo.queries import eq, sort
 
+from config import config
 from src.persistence.database import MongoDatabase, get_database
 from src.replays.types import (
     AIContentPart,

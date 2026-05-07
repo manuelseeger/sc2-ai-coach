@@ -3,14 +3,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import ClassVar
 
-from config import AIBackend
 from pydantic import Field
-from pyodmongo import DbModel
-from pyodmongo import Id
+from pyodmongo import DbModel, Id
 from pyodmongo.queries import eq
 
-from src.persistence.database import MongoDatabase, get_database
+from config import AIBackend
 from src.persistence.conversation_store import AIResponseRecord
+from src.persistence.database import MongoDatabase, get_database
 
 
 class Session(DbModel):
@@ -52,7 +51,9 @@ class SessionStore:
     def db(self):
         return self.database.engine
 
-    def create(self, session_date: datetime, ai_backend: AIBackend, **fields) -> Session:
+    def create(
+        self, session_date: datetime, ai_backend: AIBackend, **fields
+    ) -> Session:
         return self.save(
             Session(session_date=session_date, ai_backend=ai_backend, **fields)
         )
@@ -73,7 +74,10 @@ class SessionStore:
     ) -> Session:
         reloaded = self._require_session(session)
         reloaded.current_conversation = conversation_id
-        if conversation_id is not None and conversation_id not in reloaded.conversations:
+        if (
+            conversation_id is not None
+            and conversation_id not in reloaded.conversations
+        ):
             reloaded.conversations.append(conversation_id)
         return self.save(reloaded)
 
@@ -82,7 +86,10 @@ class SessionStore:
     ) -> Session:
         reloaded = self._require_session(session)
         reloaded.twitch_conversation = conversation_id
-        if conversation_id is not None and conversation_id not in reloaded.conversations:
+        if (
+            conversation_id is not None
+            and conversation_id not in reloaded.conversations
+        ):
             reloaded.conversations.append(conversation_id)
         return self.save(reloaded)
 

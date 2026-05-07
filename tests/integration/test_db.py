@@ -6,7 +6,6 @@ from pyodmongo.queries import eq
 from config import config
 from src.persistence.conversation_store import AIConversation
 from src.persistence.replay_store import Metadata, get_replay_store
-from src.persistence.session_store import Session
 from src.replays.reader import ReplayReader
 from src.replays.types import AIConversationTrigger, Replay
 

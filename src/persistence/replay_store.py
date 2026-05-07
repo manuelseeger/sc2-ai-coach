@@ -5,14 +5,20 @@ from typing import ClassVar, List, Optional, TypeVar
 
 from pydantic import Field
 from pydantic_core import ValidationError
-from pyodmongo import DbModel, MainBaseModel
 from pymongo.collection import Collection
-from pyodmongo import ResponsePaginate
+from pyodmongo import DbModel, MainBaseModel, ResponsePaginate
 from pyodmongo.models.responses import DbResponse
 from pyodmongo.queries import eq, sort
 
 from src.persistence.database import MongoDatabase, get_database
-from src.replays.types import BsonBinary, Replay, ReplayId, ToonHandle, convert_projection, to_bson_binary
+from src.replays.types import (
+    BsonBinary,
+    Replay,
+    ReplayId,
+    ToonHandle,
+    convert_projection,
+    to_bson_binary,
+)
 
 
 class Metadata(DbModel):
@@ -41,7 +47,10 @@ class Alias(MainBaseModel):
         if isinstance(other, PlayerInfo):
             if other.portrait is None:
                 return self.name == other.name
-            return self.name == other.name and to_bson_binary(other.portrait) in self.portraits
+            return (
+                self.name == other.name
+                and to_bson_binary(other.portrait) in self.portraits
+            )
         return False
 
 
@@ -98,6 +107,7 @@ class PlayerInfo(DbModel):
 
     def __repr__(self) -> str:
         return self.__str__()
+
 
 ReplayStoreUpsertModel = Replay | Metadata | PlayerInfo
 T = TypeVar("T", bound=ReplayStoreUpsertModel)
