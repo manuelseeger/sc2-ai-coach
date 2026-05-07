@@ -5,8 +5,8 @@ from bson.json_util import dumps, loads
 from pydantic import BaseModel, ConfigDict, Field
 
 from config import config
-from src.replaydb.db import replaydb
-from src.replaydb.types import Replay
+from src.persistence.replay_store import get_replay_store
+from src.replays.types import Replay
 
 from ..utils import force_valid_json_string
 from .base import AIFunction
@@ -170,7 +170,8 @@ def _query_replay_db(
     projection = projection.replace(".$.", ".")
 
     try:
-        cursor = replaydb.replays.find(
+        replay_store = get_replay_store()
+        cursor = replay_store.replays.find(
             filter=loads(str(filter)),
             sort=loads(str(sort)),
             limit=limit,

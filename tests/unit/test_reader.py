@@ -2,8 +2,8 @@ import pytest
 
 import sc2reader
 from config import config
-from src.replaydb.plugins.ReplayStats import is_gg, player_worker_micro
-from src.replaydb.reader import ReplayReader
+from src.replays.plugins.ReplayStats import is_gg, player_worker_micro
+from src.replays.reader import ReplayReader
 from src.util import time2secs
 from tests.conftest import only_in_debugging
 

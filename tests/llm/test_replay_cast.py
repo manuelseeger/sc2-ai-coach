@@ -9,7 +9,7 @@ if sys.gettrace() is None:
 from coach import AISession
 from src.events import CastReplayEvent
 from src.io.tts import make_tts_stream
-from src.replaydb.reader import ReplayReader
+from src.replays.reader import ReplayReader
 
 
 class MockGameInfo:

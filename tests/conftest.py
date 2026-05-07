@@ -20,8 +20,8 @@ pytest_services.bootstrap_test_services()
 from src.lib.sc2client import NORMAL_MAP as race_map  # noqa: E402
 from src.lib.sc2client import GameInfo, Race, Result  # noqa: E402
 from src.lib.sc2client import Player as ApiPlayer  # noqa: E402
-from src.replaydb.reader import ReplayReader  # noqa: E402
-from src.replaydb.types import Player as ReplayPlayer  # noqa: E402
+from src.replays.reader import ReplayReader  # noqa: E402
+from src.replays.types import Player as ReplayPlayer  # noqa: E402
 from tests.critic import LmmCritic  # noqa: E402
 
 TESTDATA_DIR = "tests/testdata"

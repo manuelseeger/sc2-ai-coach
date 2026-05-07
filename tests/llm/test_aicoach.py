@@ -14,7 +14,9 @@ from rich import print
 from config import config
 from src.ai import AICoach
 from src.ai.prompt import Templates
-from src.replaydb.db import replaydb
+from src.persistence.replay_store import get_replay_store
+
+replay_store = get_replay_store()
 
 
 def test_function_smurf_detection(util):
@@ -50,7 +52,7 @@ def test_function_query_build_order(util):
 def test_get_structured_response():
     aicoach = AICoach()
 
-    replay = replaydb.get_most_recent()
+    replay = replay_store.get_most_recent_for_player(config.student.name)
 
     replacements = {
         "student": str(config.student.name),

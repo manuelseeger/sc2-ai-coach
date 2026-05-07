@@ -8,8 +8,9 @@ from openai import OpenAI
 from pydantic import BaseModel
 
 from config import config
-from src.ai.state import ConversationStore, conversation_store
-from src.replaydb.types import AIMessageRole, Session
+from src.persistence.conversation_store import ConversationStore, get_conversation_store
+from src.persistence.session_store import Session
+from src.replays.types import AIMessageRole
 
 from .functions import AIFunctions, responses_tools
 from .functions.base import strict_json_schema
@@ -32,7 +33,7 @@ class AICoach:
     ):
         """Initialize the coach with the shared OpenAI client and local conversation store."""
         self.client = client or get_openai_client()
-        self.store = store or conversation_store
+        self.store = store or get_conversation_store()
         self.trace = trace
         self.active_conversation_id: str | None = None
         self.init_additional_instructions()
@@ -80,7 +81,7 @@ class AICoach:
         )
         if self.additional_instructions:
             conversation.developer_instructions = self.additional_instructions
-            self.store._replaydb.db.save(conversation)
+            self.store.save(conversation)
         self.active_conversation_id = str(conversation.id)
         log.debug(f"Created conversation {self.active_conversation_id}")
         return self.active_conversation_id

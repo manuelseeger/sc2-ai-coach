@@ -2,7 +2,7 @@ import logging
 from unittest.mock import Mock
 
 from src.io.rich_log import LogStatus, RichConsoleLogHandler
-from src.replaydb.types import Role
+from src.replays.types import Role
 
 
 def _record(*, msg: str, func_name: str, role=None, flush: bool = False):

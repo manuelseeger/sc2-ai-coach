@@ -1,5 +1,5 @@
 from src.events import ReplEvent
-from src.replaydb.types import AIConversationTrigger
+from src.replays.types import AIConversationTrigger
 from src.session import AISession
 
 

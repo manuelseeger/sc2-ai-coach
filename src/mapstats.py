@@ -10,8 +10,8 @@ from pydantic import HttpUrl, computed_field
 from pyodmongo import DbModel, MainBaseModel
 
 from config import config
-from src.replaydb.db import replaydb
-from src.replaydb.types import Replay
+from src.persistence.replay_store import get_replay_store
+from src.replays.types import Replay
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
@@ -164,6 +164,7 @@ def get_map_stats(map: str, min_date: datetime | None = None) -> MatchupsByMap |
 
     q = (Replay.map_name == map) & (Replay.date >= min_date)  # pyright: ignore[reportOperatorIssue]
 
-    maps: list[MatchupsByMap] = replaydb.db.find_many(Model=MatchupsByMap, query=q)  # type: ignore
+    replay_store = get_replay_store()
+    maps: list[MatchupsByMap] = replay_store.db.find_many(Model=MatchupsByMap, query=q)  # type: ignore
 
     return maps[0] if maps else None

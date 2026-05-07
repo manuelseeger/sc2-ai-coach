@@ -9,7 +9,7 @@ if sys.gettrace() is None:
 
 from coach import AISession
 from src.matchhistory import MatchHistory
-from src.replaydb.types import PlayerInfo
+from src.persistence.replay_store import PlayerInfo
 from tests.critic import LmmCritic
 from tests.mocks import MicMock, TranscriberMock, TTSMock
 

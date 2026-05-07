@@ -2,8 +2,12 @@ import pytest
 from pydantic import BaseModel
 
 from src.ai.aicoach import AICoach
-from src.ai.state import ConversationStore
-from src.replaydb.types import AIConversation, AIConversationTrigger, AIResponseRecord
+from src.persistence.conversation_store import (
+    AIConversation,
+    AIConversationTrigger,
+    AIResponseRecord,
+    ConversationStore,
+)
 from tests.support.fake_openai import (
     FakeOpenAIClient,
     FakeResponseStream,
@@ -57,7 +61,7 @@ def test_get_response_assembles_full_history_and_persists_response(
 
     response_text = coach.get_response("What was the turning point?")
 
-    response_record = coach.store._replaydb.db.find_one(
+    response_record = coach.store.db.find_one(
         Model=AIResponseRecord,
         query=AIResponseRecord.response_id == "resp-unit-ch5",  # type: ignore[arg-type]
     )
@@ -142,7 +146,7 @@ def test_get_response_executes_tool_loop_and_replays_tool_transcript(
 
     response_text = coach.get_response("When did I play my last game?")
 
-    response_records = coach.store._replaydb.db.find_many(
+    response_records = coach.store.db.find_many(
         Model=AIResponseRecord,
         query=(AIResponseRecord.response_id == "resp-tool-1")
         | (AIResponseRecord.response_id == "resp-tool-2"),
@@ -237,7 +241,7 @@ def test_chat_streams_text_and_persists_streamed_response(cleanup_ai_conversatio
 
     chunks = list(coach.chat("Give me the quick answer."))
 
-    response_record = coach.store._replaydb.db.find_one(
+    response_record = coach.store.db.find_one(
         Model=AIResponseRecord,
         query=AIResponseRecord.response_id == "resp-stream-1",  # type: ignore[arg-type]
     )
@@ -317,7 +321,7 @@ def test_chat_streams_then_executes_tool_loop(cleanup_ai_conversations, mocker):
 
     chunks = list(coach.chat("What map was my last game on?"))
 
-    response_records = coach.store._replaydb.db.find_many(
+    response_records = coach.store.db.find_many(
         Model=AIResponseRecord,
         query=(AIResponseRecord.response_id == "resp-stream-tool-1")
         | (AIResponseRecord.response_id == "resp-stream-tool-2"),
@@ -402,7 +406,7 @@ def test_get_structured_response_executes_tool_loop_and_parses_schema(
         additional_instructions="Return strict JSON only.",
     )
 
-    response_records = coach.store._replaydb.db.find_many(
+    response_records = coach.store.db.find_many(
         Model=AIResponseRecord,
         query=(AIResponseRecord.response_id == "resp-structured-1")
         | (AIResponseRecord.response_id == "resp-structured-2"),

@@ -8,7 +8,7 @@ if sys.gettrace() is None:
 from coach import AISession
 from config import config
 from src.events import NewReplayEvent
-from src.replaydb.reader import ReplayReader
+from src.replays.reader import ReplayReader
 from tests.mocks import MicMock, TranscriberMock, TTSMock
 
 

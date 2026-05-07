@@ -2,8 +2,9 @@ from types import SimpleNamespace
 
 from pydantic import BaseModel
 
+from src.persistence.replay_store import Metadata
 from src.events import TwitchChatEvent, TwitchFollowEvent
-from src.replaydb.types import AIConversationTrigger, Metadata
+from src.replays.types import AIConversationTrigger
 from src.session import AISession
 
 CONVERSATION_ID = "0123456789abcdef01234567"
@@ -156,8 +157,8 @@ def test_save_replay_summary_upserts_metadata_linked_to_active_conversation(mock
             tags=["muta", "two-base"],
         ),
     )
-    find_one = mocker.patch("src.session.replaydb.db.find_one", return_value=None)
-    upsert = mocker.patch("src.session.replaydb.upsert")
+    find_one = mocker.patch("src.session.replay_store.db.find_one", return_value=None)
+    upsert = mocker.patch("src.session.replay_store.upsert")
 
     replay = SimpleNamespace(id="a" * 64)
 

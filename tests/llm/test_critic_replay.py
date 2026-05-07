@@ -7,7 +7,7 @@ if sys.gettrace() is None:
     pytest.skip("Skipping debug-only LLM test.", allow_module_level=True)
 
 from coach import AISession
-from src.replaydb.reader import ReplayReader
+from src.replays.reader import ReplayReader
 from tests.critic import LmmCritic
 
 

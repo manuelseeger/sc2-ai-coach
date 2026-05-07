@@ -12,7 +12,7 @@ if not os.getenv("RUN_LIVE_OPENAI_TESTS"):
 from config import config
 from src.ai import AICoach
 from src.ai.prompt import Templates
-from src.replaydb.reader import ReplayReader
+from src.replays.reader import ReplayReader
 
 
 def test_function_add_metadata(util):

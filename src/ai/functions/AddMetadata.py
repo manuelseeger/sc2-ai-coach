@@ -2,11 +2,11 @@ import logging
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pyodmongo.queries import eq
 
 from config import config
 from src.ai.utils import get_clean_tags
-from src.replaydb.db import eq, replaydb
-from src.replaydb.types import Metadata
+from src.persistence.replay_store import Metadata, get_replay_store
 
 from .base import AIFunction
 
@@ -48,7 +48,8 @@ def _add_metadata(
         log.warning(f"Invalid replay ID: {replay_id}")
         return False
 
-    meta: Metadata = replaydb.db.find_one(
+    replay_store = get_replay_store()
+    meta: Metadata = replay_store.db.find_one(
         Model=Metadata,
         query=eq(Metadata.replay, replay_id),  # type: ignore
     )
@@ -60,7 +61,7 @@ def _add_metadata(
         # remove potential duplicates
         meta.tags = list(set(meta.tags + tags_parsed))
 
-    replaydb.upsert(meta)
+    replay_store.upsert(meta)
 
     return True
 

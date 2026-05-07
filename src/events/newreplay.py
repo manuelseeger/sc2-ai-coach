@@ -10,9 +10,9 @@ from watchdog.observers import Observer
 from config import config
 from shared import signal_queue
 from src.events import NewReplayEvent
+from src.persistence.replay_store import get_replay_store
 from src.playerinfo import save_player_info
-from src.replaydb.db import replaydb
-from src.replaydb.reader import ReplayReader
+from src.replays.reader import ReplayReader
 from src.util import wait_for_file
 
 log = logging.getLogger(f"{config.name}.{__name__}")
@@ -45,7 +45,8 @@ class NewReplayHandler(FileSystemEventHandler):
         if reader.apply_filters(replay_raw):
             log.info(f"New replay {basename(file_path)}")
             replay = reader.to_typed_replay(replay_raw)
-            result = replaydb.upsert(replay)
+            replay_store = get_replay_store()
+            result = replay_store.upsert(replay)
             if not result.acknowledged:
                 log.error(f"Failed to save {replay}")
             result, player_info = save_player_info(replay)

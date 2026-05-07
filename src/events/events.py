@@ -2,7 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from src.replaydb.types import Replay
+from src.replays.types import Replay
 
 
 class EventBase(BaseModel):

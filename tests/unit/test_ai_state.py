@@ -5,18 +5,20 @@ from pydantic import BaseModel
 from pyodmongo.queries import eq, sort
 
 from config import config
-from src.ai.state import ConversationStore
-from src.replaydb.db import replaydb
-from src.replaydb.types import (
+from src.persistence.conversation_store import (
     AIConversation,
     AIConversationStatus,
     AIConversationTrigger,
     AIMessageRole,
     AIResponseRecord,
-    Session,
+    ConversationStore,
 )
+from src.persistence.replay_store import get_replay_store
+from src.persistence.session_store import Session
 
 pytestmark = pytest.mark.mongo
+
+replay_store = get_replay_store()
 
 
 class FakeUsage(BaseModel):
@@ -53,7 +55,7 @@ def cleanup_ai_state():
     for session in sessions:
         if session.id is None:
             continue
-        replaydb.db.delete(Session, query=eq(Session.id, session.id))  # type: ignore[arg-type]
+        replay_store.db.delete(Session, query=eq(Session.id, session.id))  # type: ignore[arg-type]
 
 
 def test_create_and_reload_conversation_with_ordered_items(
@@ -135,7 +137,7 @@ def test_record_response_deduplicates_by_response_id(
     second = store.record_response(conversation, response)
     cleanup_ai_state["response_records"].append(first)
 
-    documents = replaydb.db.find_many(
+    documents = replay_store.db.find_many(
         Model=AIResponseRecord,
         query=AIResponseRecord.conversation == conversation.id,  # type: ignore[arg-type]
         sort=sort((AIResponseRecord.created_at, 1)),  # type: ignore[arg-type]
@@ -163,7 +165,7 @@ def test_record_response_calculates_costs_and_updates_session(
         prompt_pricing=config.gpt_prompt_pricing,
         cached_prompt_pricing=config.gpt_cached_prompt_pricing,
     )
-    replaydb.db.save(session)
+    replay_store.db.save(session)
     cleanup_ai_state["sessions"].append(session)
 
     conversation = store.create_conversation(
@@ -187,7 +189,7 @@ def test_record_response_calculates_costs_and_updates_session(
     cleanup_ai_state["response_records"].append(record)
 
     reloaded_conversation = store.get_conversation(conversation)
-    reloaded_session = replaydb.db.find_one(
+    reloaded_session = replay_store.db.find_one(
         Model=Session,
         query=Session.id == session.id,  # type: ignore[arg-type]
     )
@@ -232,10 +234,10 @@ def test_chapter_one_models_round_trip_in_db(cleanup_ai_state):
         trigger=AIConversationTrigger.cast_replay,
         metadata={"test_scope": "unit_ai_state"},
     )
-    replaydb.db.save(conversation)
+    replay_store.db.save(conversation)
     cleanup_ai_state["conversations"].append(conversation)
 
-    found = replaydb.db.find_one(
+    found = replay_store.db.find_one(
         Model=AIConversation,
         query=AIConversation.id == conversation.id,  # type: ignore[arg-type]
     )

@@ -3,8 +3,10 @@ from rich import print
 
 from config import config
 from src.mapstats import MatchupsByMap, get_map_stats, update_map_stats
-from src.replaydb.db import replaydb
-from src.replaydb.types import Replay
+from src.persistence.replay_store import get_replay_store
+from src.replays.types import Replay
+
+replay_store = get_replay_store()
 
 
 @pytest.mark.parametrize(
@@ -14,7 +16,7 @@ from src.replaydb.types import Replay
 def test_get_map_stats_for_map(map_name):
     q = Replay.map_name == map_name
 
-    maps: list[MatchupsByMap] = replaydb.db.find_many(Model=MatchupsByMap, query=q)
+    maps: list[MatchupsByMap] = replay_store.db.find_many(Model=MatchupsByMap, query=q)
 
     print(maps)
     assert len(maps) > 0

@@ -17,8 +17,8 @@ from shared import http_client
 from src.lib.battlenet import BattleNet
 from src.lib.sc2client import SC2Client
 from src.lib.sc2pulse import SC2PulseClient
-from src.replaydb.db import replaydb
-from src.replaydb.types import Alias, PlayerInfo, Replay, to_bson_binary
+from src.persistence.replay_store import Alias, PlayerInfo, get_replay_store
+from src.replays.types import Replay, to_bson_binary
 from src.util import is_aware, is_barcode
 
 if config.obs_integration:
@@ -130,6 +130,7 @@ def portrait_construct_from_bnet(toon_id: int) -> bytes | None:
 
 
 def save_player_info(replay: Replay) -> Tuple[DbResponse, PlayerInfo]:
+    replay_store = get_replay_store()
     portrait = None
     portrait_constructed = None
 
@@ -158,7 +159,7 @@ def save_player_info(replay: Replay) -> Tuple[DbResponse, PlayerInfo]:
         portrait_constructed=portrait_constructed,
     )
 
-    existing_player_info: PlayerInfo | None = replaydb.find(player_info)
+    existing_player_info: PlayerInfo | None = replay_store.find(player_info)
 
     if existing_player_info:
         player_info = existing_player_info
@@ -172,7 +173,7 @@ def save_player_info(replay: Replay) -> Tuple[DbResponse, PlayerInfo]:
 
     player_info.update_aliases(seen_on=replay.date)
 
-    result = replaydb.upsert(player_info)
+    result = replay_store.upsert(player_info)
 
     if result.acknowledged:
         log.info(
@@ -182,9 +183,10 @@ def save_player_info(replay: Replay) -> Tuple[DbResponse, PlayerInfo]:
 
 
 def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo | None:
+    replay_store = get_replay_store()
     q = elem_match(Alias.name == name, field=PlayerInfo.aliases)  # type: ignore[arg-type]
 
-    candidates: list[PlayerInfo] = replaydb.db.find_many(PlayerInfo, query=q)  # type: ignore[arg-type]
+    candidates: list[PlayerInfo] = replay_store.db.find_many(PlayerInfo, query=q)  # type: ignore[arg-type]
     if len(candidates) == 1:
         return candidates[0]
 
@@ -252,7 +254,8 @@ def resolve_replays_from_current_opponent(
         log.debug(f"Trying to resolve {opponent} by name")
         # 0 look in DB for player info
         q = PlayerInfo.name == opponent
-        playerinfos: list[PlayerInfo] = replaydb.db.find_many(PlayerInfo, q)  # type: ignore[arg-type]
+        replay_store = get_replay_store()
+        playerinfos: list[PlayerInfo] = replay_store.db.find_many(PlayerInfo, q)  # type: ignore[arg-type]
 
         if len(playerinfos) == 1:
             playerinfo = playerinfos[0]
@@ -299,7 +302,7 @@ def resolve_replays_from_current_opponent(
     if playerinfo:
         q = {"players.toon_handle": playerinfo.toon_handle}
         sort = od_sort((Replay.unix_timestamp, -1))  # type: ignore[arg-type]
-        past_replays: list[Replay] = replaydb.db.find_many(
+        past_replays: list[Replay] = replay_store.db.find_many(
             Replay,
             raw_query=q,
             sort=sort,  # type: ignore[arg-type]
