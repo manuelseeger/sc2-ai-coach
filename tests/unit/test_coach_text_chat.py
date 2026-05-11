@@ -104,8 +104,16 @@ def test_keyboard_interrupt_in_main_loop_exits_cleanly(mocker):
     mock_queue.get.side_effect = KeyboardInterrupt()
     mocker.patch.object(coach, "signal_queue", mock_queue)
     log_info = mocker.patch.object(coach.log, "info")
+    original_audiomode = config.audiomode
+    original_coach_events = list(config.coach_events)
 
-    result = CliRunner().invoke(coach.main, [])
+    try:
+        config.audiomode = AudioMode.text
+        config.coach_events = []
+        result = CliRunner().invoke(coach.main, [])
+    finally:
+        config.audiomode = original_audiomode
+        config.coach_events = original_coach_events
 
     assert result.exit_code == 0
     session_ctor.assert_called_once_with(
