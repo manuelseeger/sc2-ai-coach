@@ -20,10 +20,10 @@ from rich.theme import Theme
 
 from config import config
 from src.ai.utils import force_valid_json_string
+from src.persistence.replay_store import PlayerInfo, get_replay_store
 from src.playerinfo import save_player_info
-from src.replaydb.db import replaydb
-from src.replaydb.reader import ReplayReader
-from src.replaydb.types import PlayerInfo, Replay
+from src.replays.reader import ReplayReader
+from src.replays.types import Replay
 
 custom_theme = Theme(
     {
@@ -39,6 +39,7 @@ log.setLevel(logging.WARNING)
 log.addHandler(RichHandler(show_time=False, rich_tracebacks=True))
 
 reader = ReplayReader()
+replay_store = get_replay_store()
 
 
 def dformat(x):
@@ -152,8 +153,14 @@ def sync(ctx, from_: datetime, to_: datetime, from_most_recent: bool):
     """Sync replays and players from replay folder to MongoDB"""
 
     if from_most_recent:
-        most_recent = replaydb.get_most_recent()
-        sync_from_date = most_recent.unix_timestamp
+        try:
+            most_recent = replay_store.get_most_recent_for_player(config.student.name)
+            sync_from_date = most_recent.unix_timestamp
+        except ValueError:
+            sync_from_date = from_.timestamp()
+            console.print(
+                f":warning: No replays found in DB for {config.student.name}, falling back to --from"
+            )
     else:
         sync_from_date = from_.timestamp()
 
@@ -219,7 +226,7 @@ def validate(logfile):
 
     summary = ValidationSummary()
 
-    for replay in replaydb.find_many_dict(Replay, raw_query={}):
+    for replay in replay_store.find_many_dict(Replay, raw_query={}):
         console.print(f"Validating {basename(replay['filename'])}", end=" ")
         try:
             rep = Replay(**replay)  # noqa: F841
@@ -255,7 +262,7 @@ def players(ctx, query):
     query = force_valid_json_string(query)
     query = json.loads(query)
 
-    players = replaydb.db.find_many(PlayerInfo, raw_query=query)
+    players = replay_store.db.find_many(PlayerInfo, raw_query=query)
 
     if not isinstance(players, list):
         console.print(f":x: Expected list of players, got {type(players).__name__}")
@@ -348,7 +355,7 @@ def syncreplay(ctx, replay: Replay, summary: SyncSummary):
     if ctx.obj["SIMULATION"]:
         console.print(f"Simulation, would add {replay}")
     else:
-        result = replaydb.upsert(replay)
+        result = replay_store.upsert(replay)
         if result.acknowledged:
             console.print(f":white_heavy_check_mark: {replay} added to DB")
             summary.replays_added += 1
