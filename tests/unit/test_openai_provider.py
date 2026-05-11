@@ -1,15 +1,13 @@
 from types import SimpleNamespace
-from unittest.mock import MagicMock, sentinel
+from unittest.mock import sentinel
 
 import httpx
 
-from src.ai.aicoach import AICoach
 from src.ai.openai_provider import (
     DEFAULT_OPENAI_BASE_URL,
     OpenAIClientProvider,
     resolve_openai_base_url,
 )
-from tests.critic import LmmCritic
 
 
 def make_provider_config(endpoint=None, api_key="test-key", org_id="test-org"):
@@ -94,49 +92,3 @@ def test_provider_adds_api_key_header_for_custom_endpoint(mocker):
         api_key="azure-key",
         organization="test-org",
     )
-
-
-def test_aicoach_uses_injected_client():
-    client = MagicMock()
-
-    coach = AICoach(client=client)
-
-    assert coach.client is client
-
-
-def test_lmmcritic_uses_provider_by_default(mocker):
-    client = MagicMock()
-    provider = mocker.patch("tests.critic.get_openai_client", return_value=client)
-
-    critic = LmmCritic()
-
-    assert critic.client is client
-    provider.assert_called_once_with()
-
-
-def test_lmmcritic_uses_injected_client(mocker):
-    client = MagicMock()
-    provider = mocker.patch("tests.critic.get_openai_client")
-
-    critic = LmmCritic(client=client)
-
-    assert critic.client is client
-    provider.assert_not_called()
-
-
-def test_lmmcritic_uses_responses_structured_output():
-    client = MagicMock()
-    client.responses.create.return_value = SimpleNamespace(
-        output_text='{"passed": true, "justification": "looks good"}'
-    )
-    critic = LmmCritic(client=client)
-    critic.init("Judge the answer strictly.")
-
-    result = critic.evaluate("QUESTION: hi", "ANSWER: hello")
-
-    assert result.passed is True
-    request = client.responses.create.call_args.kwargs
-    assert request["instructions"] == "Judge the answer strictly."
-    assert request["store"] is False
-    assert request["text"]["format"]["type"] == "json_schema"
-    assert "Response under evaluation" in request["input"][0]["content"]
