@@ -1,10 +1,22 @@
+import os
+
+import pytest
+
+if not os.getenv("RUN_LIVE_OPENAI_TESTS"):
+    pytest.skip(
+        "Skipping live OpenAI test. Set RUN_LIVE_OPENAI_TESTS=1 to enable.",
+        allow_module_level=True,
+    )
+
 from pydantic import BaseModel
 from rich import print
 
 from config import config
 from src.ai import AICoach
 from src.ai.prompt import Templates
-from src.replaydb.db import replaydb
+from src.persistence.replay_store import get_replay_store
+
+replay_store = get_replay_store()
 
 
 def test_function_smurf_detection(util):
@@ -14,9 +26,9 @@ def test_function_smurf_detection(util):
 
     message = f"I am playing someone on around 3000 MMR. The player I am playing with has the toon handle '{handle}'. Can you tell me if they are a smurf?"
 
-    aicoach.create_thread(message)
+    aicoach.create_conversation(message)
 
-    response = util.stream_thread(aicoach)
+    response = util.stream_conversation(aicoach)
 
     assert isinstance(response, str)
     assert len(response) > 0
@@ -28,9 +40,9 @@ def test_function_query_build_order(util):
 
     message = "My player ID is 'zatic'. Get the build order of the opponent of the last game I played against 'protoss' opponents."
 
-    aicoach.create_thread(message)
+    aicoach.create_conversation(message)
 
-    response = util.stream_thread(aicoach)
+    response = util.stream_conversation(aicoach)
 
     assert isinstance(response, str)
     assert len(response) > 0
@@ -40,7 +52,7 @@ def test_function_query_build_order(util):
 def test_get_structured_response():
     aicoach = AICoach()
 
-    replay = replaydb.get_most_recent()
+    replay = replay_store.get_most_recent_for_player(config.student.name)
 
     replacements = {
         "student": str(config.student.name),
@@ -50,7 +62,7 @@ def test_get_structured_response():
     }
     prompt = Templates.new_replay.render(replacements)
 
-    aicoach.create_thread(prompt)
+    aicoach.create_conversation(prompt)
 
     message = """Can you please summarize the game in one paragraph? Make sure to mention tech choices, timings, but keep it short. Important to mention are key choices of my opponent in terms of tech and opening units.
     

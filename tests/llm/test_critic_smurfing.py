@@ -1,15 +1,19 @@
+import sys
+
 import pandas as pd
 import parametrize_from_file
+import pytest
+
+if sys.gettrace() is None:
+    pytest.skip("Skipping debug-only LLM test.", allow_module_level=True)
 
 from coach import AISession
 from src.matchhistory import MatchHistory
-from src.replaydb.types import PlayerInfo
-from tests.conftest import only_in_debugging
+from src.persistence.replay_store import PlayerInfo
 from tests.critic import LmmCritic
 from tests.mocks import MicMock, TranscriberMock, TTSMock
 
 
-@only_in_debugging
 @parametrize_from_file(indirect=["resource_file"])
 def test_detects_smurfing(
     resource_file,
@@ -41,7 +45,7 @@ def test_detects_smurfing(
 
     # act
     session.initiate_from_game_start(mapname, opponent, mmr)
-    response = session.stream_thread()
+    response = session.stream_conversation()
 
     # assert
     critic_init = "You are given responses about a player's match history. Determine whether the response satisfies the evaluation criteria.\n\n"

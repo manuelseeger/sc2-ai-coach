@@ -4,6 +4,8 @@ from time import sleep
 import pytest
 from rich import print
 
+pytest.importorskip("twitchAPI")
+
 from config import config
 from shared import signal_queue
 from src.events.twitch import TwitchListener

@@ -4,52 +4,61 @@ version = "0.6.0"
 requires-python = ">=3.12"
 readme = "README.md"
 dependencies = [
-  "blizzardapi2>2",
-  "click>=8.1.8",
+  "blizzardapi2>=3.0.4",
+  "click>=8.3.3",
   "climage>=0.2.2",
   "httpx>=0.28.1",
-  "jinja2>=3.1.5",
+  "jinja2>=3.1.6",
   "keyboard>=0.13.5",
-  "openai>=1.62.0",
-  "pandas>=2.2.3",
-  "pydantic>=2.10.6",
-  "pydantic-settings>=2.7.1",
-  "pymongo>=4.11.1",
-  "pyodmongo>=1.4.6",
+  "openai>=2.33.0",
+  "pandas>=3.0.2",
+  "pydantic>=2.13.3",
+  "pydantic-settings>=2.14.0",
+  "pyodmongo>=1.7.0",
   "python-levenshtein>=0.26.1",
-  "pyyaml>=6.0.2",
-  "rich>=13.9.4",
+  "pyyaml>=6.0.3",
+  "rich>=15.0.0",
   "sc2reader",
   "sc2reader-plugins",
   "spawningtool",
-  "tabulate>=0.9.0",
-  "tiktoken>=0.8.0",
+  "tabulate>=0.10.0",
   "watchdog>=6.0.0",
 ]
 
 [project.optional-dependencies]
 standard = [
-  "accelerate>=1.4.0",
-  #"flash-attn>=2.7.0.post2",
-  "nemo-toolkit[asr]>=2.7.2",
   "numpy",
   "obsws-python>=1.7.1",
-  "onnxruntime>=1.25",
   "opencv-python>=4.11.0.86",
-  "openwakeword>=0.6.0; sys_platform == 'win32'",
-  "pip>=25.0.1",
   "pvporcupine>=3.0.5",
   "pyaudio>=0.2.14",
   "realtimetts[kokoro,system]>=0.5.7",
-  "scipy>=1.15.1",
   "soundfile>=0.13.1",
   "speechrecognition[audio]>=3.14.1",
-  "tesserocr",
-  "torch>=2.6.0",
-  "torchaudio>=2.6.0",
-  "transformers>=4.48.3",
+  "tesserocr @ https://github.com/simonflueckiger/tesserocr-windows_build/releases/download/tesserocr-v2.8.0-tesseract-5.5.0/tesserocr-2.8.0-cp312-cp312-win_amd64.whl ; sys_platform == 'win32'",
+  "tesserocr>=2.8.0 ; sys_platform != 'win32'",
   "twitchapi>=4.4.0",
+]
+ci = [
+  "numpy",
+  "opencv-python>=4.11.0.86",
+  "tesserocr @ https://github.com/simonflueckiger/tesserocr-windows_build/releases/download/tesserocr-v2.8.0-tesseract-5.5.0/tesserocr-2.8.0-cp312-cp312-win_amd64.whl ; sys_platform == 'win32'",
+  "tesserocr>=2.8.0 ; sys_platform != 'win32'",
+]
+whisper = [
+  #"flash-attn>=2.7.0.post2",
+  "scipy>=1.15.1",
+  "torch>=2.6.0",
+  "transformers>=4.48.3",
   "webrtcvad>=2.0.10",
+]
+nemo = [
+  "nemo-toolkit[asr]>=2.7.2",
+]
+openwakeword = [
+  "onnxruntime>=1.25",
+  "openwakeword>=0.6.0; sys_platform == 'win32'",
+  "torch>=2.6.0",
 ]
 
 
@@ -57,7 +66,6 @@ standard = [
 sc2reader-plugins = { git = "https://github.com/NumberPigeon/sc2reader-plugins.git" }
 spawningtool = { git = "https://github.com/StoicLoofah/spawningtool.git", rev = "master" }
 sc2reader = { git = "https://github.com/ggtracker/sc2reader.git", rev = "upstream" }
-tesserocr = { url = "https://github.com/simonflueckiger/tesserocr-windows_build/releases/download/tesserocr-v2.8.0-tesseract-5.5.0/tesserocr-2.8.0-cp312-cp312-win_amd64.whl" }
 torch = [{ index = "pytorch-cu124" }]
 torchaudio = [{ index = "pytorch-cu124" }]
 
@@ -75,16 +83,21 @@ dev = [
   "parametrize-from-file>=0.20.0",
   "pytest>=8.3.4",
   "pytest-cov>=6.0.0",
+  "testcontainers[mongodb]>=4.13.2",
   "pytest-mock>=3.14.0",
+  "respx>=0.22.0",
   "ruff>=0.13.0",
   "setuptools>=75.8.0",
+  "tiktoken>=0.12.0",
 ]
+
 
 [tool.uv]
 default-groups = ["dev"]
 no-build-isolation-package = ["flash-attn"]
 environments = [
-    "sys_platform == 'win32'" 
+  "sys_platform == 'win32'",
+  "sys_platform == 'linux'",
 ]
 
 
@@ -93,4 +106,12 @@ lint.per-file-ignores = { "tests/*" = ["F841"] }  # ignore "unused variable" in 
 exclude = [
 "playground/",
 "external/"
+]
+
+[tool.pytest.ini_options]
+pythonpath = [
+  ".",
+]
+markers = [
+  "mongo: uses a real MongoDB test service",
 ]

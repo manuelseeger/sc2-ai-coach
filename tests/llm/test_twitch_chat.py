@@ -1,13 +1,20 @@
+import os
 from unittest.mock import MagicMock
 
 import pytest
 from pydantic import BaseModel
 from rich import print
 
+if not os.getenv("RUN_LIVE_OPENAI_TESTS"):
+    pytest.skip(
+        "Skipping live OpenAI test. Set RUN_LIVE_OPENAI_TESTS=1 to enable.",
+        allow_module_level=True,
+    )
+
 from config import config
 from src.ai import AICoach
 from src.ai.prompt import Templates
-from src.replaydb.reader import ReplayReader
+from src.replays.reader import ReplayReader
 
 
 @pytest.mark.parametrize(
@@ -44,7 +51,7 @@ def test_get_viewer_replay(viewer, message, replay_file, mocker):
         answer: str
 
     prompt = Templates.twitch_chat.render(replacements)
-    thread_id = aicoach.create_thread(prompt)  # noqa: F841
+    aicoach.create_conversation(prompt)
 
     # act
     response: ChatResponse = aicoach.get_structured_response(

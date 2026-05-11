@@ -1,9 +1,11 @@
 import logging
 from typing import Annotated
 
+from pyodmongo.queries import eq
+
 from config import config
-from src.replaydb.db import eq, replaydb
-from src.replaydb.types import FieldTypeValidator, PlayerInfo, ToonHandle
+from src.persistence.replay_store import PlayerInfo, get_replay_store
+from src.replays.types import FieldTypeValidator, ToonHandle
 
 from .base import AIFunction
 
@@ -31,7 +33,8 @@ def AddPlayerTags(
         log.error(f"Invalid toon handle: {toon_handle}")
         return False
 
-    player: PlayerInfo = replaydb.db.find_one(
+    replay_store = get_replay_store()
+    player: PlayerInfo = replay_store.db.find_one(
         Model=PlayerInfo, query=eq(PlayerInfo.toon_handle, toon_handle)
     )
     if not player:
@@ -42,6 +45,6 @@ def AddPlayerTags(
         # remove potential duplicates
         player.tags = list(set(player.tags + tags_parsed))
 
-    replaydb.upsert(player)
+    replay_store.upsert(player)
 
     return True

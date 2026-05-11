@@ -1,14 +1,23 @@
 from typing import Annotated
 
+from pydantic import BaseModel, ConfigDict, Field
+
 from shared import signal_queue
 from src.ai.functions.base import AIFunction
 from src.events.events import CastReplayEvent
-from src.replaydb.db import replaydb
-from src.replaydb.types import Replay
+from src.persistence.replay_store import get_replay_store
+from src.replays.types import Replay
 
 
-@AIFunction
-def CastReplay(
+class CastReplayArgs(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    replay_id: str = Field(
+        description="The unique ID of a replay. Also called the filehash of the replay."
+    )
+
+
+def _cast_replay(
     replay_id: Annotated[
         str,
         "The unique ID of a replay. Also called the filehash of the replay.",
@@ -26,7 +35,8 @@ def CastReplay(
         q = Replay.unix_timestamp == int(replay_id[:10])
     else:
         q = Replay.filehash == replay_id
-    replay: Replay = replaydb.db.find_one(Replay, query=q)  # type: ignore
+    replay_store = get_replay_store()
+    replay: Replay = replay_store.db.find_one(Replay, query=q)  # type: ignore
     if not replay:
         return f"Replay with ID {replay_id} not found."
 
@@ -34,3 +44,10 @@ def CastReplay(
     signal_queue.put(event)
 
     return f"Casting for {replay_id} started. Thank you, you can close this conversation now!"
+
+
+CastReplay = AIFunction(
+    fn=_cast_replay,
+    args_model=CastReplayArgs,
+    name="CastReplay",
+)

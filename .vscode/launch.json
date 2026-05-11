@@ -29,29 +29,6 @@
       }
     },
     {
-      "name": "AI Coach Mocked",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "coach.py",
-      "console": "integratedTerminal",
-      "envFile": "${workspaceFolder}/.env",
-      "env": {
-        "PYDEVD_DISABLE_FILE_VALIDATION": "1",
-        "AICOACH_aibackend": "Mocked"
-      }
-    },
-    {
-      "name": "Build and Deploy",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "build.py",
-      "console": "integratedTerminal",
-      "envFile": "${workspaceFolder}/.env",
-      "args": [
-        "--deploy"
-      ]
-    },
-    {
       "name": "CLI full sync",
       "type": "debugpy",
       "request": "launch",
@@ -94,7 +71,7 @@
       "cwd": "${workspaceFolder}",
       "args": []
     },
-        {
+    {
       "name": "CLI add testdata",
       "type": "debugpy",
       "request": "launch",

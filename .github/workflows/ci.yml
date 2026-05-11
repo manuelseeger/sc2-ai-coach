@@ -8,30 +8,37 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash -l {0}
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27018:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval \"db.adminCommand('ping').ok\""
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
     steps:
       - name: Dependencies
-        run: sudo add-apt-repository ppa:alex-p/tesseract-ocr5 -y && sudo apt update && sudo apt install ffmpeg libsm6 libxext6 tesseract-ocr tesseract-ocr-eng libtesseract-dev libleptonica-dev pkg-config -y
-      - uses: actions/checkout@v4
-      - uses: conda-incubator/setup-miniconda@v3
-        with:
-          activate-environment: aicoach311-ci
-          environment-file: environment-cp311-ci.yml
-          python-version: 3.11
-          auto-activate-base: false
+        run: sudo add-apt-repository ppa:alex-p/tesseract-ocr5 -y && sudo apt update && sudo apt install ffmpeg libgl1 libsm6 libxext6 tesseract-ocr tesseract-ocr-eng libtesseract-dev libleptonica-dev pkg-config -y
+      - uses: actions/checkout@v6
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+      - name: Install Python
+        run: uv python install
+      - name: Install the project
+        run: uv sync --locked --extra ci --dev
       - name: make log dirs
         run: mkdir -p logs && mkdir -p obs
       - name: Test with pytest
-        # export AICOACH_STUDENT__NAME="zatic" AICOACH_TESSDATA_DIR="/usr/share/tesseract-ocr/4.00/tessdata/" AICOACH_MONGO_DSN="mongodb://localhost:27017" AICOACH_ASSISTANT_ID="XXX" AICOACH_OPENAI_API_KEY="YYY" AICOACH_OPENAI_ORG_ID="ZZZ" AICOACH_OBS_INTEGRATION="False" AICOACH_AUDIOMODE="text" && pytest tests/unit --doctest-modules --junitxml=tests/test-results.xml --cov=. --cov-report=xml --cov-report=html
         run: |
-          pytest tests/unit --doctest-modules --junitxml=tests/test-results.xml --cov=. --cov-report=xml --cov-report=html
+          uv run pytest tests/unit --test-mongo=external --doctest-modules --junitxml=tests/test-results.xml --cov=. --cov-report=xml --cov-report=html
         env:
-          AICOACH_MONGO_DSN: mongodb://localhost:27017
-          AICOACH_ASSISTANT_ID: "XXX"
+          AICOACH_MONGO_DSN: mongodb://localhost:27018
+          AICOACH_DB_NAME: SC2AICOACH_TEST
           AICOACH_OPENAI_API_KEY: "YYY"
           AICOACH_OPENAI_ORG_ID: "ZZZ"
+          AICOACH_OPENAI_ENDPOINT: ""
           AICOACH_TESSDATA_DIR: /usr/share/tesseract-ocr/5/tessdata/
           AICOACH_OBS_INTEGRATION: "False"
           AICOACH_AUDIOMODE: "text"

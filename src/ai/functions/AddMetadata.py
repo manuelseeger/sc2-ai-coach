@@ -1,20 +1,30 @@
 import logging
 from typing import Annotated
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pyodmongo.queries import eq
 
 from config import config
 from src.ai.utils import get_clean_tags
-from src.replaydb.db import eq, replaydb
-from src.replaydb.types import Metadata
+from src.persistence.replay_store import Metadata, get_replay_store
 
 from .base import AIFunction
 
 log = logging.getLogger(f"{config.name}.{__name__}")
 
 
-@AIFunction
-def AddMetadata(
+class AddMetadataArgs(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    replay_id: str = Field(
+        description="The unique of a replay. Also called the filehash of the replay."
+    )
+    tags: str = Field(
+        description="A list of keywords to add to the replay, comma separated. Example: 'smurf, cheese, proxy'"
+    )
+
+
+def _add_metadata(
     replay_id: Annotated[
         str,
         "The unique of a replay. Also called the filehash of the replay.",
@@ -38,7 +48,8 @@ def AddMetadata(
         log.warning(f"Invalid replay ID: {replay_id}")
         return False
 
-    meta: Metadata = replaydb.db.find_one(
+    replay_store = get_replay_store()
+    meta: Metadata = replay_store.db.find_one(
         Model=Metadata,
         query=eq(Metadata.replay, replay_id),  # type: ignore
     )
@@ -50,6 +61,13 @@ def AddMetadata(
         # remove potential duplicates
         meta.tags = list(set(meta.tags + tags_parsed))
 
-    replaydb.upsert(meta)
+    replay_store.upsert(meta)
 
     return True
+
+
+AddMetadata = AIFunction(
+    fn=_add_metadata,
+    args_model=AddMetadataArgs,
+    name="AddMetadata",
+)

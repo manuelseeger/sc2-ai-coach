@@ -10,8 +10,10 @@ from typing import Annotated, Dict, List, Literal, Optional, Tuple, Type
 from pydantic import (
     BaseModel,
     DirectoryPath,
+    Field,
     ValidationError,
     computed_field,
+    field_validator,
     model_validator,
 )
 from pydantic.networks import UrlConstraints
@@ -25,6 +27,13 @@ from pydantic_settings import (
     YamlConfigSettingsSource,
 )
 from rich import print
+
+from src.pricing import (
+    ModelPricing,
+    ModelPricingOverride,
+    get_default_model_pricing,
+    normalize_model_name,
+)
 
 # https://github.com/pydantic/pydantic/pull/7116
 MongoSRVDsn = Annotated[
@@ -66,7 +75,6 @@ class CoachEvent(str, Enum):
 
 class AIBackend(str, Enum):
     openai = "OpenAI"
-    mocked = "Mocked"
 
 
 class TranscriberBackend(str, Enum):
@@ -107,6 +115,9 @@ class TTSConfig(BaseModel):
     engine: str = "system"
     voice: Optional[str] = None
     speed: Optional[float] = 1.0
+
+
+ReasoningEffort = Literal["none", "minimal", "low", "medium", "high", "xhigh"]
 
 
 class WakeWordConfig(BaseModel):
@@ -157,22 +168,77 @@ class Config(BaseSettings):
     student: StudentConfig
 
     aibackend: AIBackend
+    openai_endpoint: Optional[str] = None
     openai_api_key: str
     openai_org_id: str
-    assistant_id: str
     gpt_model: str
-    gpt_prompt_pricing_per_million: float
-    gpt_completion_pricing_per_million: float
+    gpt_prompt_pricing_per_million: float | None = None
+    gpt_cached_prompt_pricing_per_million: float | None = None
+    gpt_completion_pricing_per_million: float | None = None
+    model_pricing_per_million: dict[str, ModelPricingOverride] = Field(
+        default_factory=dict
+    )
+    reasoning_effort: ReasoningEffort | None = "medium"
+    reasoning_continuity_enabled: bool = False
+
+    @field_validator("model_pricing_per_million", mode="before")
+    @classmethod
+    def _normalize_model_pricing_keys(cls, value):
+        if value is None:
+            return {}
+        return {
+            normalize_model_name(model_name) or model_name: override
+            for model_name, override in value.items()
+        }
+
+    def get_model_pricing(self, model_name: str | None = None) -> ModelPricing:
+        resolved_model = normalize_model_name(model_name or self.gpt_model)
+        configured_model = normalize_model_name(self.gpt_model)
+        pricing = get_default_model_pricing(resolved_model)
+        if pricing is None and resolved_model != configured_model:
+            pricing = get_default_model_pricing(configured_model)
+        pricing = pricing or ModelPricing(
+            prompt_per_million=0,
+            cached_prompt_per_million=0,
+            completion_per_million=0,
+        )
+
+        override = self.model_pricing_per_million.get(resolved_model or "")
+        if override is not None:
+            if override.prompt_per_million is not None:
+                pricing.prompt_per_million = override.prompt_per_million
+            if override.cached_prompt_per_million is not None:
+                pricing.cached_prompt_per_million = override.cached_prompt_per_million
+            if override.completion_per_million is not None:
+                pricing.completion_per_million = override.completion_per_million
+
+        if resolved_model == configured_model or (
+            resolved_model != configured_model
+            and get_default_model_pricing(resolved_model) is None
+            and override is None
+        ):
+            if self.gpt_prompt_pricing_per_million is not None:
+                pricing.prompt_per_million = self.gpt_prompt_pricing_per_million
+            if self.gpt_cached_prompt_pricing_per_million is not None:
+                pricing.cached_prompt_per_million = (
+                    self.gpt_cached_prompt_pricing_per_million
+                )
+            if self.gpt_completion_pricing_per_million is not None:
+                pricing.completion_per_million = self.gpt_completion_pricing_per_million
+
+        return pricing
 
     @property
     def gpt_prompt_pricing(self) -> float:
-        """Return price per token in dollars."""
-        return self.gpt_prompt_pricing_per_million / 1_000_000
+        return self.get_model_pricing().prompt
+
+    @property
+    def gpt_cached_prompt_pricing(self) -> float:
+        return self.get_model_pricing().cached_prompt
 
     @property
     def gpt_completion_pricing(self) -> float:
-        """Return price per token in dollars."""
-        return self.gpt_completion_pricing_per_million / 1_000_000
+        return self.get_model_pricing().completion
 
     coach_events: List[CoachEvent] = [
         CoachEvent.wake,
@@ -219,7 +285,7 @@ class Config(BaseSettings):
 
     default_projection: Dict[str, int]
 
-    db_name: str = "SC2"
+    db_name: str
     mongo_dsn: MongoSRVDsn
 
     @classmethod
@@ -270,7 +336,8 @@ class Config(BaseSettings):
         Path(join(self.log_dir)).mkdir(parents=True, exist_ok=True)
 
         if self.obs_integration:
-            from openwakeword.utils import download_models
+            if self.wakeword.engine == "openwakeword":
+                from openwakeword.utils import download_models
 
             download_models()
 

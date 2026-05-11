@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from datetime import datetime
 from enum import Enum
@@ -8,7 +10,6 @@ from typing import (
     Dict,
     List,
     Literal,
-    Optional,
     Tuple,
     get_args,
     get_origin,
@@ -20,7 +21,7 @@ from pydantic import BaseModel, Field, ValidationError
 from pydantic_core import CoreSchema, core_schema
 from pyodmongo import DbModel, MainBaseModel
 
-from config import AIBackend, config
+from config import config
 from shared import REGION_MAP
 from src.util import time2secs
 
@@ -394,117 +395,46 @@ class Replay(DbModel):
         return self.__str__()
 
 
-class Role(str, Enum):
+class AIConversationTrigger(str, Enum):
+    wake = "wake"
+    repl = "repl"
+    game_start = "game_start"
+    new_replay = "new_replay"
+    twitch_chat = "twitch_chat"
+    twitch_follow = "twitch_follow"
+    twitch_raid = "twitch_raid"
+    cast_replay = "cast_replay"
+    replay_summary = "replay_summary"
+
+
+class AIConversationStatus(str, Enum):
+    active = "active"
+    closed = "closed"
+    archived = "archived"
+    failed = "failed"
+
+
+class AIConversationItemType(str, Enum):
+    message = "message"
+    function_call = "function_call"
+    function_call_output = "function_call_output"
+    reasoning = "reasoning"
+    summary = "summary"
+
+
+class AIMessageRole(str, Enum):
     user = "user"
     assistant = "assistant"
+    system = "system"
+    developer = "developer"
+    tool = "tool"
 
 
-class AssistantMessage(MainBaseModel):
-    created_at: datetime
-    role: Role
+class AIContentPart(MainBaseModel):
+    type: str = "text"
     text: str
 
 
-class Metadata(DbModel):
-    replay: ReplayId
-    description: str | None = None
-    tags: List[str] = []
-    conversation: List[AssistantMessage] | None = None
-    _collection: ClassVar = "meta"
-
-
-class Alias(MainBaseModel):
-    name: str
-    portraits: list[BsonBinary] = []
-    seen_on: datetime | None = None
-
-    def __str__(self) -> str:
-        return f"{self.name}"
-
-    def __repr__(self) -> str:
-        return self.__str__()
-
-    def __eq__(self, other: object) -> bool:
-        if isinstance(other, Alias):
-            return self.name == other.name
-        elif isinstance(other, PlayerInfo):
-            if other.portrait is None:
-                return self.name == other.name
-            else:
-                return (
-                    self.name == other.name
-                    and to_bson_binary(other.portrait) in self.portraits
-                )
-        else:
-            return False
-
-
-AliasList = List[Alias]
-AliasList.__contains__ = lambda self, x: any(x == alias for alias in self)
-AliasList.__getitem__ = lambda self, x: next(alias for alias in self if alias == x)
-
-
-class PlayerInfo(DbModel):
-    id: ToonHandle = Field(...)
-    name: str
-    aliases: AliasList = []
-    toon_handle: ToonHandle
-    portrait: BsonBinary | None = None
-    portrait_constructed: BsonBinary | None = None
-    tags: List[str] | None = None
-    _collection: ClassVar = "players"
-
-    def update_aliases(self, seen_on: Optional[datetime] = None):
-        seen_on = seen_on or datetime.now()
-        if self in self.aliases:
-            return
-        for alias in self.aliases:
-            if alias.name == self.name:
-                if self.portrait and self.portrait not in alias.portraits:
-                    alias.portraits.append(self.portrait)
-                    alias.seen_on = seen_on
-                return
-
-        portraits = [self.portrait] if self.portrait else []
-
-        self.aliases.append(
-            Alias(
-                name=self.name,
-                seen_on=seen_on,
-                portraits=portraits,
-            )
-        )
-
-    def __str__(self) -> str:
-        exclude = {
-            "portrait": 1,
-            "portrait_constructed": 1,
-            "aliases.portraits": 1,
-        }
-
-        exclude_keys = convert_projection(exclude, model=PlayerInfo)
-
-        return self.model_dump_json(
-            exclude_unset=True,
-            exclude=exclude_keys,
-        )
-
-    def __repr__(self) -> str:
-        return self.__str__()
-
-
-class Usage(MainBaseModel):
-    thread_id: str
-    completion_tokens: int = 0
-    prompt_tokens: int = 0
-    total_tokens: int = 0
-
-
-class Session(DbModel):
-    usages: list[Usage] = []
-    threads: list[str] = []
-    ai_backend: AIBackend
-    session_date: datetime
-    completion_pricing: float
-    prompt_pricing: float
-    _collection: ClassVar = "sessions"
+class Role(str, Enum):
+    user = "user"
+    assistant = "assistant"

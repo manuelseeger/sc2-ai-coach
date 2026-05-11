@@ -1,3 +1,4 @@
+import os
 import pathlib
 import sys
 import time
@@ -9,22 +10,48 @@ import docker
 import httpx
 import pytest
 from pydantic import BaseModel
+from pymongo import MongoClient
 from pytest_mock import MockerFixture
 
-from src.lib.sc2client import NORMAL_MAP as race_map
-from src.lib.sc2client import GameInfo, Race, Result
-from src.lib.sc2client import Player as ApiPlayer
-from src.replaydb.reader import ReplayReader
-from src.replaydb.types import Player as ReplayPlayer
-from tests.critic import LmmCritic
+from tests.support import pytest_services
+
+pytest_services.bootstrap_test_services()
+
+from src.lib.sc2client import NORMAL_MAP as race_map  # noqa: E402
+from src.lib.sc2client import GameInfo, Race, Result  # noqa: E402
+from src.lib.sc2client import Player as ApiPlayer  # noqa: E402
+from src.replays.reader import ReplayReader  # noqa: E402
+from src.replays.types import Player as ReplayPlayer  # noqa: E402
+from tests.critic import LmmCritic  # noqa: E402
 
 TESTDATA_DIR = "tests/testdata"
+
+
+def pytest_addoption(parser):
+    return pytest_services.pytest_addoption(parser)
+
+
+def pytest_configure(config):
+    return pytest_services.pytest_configure(config)
+
+
+def pytest_unconfigure(config):
+    return pytest_services.pytest_unconfigure(config)
 
 
 def only_in_debugging(func):
     """Decorator to skip tests unless a debugger is attached."""
     if sys.gettrace() is None:  # No debugger is attached
         func = pytest.mark.skip(reason="Skipping because not in debugging mode.")(func)
+    return func
+
+
+def only_with_live_openai(func):
+    """Decorator to skip live OpenAI tests unless explicitly enabled."""
+    if not os.getenv("RUN_LIVE_OPENAI_TESTS"):
+        func = pytest.mark.skip(
+            reason="Skipping live OpenAI test. Set RUN_LIVE_OPENAI_TESTS=1 to enable."
+        )(func)
     return func
 
 
@@ -61,9 +88,9 @@ def prompt_file(request):
 
 class Util:
     @staticmethod
-    def stream_thread(coach):
+    def stream_conversation(coach):
         buffer = ""
-        for message in coach.stream_thread():
+        for message in coach.stream_conversation():
             buffer += message
         return buffer
 
@@ -98,6 +125,34 @@ def util():
 @pytest.fixture
 def critic():
     return LmmCritic()
+
+
+@pytest.fixture(scope="session")
+def mongo_service():
+    service = pytest_services.get_mongo_service()
+    if service is None:
+        pytest.skip("MongoDB test service is disabled.")
+    return service
+
+
+@pytest.fixture(scope="session")
+def mongo_client(mongo_service) -> MongoClient:
+    return mongo_service.client
+
+
+@pytest.fixture(autouse=True)
+def clean_mongo_test_database(request):
+    if request.node.get_closest_marker("mongo") is None:
+        yield
+        return
+
+    service = pytest_services.get_mongo_service()
+    if service is None:
+        pytest.fail("MongoDB test service is required for mongo-marked tests.")
+
+    service.clear_database()
+    yield
+    service.clear_database()
 
 
 @pytest.fixture(scope="session")
@@ -268,7 +323,7 @@ def sc2api_mock(mocker: MockerFixture, replay_file):
         return_value=gameinfo,
     )
 
-    def _mock(time: int = None) -> MagicMock:
+    def _mock(time: int | None = None) -> MagicMock:
         if time is not None:
             gameinfo.displayTime = time
         return mocker.patch(

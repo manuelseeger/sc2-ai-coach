@@ -1,12 +1,15 @@
+import sys
 from unittest.mock import MagicMock
 
 import pytest
 
+if sys.gettrace() is None:
+    pytest.skip("Skipping debug-only LLM test.", allow_module_level=True)
+
 from coach import AISession
 from src.events import CastReplayEvent
 from src.io.tts import make_tts_stream
-from src.replaydb.reader import ReplayReader
-from tests.conftest import only_in_debugging
+from src.replays.reader import ReplayReader
 
 
 class MockGameInfo:
@@ -35,7 +38,6 @@ class MockSC2Client:
         return MockGameInfo(display_time=timestamp)
 
 
-@only_in_debugging
 @pytest.mark.parametrize(
     "replay_file",
     ["El Dorado ZvP glave into DT.SC2Replay"],

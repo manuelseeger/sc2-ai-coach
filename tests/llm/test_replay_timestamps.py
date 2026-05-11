@@ -1,11 +1,18 @@
+import os
 from unittest.mock import MagicMock
 
 import pytest
 from rich import print
 
+if not os.getenv("RUN_LIVE_OPENAI_TESTS"):
+    pytest.skip(
+        "Skipping live OpenAI test. Set RUN_LIVE_OPENAI_TESTS=1 to enable.",
+        allow_module_level=True,
+    )
+
 from coach import AISession
-from src.replaydb.reader import ReplayReader
-from src.replaydb.types import Replay
+from src.replays.reader import ReplayReader
+from src.replays.types import Replay
 
 
 @pytest.mark.parametrize(
@@ -36,7 +43,7 @@ def test_discuss_replay(replay_file, convo, sc2api_mock):
     # We need to remove information from the replay data which the LLM should derive on its own
     replay.filename = "El Dorado (23).SC2Replay"
     session.initiate_from_new_replay(replay)
-    response = session.stream_thread()
+    response = session.stream_conversation()
 
     # act
     for timestamp, text, expected in convo:

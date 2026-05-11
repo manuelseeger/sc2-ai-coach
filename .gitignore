@@ -6,7 +6,6 @@ __pycache__/
 !.env.example
 *config.*.yml
 obs/
-assistant.json
 logs/
 mongodb/mongo-seed/*.json
 tests/coverage/
@@ -24,3 +23,6 @@ build/
 dist/
 .specstory/
 rep.json
+.ruff_cache/
+.pytest_cache/
+.claude/

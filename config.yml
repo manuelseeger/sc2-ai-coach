@@ -62,14 +62,24 @@ student:
 # Address of the SC2 game client server
 sc2_client_url: "http://127.0.0.1:6119"
 
-# AI coach backend, use "Mocked" for testing without an AI backend
+# AI coach backend
 aibackend: "OpenAI"
-# which GPT model to use for OpenAI Assistant API
+# Optional custom OpenAI endpoint. Leave empty for the default OpenAI API.
+openai_endpoint:
+# Which GPT model to use for OpenAI Responses API calls.
 gpt_model: "gpt-5.4"
-# Cost per million prompt tokens
-gpt_prompt_pricing_per_million: 2.5
-# Cost per million completion tokens
-gpt_completion_pricing_per_million: 15
+# Optional per-model pricing overrides. If omitted, built-in defaults are used.
+# model_pricing_per_million:
+#   gpt-5.4:
+#     prompt_per_million: 2.5
+#     cached_prompt_per_million: 0.25
+#     completion_per_million: 15
+# Optional shorthand overrides for the configured gpt_model.
+gpt_prompt_pricing_per_million:
+gpt_cached_prompt_pricing_per_million:
+gpt_completion_pricing_per_million:
+reasoning_effort: "medium"
+reasoning_continuity_enabled: false
 
 # Which events should the AI coach react to
 coach_events:
@@ -100,8 +110,8 @@ last_played_ago_max: 2400
 match_history_depth: 100
 
 # Current ladder season
-season: 66
-season_start: "2025-11-10"
+season: 67
+season_start: "2026-04-01"
 # Maps in the current ladder pool 
 ladder_maps:
  - "Celestial Enclave LE"
@@ -143,4 +153,4 @@ default_projection:
   unix_timestamp: 1
 
 # Name of the MongoDB database where the replay collection is stored
-db_name: "SC2"
+db_name: "SC2AICOACH"

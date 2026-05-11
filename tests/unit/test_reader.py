@@ -1,8 +1,9 @@
 import pytest
-import sc2reader
 
-from src.replaydb.plugins.ReplayStats import is_gg, player_worker_micro
-from src.replaydb.reader import ReplayReader
+import sc2reader
+from config import config
+from src.replays.plugins.ReplayStats import is_gg, player_worker_micro
+from src.replays.reader import ReplayReader
 from src.util import time2secs
 from tests.conftest import only_in_debugging
 
@@ -322,5 +323,9 @@ def test_replay_colors_positions(replay_file):
     assert p1.color.name.lower() == "red"
     assert p2.color.name.lower() == "blue"
 
-    assert p1.clock_position == 1
-    assert p2.clock_position == 7
+    if config.include_map_details:
+        assert p1.clock_position == 1
+        assert p2.clock_position == 7
+    else:
+        assert p1.clock_position is None
+        assert p2.clock_position is None

@@ -1,24 +1,28 @@
-version: "3.8"
+name: sc2-ai-coach-db
 
 services:
-  mongodb:
-    image: mongo
-    restart: always
-    env_file:
-      - .env
-    volumes:
-      - ./mongo-init/:/docker-entrypoint-initdb.d/:ro
+  db:
+    image: mongo:7
+    restart: unless-stopped
     ports:
-      - 27017:27017
-      - 9229:9229
-
-  mongo-seed:
-    image: mongo
-    links:
-      - mongodb
-    env_file:
-      - .env
+      - "${DB_PORT:-27018}:27017"
+    environment:
+      MONGO_INITDB_DATABASE: "${DB_NAME:-SC2AICOACH}"
     volumes:
-      - ./mongo-seed:/mongo-seed
-    command:
-      /mongo-seed/import.sh
+      - sc2-aicoach-mongo-data:/data/db
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--quiet",
+          "--eval",
+          "db.adminCommand('ping').ok",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+volumes:
+  sc2-aicoach-mongo-data:

@@ -12,15 +12,16 @@ from config import config
 from external.fast_ssim.ssim import ssim
 from src.lib.sc2client import GameInfo, Player
 from src.lib.sc2pulse import SC2PulseClient
+from src.persistence.replay_store import PlayerInfo, get_replay_store
 from src.playerinfo import (
     is_portrait_match,
     resolve_replays_from_current_opponent,
     save_player_info,
 )
-from src.replaydb.db import replaydb
-from src.replaydb.reader import ReplayReader
-from src.replaydb.types import PlayerInfo
+from src.replays.reader import ReplayReader
 from tests.conftest import only_in_debugging
+
+replay_store = get_replay_store()
 
 
 @pytest.mark.parametrize(
@@ -70,7 +71,9 @@ def test_existing_player_info_update_alias(replay_file, portrait_file, mocker):
     replay = reader.load_replay(replay_file)
     opponent_handle = replay.get_opponent_of(config.student.name).toon_handle
 
-    player_info = replaydb.db.find_one(PlayerInfo, raw_query={"_id": opponent_handle})
+    player_info = replay_store.db.find_one(
+        PlayerInfo, raw_query={"_id": opponent_handle}
+    )
 
     # act
     result, new_player_info = save_player_info(replay)
@@ -81,7 +84,7 @@ def test_existing_player_info_update_alias(replay_file, portrait_file, mocker):
     assert any([a == player_info for a in new_player_info.aliases])
 
     # Undo the alias update
-    result = replaydb.upsert(player_info)
+    result = replay_store.upsert(player_info)
 
 
 @pytest.mark.parametrize(
@@ -105,7 +108,7 @@ def test_save_player_without_obs_integration(replay_file):
     indirect=True,
 )
 def test_read_player_portrait(portrait_file):
-    playerinfo = replaydb.find(
+    playerinfo = replay_store.find(
         PlayerInfo(id="2-S2-2-504151", name="BlackEyed", toon_handle="2-S2-2-504151")
     )
 

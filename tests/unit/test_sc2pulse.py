@@ -1,22 +1,6 @@
 import pytest
 
-from src.lib.sc2client import Race
-from src.lib.sc2pulse import SC2PulseLeagueBounds, SC2PulseRace, get_division_for_mmr
-
-
-def test_convert_race():
-    zerg1 = SC2PulseRace.zerg
-    zerg2 = Race.zerg
-
-    assert zerg1 != zerg2
-
-    protoss = Race.protoss
-
-    assert protoss.value == "Prot"
-
-    protoss = protoss.convert(SC2PulseRace)
-
-    assert protoss.value == "PROTOSS"
+from src.lib.sc2pulse import SC2PulseLeagueBounds, get_division_for_mmr
 
 
 @pytest.mark.parametrize(
