@@ -20,14 +20,14 @@ jobs:
           --health-retries 12
     steps:
       - name: Dependencies
-        run: sudo add-apt-repository ppa:alex-p/tesseract-ocr5 -y && sudo apt update && sudo apt install ffmpeg libsm6 libxext6 tesseract-ocr tesseract-ocr-eng libtesseract-dev libleptonica-dev pkg-config -y
+        run: sudo add-apt-repository ppa:alex-p/tesseract-ocr5 -y && sudo apt update && sudo apt install ffmpeg libgl1 libsm6 libxext6 tesseract-ocr tesseract-ocr-eng libtesseract-dev libleptonica-dev pkg-config -y
       - uses: actions/checkout@v6
       - name: Install uv
         uses: astral-sh/setup-uv@v6
       - name: Install Python
         run: uv python install
       - name: Install the project
-        run: uv sync --locked --extra standard --dev
+        run: uv sync --locked --extra ci --dev
       - name: make log dirs
         run: mkdir -p logs && mkdir -p obs
       - name: Test with pytest
