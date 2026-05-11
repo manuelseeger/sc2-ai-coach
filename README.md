@@ -61,11 +61,11 @@ student:
 
 The rest of the settings will be taken from `config.yml`.
 
-Secrets are configured with environment variables. Either provide them at runtime or put them in a `.env` file like [.env.example](.env.example). Note: Copy to `.env` since the example file is ignored by the application.
+Secrets are configured with environment variables. Either provide them at runtime or put them in a local `.env` file. Note: `.env` is ignored by the application, so keep your personal secrets there.
 
 ### Database
 
-Any MongoDB > 4.5 will do. Either setup one by yourself, or follow the instructions in [mongodb/](mongodb/README.md) on how to setup a local database for dev/testing.
+Any MongoDB > 4.5 will do. Either setup one by yourself, or use the local Docker Compose file in [mongodb/docker-compose.yml](mongodb/docker-compose.yml) for dev/testing.
 
 If you setup your own MongoDB, create a database and add the DB name to settings:
 

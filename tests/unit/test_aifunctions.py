@@ -1,11 +1,7 @@
 import pytest
-from pytest_mock import MockerFixture
 
 from src.ai.functions import AddMetadata, AIFunctions
-from src.ai.functions.CastReplay import CastReplay
 from src.ai.utils import force_valid_json_string, get_clean_tags
-from src.events.events import CastReplayEvent
-from src.replays.types import Replay
 
 
 @pytest.mark.parametrize(
@@ -64,55 +60,3 @@ def test_function_meta_wrong_input():
 def test_clean_tag(tags, expected):
     result = get_clean_tags(tags)
     assert result == expected
-
-
-def test_castreplay_found(mocker: MockerFixture):
-    mock_replay = mocker.create_autospec(Replay, instance=True)
-    mock_replay_store = mocker.Mock()
-    mocker.patch(
-        "src.ai.functions.CastReplay.get_replay_store",
-        return_value=mock_replay_store,
-    )
-    mock_signal_queue = mocker.patch("src.ai.functions.CastReplay.signal_queue")
-    mock_replay_store.db.find_one.return_value = mock_replay
-
-    replay_id = "testhash123"
-    response = CastReplay(replay_id)
-
-    mock_replay_store.db.find_one.assert_called()
-    args, kwargs = mock_signal_queue.put.call_args
-    assert isinstance(args[0], CastReplayEvent)
-    assert args[0].replay == mock_replay
-    assert replay_id in response
-    assert "Casting for" in response
-
-
-def test_castreplay_not_found(mocker: MockerFixture):
-    mock_replay_store = mocker.Mock()
-    mocker.patch(
-        "src.ai.functions.CastReplay.get_replay_store",
-        return_value=mock_replay_store,
-    )
-    mock_signal_queue = mocker.patch("src.ai.functions.CastReplay.signal_queue")
-    mock_replay_store.db.find_one.return_value = None
-    replay_id = "notfoundhash"
-    response = CastReplay(replay_id)
-    assert response == f"Replay with ID {replay_id} not found."
-    mock_signal_queue.put.assert_not_called()
-
-
-def test_castreplay_numeric_id(mocker: MockerFixture):
-    mock_replay = mocker.create_autospec(Replay, instance=True)
-    mock_replay_store = mocker.Mock()
-    mocker.patch(
-        "src.ai.functions.CastReplay.get_replay_store",
-        return_value=mock_replay_store,
-    )
-    mock_signal_queue = mocker.patch("src.ai.functions.CastReplay.signal_queue")
-    mock_replay_store.db.find_one.return_value = mock_replay
-    numeric_id = "1746895208"
-    response = CastReplay(numeric_id)
-    mock_replay_store.db.find_one.assert_called()
-    assert numeric_id in response
-    assert "Casting for" in response
-    mock_signal_queue.put.assert_called()

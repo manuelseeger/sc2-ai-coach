@@ -24,7 +24,7 @@ graph TD
     Q["Signal Queue
     (FIFO)"]
     L["Event Listeners
-    (Threads)
+    (Daemon Threads)
     - GameStarted
     - NewReplay
     - Wake Words
@@ -72,8 +72,10 @@ graph TB
     (events/)"]
     IO["I/O Subsystems
     (io/)"]
-    ReplayDB["ReplayDB Layer
-    (replaydb/)"]
+    Persistence["Persistence Layer
+    (persistence/)"]
+    Replays["Replay Processing
+    (replays/)"]
     Libs["External APIs
     (lib/)"]
     
@@ -86,21 +88,24 @@ graph TB
     Coach --> IO
     
     Session --> AICoach
-    Session --> ReplayDB
+    Session --> Persistence
+    Session --> Replays
     Session --> Libs
     Session --> Support
     
     AICoach --> Prompt
     AICoach --> Functions
     
-    Functions --> ReplayDB
+    Functions --> Persistence
     Functions --> Libs
     
-    Events --> ReplayDB
+    Events --> Persistence
+    Events --> Replays
     
     IO -.->|Optional| Coach
     
-    ReplayDB --> Support
+    Persistence --> Support
+    Replays --> Support
     Libs --> Support
     
     style Coach fill:#fff9c4
@@ -108,7 +113,8 @@ graph TB
     style AICoach fill:#e1f5fe
     style Events fill:#f3e5f5
     style IO fill:#ffe0b2
-    style ReplayDB fill:#c8e6c9
+    style Persistence fill:#c8e6c9
+    style Replays fill:#dcedc8
     style Libs fill:#ffccbc
     style Support fill:#f1f8e9
 ```
@@ -175,13 +181,11 @@ Each handler typically:
 
 **`functions/`**: LLM-callable tools (function calling)
 - `QueryReplayDB.py` - Search historical replays
-- `LookupPlayer.py` - Fetch opponent Battle.net profile
 - `GetCurrentGameInfo.py` - Query live SC2 client state
 - `AddMetadata.py` - Annotate replays with coach comments
-- `AddPlayerTags.py` - Tag opponents with characteristics
 - `CastReplay.py` - Generate play-by-play commentary
 
-All functions decorated with `@AIFunction` for automatic registration.
+The active tool registry currently exposes `QueryReplayDB`, `GetCurrentGameInfo`, `AddMetadata`, and `CastReplay`. Other function modules may exist in the tree but are not part of the default Responses tool set.
 
 **LLM Function Call Architecture**:
 
@@ -194,24 +198,21 @@ graph LR
     AIFuncs["AIFunctions
     Registry"]
     QRP["QueryReplayDB"]
-    LP["LookupPlayer"]
     CGI["GetCurrentGameInfo"]
     AM["AddMetadata"]
-    APT["AddPlayerTags"]
     CR["CastReplay"]
     DB[(MongoDB)]
     APIs["External APIs
-    Battle.net, SC2Pulse"]
+    SC2 Client"]
+    SC2API["SC2 Client API"]
     
     LLM -->|Tool Use| FC
     FC -->|Execute| AIFuncs
-    AIFuncs --> QRP & LP & CGI & AM & APT & CR
+    AIFuncs --> QRP & CGI & AM & CR
     
     QRP --> DB
-    LP --> APIs
-    CGI --> APIs
+    CGI --> SC2API
     AM --> DB
-    APT --> DB
     CR --> DB
 ```
 
@@ -232,7 +233,7 @@ Each listener runs as a separate daemon thread:
 - Enqueues `NewMatchEvent`
 
 **`wake_*.py`**: Various wake word implementations
-- `wake_key.py` - Keyboard hotkey (Ctrl+Shift+Q)
+- `wake_key.py` - Keyboard hotkey (default: Ctrl+Alt+W)
 - `wake_porcupine.py` - Picovoice Porcupine wake word detection
 - `wake_oww.py` - OpenWakeWord detection
 All enqueue `WakeEvent`
@@ -309,10 +310,10 @@ classDiagram
 - Streaming output with configurable voice and speed
 - Markdown stripping for clean speech
 
-**`transcribe.py`**: Speech-to-Text
-- Whisper model via HuggingFace Transformers
+**`transcribe_whisper.py`, `transcribe_qwen.py`, `transcribe_xai.py`**: Speech-to-Text backends
+- Multiple STT backends selectable via config
+- Whisper/Qwen paths use local model inference where configured
 - GPU acceleration (CUDA) when available
-- Flash Attention 2 optimization
 - Voice Activity Detection (WebRTC VAD) for noise filtering
 - Downsampling from 44.1kHz to 16kHz
 
@@ -327,13 +328,25 @@ classDiagram
 
 **Contracts**: `src/contracts.py` defines abstract interfaces (`TTSService`, `MicrophoneService`, `TranscriberService`) with dummy implementations for non-voice modes.
 
-#### 6. Database Layer: `src/replaydb/`
+#### 6. Persistence Layer: `src/persistence/`
 
-**`db.py`**: MongoDB abstraction
+**`database.py`**: MongoDB abstraction
 - Uses `pyodmongo` (Pydantic-based ODM)
-- Collections: `replays`, `replays.meta`, `sessions`, `playerinfo`
-- Custom upsert logic to handle custom ID fields
-- Pagination support for large result sets
+- Provides the shared typed database wrapper used by stores
+
+**`replay_store.py`**: Replay and player persistence
+- Collections: `replays`, `replays.meta`, `players`
+- Upsert logic for replay metadata and player information
+- Pagination support for larger result sets
+
+**`session_store.py`**: Session persistence
+- Stores session-level conversation pointers and token/cost totals
+
+**`conversation_store.py`**: Local AI conversation persistence
+- Stores `AIConversation`, `AIConversationItem`, and `AIResponseRecord`
+- Provides ordered local transcript replay for stateless Responses calls
+
+#### 7. Replay Processing: `src/replays/`
 
 **`reader.py`**: Replay parsing
 - Wraps `sc2reader` library with custom plugins
@@ -347,13 +360,14 @@ classDiagram
 - `PlayerInfo` - Opponent profile and statistics
 - `Session` - Coaching session metadata
 - `Metadata` - Coach annotations on replays
+- `AIConversation`, `AIConversationItem`, `AIResponseRecord` - Local conversation state and usage records
 - Custom validators for ToonHandle, ReplayId
 - BSON Binary support for portrait images
 
 **`plugins/`**: Custom sc2reader plugins
 - Extract additional statistics not in base library
 
-#### 7. External API Integrations: `src/lib/`
+#### 8. External API Integrations: `src/lib/`
 
 **`battlenet.py`**: Battle.net API
 - Profile lookup by toon ID
@@ -376,7 +390,7 @@ classDiagram
 - Player names, races, game time
 
 
-#### 8. Supporting Modules
+#### 9. Supporting Modules
 
 **`src/playerinfo.py`**: Opponent profile management
 - Constructs `PlayerInfo` records from multiple sources
@@ -661,11 +675,11 @@ Secrets in `.env` file:
 Command-line tool for replay database operations:
 
 **Commands**:
+- `add` - Add one or more replays to MongoDB
+- `echo` - Print a parsed replay from a `.SC2Replay` file
+- `query players` - Query player information in MongoDB
 - `sync` - Synchronize replay folder to MongoDB
 - `validate` - Check replay files for parsing errors
-- `export` - Export replays to JSON
-- `delete` - Remove replays from database
-- `player` - Lookup player information
 
 **Options**:
 - `--clean` - Delete instant-leave replays
@@ -699,6 +713,8 @@ Standalone process for OBS scene switching:
 - `conftest.py` - Pytest fixtures and configuration
 - `mocks.py` - Mock objects for testing
 
+Most default unit coverage now runs offline with fake Responses clients; integration and live LLM tests remain opt-in or environment-dependent.
+
 **LLM Testing Strategy**:
 - `tests/llm/test_critic_*.py` - Files test LLM reasoning with real recorded conversations
 - JSON files store expected conversations for replay testing
@@ -722,7 +738,6 @@ Standalone process for OBS scene switching:
 ### StarCraft II Client API
 - HTTP API on `http://localhost:6119`
 - Endpoints: `/game`, `/ui`
-- Requires SC2 launch with `-clientapi` flag
 - Provides: active screens, player info, game time
 
 ### Battle.net API
@@ -804,116 +819,9 @@ Project uses forked/patched versions:
 
 ---
 
-## Design Patterns & Principles
-
-### Event-Driven Architecture
-- Decoupled event producers (listeners) and consumer (session handler)
-- Thread-safe queue for inter-thread communication
-- Daemon threads for background monitoring
-
-### Strategy Pattern
-- Multiple wake word implementations with unified interface
-- Pluggable TTS engines (Kokoro, System)
-- Audio mode configurations
-
-### Repository Pattern
-- `ReplayDB` class abstracts MongoDB operations
-- `ReplayReader` encapsulates replay parsing logic
-
-### Service Contracts
-- Abstract base classes (`TTSService`, etc.) with dummy implementations
-- Dependency injection in `AISession.__init__()`
-
-### Template Method
-- Session handlers follow consistent pattern: context gathering → grounding → conversation loop
-- LLM function calls follow decorator-based registration
-
-### Configuration as Code
-- Pydantic models enforce type safety
-- Environment-based overrides
-- Layered YAML configuration
-
----
-
-## Operational Considerations
-
-### Performance
-- Connection pooling via shared `httpx.Client`
-- MongoDB query pagination for large datasets
-- GPU acceleration for ML models (Whisper, TTS)
-- Flash Attention 2 for Transformer efficiency
-- Replay caching in `sc2reader` factory
-
-### Scalability
-- Single-user design (no multi-tenancy)
-- Local processing (no server deployment)
-- MongoDB can scale to thousands of replays
-- LLM token usage tracked per session
-
-### Security
-- API keys in environment variables, not version controlled
-- `.env.example` template provided
-- OAuth tokens stored locally via `UserAuthenticationStorageHelper`
-
-### Error Handling
-- Try-except blocks in event listeners to prevent thread crashes
-- Graceful degradation when optional services unavailable
-- Logging throughout for debugging
-- Validation errors caught during replay parsing
-
-### Maintainability
-- Type hints throughout (`mypy` compatible, though currently ignored in some files)
-- Pydantic for data validation
-- Consistent logging via `log = logging.getLogger(f"{config.name}.{__name__}")`
-- Rich library for readable terminal output
-
----
-
 ## Current Limitations & Known Issues
 
 1. **Windows-Only**: TesserOCR and some wake word engines are Windows-specific
 2. **GPU Dependency**: Optimal performance requires CUDA GPU for Whisper and TTS
-5. **Rate Limits**: Battle.net and SC2Pulse APIs have rate limits
-7. **Type Checking**: Some modules have `# type: ignore` or mypy errors
 9. **Single Region**: Configured for one Battle.net region at a time
-10. **Portrait Matching**: Heuristic-based, can fail 
 
----
-
-## Future Architecture Considerations
-
-Based on code structure, potential extensions:
-- **Agent Framework**: Modular function system could be expanded for more complex reasoning
-- **Multi-LLM Support**: AICoach wrapper could support other LLM providers
-- **Web Interface**: Session management could be exposed via REST API
-- **Multi-player Support**: Database schema supports multiple students
-- **Coach Personas**: Different prompt templates or runtime instruction profiles could provide varied coaching styles
-- **Context Management**: Add local conversation summarization and token-budget packing for long sessions
-
----
-
-## Development Workflow
-
-### Setup
-1. Install Python 3.12+
-2. `uv sync` to install dependencies
-3. Configure `config.yourname.yml`
-4. Set up MongoDB (local or hosted)
-5. Add `.env` with API keys
-6. Optional: Install `standard` dependencies for voice features
-
-### Running
-- **Main coach**: `python coach.py`
-- **Database sync**: `python repcli.py sync`
-- **OBS integration**: `python obs_client.py`
-
-### Testing
-- `pytest` - Run all tests
-- `pytest tests/unit/` - Unit tests only
-- `pytest --cov` - With coverage
-
-### Code Quality
-- `ruff check` - Linting
-- Type checking currently not enforced in CI
-
----

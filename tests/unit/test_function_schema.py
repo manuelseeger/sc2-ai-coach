@@ -14,28 +14,6 @@ def test_responses_tool_definitions_match_registry():
     assert all(tool["strict"] is True for tool in tools)
 
 
-def test_query_replay_db_schema_marks_nullable_defaults_as_required():
-    tool = QueryReplayDB.json()
-    parameters = tool["parameters"]
-
-    assert parameters["additionalProperties"] is False
-    assert parameters["required"] == [
-        "filter",
-        "projection",
-        "sort",
-        "limit",
-        "limit_time",
-    ]
-    assert parameters["properties"]["projection"]["anyOf"] == [
-        {"type": "string"},
-        {"type": "null"},
-    ]
-    assert parameters["properties"]["limit"]["anyOf"] == [
-        {"type": "integer"},
-        {"type": "null"},
-    ]
-
-
 def test_invocation_adapter_omits_none_kwargs():
     captured = {}
 

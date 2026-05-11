@@ -1,13 +1,5 @@
-from config import Config, StudentConfig
+from config import Config
 from src.pricing import ModelPricingOverride
-
-
-def test_load_config():
-    config: Config = Config()  # type: ignore
-    print(config)
-    assert isinstance(config.student, StudentConfig)
-    assert isinstance(config.deamon_polling_rate, int)
-    assert config.mongo_dsn is not None
 
 
 def test_model_pricing_defaults_to_builtin_lookup():

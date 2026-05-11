@@ -64,7 +64,6 @@ def player_worker_micro(replay) -> dict[int, tuple]:
     ]
 
     for i, event in enumerate(replay.game_events):
-
         if event.second > MAX_TIME_TO_ANALYZE:
             break
 

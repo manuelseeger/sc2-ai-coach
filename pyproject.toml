@@ -35,8 +35,15 @@ standard = [
   "realtimetts[kokoro,system]>=0.5.7",
   "soundfile>=0.13.1",
   "speechrecognition[audio]>=3.14.1",
-  "tesserocr",
+  "tesserocr @ https://github.com/simonflueckiger/tesserocr-windows_build/releases/download/tesserocr-v2.8.0-tesseract-5.5.0/tesserocr-2.8.0-cp312-cp312-win_amd64.whl ; sys_platform == 'win32'",
+  "tesserocr>=2.8.0 ; sys_platform != 'win32'",
   "twitchapi>=4.4.0",
+]
+ci = [
+  "numpy",
+  "opencv-python>=4.11.0.86",
+  "tesserocr @ https://github.com/simonflueckiger/tesserocr-windows_build/releases/download/tesserocr-v2.8.0-tesseract-5.5.0/tesserocr-2.8.0-cp312-cp312-win_amd64.whl ; sys_platform == 'win32'",
+  "tesserocr>=2.8.0 ; sys_platform != 'win32'",
 ]
 whisper = [
   #"flash-attn>=2.7.0.post2",
@@ -59,7 +66,6 @@ openwakeword = [
 sc2reader-plugins = { git = "https://github.com/NumberPigeon/sc2reader-plugins.git" }
 spawningtool = { git = "https://github.com/StoicLoofah/spawningtool.git", rev = "master" }
 sc2reader = { git = "https://github.com/ggtracker/sc2reader.git", rev = "upstream" }
-tesserocr = { url = "https://github.com/simonflueckiger/tesserocr-windows_build/releases/download/tesserocr-v2.8.0-tesseract-5.5.0/tesserocr-2.8.0-cp312-cp312-win_amd64.whl" }
 torch = [{ index = "pytorch-cu124" }]
 torchaudio = [{ index = "pytorch-cu124" }]
 
@@ -90,7 +96,8 @@ dev = [
 default-groups = ["dev"]
 no-build-isolation-package = ["flash-attn"]
 environments = [
-    "sys_platform == 'win32'" 
+  "sys_platform == 'win32'",
+  "sys_platform == 'linux'",
 ]
 
 
