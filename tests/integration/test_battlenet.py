@@ -3,12 +3,12 @@ import datetime
 import pytest
 from rich import print
 
-from config import config
-from src.lib.battlenet import BattleNet
-from src.lib.sc2pulse import SC2PulseClient, SC2PulseRace
+from tests.conftest import load_test_settings
 
 
 def test_get_barcode_character_ids():
+    from src.lib.sc2pulse import SC2PulseClient
+
     barcode = "IIIIIIIIIIII"
 
     sc2pulse = SC2PulseClient()
@@ -20,6 +20,8 @@ def test_get_barcode_character_ids():
 
 
 def test_get_unmasked_player():
+    from src.lib.sc2pulse import SC2PulseClient, SC2PulseRace
+
     barcode = "IIIIIIIIIIII"
 
     sc2pulse = SC2PulseClient()
@@ -39,6 +41,8 @@ def test_get_unmasked_player():
     ],
 )
 def test_get_profile(profile_id, expected_name):
+    from src.lib.battlenet import BattleNet
+
     bnet = BattleNet()
     profile = bnet.get_profile(profile_id)
 
@@ -49,13 +53,18 @@ def test_get_profile(profile_id, expected_name):
 
 
 def test_get_current_season():
+    runtime_settings = load_test_settings()
+    from src.lib.sc2pulse import SC2PulseClient
+
     sc2pulse = SC2PulseClient()
     season = sc2pulse.get_current_season()
-    assert season.battlenetId == config.season
+    assert season.battlenetId == runtime_settings.season
     assert season.end > datetime.datetime.now()
 
 
 def test_get_season_bounds():
+    from src.lib.sc2pulse import SC2PulseClient
+
     sc2pulse = SC2PulseClient()
     season = sc2pulse.get_current_season()
     bounds = sc2pulse.get_league_bounds(season.battlenetId)
@@ -65,6 +74,8 @@ def test_get_season_bounds():
 
 
 def get_division_for_mmr():
+    from src.lib.sc2pulse import SC2PulseClient
+
     sc2pulse = SC2PulseClient()
     season = sc2pulse.get_current_season()
     bounds = sc2pulse.get_league_bounds(season.battlenetId)

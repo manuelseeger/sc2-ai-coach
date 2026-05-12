@@ -4,7 +4,6 @@ import pytest
 from pydantic import BaseModel
 from pyodmongo.queries import eq, sort
 
-from config import config
 from src.persistence.conversation_store import (
     AIConversation,
     AIConversationStatus,
@@ -15,6 +14,7 @@ from src.persistence.conversation_store import (
 )
 from src.persistence.replay_store import get_replay_store
 from src.persistence.session_store import Session
+from tests.conftest import load_test_settings
 
 pytestmark = pytest.mark.mongo
 
@@ -158,12 +158,14 @@ def test_record_response_deduplicates_by_response_id(
 def test_record_response_calculates_costs_and_updates_session(
     store: ConversationStore, cleanup_ai_state
 ):
+    runtime_settings = load_test_settings()
+
     session = Session(
         session_date=datetime.now(),
-        ai_backend=config.aibackend,
-        completion_pricing=config.gpt_completion_pricing,
-        prompt_pricing=config.gpt_prompt_pricing,
-        cached_prompt_pricing=config.gpt_cached_prompt_pricing,
+        ai_backend=runtime_settings.aibackend,
+        completion_pricing=runtime_settings.gpt_completion_pricing,
+        prompt_pricing=runtime_settings.gpt_prompt_pricing,
+        cached_prompt_pricing=runtime_settings.gpt_cached_prompt_pricing,
     )
     replay_store.db.save(session)
     cleanup_ai_state["sessions"].append(session)
@@ -194,7 +196,7 @@ def test_record_response_calculates_costs_and_updates_session(
         query=Session.id == session.id,  # type: ignore[arg-type]
     )
 
-    pricing = config.get_model_pricing("gpt-5.4")
+    pricing = runtime_settings.get_model_pricing("gpt-5.4")
     expected_input_cost = 80 * pricing.prompt
     expected_cached_cost = 20 * pricing.cached_prompt
     expected_output_cost = 40 * pricing.completion

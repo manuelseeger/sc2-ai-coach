@@ -234,6 +234,11 @@ For advanced setup with voice integration, see [Installation.md](Installation.md
 - Smurf detection - analyzes whether opponents are smurfs
 - Replay commentary - AICoach can commentate games from replays
 
+## Testing
+
+Tests are import-safe by default and should not load runtime settings at module import time.
+When a test intentionally needs the current yaml/env-backed runtime settings, use `tests.conftest.load_test_settings()` or the `runtime_settings` fixture.
+
 ## Limitations
 
 - **Game type**: Designed for competitive 1v1 ladder only. Team games, arcade, and custom games are not supported and may cause unexpected behavior.

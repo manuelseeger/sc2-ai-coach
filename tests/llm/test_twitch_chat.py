@@ -11,26 +11,31 @@ if not os.getenv("RUN_LIVE_OPENAI_TESTS"):
         allow_module_level=True,
     )
 
-from config import config
-from src.ai import AICoach
-from src.ai.prompt import Templates
 from src.replays.reader import ReplayReader
+from tests.conftest import load_test_settings
 
 
 @pytest.mark.parametrize(
-    "viewer, message, replay_file",
+    "viewer, replay_file",
     [
         (
             "Sgt_SadSack",
-            f"Can you tell me who won the last time I played against {config.student.name}? My ingame name is Sgtsadsack",
             "Ultralove (101) ZvZ SadSack.SC2Replay",
         ),
     ],
     indirect=["replay_file"],
 )
-def test_get_viewer_replay(viewer, message, replay_file, mocker):
+def test_get_viewer_replay(viewer, replay_file, mocker):
     """Test getting viewer replay."""
     # arrange
+    from src.ai import AICoach
+    from src.ai.prompt import Templates
+
+    runtime_settings = load_test_settings()
+    message = (
+        "Can you tell me who won the last time I played against "
+        f"{runtime_settings.student.name}? My ingame name is Sgtsadsack"
+    )
     aicoach = AICoach()
     reader = ReplayReader()
 
@@ -58,7 +63,7 @@ def test_get_viewer_replay(viewer, message, replay_file, mocker):
         message=prompt,
         schema=ChatResponse,
         additional_instructions=Templates.init_twitch.render(
-            {"student": config.student.name}
+            {"student": runtime_settings.student.name}
         ),
     )
     print(f"VIEWER: {viewer}\nMESSAGE: {message},\nResponse:{response.answer}")

@@ -2,10 +2,8 @@ import parametrize_from_file
 from pydantic import BaseModel
 from rich import print
 
-from config import config
-from src.ai.aicoach import AICoach
-from src.ai.prompt import Templates
 from tests.critic import LmmCritic
+from tests.conftest import load_test_settings
 from tests.support.fake_openai import FakeOpenAIClient, make_response
 
 FIXTURE_CHAT_RESPONSES = {
@@ -30,6 +28,11 @@ def test_twitch_chat(user, message, criteria, expected, util, critic: LmmCritic)
     completions on another LLM, which is why we only run these in debugging."""
 
     # arrange
+    from src.ai.aicoach import AICoach
+    from src.ai.prompt import Templates
+
+    runtime_settings = load_test_settings()
+
     client = FakeOpenAIClient(
         queued=[
             make_response(
@@ -78,7 +81,7 @@ def test_twitch_chat(user, message, criteria, expected, util, critic: LmmCritic)
         message=prompt,
         schema=TwitchChatResponse,
         additional_instructions=Templates.init_twitch.render(
-            {"student": config.student.name}
+            {"student": runtime_settings.student.name}
         ),
     )
 

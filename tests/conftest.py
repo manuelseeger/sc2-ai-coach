@@ -14,6 +14,7 @@ from pymongo import MongoClient
 from pytest_mock import MockerFixture
 
 from tests.support import pytest_services
+from src.runtime.settings import Config, load_current_settings
 
 pytest_services.bootstrap_test_services()
 
@@ -25,6 +26,17 @@ from src.replays.types import Player as ReplayPlayer  # noqa: E402
 from tests.critic import LmmCritic  # noqa: E402
 
 TESTDATA_DIR = "tests/testdata"
+
+
+def load_test_settings(*, require_prepared_environment: bool = True) -> Config:
+    return load_current_settings(
+        require_prepared_environment=require_prepared_environment
+    )
+
+
+@pytest.fixture
+def runtime_settings() -> Config:
+    return load_test_settings()
 
 
 def pytest_addoption(parser):

@@ -6,23 +6,24 @@ from rich import print
 
 pytest.importorskip("twitchAPI")
 
-from config import config
 from shared import signal_queue
-from src.events.twitch import TwitchListener
+from tests.conftest import load_test_settings
 
 
-@pytest.mark.skipif(
-    config.twitch_mocked is False,
-    reason="Only run when twitch events are mocked locally.",
-)
 def test_channel_follow():
+    runtime_settings = load_test_settings()
+
+    if runtime_settings.twitch_mocked is False:
+        pytest.skip("Only run when twitch events are mocked locally.")
+
+    from src.events.twitch import TwitchListener
 
     twitch = TwitchListener(name="twitch")
     twitch.start()
 
     while not twitch.stopped():
         try:
-            result = signal_queue.get()
+            result = signal_queue.get_nowait()
             print(result)
             signal_queue.task_done()
         except queue.Empty:
