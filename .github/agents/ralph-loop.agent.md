@@ -58,7 +58,6 @@ The linked issues are your task list.
 
 - You MUST call a subagent for actual implementation.
 - You MUST keep looping until all tasks are completed.
-- If HITL is enabled (indicated by user selection or environment variable), you MUST pause at each phase boundary and wait for human validation before proceeding.
 - Complete AFK tasks first, then HITL tasks. Only do a HITL task before an AFK task if all AFK tasks are blocked by incomplete HITL tasks.
 
 ## Required tool availability
