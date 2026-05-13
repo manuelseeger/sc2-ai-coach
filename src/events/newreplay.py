@@ -3,7 +3,6 @@ import os
 from os.path import basename
 from pathlib import Path
 from time import sleep
-from typing import Callable
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -11,7 +10,7 @@ from watchdog.observers import Observer
 from shared import signal_queue
 from src.events import NewReplayEvent
 from src.persistence.replay_store import ReplayStore, get_replay_store
-from src.playerresolver import save_player_info
+from src.playeridentity import PlayerIdentityEnricher, PlayerIdentityEnrichmentError
 from src.replays.reader import ReplayReader
 from src.runtime.settings import Config, load_current_settings
 from src.util import wait_for_file
@@ -35,13 +34,15 @@ class NewReplayHandler(FileSystemEventHandler):
         self,
         *,
         replay_store: ReplayStore | None = None,
-        save_player_info_fn: Callable = save_player_info,
+        player_identity_enricher: PlayerIdentityEnricher | None = None,
         settings: Config | None = None,
     ):
         super().__init__()
         self.settings = settings or load_current_settings()
         self.replay_store = replay_store or get_replay_store()
-        self.save_player_info = save_player_info_fn
+        if player_identity_enricher is None:
+            raise ValueError("player_identity_enricher must be provided")
+        self.player_identity_enricher = player_identity_enricher
         self.reader = ReplayReader(settings=self.settings)
 
     def on_created(self, event):
@@ -59,12 +60,10 @@ class NewReplayHandler(FileSystemEventHandler):
             result = self.replay_store.upsert(replay)
             if not result.acknowledged:
                 log.error(f"Failed to save {replay}")
-            result, player_info = self.save_player_info(
-                replay,
-                settings=self.settings,
-            )
-            if not result.acknowledged:
-                log.error(f"Failed to save player info for {replay}")
+            try:
+                self.player_identity_enricher.save_from_replay(replay)
+            except PlayerIdentityEnrichmentError as exc:
+                log.error(f"Failed to enrich player identity: {exc}")
 
             signal_queue.put(NewReplayEvent(replay=replay))
         else:
@@ -80,14 +79,16 @@ class NewReplayListener(Observer):
         self,
         *,
         replay_store: ReplayStore | None = None,
-        save_player_info_fn: Callable = save_player_info,
+        player_identity_enricher: PlayerIdentityEnricher | None = None,
         settings: Config | None = None,
     ):
         super().__init__()
         self.settings = settings or load_current_settings()
+        if player_identity_enricher is None:
+            raise ValueError("player_identity_enricher must be provided")
         self.event_handler = NewReplayHandler(
             replay_store=replay_store,
-            save_player_info_fn=save_player_info_fn,
+            player_identity_enricher=player_identity_enricher,
             settings=self.settings,
         )
         self.schedule(

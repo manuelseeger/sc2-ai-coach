@@ -60,7 +60,7 @@ EMOJI_MAP = {
     "main": Emojis.system,
     "close": Emojis.system,
     "calculate_usage": Emojis.pricing,
-    "obs_tools.playerinfo.save_player_info": Emojis.player_info,
+    "obs_tools.playerinfo.save_from_replay": Emojis.player_info,
     "obs_tools.twitch.twitch_async_mocked": Emojis.test_tube,
 }
 

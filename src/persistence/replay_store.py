@@ -163,6 +163,19 @@ class ReplayStore:
             raise ValueError(f"No replays found for {player_name}")
         return most_recent
 
+    def get_recent_for_player(
+        self, toon_handle: ToonHandle, *, limit: int = 5
+    ) -> list[Replay]:
+        response: ResponsePaginate = self.db.find_many(
+            Model=Replay,
+            paginate=True,
+            current_page=1,
+            docs_per_page=limit,
+            raw_query={"players.toon_handle": toon_handle},
+            sort=sort((Replay.unix_timestamp, -1)),  # type: ignore[arg-type]
+        )
+        return response.docs
+
     def find(self, model: T) -> T | None:
         model_class = model.__class__
         query = eq(model_class.id, model.id)  # type: ignore[arg-type]

@@ -1,7 +1,6 @@
 import logging
 import queue
 import sys
-from functools import partial
 
 import click
 
@@ -10,7 +9,7 @@ from shared import signal_queue
 from src.contracts import MicrophoneService, TranscriberService, TTSService
 from src.events.events import ReplEvent
 from src.persistence.runtime import build_persistence_services
-from src.playerinfo import save_player_info
+from src.runtime.playeridentity import build_player_identity_services
 from src.runtime.settings import (
     AudioMode,
     Config,
@@ -34,6 +33,10 @@ def main(debug, repl, trace):
     configure_application_logging(logger=log)
     _install_rich_log_handler(log)
     persistence = build_persistence_services(settings)
+    player_identity = build_player_identity_services(
+        settings,
+        replay_store=persistence.replay_store,
+    )
 
     if debug:
         log.setLevel(logging.DEBUG)
@@ -57,15 +60,13 @@ def main(debug, repl, trace):
         conversation_store=persistence.conversation_store,
         replay_store=persistence.replay_store,
         session_store=persistence.session_store,
+        player_resolver=player_identity.resolver,
     )
 
     wake, scanner, replay_scanner, twitch = _build_live_event_listeners(
         settings,
         replay_store=persistence.replay_store,
-        save_player_info_fn=partial(
-            save_player_info,
-            replay_store=persistence.replay_store,
-        ),
+        player_identity_enricher=player_identity.enricher,
         repl=repl,
     )
 
@@ -173,7 +174,7 @@ def _build_live_event_listeners(
     settings: "Config",
     *,
     replay_store,
-    save_player_info_fn,
+    player_identity_enricher,
     repl: bool,
 ) -> tuple[object | None, object | None, object | None, object | None]:
     from src.runtime.settings import CoachEvent
@@ -220,7 +221,7 @@ def _build_live_event_listeners(
         replay_scanner = NewReplayListener(
             settings=settings,
             replay_store=replay_store,
-            save_player_info_fn=save_player_info_fn,
+            player_identity_enricher=player_identity_enricher,
         )
 
     return wake, scanner, replay_scanner, twitch

@@ -4,7 +4,6 @@ import logging
 import os
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from functools import partial
 from io import BytesIO
 from os.path import basename, getmtime, join
 from pathlib import Path
@@ -21,6 +20,8 @@ from rich.table import Table
 from rich.theme import Theme
 
 from src.ai.utils import force_valid_json_string
+from src.playeridentity import PlayerIdentityEnrichmentError
+from src.runtime.playeridentity import build_player_identity_services
 from src.runtime.settings import Config, load_current_settings
 
 custom_theme = Theme(
@@ -40,7 +41,7 @@ class RepCliRuntime:
     replay_store: Any
     replay_model: type
     player_info_model: type
-    save_player_info: Any
+    player_identity_enricher: Any
 
 
 def load_runtime_settings() -> "Config":
@@ -67,11 +68,14 @@ def _build_runtime() -> RepCliRuntime:
 
     from src.persistence.replay_store import PlayerInfo
     from src.persistence.runtime import build_persistence_services
-    from src.playerresolver import save_player_info
     from src.replays.reader import ReplayReader
     from src.replays.types import Replay
 
     persistence = build_persistence_services(settings)
+    player_identity = build_player_identity_services(
+        settings,
+        replay_store=persistence.replay_store,
+    )
 
     return RepCliRuntime(
         settings=settings,
@@ -79,10 +83,7 @@ def _build_runtime() -> RepCliRuntime:
         replay_store=persistence.replay_store,
         replay_model=Replay,
         player_info_model=PlayerInfo,
-        save_player_info=partial(
-            save_player_info,
-            replay_store=persistence.replay_store,
-        ),
+        player_identity_enricher=player_identity.enricher,
     )
 
 
@@ -389,9 +390,8 @@ def syncplayer(ctx, replay, summary: SyncSummary, runtime: RepCliRuntime):
     if ctx.obj["SIMULATION"]:
         console.print(f"Simulation, would add {opponent.name} ({opponent.toon_handle})")
     else:
-        result, player_info = runtime.save_player_info(replay)
-
-        if result.acknowledged:
+        try:
+            player_info = runtime.player_identity_enricher.save_from_replay(replay)
             console.print(
                 f":white_heavy_check_mark: {opponent.name} ({opponent.toon_handle}) added to DB from {replay}"
             )
@@ -404,9 +404,9 @@ def syncplayer(ctx, replay, summary: SyncSummary, runtime: RepCliRuntime):
                 )
             if ctx.obj["VERBOSE"]:
                 print_player_portrait(player_info)
-        else:
+        except PlayerIdentityEnrichmentError as exc:
             console.print(
-                f":x: {opponent.name} ({opponent.toon_handle}) not added to DB"
+                f":x: {opponent.name} ({opponent.toon_handle}) not added to DB: {exc}"
             )
 
 

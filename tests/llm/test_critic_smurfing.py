@@ -39,8 +39,11 @@ def test_detects_smurfing(
     mocker.patch("coach.transcriber", TranscriberMock(data=[]))
     mocker.patch.object(
         session.player_resolver,
-        "resolve",
-        return_value=(playerinfo, past_replays),
+        "resolve_player",
+        return_value=playerinfo,
+    )
+    mocker.patch.object(
+        session.replay_store, "get_recent_for_player", return_value=past_replays
     )
     mocker.patch("src.session.get_sc2pulse_match_history", return_value=match_history)
 

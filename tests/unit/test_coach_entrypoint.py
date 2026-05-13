@@ -126,7 +126,7 @@ def test_build_live_event_listeners_selects_runtime_specific_implementations(
     coach = importlib.import_module("coach")
 
     replay_store = object()
-    save_player_info_fn = object()
+    player_identity_enricher = object()
     calls: dict[str, object] = {}
 
     wake_module = types.ModuleType("src.events.wake_porcupine")
@@ -148,10 +148,10 @@ def test_build_live_event_listeners_selects_runtime_specific_implementations(
     replay_module = types.ModuleType("src.events.newreplay")
 
     class FakeNewReplayListener:
-        def __init__(self, *, settings, replay_store, save_player_info_fn):
+        def __init__(self, *, settings, replay_store, player_identity_enricher):
             calls["settings"] = settings
             calls["replay_store"] = replay_store
-            calls["save_player_info_fn"] = save_player_info_fn
+            calls["player_identity_enricher"] = player_identity_enricher
 
     replay_module.NewReplayListener = FakeNewReplayListener
 
@@ -184,7 +184,7 @@ def test_build_live_event_listeners_selects_runtime_specific_implementations(
     wake, scanner, replay_scanner, twitch = coach._build_live_event_listeners(
         settings,
         replay_store=replay_store,
-        save_player_info_fn=save_player_info_fn,
+        player_identity_enricher=player_identity_enricher,
         repl=False,
     )
 
@@ -195,7 +195,7 @@ def test_build_live_event_listeners_selects_runtime_specific_implementations(
     assert calls == {
         "settings": settings,
         "replay_store": replay_store,
-        "save_player_info_fn": save_player_info_fn,
+        "player_identity_enricher": player_identity_enricher,
     }
 
 
@@ -233,7 +233,7 @@ def test_build_live_event_listeners_falls_back_to_key_and_clientapi(monkeypatch)
     wake, scanner, replay_scanner, twitch = coach._build_live_event_listeners(
         settings,
         replay_store=object(),
-        save_player_info_fn=object(),
+        player_identity_enricher=object(),
         repl=False,
     )
 
@@ -289,6 +289,7 @@ def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
             conversation_store,
             replay_store,
             session_store,
+            player_resolver,
         ):
             calls.append(
                 (
@@ -301,6 +302,7 @@ def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
                     type(conversation_store).__name__,
                     type(replay_store).__name__,
                     type(session_store).__name__,
+                    player_resolver,
                 )
             )
 
@@ -319,6 +321,8 @@ def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
     class SessionStore:
         pass
 
+    player_resolver = object()
+
     def build_persistence_services(runtime_settings):
         calls.append(("persistence", runtime_settings))
         return types.SimpleNamespace(
@@ -335,7 +339,14 @@ def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
     monkeypatch.setattr(coach, "signal_queue", FakeSignalQueue())
     monkeypatch.setattr(coach, "ReplEvent", FakeReplEvent)
     monkeypatch.setattr(coach, "build_persistence_services", build_persistence_services)
-    monkeypatch.setattr(coach, "save_player_info", lambda replay, replay_store=None: None)
+    monkeypatch.setattr(
+        coach,
+        "build_player_identity_services",
+        lambda runtime_settings, *, replay_store: types.SimpleNamespace(
+            resolver=player_resolver,
+            enricher=types.SimpleNamespace(save_from_replay=object()),
+        ),
+    )
     monkeypatch.setattr(coach, "AISession", FakeAISession)
 
     runner = CliRunner()
@@ -358,6 +369,7 @@ def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
         "ConversationStore",
         "ReplayStore",
         "SessionStore",
+        player_resolver,
     ) in calls
     assert ("handle", "FakeReplEvent") in calls
 
@@ -415,6 +427,7 @@ def test_live_execution_selects_and_starts_configured_event_listeners(monkeypatc
         replay_store=object(),
         session_store=object(),
     )
+    fake_player_identity_enricher = object()
 
     monkeypatch.setattr(coach, "load_runtime_settings", lambda: settings)
     monkeypatch.setattr(coach, "configure_application_logging", lambda *, logger: None)
@@ -424,7 +437,7 @@ def test_live_execution_selects_and_starts_configured_event_listeners(monkeypatc
     monkeypatch.setattr(
         coach,
         "_build_live_event_listeners",
-        lambda runtime_settings, replay_store, save_player_info_fn, repl: (
+        lambda runtime_settings, replay_store, player_identity_enricher, repl: (
             FakeListener("wake"),
             FakeListener("game_start"),
             FakeListener("new_replay"),
@@ -433,7 +446,14 @@ def test_live_execution_selects_and_starts_configured_event_listeners(monkeypatc
     )
     monkeypatch.setattr(coach, "signal_queue", FakeSignalQueue())
     monkeypatch.setattr(coach, "build_persistence_services", fake_persistence_services)
-    monkeypatch.setattr(coach, "save_player_info", lambda replay, replay_store=None: None)
+    monkeypatch.setattr(
+        coach,
+        "build_player_identity_services",
+        lambda runtime_settings, *, replay_store: types.SimpleNamespace(
+            resolver=object(),
+            enricher=fake_player_identity_enricher,
+        ),
+    )
     monkeypatch.setattr(coach, "AISession", FakeAISession)
 
     runner = CliRunner()
@@ -446,3 +466,75 @@ def test_live_execution_selects_and_starts_configured_event_listeners(monkeypatc
     assert ("start", "twitch") in calls
     assert ("stop", "wake") in calls
     assert ("join", "wake") in calls
+
+
+def test_live_execution_composes_player_identity_services(monkeypatch):
+    sys.modules.pop("coach", None)
+    coach = importlib.import_module("coach")
+
+    settings = Config.model_construct(
+        audiomode=AudioMode.text,
+        interactive=False,
+        coach_events=[],
+        obs_integration=False,
+        aibackend="OpenAI",
+        gpt_model="gpt-5.4",
+        transcriber_backend=TranscriberBackend.whisper,
+    )
+    resolver = object()
+    player_identity_enricher = object()
+    calls: dict[str, object] = {}
+
+    class FakeSignalQueue:
+        def get(self, timeout):
+            raise KeyboardInterrupt()
+
+    class FakeAISession:
+        def __init__(self, **kwargs):
+            calls["player_resolver"] = kwargs["player_resolver"]
+
+        def is_active(self):
+            return False
+
+    replay_store = object()
+    persistence = types.SimpleNamespace(
+        conversation_store=object(),
+        replay_store=replay_store,
+        session_store=object(),
+    )
+
+    def fake_build_player_identity_services(runtime_settings, *, replay_store):
+        calls["identity_services"] = (runtime_settings, replay_store)
+        return types.SimpleNamespace(
+            resolver=resolver,
+            enricher=player_identity_enricher,
+        )
+
+    def fake_build_live_event_listeners(
+        runtime_settings, *, replay_store, player_identity_enricher, repl
+    ):
+        calls["listener_player_identity_enricher"] = player_identity_enricher
+        return (None, None, None, None)
+
+    monkeypatch.setattr(coach, "load_runtime_settings", lambda: settings)
+    monkeypatch.setattr(coach, "configure_application_logging", lambda *, logger: None)
+    monkeypatch.setattr(coach, "log", logging.getLogger("coach-test"))
+    monkeypatch.setattr(coach, "_install_rich_log_handler", lambda log: None)
+    monkeypatch.setattr(coach, "_build_io_services", lambda runtime_settings: (None, None, None))
+    monkeypatch.setattr(coach, "signal_queue", FakeSignalQueue())
+    monkeypatch.setattr(coach, "build_persistence_services", lambda runtime_settings: persistence)
+    monkeypatch.setattr(
+        coach,
+        "build_player_identity_services",
+        fake_build_player_identity_services,
+    )
+    monkeypatch.setattr(coach, "_build_live_event_listeners", fake_build_live_event_listeners)
+    monkeypatch.setattr(coach, "AISession", FakeAISession)
+
+    runner = CliRunner()
+    result = runner.invoke(coach.main, [], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    assert calls["identity_services"] == (settings, replay_store)
+    assert calls["player_resolver"] is resolver
+    assert calls["listener_player_identity_enricher"] is player_identity_enricher

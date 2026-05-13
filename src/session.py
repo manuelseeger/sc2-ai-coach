@@ -321,9 +321,13 @@ class AISession:
         prompt = None
         match_history = None
 
-        playerinfo, past_replays = self.player_resolver.resolve(opponent, map, mmr)
+        playerinfo = self.player_resolver.resolve_player(opponent, map, mmr)
+        past_replays = []
 
         if playerinfo is not None:
+            past_replays = self.replay_store.get_recent_for_player(
+                playerinfo.toon_handle
+            )
             match_history = get_sc2pulse_match_history(playerinfo.toon_handle)
             match_history = get_sc2pulse_match_history(
                 playerinfo.toon_handle,
