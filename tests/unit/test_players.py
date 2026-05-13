@@ -8,7 +8,8 @@ import pytest
 from PIL import Image
 
 from external.fast_ssim.ssim import ssim
-from src.playerinfo import get_matching_portrait
+from src.playerresolver import PlayerResolver
+from tests.conftest import load_test_settings
 
 
 @pytest.mark.parametrize(
@@ -20,13 +21,14 @@ def test_get_matching_portrait(portrait_file):
     # arrange
     os.makedirs("obs/screenshots/portraits", exist_ok=True)
     shutil.copy(portrait_file, "obs/screenshots/portraits/")
+    resolver = PlayerResolver(load_test_settings())
 
     opponent = "lllllllllllI"
     mapname = "Post-Youth LE"
     reference_date = datetime(2024, 8, 5, 16, 32, 48)
 
     # act
-    portrait = get_matching_portrait(opponent, mapname, reference_date)
+    portrait = resolver.get_matching_portrait(opponent, mapname, reference_date)
 
     portrait_now = Image.open(BytesIO(portrait))
     portrait_file = Image.open(portrait_file)

@@ -11,7 +11,7 @@ from watchdog.observers import Observer
 from shared import signal_queue
 from src.events import NewReplayEvent
 from src.persistence.replay_store import ReplayStore, get_replay_store
-from src.playerinfo import save_player_info
+from src.playerresolver import save_player_info
 from src.replays.reader import ReplayReader
 from src.runtime.settings import Config, load_current_settings
 from src.util import wait_for_file

@@ -67,7 +67,7 @@ def _build_runtime() -> RepCliRuntime:
 
     from src.persistence.replay_store import PlayerInfo
     from src.persistence.runtime import build_persistence_services
-    from src.playerinfo import save_player_info
+    from src.playerresolver import save_player_info
     from src.replays.reader import ReplayReader
     from src.replays.types import Replay
 

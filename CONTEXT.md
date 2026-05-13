@@ -104,6 +104,30 @@ _Avoid_: get_database, get_store, ambient service lookup
 The rule that configured objects are created only inside explicit runtime execution paths rather than as top-level module state.
 _Avoid_: top-level composed objects, import-time assembly, hidden startup graph
 
+**Player Identity Enrichment**:
+The application step that derives and merges opponent identity signals from replay context and external portrait sources before persisting player state.
+_Avoid_: save player info, store helper, plain persistence
+
+**Player Resolver**:
+The query-side service that identifies an opponent and retrieves past replay context without owning player-state persistence.
+_Avoid_: player saver, enrichment service, write-side resolver
+
+**Player Identity Enricher**:
+The write-side service that performs Player Identity Enrichment and owns the merge-and-save workflow for player state.
+_Avoid_: replay store method, save helper, generic player service
+
+**Player Portrait Source**:
+The shared collaborator that acquires or derives portrait inputs for player identity flows without owning query resolution or player-state persistence.
+_Avoid_: resolver helper bag, loose utility functions, saver helper
+
+**Player Replay History**:
+The ordered set of stored replays associated with a resolved opponent identity.
+_Avoid_: resolver side effect, ad hoc replay lookup, mixed query result
+
+**Recent Player Replay History**:
+The bounded recent slice of Player Replay History returned by default for an identified opponent.
+_Avoid_: implicit full history, unbounded default, resolver bundle
+
 ## Relationships
 
 - The **Coach Runtime** owns the **Composition Root**
@@ -142,6 +166,12 @@ _Avoid_: top-level composed objects, import-time assembly, hidden startup graph
 - Logging setup follows **Composition-Owned Logging**, while modules acquire loggers in an import-safe way
 - Modules use **Explicit Dependency Access** instead of module-level convenience accessors
 - Configured objects are created through **Execution-Path Composition** inside `main()`-style flows or command handlers
+- A **Player Identity Enrichment** step may end with persistence, but it is not itself a plain store operation
+- A **Player Resolver** handles query-side identity lookup, while a **Player Identity Enricher** handles write-side enrichment and persistence
+- A **Player Identity Enricher** is constructed through **Execution-Path Composition** with explicit collaborators rather than ambient fallbacks
+- A **Player Portrait Source** may be shared by the **Player Resolver** and **Player Identity Enricher** when both need portrait acquisition behavior
+- **Player Replay History** is queried through the replay store rather than returned as part of identity resolution
+- **Recent Player Replay History** defaults to a bounded slice rather than an implicit full-history query
 
 ## Example dialogue
 
@@ -171,3 +201,8 @@ _Avoid_: top-level composed objects, import-time assembly, hidden startup graph
 - "project logging" could imply a config-aware `log` module setting handlers on import - resolved: logging policy and handlers use **Composition-Owned Logging**, and modules only acquire loggers without import-time setup.
 - "convenience accessor" could seem harmless once config is explicit - resolved: stores, databases, and services use **Explicit Dependency Access** and do not expose module-level getter shortcuts.
 - "top-level helper state" could seem harmless after explicit loading - resolved: use **Execution-Path Composition** only; configured objects are not created as module globals.
+- "save player info" was used as if this were only a persistence concern - resolved: this flow is **Player Identity Enrichment** that concludes with a store write.
+- "player resolver" was used for both lookup and persistence - resolved: **Player Resolver** is query-side only, and **Player Identity Enricher** owns write-side enrichment.
+- "move helper methods out" was used to imply standalone functions - resolved: shared portrait acquisition behavior belongs in a **Player Portrait Source** collaborator when both sides need it.
+- "resolver result" was used to bundle identity lookup with replay history - resolved: **Player Replay History** is a separate store query, not part of the resolver contract.
+- "recent history" could imply an unbounded query with caller-side slicing - resolved: **Recent Player Replay History** is a bounded store query with a default depth of 5.

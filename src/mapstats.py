@@ -198,6 +198,6 @@ def get_map_stats(
     query = (Replay.map_name == map) & (Replay.date >= min_date)  # pyright: ignore[reportOperatorIssue]
     maps: list[MatchupsByMap] = replay_store.db.find_many(
         Model=MatchupsByMap,
-        query=query,
-    )  # type: ignore[assignment]
+        query=query,  # type: ignore[assignment]
+    )
     return maps[0] if maps else None

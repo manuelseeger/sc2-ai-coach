@@ -28,7 +28,7 @@ from src.matchhistory import get_sc2pulse_match_history
 from src.persistence.conversation_store import ConversationStore, get_conversation_store
 from src.persistence.replay_store import Metadata, ReplayStore, get_replay_store
 from src.persistence.session_store import Session, SessionStore
-from src.playerinfo import resolve_replays_from_current_opponent
+from src.playerresolver import PlayerResolver
 from src.replays.types import AIConversationTrigger, Replay, Role
 from src.runtime.settings import AudioMode, Config, load_current_settings
 from src.util import secs2time
@@ -104,11 +104,16 @@ class AISession:
         conversation_store: ConversationStore | None = None,
         replay_store: ReplayStore | None = None,
         session_store: SessionStore | None = None,
+        player_resolver: PlayerResolver | None = None,
     ):
         self.settings = settings or load_current_settings()
         self.conversation_store = conversation_store or get_conversation_store()
         self.replay_store = replay_store or get_replay_store()
         self.session_store = session_store or SessionStore(self.replay_store.database)
+        self.player_resolver = player_resolver or PlayerResolver(
+            self.settings,
+            replay_store=self.replay_store,
+        )
         self.update_last_replay()
         self.set_season()
         self.coach = AICoach(
@@ -316,13 +321,7 @@ class AISession:
         prompt = None
         match_history = None
 
-        playerinfo, past_replays = resolve_replays_from_current_opponent(
-            opponent,
-            map,
-            mmr,
-            replay_store=self.replay_store,
-            settings=self.settings,
-        )
+        playerinfo, past_replays = self.player_resolver.resolve(opponent, map, mmr)
 
         if playerinfo is not None:
             match_history = get_sc2pulse_match_history(playerinfo.toon_handle)

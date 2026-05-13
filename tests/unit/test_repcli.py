@@ -8,7 +8,7 @@ from click.testing import CliRunner
 
 
 def test_importing_repcli_does_not_require_ambient_config(monkeypatch):
-    for module_name in ["repcli", "config", "src.playerinfo", "src.replays.reader"]:
+    for module_name in ["repcli", "config", "src.playerresolver", "src.replays.reader"]:
         sys.modules.pop(module_name, None)
 
     root_logger = logging.getLogger()
@@ -115,12 +115,12 @@ def test_build_runtime_constructs_persistence_explicitly(monkeypatch):
 
     fake_persistence_module.build_persistence_services = build_persistence_services
 
-    fake_playerinfo_module = types.ModuleType("src.playerinfo")
+    fake_playerresolver_module = types.ModuleType("src.playerresolver")
 
     def fake_save_player_info(replay, replay_store=None):
         return replay, replay_store
 
-    fake_playerinfo_module.save_player_info = fake_save_player_info
+    fake_playerresolver_module.save_player_info = fake_save_player_info
 
     fake_reader_module = types.ModuleType("src.replays.reader")
 
@@ -135,7 +135,7 @@ def test_build_runtime_constructs_persistence_explicitly(monkeypatch):
 
     monkeypatch.setitem(sys.modules, "src.persistence.replay_store", fake_replay_store_module)
     monkeypatch.setitem(sys.modules, "src.persistence.runtime", fake_persistence_module)
-    monkeypatch.setitem(sys.modules, "src.playerinfo", fake_playerinfo_module)
+    monkeypatch.setitem(sys.modules, "src.playerresolver", fake_playerresolver_module)
     monkeypatch.setitem(sys.modules, "src.replays.reader", fake_reader_module)
     monkeypatch.setitem(sys.modules, "src.replays.types", fake_replays_types_module)
 
