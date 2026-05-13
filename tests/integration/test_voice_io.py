@@ -5,11 +5,10 @@ pytest.importorskip("RealtimeTTS")
 pytest.importorskip("speech_recognition")
 pytest.importorskip("soundfile")
 
-from tests.conftest import load_test_settings
 from src.io import get_transcriber_class
 from src.io.mic import Microphone
 from src.io.tts import make_tts_stream
-
+from tests.conftest import load_test_settings
 
 settings = load_test_settings()
 

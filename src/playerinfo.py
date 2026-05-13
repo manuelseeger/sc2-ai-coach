@@ -17,7 +17,12 @@ from shared import http_client
 from src.lib.battlenet import BattleNet
 from src.lib.sc2client import SC2Client
 from src.lib.sc2pulse import SC2PulseClient
-from src.persistence.replay_store import Alias, PlayerInfo, ReplayStore, get_replay_store
+from src.persistence.replay_store import (
+    Alias,
+    PlayerInfo,
+    ReplayStore,
+    get_replay_store,
+)
 from src.replays.types import Replay, to_bson_binary
 from src.util import is_aware, is_barcode
 

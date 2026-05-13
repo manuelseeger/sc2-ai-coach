@@ -2,13 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .AddMetadata import AddMetadata
-from .AddMetadata import build_add_metadata_function
-from .CastReplay import CastReplay
-from .CastReplay import build_cast_replay_function
+from .AddMetadata import AddMetadata, build_add_metadata_function
+from .CastReplay import CastReplay, build_cast_replay_function
 from .GetCurrentGameInfo import GetCurrentGameInfo
-from .QueryReplayDB import QueryReplayDB
-from .QueryReplayDB import build_query_replay_db_function
+from .QueryReplayDB import QueryReplayDB, build_query_replay_db_function
 
 if TYPE_CHECKING:
     from src.persistence.replay_store import ReplayStore

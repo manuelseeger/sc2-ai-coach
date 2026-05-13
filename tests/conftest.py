@@ -13,12 +13,12 @@ from pydantic import BaseModel
 from pymongo import MongoClient
 from pytest_mock import MockerFixture
 
-from tests.support import pytest_services
 from src.persistence.conversation_store import ConversationStore
 from src.persistence.database import MongoDatabase, MongoDatabaseConfig
 from src.persistence.replay_store import ReplayStore
 from src.persistence.session_store import SessionStore
 from src.runtime.settings import Config, load_current_settings
+from tests.support import pytest_services
 
 pytest_services.bootstrap_test_services()
 

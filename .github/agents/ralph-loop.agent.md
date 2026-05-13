@@ -114,6 +114,7 @@ Inputs:
 - Linked implementation issues: discover from the PRD issue
 
 You must:
+0. TODO: Reviewer and incomplete items
 1. List all remaining Open issues and pick ONE you think is the most important next step. Do not pick an issue with label `in-progress`
    (**DO NOT pick multiple tasks, one per call**)
 2. Add the label `in-progress` to the issue you picked to indicate it's being worked on.

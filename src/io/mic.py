@@ -29,9 +29,7 @@ class Microphone(MicrophoneService):
         self.recognizer.energy_threshold = recognizer_config.energy_threshold
         self.recognizer.pause_threshold = recognizer_config.pause_threshold
         self.recognizer.phrase_threshold = recognizer_config.phrase_threshold
-        self.recognizer.non_speaking_duration = (
-            recognizer_config.non_speaking_duration
-        )
+        self.recognizer.non_speaking_duration = recognizer_config.non_speaking_duration
 
         self.recognizer.dynamic_energy_threshold = True
         self.recognizer.dynamic_energy_adjustment_damping = 0.15

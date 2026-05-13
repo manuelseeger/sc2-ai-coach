@@ -2,8 +2,8 @@ import parametrize_from_file
 from pydantic import BaseModel
 from rich import print
 
-from tests.critic import LmmCritic
 from tests.conftest import load_test_settings
+from tests.critic import LmmCritic
 from tests.support.fake_openai import FakeOpenAIClient, make_response
 
 FIXTURE_CHAT_RESPONSES = {

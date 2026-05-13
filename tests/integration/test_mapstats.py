@@ -1,4 +1,3 @@
-import pytest
 from rich import print
 
 from src.persistence.replay_store import get_replay_store
