@@ -7,10 +7,11 @@ from click.testing import CliRunner
 
 from src.runtime.settings import (
     AudioMode,
+    CoachEvent,
     Config,
     RecognizerConfig,
-    TTSConfig,
     TranscriberBackend,
+    TTSConfig,
 )
 
 
@@ -31,6 +32,25 @@ def test_importing_coach_does_not_require_ambient_config(monkeypatch):
     module = importlib.import_module("coach")
 
     assert module is not None
+
+
+def test_importing_events_does_not_require_ambient_config(monkeypatch):
+    for module_name in ["src.events", "config"]:
+        sys.modules.pop(module_name, None)
+
+    fake_config = types.ModuleType("config")
+
+    def _missing_ambient_config(name: str):
+        if name == "__path__":
+            raise AttributeError(name)
+        raise AssertionError(f"src.events imported ambient config attribute {name}")
+
+    fake_config.__getattr__ = _missing_ambient_config
+    monkeypatch.setitem(sys.modules, "config", fake_config)
+
+    module = importlib.import_module("src.events")
+
+    assert module.WakeEvent is not None
 
 
 def test_build_io_services_uses_explicit_audio_configuration(monkeypatch):
@@ -97,6 +117,123 @@ def test_build_io_services_uses_explicit_audio_configuration(monkeypatch):
     assert calls["mic"] == (7, recognizer_config)
     assert calls["transcriber"] == "openai/whisper-large-v3"
     assert calls["tts"] is tts_config
+
+
+def test_build_live_event_listeners_selects_runtime_specific_implementations(
+    monkeypatch,
+):
+    sys.modules.pop("coach", None)
+    coach = importlib.import_module("coach")
+
+    replay_store = object()
+    save_player_info_fn = object()
+    calls: dict[str, object] = {}
+
+    wake_module = types.ModuleType("src.events.wake_porcupine")
+
+    class FakeWakeWordListener:
+        pass
+
+    wake_module.WakeWordListener = FakeWakeWordListener
+
+    game_start_module = types.ModuleType("src.events.loading_screen")
+
+    class FakeNewMatchListener:
+        pass
+
+    game_start_module.NewMatchListener = FakeNewMatchListener
+
+    replay_module = types.ModuleType("src.events.newreplay")
+
+    class FakeNewReplayListener:
+        def __init__(self, *, replay_store, save_player_info_fn):
+            calls["replay_store"] = replay_store
+            calls["save_player_info_fn"] = save_player_info_fn
+
+    replay_module.NewReplayListener = FakeNewReplayListener
+
+    twitch_module = types.ModuleType("src.events.twitch")
+
+    class FakeTwitchListener:
+        pass
+
+    twitch_module.TwitchListener = FakeTwitchListener
+
+    monkeypatch.setitem(sys.modules, "src.events.wake_porcupine", wake_module)
+    monkeypatch.setitem(sys.modules, "src.events.loading_screen", game_start_module)
+    monkeypatch.setitem(sys.modules, "src.events.newreplay", replay_module)
+    monkeypatch.setitem(sys.modules, "src.events.twitch", twitch_module)
+
+    settings = Config.model_construct(
+        audiomode=AudioMode.full,
+        interactive=True,
+        coach_events=[
+            CoachEvent.twitch,
+            CoachEvent.wake,
+            CoachEvent.game_start,
+            CoachEvent.new_replay,
+        ],
+        obs_integration=True,
+        wakeword=types.SimpleNamespace(engine="porcupine"),
+    )
+
+    wake, scanner, replay_scanner, twitch = coach._build_live_event_listeners(
+        settings,
+        replay_store=replay_store,
+        save_player_info_fn=save_player_info_fn,
+        repl=False,
+    )
+
+    assert isinstance(wake, FakeWakeWordListener)
+    assert isinstance(scanner, FakeNewMatchListener)
+    assert isinstance(replay_scanner, FakeNewReplayListener)
+    assert isinstance(twitch, FakeTwitchListener)
+    assert calls == {
+        "replay_store": replay_store,
+        "save_player_info_fn": save_player_info_fn,
+    }
+
+
+def test_build_live_event_listeners_falls_back_to_key_and_clientapi(monkeypatch):
+    sys.modules.pop("coach", None)
+    coach = importlib.import_module("coach")
+
+    wake_module = types.ModuleType("src.events.wake_key")
+
+    class FakeWakeKeyListener:
+        pass
+
+    wake_module.WakeKeyListener = FakeWakeKeyListener
+
+    game_start_module = types.ModuleType("src.events.clientapi")
+
+    class FakeClientAPIListener:
+        pass
+
+    game_start_module.ClientAPIListener = FakeClientAPIListener
+
+    monkeypatch.setitem(sys.modules, "src.events.wake_key", wake_module)
+    monkeypatch.setitem(sys.modules, "src.events.clientapi", game_start_module)
+
+    settings = Config.model_construct(
+        audiomode=AudioMode.text,
+        interactive=False,
+        coach_events=[CoachEvent.wake, CoachEvent.game_start],
+        obs_integration=False,
+        wakeword=types.SimpleNamespace(engine="porcupine"),
+    )
+
+    wake, scanner, replay_scanner, twitch = coach._build_live_event_listeners(
+        settings,
+        replay_store=object(),
+        save_player_info_fn=object(),
+        repl=False,
+    )
+
+    assert isinstance(wake, FakeWakeKeyListener)
+    assert isinstance(scanner, FakeClientAPIListener)
+    assert replay_scanner is None
+    assert twitch is None
 
 
 def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
@@ -227,3 +364,101 @@ def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
         "SessionStore",
     ) in calls
     assert ("handle", "FakeReplEvent") in calls
+
+
+def test_live_execution_selects_and_starts_configured_event_listeners(monkeypatch):
+    sys.modules.pop("coach", None)
+    coach = importlib.import_module("coach")
+
+    calls: list[object] = []
+    settings = Config.model_construct(
+        audiomode=AudioMode.full,
+        interactive=True,
+        coach_events=[
+            CoachEvent.twitch,
+            CoachEvent.wake,
+            CoachEvent.game_start,
+            CoachEvent.new_replay,
+        ],
+        obs_integration=True,
+        wakeword=types.SimpleNamespace(engine="porcupine"),
+        aibackend="OpenAI",
+        gpt_model="gpt-5.4",
+        transcriber_backend=TranscriberBackend.whisper,
+    )
+
+    class FakeSignalQueue:
+        def get(self, timeout):
+            raise KeyboardInterrupt()
+
+    class FakeAISession:
+        def __init__(self, **kwargs):
+            calls.append(("session", sorted(kwargs)))
+
+        def handle(self, task):
+            calls.append(("handle", task))
+
+        def is_active(self):
+            return False
+
+    class FakeListener:
+        def __init__(self, name):
+            self.name = name
+
+        def start(self):
+            calls.append(("start", self.name))
+
+        def stop(self):
+            calls.append(("stop", self.name))
+
+        def join(self):
+            calls.append(("join", self.name))
+
+    fake_log_module = types.ModuleType("log")
+    fake_log_module.log = logging.getLogger("coach-test")
+    fake_shared_module = types.ModuleType("shared")
+    fake_shared_module.signal_queue = FakeSignalQueue()
+    fake_events_module = types.ModuleType("src.events.events")
+    fake_events_module.ReplEvent = type("FakeReplEvent", (), {})
+    fake_session_module = types.ModuleType("src.session")
+    fake_session_module.AISession = FakeAISession
+    fake_persistence_module = types.ModuleType("src.persistence.runtime")
+    fake_persistence_module.build_persistence_services = lambda runtime_settings: types.SimpleNamespace(
+        conversation_store=object(),
+        replay_store=object(),
+        session_store=object(),
+    )
+    fake_playerinfo_module = types.ModuleType("src.playerinfo")
+    fake_playerinfo_module.save_player_info = lambda replay, replay_store=None: None
+
+    monkeypatch.setattr(coach, "load_runtime_settings", lambda: settings)
+    monkeypatch.setattr(coach, "_install_legacy_config", lambda runtime_settings: None)
+    monkeypatch.setattr(coach, "_install_rich_log_handler", lambda log: None)
+    monkeypatch.setattr(coach, "_build_io_services", lambda runtime_settings: (None, None, None))
+    monkeypatch.setattr(
+        coach,
+        "_build_live_event_listeners",
+        lambda runtime_settings, replay_store, save_player_info_fn, repl: (
+            FakeListener("wake"),
+            FakeListener("game_start"),
+            FakeListener("new_replay"),
+            FakeListener("twitch"),
+        ),
+    )
+    monkeypatch.setitem(sys.modules, "log", fake_log_module)
+    monkeypatch.setitem(sys.modules, "shared", fake_shared_module)
+    monkeypatch.setitem(sys.modules, "src.events.events", fake_events_module)
+    monkeypatch.setitem(sys.modules, "src.persistence.runtime", fake_persistence_module)
+    monkeypatch.setitem(sys.modules, "src.playerinfo", fake_playerinfo_module)
+    monkeypatch.setitem(sys.modules, "src.session", fake_session_module)
+
+    runner = CliRunner()
+    result = runner.invoke(coach.main, [], catch_exceptions=False)
+
+    assert result.exit_code == 0
+    assert ("start", "wake") in calls
+    assert ("start", "game_start") in calls
+    assert ("start", "new_replay") in calls
+    assert ("start", "twitch") in calls
+    assert ("stop", "wake") in calls
+    assert ("join", "wake") in calls

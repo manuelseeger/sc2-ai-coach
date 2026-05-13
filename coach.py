@@ -30,7 +30,7 @@ def main(debug, repl, trace):
     from src.events.events import ReplEvent
     from src.persistence.runtime import build_persistence_services
     from src.playerinfo import save_player_info
-    from src.runtime.settings import AudioMode, CoachEvent
+    from src.runtime.settings import AudioMode
     from src.session import AISession
 
     _install_rich_log_handler(log)
@@ -59,40 +59,19 @@ def main(debug, repl, trace):
         session_store=persistence.session_store,
     )
 
-    wake = None
-    scanner = None
-    replay_scanner = None
-    twitch = None
-
-    if not repl and CoachEvent.twitch in settings.coach_events:
-        from src.events import TwitchListener
-
-        twitch = TwitchListener()
-        twitch.start()
-
-    if not repl and CoachEvent.wake in settings.coach_events:
-        from src.events import WakeListener
-
-        wake = WakeListener()
-        wake.start()
-
-    if not repl and CoachEvent.game_start in settings.coach_events:
-        from src.events import GameStartedListener
-
-        scanner = GameStartedListener()
-        scanner.start()
-
-    if not repl and CoachEvent.new_replay in settings.coach_events:
-        from src.events import NewReplayListener
-
-        replay_scanner = NewReplayListener(
+    wake, scanner, replay_scanner, twitch = _build_live_event_listeners(
+        settings,
+        replay_store=persistence.replay_store,
+        save_player_info_fn=partial(
+            save_player_info,
             replay_store=persistence.replay_store,
-            save_player_info_fn=partial(
-                save_player_info,
-                replay_store=persistence.replay_store,
-            ),
-        )
-        replay_scanner.start()
+        ),
+        repl=repl,
+    )
+
+    for listener in [twitch, wake, scanner, replay_scanner]:
+        if listener is not None:
+            listener.start()
 
     if settings.audiomode in [AudioMode.voice_out, AudioMode.full] and tts is not None:
         tts.feed("Starting TTS")
@@ -208,6 +187,62 @@ def _build_io_services(settings: "Config") -> tuple[
         tts = TTSDummy()
 
     return tts, mic, transcriber
+
+
+def _build_live_event_listeners(
+    settings: "Config",
+    *,
+    replay_store,
+    save_player_info_fn,
+    repl: bool,
+) -> tuple[object | None, object | None, object | None, object | None]:
+    from src.runtime.settings import AudioMode, CoachEvent
+
+    wake = None
+    scanner = None
+    replay_scanner = None
+    twitch = None
+
+    if repl:
+        return wake, scanner, replay_scanner, twitch
+
+    if CoachEvent.twitch in settings.coach_events:
+        from src.events.twitch import TwitchListener
+
+        twitch = TwitchListener()
+
+    if CoachEvent.wake in settings.coach_events:
+        if settings.audiomode in [AudioMode.full, AudioMode.voice_in] and settings.interactive:
+            if settings.wakeword.engine == "porcupine":
+                from src.events.wake_porcupine import WakeWordListener
+            else:
+                from src.events.wake_oww import WakeWordListener
+
+            wake = WakeWordListener()
+        else:
+            from src.events.wake_key import WakeKeyListener
+
+            wake = WakeKeyListener()
+
+    if CoachEvent.game_start in settings.coach_events:
+        if settings.obs_integration:
+            from src.events.loading_screen import NewMatchListener
+
+            scanner = NewMatchListener()
+        else:
+            from src.events.clientapi import ClientAPIListener
+
+            scanner = ClientAPIListener()
+
+    if CoachEvent.new_replay in settings.coach_events:
+        from src.events.newreplay import NewReplayListener
+
+        replay_scanner = NewReplayListener(
+            replay_store=replay_store,
+            save_player_info_fn=save_player_info_fn,
+        )
+
+    return wake, scanner, replay_scanner, twitch
 
 
 def _build_transcriber(settings: "Config") -> TranscriberService:
