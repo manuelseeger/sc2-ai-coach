@@ -2,6 +2,7 @@ import logging
 import queue
 import sys
 import types
+from functools import partial
 from typing import TYPE_CHECKING
 
 import click
@@ -27,10 +28,13 @@ def main(debug, repl, trace):
     from log import log
     from shared import signal_queue
     from src.events.events import ReplEvent
+    from src.persistence.runtime import build_persistence_services
+    from src.playerinfo import save_player_info
     from src.runtime.settings import AudioMode, CoachEvent
     from src.session import AISession
 
     _install_rich_log_handler(log)
+    persistence = build_persistence_services(settings)
 
     if debug:
         log.setLevel(logging.DEBUG)
@@ -45,7 +49,15 @@ def main(debug, repl, trace):
     # Build session and initialize event handlers
     # Each handler is a threading.thread that listens for configured events
     # On an event, the handler puts a new task in the signal_queue
-    session = AISession(tts=tts, mic=mic, transcriber=transcriber, trace=trace)
+    session = AISession(
+        tts=tts,
+        mic=mic,
+        transcriber=transcriber,
+        trace=trace,
+        conversation_store=persistence.conversation_store,
+        replay_store=persistence.replay_store,
+        session_store=persistence.session_store,
+    )
 
     wake = None
     scanner = None
@@ -73,7 +85,13 @@ def main(debug, repl, trace):
     if not repl and CoachEvent.new_replay in settings.coach_events:
         from src.events import NewReplayListener
 
-        replay_scanner = NewReplayListener()
+        replay_scanner = NewReplayListener(
+            replay_store=persistence.replay_store,
+            save_player_info_fn=partial(
+                save_player_info,
+                replay_store=persistence.replay_store,
+            ),
+        )
         replay_scanner.start()
 
     if settings.audiomode in [AudioMode.voice_out, AudioMode.full] and tts is not None:

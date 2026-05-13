@@ -6,6 +6,7 @@ import sys
 import types
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from functools import partial
 from io import BytesIO
 from os.path import basename, getmtime, join
 from pathlib import Path
@@ -68,23 +69,24 @@ def _build_runtime() -> RepCliRuntime:
     settings = load_runtime_settings()
     _install_legacy_config(settings)
 
-    from src.persistence.database import get_database, set_database
-    from src.persistence.replay_store import PlayerInfo, get_replay_store
+    from src.persistence.replay_store import PlayerInfo
+    from src.persistence.runtime import build_persistence_services
     from src.playerinfo import save_player_info
     from src.replays.reader import ReplayReader
     from src.replays.types import Replay
 
-    database = get_database(settings)
-    set_database(database)
-    replay_store = get_replay_store(database)
+    persistence = build_persistence_services(settings)
 
     return RepCliRuntime(
         settings=settings,
         reader=ReplayReader(),
-        replay_store=replay_store,
+        replay_store=persistence.replay_store,
         replay_model=Replay,
         player_info_model=PlayerInfo,
-        save_player_info=save_player_info,
+        save_player_info=partial(
+            save_player_info,
+            replay_store=persistence.replay_store,
+        ),
     )
 
 

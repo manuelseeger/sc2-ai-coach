@@ -14,6 +14,10 @@ from pymongo import MongoClient
 from pytest_mock import MockerFixture
 
 from tests.support import pytest_services
+from src.persistence.conversation_store import ConversationStore
+from src.persistence.database import MongoDatabase, MongoDatabaseConfig
+from src.persistence.replay_store import ReplayStore
+from src.persistence.session_store import SessionStore
 from src.runtime.settings import Config, load_current_settings
 
 pytest_services.bootstrap_test_services()
@@ -37,6 +41,26 @@ def load_test_settings(*, require_prepared_environment: bool = True) -> Config:
 @pytest.fixture
 def runtime_settings() -> Config:
     return load_test_settings()
+
+
+@pytest.fixture
+def mongo_database(runtime_settings: Config) -> MongoDatabase:
+    return MongoDatabase(MongoDatabaseConfig.from_config(runtime_settings))
+
+
+@pytest.fixture
+def conversation_store(mongo_database: MongoDatabase) -> ConversationStore:
+    return ConversationStore(mongo_database)
+
+
+@pytest.fixture
+def replay_store(mongo_database: MongoDatabase) -> ReplayStore:
+    return ReplayStore(mongo_database)
+
+
+@pytest.fixture
+def session_store(mongo_database: MongoDatabase) -> SessionStore:
+    return SessionStore(mongo_database)
 
 
 def pytest_addoption(parser):

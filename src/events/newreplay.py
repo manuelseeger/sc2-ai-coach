@@ -3,6 +3,7 @@ import os
 from os.path import basename
 from pathlib import Path
 from time import sleep
+from typing import Callable
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -10,7 +11,7 @@ from watchdog.observers import Observer
 from config import config
 from shared import signal_queue
 from src.events import NewReplayEvent
-from src.persistence.replay_store import get_replay_store
+from src.persistence.replay_store import ReplayStore, get_replay_store
 from src.playerinfo import save_player_info
 from src.replays.reader import ReplayReader
 from src.util import wait_for_file
@@ -33,6 +34,16 @@ def wait_for_delete(file_path: Path, timeout: int = 10) -> bool:
 
 
 class NewReplayHandler(FileSystemEventHandler):
+    def __init__(
+        self,
+        *,
+        replay_store: ReplayStore | None = None,
+        save_player_info_fn: Callable = save_player_info,
+    ):
+        super().__init__()
+        self.replay_store = replay_store or get_replay_store()
+        self.save_player_info = save_player_info_fn
+
     def on_created(self, event):
         if event.is_directory:
             return
@@ -45,11 +56,10 @@ class NewReplayHandler(FileSystemEventHandler):
         if reader.apply_filters(replay_raw):
             log.info(f"New replay {basename(file_path)}")
             replay = reader.to_typed_replay(replay_raw)
-            replay_store = get_replay_store()
-            result = replay_store.upsert(replay)
+            result = self.replay_store.upsert(replay)
             if not result.acknowledged:
                 log.error(f"Failed to save {replay}")
-            result, player_info = save_player_info(replay)
+            result, player_info = self.save_player_info(replay)
             if not result.acknowledged:
                 log.error(f"Failed to save player info for {replay}")
 
@@ -61,7 +71,15 @@ class NewReplayHandler(FileSystemEventHandler):
 
 
 class NewReplayListener(Observer):
-    def __init__(self):
+    def __init__(
+        self,
+        *,
+        replay_store: ReplayStore | None = None,
+        save_player_info_fn: Callable = save_player_info,
+    ):
         super().__init__()
-        self.event_handler = NewReplayHandler()
+        self.event_handler = NewReplayHandler(
+            replay_store=replay_store,
+            save_player_info_fn=save_player_info_fn,
+        )
         self.schedule(self.event_handler, path=config.replay_folder, recursive=False)

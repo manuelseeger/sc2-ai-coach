@@ -10,7 +10,7 @@ from pydantic import HttpUrl, computed_field
 from pyodmongo import DbModel, MainBaseModel
 
 from config import config
-from src.persistence.replay_store import get_replay_store
+from src.persistence.replay_store import ReplayStore, get_replay_store
 from src.replays.types import Replay
 
 log = logging.getLogger(f"{config.name}.{__name__}")
@@ -125,10 +125,12 @@ def add_path_segment(url: HttpUrl, *segments: Any) -> str:
     return updated_url
 
 
-def update_map_stats(map):
-    season_stats = get_map_stats(map, config.season_start)
+def update_map_stats(map, replay_store: ReplayStore | None = None):
+    season_stats = get_map_stats(map, config.season_start, replay_store=replay_store)
     todays_stats = get_map_stats(
-        map, min_date=datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        map,
+        min_date=datetime.now().replace(hour=0, minute=0, second=0, microsecond=0),
+        replay_store=replay_store,
     )
 
     if season_stats is not None:
@@ -158,13 +160,17 @@ def update_map_stats(map):
             f.write(rendered)
 
 
-def get_map_stats(map: str, min_date: datetime | None = None) -> MatchupsByMap | None:
+def get_map_stats(
+    map: str,
+    min_date: datetime | None = None,
+    replay_store: ReplayStore | None = None,
+) -> MatchupsByMap | None:
     if min_date is None:
         min_date = config.season_start
 
     q = (Replay.map_name == map) & (Replay.date >= min_date)  # pyright: ignore[reportOperatorIssue]
 
-    replay_store = get_replay_store()
+    replay_store = replay_store or get_replay_store()
     maps: list[MatchupsByMap] = replay_store.db.find_many(Model=MatchupsByMap, query=q)  # type: ignore
 
     return maps[0] if maps else None

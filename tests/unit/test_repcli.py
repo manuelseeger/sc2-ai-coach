@@ -40,3 +40,64 @@ def test_repcli_validate_raises_typed_loader_error_during_execution(monkeypatch)
 
     with pytest.raises(repcli.SettingsLoaderError, match="boom"):
         runner.invoke(repcli.cli, ["validate"], catch_exceptions=False)
+
+
+def test_build_runtime_constructs_persistence_explicitly(monkeypatch):
+    sys.modules.pop("repcli", None)
+
+    repcli = importlib.import_module("repcli")
+    calls: list[object] = []
+
+    settings = object()
+    monkeypatch.setattr(repcli, "load_runtime_settings", lambda: settings)
+    monkeypatch.setattr(repcli, "_install_legacy_config", lambda current: calls.append(("install", current)))
+
+    class FakeReplayStore:
+        pass
+
+    fake_replay_store = FakeReplayStore()
+
+    fake_replay_store_module = types.ModuleType("src.persistence.replay_store")
+    fake_replay_store_module.PlayerInfo = type("FakePlayerInfo", (), {})
+
+    fake_persistence_module = types.ModuleType("src.persistence.runtime")
+
+    def build_persistence_services(current_settings):
+        calls.append(("persistence", current_settings))
+        return types.SimpleNamespace(replay_store=fake_replay_store)
+
+    fake_persistence_module.build_persistence_services = build_persistence_services
+
+    fake_playerinfo_module = types.ModuleType("src.playerinfo")
+
+    def fake_save_player_info(replay, replay_store=None):
+        return replay, replay_store
+
+    fake_playerinfo_module.save_player_info = fake_save_player_info
+
+    fake_reader_module = types.ModuleType("src.replays.reader")
+
+    class FakeReplayReader:
+        def __init__(self):
+            calls.append("reader")
+
+    fake_reader_module.ReplayReader = FakeReplayReader
+
+    fake_replays_types_module = types.ModuleType("src.replays.types")
+    fake_replays_types_module.Replay = type("FakeReplay", (), {})
+
+    monkeypatch.setitem(sys.modules, "src.persistence.replay_store", fake_replay_store_module)
+    monkeypatch.setitem(sys.modules, "src.persistence.runtime", fake_persistence_module)
+    monkeypatch.setitem(sys.modules, "src.playerinfo", fake_playerinfo_module)
+    monkeypatch.setitem(sys.modules, "src.replays.reader", fake_reader_module)
+    monkeypatch.setitem(sys.modules, "src.replays.types", fake_replays_types_module)
+
+    runtime = repcli._build_runtime()
+
+    assert runtime.settings is settings
+    assert calls == [
+        ("install", settings),
+        ("persistence", settings),
+        "reader",
+    ]
+    assert runtime.replay_store is fake_replay_store

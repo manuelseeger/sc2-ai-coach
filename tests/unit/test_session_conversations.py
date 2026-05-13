@@ -26,8 +26,8 @@ def test_save_replay_summary_upserts_metadata_linked_to_active_conversation(mock
             tags=["muta", "two-base"],
         ),
     )
-    find_one = mocker.patch("src.session.replay_store.db.find_one", return_value=None)
-    upsert = mocker.patch("src.session.replay_store.upsert")
+    find_one = mocker.patch.object(session.replay_store.db, "find_one", return_value=None)
+    upsert = mocker.patch.object(session.replay_store, "upsert")
 
     replay = SimpleNamespace(id="a" * 64)
 

@@ -17,7 +17,7 @@ from shared import http_client
 from src.lib.battlenet import BattleNet
 from src.lib.sc2client import SC2Client
 from src.lib.sc2pulse import SC2PulseClient
-from src.persistence.replay_store import Alias, PlayerInfo, get_replay_store
+from src.persistence.replay_store import Alias, PlayerInfo, ReplayStore, get_replay_store
 from src.replays.types import Replay, to_bson_binary
 from src.util import is_aware, is_barcode
 
@@ -129,8 +129,11 @@ def portrait_construct_from_bnet(toon_id: int) -> bytes | None:
         return mem.getvalue()
 
 
-def save_player_info(replay: Replay) -> Tuple[DbResponse, PlayerInfo]:
-    replay_store = get_replay_store()
+def save_player_info(
+    replay: Replay,
+    replay_store: ReplayStore | None = None,
+) -> Tuple[DbResponse, PlayerInfo]:
+    replay_store = replay_store or get_replay_store()
     portrait = None
     portrait_constructed = None
 
@@ -182,8 +185,12 @@ def save_player_info(replay: Replay) -> Tuple[DbResponse, PlayerInfo]:
     return result, player_info
 
 
-def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo | None:
-    replay_store = get_replay_store()
+def resolve_player_with_portrait(
+    name: str,
+    portrait: np.ndarray,
+    replay_store: ReplayStore | None = None,
+) -> PlayerInfo | None:
+    replay_store = replay_store or get_replay_store()
     q = elem_match(Alias.name == name, field=PlayerInfo.aliases)  # type: ignore[arg-type]
 
     candidates: list[PlayerInfo] = replay_store.db.find_many(PlayerInfo, query=q)  # type: ignore[arg-type]
@@ -234,7 +241,10 @@ def resolve_player_with_portrait(name: str, portrait: np.ndarray) -> PlayerInfo 
 
 
 def resolve_replays_from_current_opponent(
-    opponent: str, mapname: str, mmr: int
+    opponent: str,
+    mapname: str,
+    mmr: int,
+    replay_store: ReplayStore | None = None,
 ) -> Tuple[PlayerInfo | None, List[Replay]]:
     """Try to identify the opponent.
 
@@ -249,12 +259,12 @@ def resolve_replays_from_current_opponent(
     Returns the player info and potentially a list of past replays."""
     playerinfo = None
     race = None
+    replay_store = replay_store or get_replay_store()
 
     if not is_barcode(opponent):
         log.debug(f"Trying to resolve {opponent} by name")
         # 0 look in DB for player info
         q = PlayerInfo.name == opponent
-        replay_store = get_replay_store()
         playerinfos: list[PlayerInfo] = replay_store.db.find_many(PlayerInfo, q)  # type: ignore[arg-type]
 
         if len(playerinfos) == 1:
@@ -275,7 +285,11 @@ def resolve_replays_from_current_opponent(
         if portrait_bytes:
             portrait = Image.open(BytesIO(portrait_bytes))
             # 1 look through DB and see if we played this name + portrait before
-            playerinfo = resolve_player_with_portrait(opponent, np.array(portrait))
+            playerinfo = resolve_player_with_portrait(
+                opponent,
+                np.array(portrait),
+                replay_store=replay_store,
+            )
 
     if not race:
         log.debug("Could not get race, is SC2Client running?")

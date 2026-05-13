@@ -9,10 +9,11 @@ from pydantic import BaseModel
 
 from config import config
 from src.persistence.conversation_store import ConversationStore, get_conversation_store
+from src.persistence.replay_store import ReplayStore
 from src.persistence.session_store import Session
 from src.replays.types import AIMessageRole
 
-from .functions import AIFunctions, responses_tools
+from .functions import build_ai_functions, responses_tools
 from .functions.base import strict_json_schema
 from .openai_provider import get_openai_client
 from .prompt import Templates
@@ -29,18 +30,21 @@ class AICoach:
         self,
         client: OpenAI | None = None,
         store: ConversationStore | None = None,
+        replay_store: ReplayStore | None = None,
         trace: bool = False,
     ):
         """Initialize the coach with the shared OpenAI client and local conversation store."""
         self.client = client or get_openai_client()
         self.store = store or get_conversation_store()
+        self.replay_store = replay_store
         self.trace = trace
         self.active_conversation_id: str | None = None
         self.init_additional_instructions()
         self._init_functions()
 
     def _init_functions(self):
-        self.functions = {function.name: function for function in AIFunctions}
+        configured_functions = build_ai_functions(self.replay_store)
+        self.functions = {function.name: function for function in configured_functions}
         self.max_tool_iterations = 8
 
     def init_additional_instructions(self, more_instructions: str = ""):
@@ -210,7 +214,7 @@ class AICoach:
         }
 
         if include_tools:
-            request_kwargs["tools"] = responses_tools()
+            request_kwargs["tools"] = responses_tools(list(self.functions.values()))
 
         include = self._include_param()
         if include is not None:

@@ -5,7 +5,7 @@ from bson.json_util import dumps, loads
 from pydantic import BaseModel, ConfigDict, Field
 
 from config import config
-from src.persistence.replay_store import get_replay_store
+from src.persistence.replay_store import ReplayStore, get_replay_store
 from src.replays.types import Replay
 
 from ..utils import force_valid_json_string
@@ -147,6 +147,7 @@ def _query_replay_db(
         int,
         "An integer to specify the maximum number of seconds to include results from. When limit_time is given, arrays in the result set are filtered to only include elements up to that time. This is optional.",
     ] = 600,
+    replay_store: ReplayStore | None = None,
 ) -> list:
     """Query the replay database and return JSON representation of all matching replays.
 
@@ -170,7 +171,7 @@ def _query_replay_db(
     projection = projection.replace(".$.", ".")
 
     try:
-        replay_store = get_replay_store()
+        replay_store = replay_store or get_replay_store()
         cursor = replay_store.replays.find(
             filter=loads(str(filter)),
             sort=loads(str(sort)),
@@ -192,6 +193,15 @@ def _query_replay_db(
     except Exception as e:
         log.error(e)
         return []
+
+
+def build_query_replay_db_function(replay_store: ReplayStore):
+    return AIFunction(
+        fn=lambda **kwargs: _query_replay_db(replay_store=replay_store, **kwargs),
+        args_model=QueryReplayDBArgs,
+        name="QueryReplayDB",
+        description=QUERY_REPLAY_DB_DESCRIPTION,
+    )
 
 
 QueryReplayDB = AIFunction(

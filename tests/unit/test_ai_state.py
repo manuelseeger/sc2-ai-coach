@@ -1,3 +1,5 @@
+import importlib
+import sys
 from datetime import datetime
 
 import pytest
@@ -12,13 +14,11 @@ from src.persistence.conversation_store import (
     AIResponseRecord,
     ConversationStore,
 )
-from src.persistence.replay_store import get_replay_store
+from src.persistence.replay_store import ReplayStore
 from src.persistence.session_store import Session
 from tests.conftest import load_test_settings
 
 pytestmark = pytest.mark.mongo
-
-replay_store = get_replay_store()
 
 
 class FakeUsage(BaseModel):
@@ -36,12 +36,12 @@ class FakeResponse(BaseModel):
 
 
 @pytest.fixture
-def store():
-    return ConversationStore()
+def store(conversation_store: ConversationStore):
+    return conversation_store
 
 
 @pytest.fixture(autouse=True)
-def cleanup_ai_state():
+def cleanup_ai_state(conversation_store: ConversationStore, replay_store: ReplayStore):
     conversations: list[AIConversation] = []
     response_records: list[AIResponseRecord] = []
     sessions: list[Session] = []
@@ -50,8 +50,8 @@ def cleanup_ai_state():
         "response_records": response_records,
         "sessions": sessions,
     }
-    ConversationStore().delete_response_records(response_records)
-    ConversationStore().delete_conversations(conversations)
+    conversation_store.delete_response_records(response_records)
+    conversation_store.delete_conversations(conversations)
     for session in sessions:
         if session.id is None:
             continue
@@ -115,7 +115,9 @@ def test_close_conversation_marks_status_and_time(
 
 
 def test_record_response_deduplicates_by_response_id(
-    store: ConversationStore, cleanup_ai_state
+    store: ConversationStore,
+    cleanup_ai_state,
+    replay_store: ReplayStore,
 ):
     conversation = store.create_conversation(
         trigger=AIConversationTrigger.replay_summary,
@@ -156,7 +158,9 @@ def test_record_response_deduplicates_by_response_id(
 
 
 def test_record_response_calculates_costs_and_updates_session(
-    store: ConversationStore, cleanup_ai_state
+    store: ConversationStore,
+    cleanup_ai_state,
+    replay_store: ReplayStore,
 ):
     runtime_settings = load_test_settings()
 
@@ -218,6 +222,24 @@ def test_record_response_calculates_costs_and_updates_session(
     assert reloaded_session.total_cost == pytest.approx(expected_total_cost)
 
 
+def test_importing_ai_state_does_not_construct_conversation_store(monkeypatch):
+    import src.persistence.conversation_store as conversation_store_module
+
+    sys.modules.pop("src.ai.state", None)
+    monkeypatch.setattr(
+        conversation_store_module,
+        "get_conversation_store",
+        lambda: (_ for _ in ()).throw(
+            AssertionError("src.ai.state constructed a conversation store at import")
+        ),
+    )
+
+    module = importlib.import_module("src.ai.state")
+
+    assert module is not None
+    assert "conversation_store" not in module.__all__
+
+
 def test_append_message_rejects_invalid_role(
     store: ConversationStore, cleanup_ai_state
 ):
@@ -231,7 +253,10 @@ def test_append_message_rejects_invalid_role(
         store.append_message(conversation, role="invalid", text="hello")
 
 
-def test_chapter_one_models_round_trip_in_db(cleanup_ai_state):
+def test_chapter_one_models_round_trip_in_db(
+    cleanup_ai_state,
+    replay_store: ReplayStore,
+):
     conversation = AIConversation(
         trigger=AIConversationTrigger.cast_replay,
         metadata={"test_scope": "unit_ai_state"},

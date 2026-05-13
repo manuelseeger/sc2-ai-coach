@@ -5,11 +5,8 @@ from src.persistence.conversation_store import (
     AIMessageRole,
     AIResponseRecord,
     ConversationStore,
-    get_conversation_store,
 )
 from src.persistence.session_store import Session
-
-conversation_store = get_conversation_store()
 
 __all__ = [
     "AIConversation",
@@ -19,5 +16,4 @@ __all__ = [
     "AIResponseRecord",
     "ConversationStore",
     "Session",
-    "conversation_store",
 ]

@@ -26,15 +26,12 @@ from src.lib.sc2client import SC2Client
 from src.lib.sc2pulse import SC2PulseClient, get_division_for_mmr
 from src.mapstats import update_map_stats
 from src.matchhistory import get_sc2pulse_match_history
-from src.persistence.conversation_store import get_conversation_store
-from src.persistence.replay_store import Metadata, get_replay_store
-from src.persistence.session_store import Session
+from src.persistence.conversation_store import ConversationStore, get_conversation_store
+from src.persistence.replay_store import Metadata, ReplayStore, get_replay_store
+from src.persistence.session_store import Session, SessionStore
 from src.playerinfo import resolve_replays_from_current_opponent
 from src.replays.types import AIConversationTrigger, Replay, Role
 from src.util import secs2time
-
-conversation_store = get_conversation_store()
-replay_store = get_replay_store()
 
 
 class DummyMicrophoneService(MicrophoneService):
@@ -97,10 +94,26 @@ class AISession:
     mic: MicrophoneService
     transcriber: TranscriberService
 
-    def __init__(self, tts=None, mic=None, transcriber=None, trace: bool = False):
+    def __init__(
+        self,
+        tts=None,
+        mic=None,
+        transcriber=None,
+        trace: bool = False,
+        conversation_store: ConversationStore | None = None,
+        replay_store: ReplayStore | None = None,
+        session_store: SessionStore | None = None,
+    ):
+        self.conversation_store = conversation_store or get_conversation_store()
+        self.replay_store = replay_store or get_replay_store()
+        self.session_store = session_store or SessionStore(self.replay_store.database)
         self.update_last_replay()
         self.set_season()
-        self.coach = AICoach(trace=trace)
+        self.coach = AICoach(
+            store=self.conversation_store,
+            replay_store=self.replay_store,
+            trace=trace,
+        )
 
         self.session = Session(
             session_date=datetime.now(),
@@ -109,7 +122,7 @@ class AISession:
             cached_prompt_pricing=config.gpt_cached_prompt_pricing,
             ai_backend=config.aibackend,
         )
-        replay_store.db.save(self.session)
+        self.session_store.save(self.session)
 
         self.handlers = {
             TwitchChatEvent: self.handle_twitch_chat,
@@ -147,7 +160,7 @@ class AISession:
         self.session.current_conversation = value
         if value is not None and value not in self.session.conversations:
             self.session.conversations.append(value)
-        replay_store.db.save(self.session)
+        self.session_store.save(self.session)
 
     def set_season(self):
         sc2pulse = SC2PulseClient()
@@ -163,7 +176,7 @@ class AISession:
     def update_last_replay(self, replay: Replay | None = None):
         if replay is None:
             try:
-                replay = replay_store.get_most_recent_for_player(config.student.name)
+                replay = self.replay_store.get_most_recent_for_player(config.student.name)
             except:  # noqa: E722
                 log.error("Error getting most recent replay, is DB running?")
                 sys.exit(1)
@@ -248,9 +261,9 @@ class AISession:
         log.info("Closing conversation")
         self.calculate_usage()
         if self.conversation_id and self.conversation_id != self.twitch_conversation_id:
-            conversation = conversation_store.get_conversation(self.conversation_id)
+            conversation = self.conversation_store.get_conversation(self.conversation_id)
             if conversation is not None:
-                conversation_store.close_conversation(conversation)
+                self.conversation_store.close_conversation(conversation)
         self.conversation_id = None
 
     def is_active(self):
@@ -261,17 +274,14 @@ class AISession:
         and save it to the session in the DB."""
         if self.session.id is None:
             return
-        reloaded = replay_store.db.find_one(
-            Model=Session,
-            query=Session.id == self.session.id,  # type: ignore[arg-type]
-        )
+        reloaded = self.session_store.get(self.session)
         if reloaded is None:
             return
         self.session = reloaded
         log.info(
             f"Total tokens: {self.session.total_tokens} (~${self.session.total_cost:.2f})"
         )
-        replay_store.db.save(self.session)
+        self.session_store.save(self.session)
 
     def is_goodbye(self, response: str):
         return levenshtein(response[-20:].lower().strip(), "good luck, have fun") < 8
@@ -298,7 +308,10 @@ class AISession:
         match_history = None
 
         playerinfo, past_replays = resolve_replays_from_current_opponent(
-            opponent, map, mmr
+            opponent,
+            map,
+            mmr,
+            replay_store=self.replay_store,
         )
 
         if playerinfo is not None:
@@ -367,7 +380,7 @@ class AISession:
         log.debug(scanresult)
 
         if scanresult.mapname and config.obs_integration:
-            update_map_stats(scanresult.mapname)
+            update_map_stats(scanresult.mapname, replay_store=self.replay_store)
 
         if not self.is_active():
             self.initiate_from_game_start(
@@ -518,7 +531,7 @@ class AISession:
                 session=self.session,
             )
             self.session.twitch_conversation = self.twitch_conversation_id
-            replay_store.db.save(self.session)
+            self.session_store.save(self.session)
         else:
             self.coach.set_active_conversation(self.twitch_conversation_id)
 
@@ -631,7 +644,7 @@ class AISession:
             schema=ReplaySummary,
         )
 
-        meta = replay_store.db.find_one(
+        meta = self.replay_store.db.find_one(
             Model=Metadata,
             query=Metadata.replay == replay.id,  # type: ignore[arg-type]
         )
@@ -641,4 +654,4 @@ class AISession:
         meta.description = replay_summary.description
         meta.tags = replay_summary.tags
         meta.replay_summary_conversation = self.conversation_id
-        replay_store.upsert(meta)
+        self.replay_store.upsert(meta)

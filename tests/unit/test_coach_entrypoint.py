@@ -134,8 +134,29 @@ def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
         pass
 
     class FakeAISession:
-        def __init__(self, *, tts, mic, transcriber, trace):
-            calls.append(("session", tts, mic, transcriber, trace))
+        def __init__(
+            self,
+            *,
+            tts,
+            mic,
+            transcriber,
+            trace,
+            conversation_store,
+            replay_store,
+            session_store,
+        ):
+            calls.append(
+                (
+                    "session",
+                    tts,
+                    mic,
+                    transcriber,
+                    trace,
+                    type(conversation_store).__name__,
+                    type(replay_store).__name__,
+                    type(session_store).__name__,
+                )
+            )
 
         def handle(self, task):
             calls.append(("handle", type(task).__name__))
@@ -151,6 +172,28 @@ def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
     fake_events_module.ReplEvent = FakeReplEvent
     fake_session_module = types.ModuleType("src.session")
     fake_session_module.AISession = FakeAISession
+    fake_persistence_module = types.ModuleType("src.persistence.runtime")
+
+    class ConversationStore:
+        pass
+
+    class ReplayStore:
+        pass
+
+    class SessionStore:
+        pass
+
+    def build_persistence_services(runtime_settings):
+        calls.append(("persistence", runtime_settings))
+        return types.SimpleNamespace(
+            conversation_store=ConversationStore(),
+            replay_store=ReplayStore(),
+            session_store=SessionStore(),
+        )
+
+    fake_persistence_module.build_persistence_services = build_persistence_services
+    fake_playerinfo_module = types.ModuleType("src.playerinfo")
+    fake_playerinfo_module.save_player_info = lambda replay, replay_store=None: None
 
     monkeypatch.setattr(coach, "load_runtime_settings", lambda: calls.append("load") or settings)
     monkeypatch.setattr(coach, "_install_legacy_config", lambda runtime_settings: calls.append(("install", runtime_settings)))
@@ -159,18 +202,28 @@ def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
     monkeypatch.setitem(sys.modules, "log", fake_log_module)
     monkeypatch.setitem(sys.modules, "shared", fake_shared_module)
     monkeypatch.setitem(sys.modules, "src.events.events", fake_events_module)
+    monkeypatch.setitem(sys.modules, "src.persistence.runtime", fake_persistence_module)
+    monkeypatch.setitem(sys.modules, "src.playerinfo", fake_playerinfo_module)
     monkeypatch.setitem(sys.modules, "src.session", fake_session_module)
 
     runner = CliRunner()
     result = runner.invoke(coach.main, ["--repl"], catch_exceptions=False)
 
     assert result.exit_code == 0
-    assert calls[:4] == [
-        "load",
-        ("install", settings),
-        ("logging", "coach-test"),
-        ("signal", "FakeReplEvent"),
-    ]
+    assert calls[0] == "load"
+    assert calls[1] == ("install", settings)
+    assert ("persistence", settings) in calls
+    assert ("logging", "coach-test") in calls
+    assert ("signal", "FakeReplEvent") in calls
     assert ("io", AudioMode.text) in calls
-    assert ("session", "tts", "mic", "transcriber", False) in calls
+    assert (
+        "session",
+        "tts",
+        "mic",
+        "transcriber",
+        False,
+        "ConversationStore",
+        "ReplayStore",
+        "SessionStore",
+    ) in calls
     assert ("handle", "FakeReplEvent") in calls
