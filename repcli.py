@@ -37,10 +37,6 @@ custom_theme = Theme(
 
 console = Console(theme=custom_theme)
 
-log = logging.getLogger()
-log.setLevel(logging.WARNING)
-log.addHandler(RichHandler(show_time=False, rich_tracebacks=True))
-
 
 @dataclass
 class RepCliRuntime:
@@ -54,6 +50,21 @@ class RepCliRuntime:
 
 def load_runtime_settings() -> "Config":
     return load_current_settings()
+
+
+def _configure_cli_logging(*, debug: bool) -> logging.Logger:
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG if debug else logging.WARNING)
+
+    if not any(getattr(handler, "_repcli_owned_handler", False) for handler in logger.handlers):
+        handler = RichHandler(show_time=False, rich_tracebacks=True)
+        setattr(handler, "_repcli_owned_handler", True)
+        logger.addHandler(handler)
+
+    if not debug:
+        logging.getLogger("sc2reader").setLevel(logging.CRITICAL)
+
+    return logger
 
 
 def _install_legacy_config(settings: "Config") -> None:
@@ -163,6 +174,8 @@ def cli(ctx, clean, debug, simulation, verbose):
     ctx.obj["SIMULATION"] = simulation
     ctx.obj["VERBOSE"] = verbose
 
+    _configure_cli_logging(debug=debug)
+
     console.print("Debug mode is %s" % ("[on]on[/on]" if debug else "[off]off[/off]"))
     console.print("Clean mode is %s" % ("[on]on[/on]" if clean else "[off]off[/off]"))
     console.print(
@@ -171,12 +184,6 @@ def cli(ctx, clean, debug, simulation, verbose):
     console.print(
         "Verbose mode is %s" % ("[on]on[/on]" if verbose else "[off]off[/off]")
     )
-
-    if debug:
-        log.setLevel(logging.DEBUG)
-    else:
-        logging.getLogger("sc2reader").setLevel(logging.CRITICAL)
-
 
 @cli.command()
 @click.pass_context

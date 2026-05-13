@@ -2,27 +2,14 @@ import logging
 import os
 import warnings
 from datetime import datetime
+from pathlib import Path
 
 from rich.traceback import install
 
-from config import config
+DEFAULT_LOGGER_NAME = "AICoach"
+_OWNED_HANDLER_MARKER = "_sc2_ai_coach_owned_handler"
 
-warnings.filterwarnings("ignore")
-
-
-install(show_locals=True)
-
-rootlogger = logging.getLogger()
-for handler in rootlogger.handlers.copy():
-    try:
-        rootlogger.removeHandler(handler)
-    except ValueError:
-        pass
-rootlogger.addHandler(logging.NullHandler())
-
-log = logging.getLogger(config.name)
-log.propagate = False
-log.setLevel(logging.DEBUG)
+log = logging.getLogger(DEFAULT_LOGGER_NAME)
 
 
 class FlushFilter(logging.Filter):
@@ -30,25 +17,43 @@ class FlushFilter(logging.Filter):
         return not hasattr(record, "flush")
 
 
-flush_filter = FlushFilter()
+def _owned_file_handler(filename: str, *, mode: str = "a") -> logging.FileHandler:
+    handler = logging.FileHandler(filename, mode=mode, encoding="utf-8")
+    handler.setLevel(logging.DEBUG)
+    handler.addFilter(FlushFilter())
+    setattr(handler, _OWNED_HANDLER_MARKER, True)
+    return handler
 
-handler = logging.FileHandler(
-    os.path.join(
-        "logs",
-        f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-obs_watcher.log",
-    ),
-    encoding="utf-8",
-)
-handler.setLevel(logging.DEBUG)
-handler.addFilter(flush_filter)
 
-one_file_handler = logging.FileHandler(
-    mode="a",
-    filename=os.path.join("logs", "_obs_watcher.log"),
-    encoding="utf-8",
-)
-one_file_handler.setLevel(logging.DEBUG)
-one_file_handler.addFilter(flush_filter)
+def configure_application_logging(
+    *,
+    logger: logging.Logger | None = None,
+    level: int = logging.DEBUG,
+    log_directory: str | os.PathLike[str] = "logs",
+) -> logging.Logger:
+    warnings.filterwarnings("ignore")
+    install(show_locals=True)
 
-log.addHandler(handler)
-log.addHandler(one_file_handler)
+    target = logger or log
+    target.setLevel(level)
+    target.propagate = False
+
+    for handler in target.handlers.copy():
+        if not getattr(handler, _OWNED_HANDLER_MARKER, False):
+            continue
+        target.removeHandler(handler)
+        handler.close()
+
+    log_path = Path(log_directory)
+    log_path.mkdir(parents=True, exist_ok=True)
+
+    target.addHandler(
+        _owned_file_handler(
+            os.path.join(
+                log_path,
+                f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-obs_watcher.log",
+            )
+        )
+    )
+    target.addHandler(_owned_file_handler(os.path.join(log_path, "_obs_watcher.log")))
+    return target

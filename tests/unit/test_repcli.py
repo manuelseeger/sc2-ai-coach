@@ -1,4 +1,5 @@
 import importlib
+import logging
 import sys
 import types
 
@@ -9,6 +10,9 @@ from click.testing import CliRunner
 def test_importing_repcli_does_not_require_ambient_config(monkeypatch):
     for module_name in ["repcli", "config", "src.playerinfo", "src.replays.reader"]:
         sys.modules.pop(module_name, None)
+
+    root_logger = logging.getLogger()
+    original_handlers = list(root_logger.handlers)
 
     fake_config = types.ModuleType("config")
 
@@ -23,6 +27,50 @@ def test_importing_repcli_does_not_require_ambient_config(monkeypatch):
     module = importlib.import_module("repcli")
 
     assert module is not None
+    assert list(root_logger.handlers) == original_handlers
+
+
+def test_importing_log_does_not_install_handlers_or_create_logs(tmp_path, monkeypatch):
+    sys.modules.pop("log", None)
+
+    logger = logging.getLogger("AICoach")
+    for handler in logger.handlers.copy():
+        logger.removeHandler(handler)
+        handler.close()
+
+    monkeypatch.chdir(tmp_path)
+
+    module = importlib.import_module("log")
+
+    assert module.log is logger
+    assert logger.handlers == []
+    assert not (tmp_path / "logs").exists()
+
+
+def test_configure_cli_logging_installs_rich_handler_at_runtime(monkeypatch):
+    sys.modules.pop("repcli", None)
+    repcli = importlib.import_module("repcli")
+
+    root_logger = logging.getLogger()
+    original_handlers = list(root_logger.handlers)
+
+    try:
+        repcli._configure_cli_logging(debug=False)
+
+        owned_handlers = [
+            handler
+            for handler in root_logger.handlers
+            if getattr(handler, "_repcli_owned_handler", False)
+        ]
+        assert len(owned_handlers) == 1
+    finally:
+        for handler in root_logger.handlers.copy():
+            if not getattr(handler, "_repcli_owned_handler", False):
+                continue
+            root_logger.removeHandler(handler)
+            handler.close()
+
+        root_logger.handlers[:] = original_handlers
 
 
 def test_repcli_validate_raises_typed_loader_error_during_execution(monkeypatch):

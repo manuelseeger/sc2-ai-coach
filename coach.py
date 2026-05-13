@@ -25,7 +25,7 @@ def main(debug, repl, trace):
     settings = load_runtime_settings()
     _install_legacy_config(settings)
 
-    from log import log
+    from log import configure_application_logging, log
     from shared import signal_queue
     from src.events.events import ReplEvent
     from src.persistence.runtime import build_persistence_services
@@ -33,6 +33,7 @@ def main(debug, repl, trace):
     from src.runtime.settings import AudioMode
     from src.session import AISession
 
+    configure_application_logging(logger=log)
     _install_rich_log_handler(log)
     persistence = build_persistence_services(settings)
 

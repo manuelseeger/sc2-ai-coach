@@ -302,6 +302,9 @@ def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
             return False
 
     fake_log_module = types.ModuleType("log")
+    fake_log_module.configure_application_logging = (
+        lambda *, logger: calls.append(("file_logging", logger.name))
+    )
     fake_log_module.log = logging.getLogger("coach-test")
     fake_shared_module = types.ModuleType("shared")
     fake_shared_module.signal_queue = FakeSignalQueue()
@@ -350,6 +353,7 @@ def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
     assert calls[0] == "load"
     assert calls[1] == ("install", settings)
     assert ("persistence", settings) in calls
+    assert ("file_logging", "coach-test") in calls
     assert ("logging", "coach-test") in calls
     assert ("signal", "FakeReplEvent") in calls
     assert ("io", AudioMode.text) in calls
@@ -415,6 +419,7 @@ def test_live_execution_selects_and_starts_configured_event_listeners(monkeypatc
             calls.append(("join", self.name))
 
     fake_log_module = types.ModuleType("log")
+    fake_log_module.configure_application_logging = lambda *, logger: None
     fake_log_module.log = logging.getLogger("coach-test")
     fake_shared_module = types.ModuleType("shared")
     fake_shared_module.signal_queue = FakeSignalQueue()
