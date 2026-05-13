@@ -1,16 +1,23 @@
 import logging
 import queue
 import sys
-import types
 from functools import partial
-from typing import TYPE_CHECKING
 
 import click
 
+from log import configure_application_logging, log
+from shared import signal_queue
 from src.contracts import MicrophoneService, TranscriberService, TTSService
-
-if TYPE_CHECKING:
-    from src.runtime.settings import Config
+from src.events.events import ReplEvent
+from src.persistence.runtime import build_persistence_services
+from src.playerinfo import save_player_info
+from src.runtime.settings import (
+    AudioMode,
+    Config,
+    TranscriberBackend,
+    load_current_settings,
+)
+from src.session import AISession
 
 
 @click.command()
@@ -23,15 +30,6 @@ if TYPE_CHECKING:
 )
 def main(debug, repl, trace):
     settings = load_runtime_settings()
-    _install_legacy_config(settings)
-
-    from log import configure_application_logging, log
-    from shared import signal_queue
-    from src.events.events import ReplEvent
-    from src.persistence.runtime import build_persistence_services
-    from src.playerinfo import save_player_info
-    from src.runtime.settings import AudioMode
-    from src.session import AISession
 
     configure_application_logging(logger=log)
     _install_rich_log_handler(log)
@@ -51,6 +49,7 @@ def main(debug, repl, trace):
     # Each handler is a threading.thread that listens for configured events
     # On an event, the handler puts a new task in the signal_queue
     session = AISession(
+        settings=settings,
         tts=tts,
         mic=mic,
         transcriber=transcriber,
@@ -123,25 +122,7 @@ def main(debug, repl, trace):
 
 
 def load_runtime_settings() -> "Config":
-    from src.runtime.settings import load_current_settings
-
     return load_current_settings()
-
-
-def _install_legacy_config(settings: "Config") -> None:
-    from src.runtime import settings as runtime_settings
-
-    legacy_config = types.ModuleType("config")
-    for name, value in runtime_settings.__dict__.items():
-        if name.startswith("_"):
-            continue
-        setattr(legacy_config, name, value)
-
-    legacy_config.config = settings
-    legacy_config.Config = type(settings)
-    legacy_config.SettingsLoaderError = runtime_settings.SettingsLoaderError
-    legacy_config.load_current_settings = runtime_settings.load_current_settings
-    sys.modules["config"] = legacy_config
 
 
 def _install_rich_log_handler(log: logging.Logger) -> None:
@@ -160,8 +141,6 @@ def _build_io_services(settings: "Config") -> tuple[
     MicrophoneService | None,
     TranscriberService | None,
 ]:
-    from src.runtime.settings import AudioMode
-
     tts, mic, transcriber = None, None, None
 
     if settings.audiomode in [AudioMode.voice_in, AudioMode.full] and settings.interactive:
@@ -197,7 +176,7 @@ def _build_live_event_listeners(
     save_player_info_fn,
     repl: bool,
 ) -> tuple[object | None, object | None, object | None, object | None]:
-    from src.runtime.settings import AudioMode, CoachEvent
+    from src.runtime.settings import CoachEvent
 
     wake = None
     scanner = None
@@ -210,7 +189,7 @@ def _build_live_event_listeners(
     if CoachEvent.twitch in settings.coach_events:
         from src.events.twitch import TwitchListener
 
-        twitch = TwitchListener()
+        twitch = TwitchListener(settings=settings)
 
     if CoachEvent.wake in settings.coach_events:
         if settings.audiomode in [AudioMode.full, AudioMode.voice_in] and settings.interactive:
@@ -219,26 +198,27 @@ def _build_live_event_listeners(
             else:
                 from src.events.wake_oww import WakeWordListener
 
-            wake = WakeWordListener()
+            wake = WakeWordListener(settings=settings)
         else:
             from src.events.wake_key import WakeKeyListener
 
-            wake = WakeKeyListener()
+            wake = WakeKeyListener(settings=settings)
 
     if CoachEvent.game_start in settings.coach_events:
         if settings.obs_integration:
             from src.events.loading_screen import NewMatchListener
 
-            scanner = NewMatchListener()
+            scanner = NewMatchListener(settings=settings)
         else:
             from src.events.clientapi import ClientAPIListener
 
-            scanner = ClientAPIListener()
+            scanner = ClientAPIListener(settings=settings)
 
     if CoachEvent.new_replay in settings.coach_events:
         from src.events.newreplay import NewReplayListener
 
         replay_scanner = NewReplayListener(
+            settings=settings,
             replay_store=replay_store,
             save_player_info_fn=save_player_info_fn,
         )
@@ -247,8 +227,6 @@ def _build_live_event_listeners(
 
 
 def _build_transcriber(settings: "Config") -> TranscriberService:
-    from src.runtime.settings import TranscriberBackend
-
     if settings.transcriber_backend == TranscriberBackend.canary_qwen:
         from src.io.transcribe_qwen import QwenTranscriberService
 

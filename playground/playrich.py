@@ -5,11 +5,11 @@ sys.path.append(".")
 import logging
 from time import sleep
 
-from config import config
 from src.io.rich_log import RichConsoleLogHandler
 from src.replaydb.types import Role
+from src.runtime.settings import load_current_settings
 
-log = logging.getLogger(config.name)
+log = logging.getLogger(load_current_settings().name)
 log.setLevel(logging.INFO)
 log.addHandler(RichConsoleLogHandler())
 

@@ -4,13 +4,12 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from pyodmongo.queries import eq
 
-from config import config
 from src.ai.utils import get_clean_tags
 from src.persistence.replay_store import Metadata, ReplayStore, get_replay_store
 
 from .base import AIFunction
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+log = logging.getLogger(__name__)
 
 
 class AddMetadataArgs(BaseModel):

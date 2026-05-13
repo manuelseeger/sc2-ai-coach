@@ -10,11 +10,11 @@ from twitchAPI.object.eventsub import ChannelFollowEvent, ChannelRaidEvent
 from twitchAPI.twitch import Twitch
 from twitchAPI.type import AuthScope, ChatEvent
 
-from config import config
 from shared import signal_queue
 from src.events import TwitchChatEvent, TwitchFollowEvent, TwitchRaidEvent
+from src.runtime.settings import Config, load_current_settings
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+log = logging.getLogger(__name__)
 
 USER_SCOPE = [
     AuthScope.CHAT_READ,
@@ -24,8 +24,9 @@ USER_SCOPE = [
 
 
 class TwitchListener(threading.Thread):
-    def __init__(self):
+    def __init__(self, *, settings: Config | None = None):
         super().__init__()
+        self.settings = settings or load_current_settings()
         self.daemon = True
         self._stop_event = threading.Event()
 
@@ -39,14 +40,14 @@ class TwitchListener(threading.Thread):
         return self._stop_event.is_set()
 
     def run(self):
-        if config.twitch_mocked:
+        if self.settings.twitch_mocked:
             asyncio.run(self.twitch_async_mocked())
         else:
             asyncio.run(self.twitch_async())
 
     async def on_ready(self, ready_event: EventData):
-        log.debug(f"Bot ready, joining {config.twitch_channel}")
-        await ready_event.chat.join_room(config.twitch_channel)
+        log.debug(f"Bot ready, joining {self.settings.twitch_channel}")
+        await ready_event.chat.join_room(self.settings.twitch_channel)
 
     async def on_follow(self, follow_event: ChannelFollowEvent):
         log.debug(f"Followed by {follow_event.event.user_name}")
@@ -80,7 +81,10 @@ class TwitchListener(threading.Thread):
 
         Join the streamer chat channel, and subscribe to raid and follow events.
         """
-        self.twitch = await Twitch(config.twitch_client_id, config.twitch_client_secret)
+        self.twitch = await Twitch(
+            self.settings.twitch_client_id,
+            self.settings.twitch_client_secret,
+        )
         helper = UserAuthenticationStorageHelper(self.twitch, USER_SCOPE)
         await helper.bind()
 
@@ -106,8 +110,8 @@ class TwitchListener(threading.Thread):
             AuthScope.MODERATOR_READ_FOLLOWERS,
         ]
         self.twitch = await Twitch(
-            config.twitch_client_id,
-            config.twitch_client_secret,
+            self.settings.twitch_client_id,
+            self.settings.twitch_client_secret,
             base_url="http://localhost:8080/mock/",
             auth_base_url="http://localhost:8080/auth/",
         )
@@ -115,7 +119,7 @@ class TwitchListener(threading.Thread):
         auth = UserAuthenticator(
             self.twitch, mock_scope, auth_base_url="http://localhost:8080/auth/"
         )
-        token = await auth.mock_authenticate(config.twitch_mocked_user_id)
+        token = await auth.mock_authenticate(self.settings.twitch_mocked_user_id)
         await self.twitch.set_user_authentication(token, mock_scope)
         user = await first(self.twitch.get_users())
 

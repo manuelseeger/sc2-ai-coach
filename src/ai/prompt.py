@@ -3,9 +3,7 @@ import logging
 from jinja2 import Environment, FileSystemLoader, Template
 from typing_extensions import Dict
 
-from config import config
-
-log = logging.getLogger(f"{config.name}.{__name__}")
+log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 

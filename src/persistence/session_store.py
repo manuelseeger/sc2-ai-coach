@@ -7,8 +7,8 @@ from pydantic import Field
 from pyodmongo import DbModel, Id
 from pyodmongo.queries import eq
 
-from config import AIBackend
 from src.persistence.database import MongoDatabase, get_database
+from src.runtime.settings import AIBackend
 
 if TYPE_CHECKING:
     from src.persistence.conversation_store import AIResponseRecord

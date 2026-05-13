@@ -2,12 +2,12 @@ import logging
 import threading
 from time import sleep
 
-from config import config
 from shared import signal_queue
 from src.events import NewMatchEvent
 from src.lib.sc2client import SC2Client, is_live_game
+from src.runtime.settings import Config, load_current_settings
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+log = logging.getLogger(__name__)
 
 
 class ClientAPIListener(threading.Thread):
@@ -15,11 +15,12 @@ class ClientAPIListener(threading.Thread):
 
     sc2client: SC2Client
 
-    def __init__(self):
+    def __init__(self, *, settings: Config | None = None):
         super().__init__()
+        self.settings = settings or load_current_settings()
         self._stop_event = threading.Event()
 
-        self.sc2client = SC2Client()
+        self.sc2client = SC2Client(settings=self.settings)
 
     def stop(self):
         self._stop_event.set()

@@ -94,7 +94,7 @@ class ApiConfig(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5173"]
 ```
 
-The API does not import the global `config.config` object during app startup. The root `config.Config.check_initial()` path can prompt, exit, and initialize voice/OBS-related paths, which is not part of the API startup contract.
+The API does not import a global project config module during app startup. Runtime settings load explicitly from `src.runtime.settings`, and API startup must not prompt, exit, or initialize voice/OBS-related paths.
 
 `ApiConfig` does not import `MongoSRVDsn` from root `config.py`; API configuration is self-contained. If DSN validation is desired, `src/api/config.py` defines its own local annotated type.
 
@@ -117,10 +117,10 @@ Import safety requirements:
 
 - `src.replays.types` has no module-import dependency on the global `config.config` object. Config access is localized to methods that need it, such as `ToonHandle.from_id()` and `Replay.default_projection()`.
 - `src.persistence.conversation_store` has no module-import dependency on the global `config.config` object. Pricing config access is localized to `AIResponseRecord.from_response()`.
-- `src.persistence.session_store` does not import `AIBackend` from root `config.py` when that import constructs global config. Shared enums needed by DB models live in an import-safe module, or root `config.py` is import-safe without evaluating `Config.check_initial()`.
+- `src.persistence.session_store` does not import `AIBackend` from a root config module. Shared enums needed by DB models live in an import-safe module under `src.runtime.settings`.
 - `src.mapstats` has no API-startup dependency on global config. Map stats are available when their aggregation model is import-safe.
 
-Root `config.py` does not construct `config: Config = Config.check_initial()` during module import. DB model modules use targeted lazy imports where needed so FastAPI can import models safely.
+There is no root `config.py` module constructing global settings during module import. DB model modules use explicit settings loading or targeted lazy imports where needed so FastAPI can import models safely.
 
 Import-safety test:
 

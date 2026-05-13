@@ -132,21 +132,24 @@ def test_build_live_event_listeners_selects_runtime_specific_implementations(
     wake_module = types.ModuleType("src.events.wake_porcupine")
 
     class FakeWakeWordListener:
-        pass
+        def __init__(self, *, settings):
+            self.settings = settings
 
     wake_module.WakeWordListener = FakeWakeWordListener
 
     game_start_module = types.ModuleType("src.events.loading_screen")
 
     class FakeNewMatchListener:
-        pass
+        def __init__(self, *, settings):
+            self.settings = settings
 
     game_start_module.NewMatchListener = FakeNewMatchListener
 
     replay_module = types.ModuleType("src.events.newreplay")
 
     class FakeNewReplayListener:
-        def __init__(self, *, replay_store, save_player_info_fn):
+        def __init__(self, *, settings, replay_store, save_player_info_fn):
+            calls["settings"] = settings
             calls["replay_store"] = replay_store
             calls["save_player_info_fn"] = save_player_info_fn
 
@@ -155,7 +158,8 @@ def test_build_live_event_listeners_selects_runtime_specific_implementations(
     twitch_module = types.ModuleType("src.events.twitch")
 
     class FakeTwitchListener:
-        pass
+        def __init__(self, *, settings):
+            self.settings = settings
 
     twitch_module.TwitchListener = FakeTwitchListener
 
@@ -189,6 +193,7 @@ def test_build_live_event_listeners_selects_runtime_specific_implementations(
     assert isinstance(replay_scanner, FakeNewReplayListener)
     assert isinstance(twitch, FakeTwitchListener)
     assert calls == {
+        "settings": settings,
         "replay_store": replay_store,
         "save_player_info_fn": save_player_info_fn,
     }
@@ -201,14 +206,16 @@ def test_build_live_event_listeners_falls_back_to_key_and_clientapi(monkeypatch)
     wake_module = types.ModuleType("src.events.wake_key")
 
     class FakeWakeKeyListener:
-        pass
+        def __init__(self, *, settings):
+            self.settings = settings
 
     wake_module.WakeKeyListener = FakeWakeKeyListener
 
     game_start_module = types.ModuleType("src.events.clientapi")
 
     class FakeClientAPIListener:
-        pass
+        def __init__(self, *, settings):
+            self.settings = settings
 
     game_start_module.ClientAPIListener = FakeClientAPIListener
 
@@ -274,6 +281,7 @@ def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
         def __init__(
             self,
             *,
+            settings,
             tts,
             mic,
             transcriber,
@@ -285,6 +293,7 @@ def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
             calls.append(
                 (
                     "session",
+                        settings,
                     tts,
                     mic,
                     transcriber,
@@ -300,19 +309,6 @@ def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
 
         def is_active(self):
             return False
-
-    fake_log_module = types.ModuleType("log")
-    fake_log_module.configure_application_logging = (
-        lambda *, logger: calls.append(("file_logging", logger.name))
-    )
-    fake_log_module.log = logging.getLogger("coach-test")
-    fake_shared_module = types.ModuleType("shared")
-    fake_shared_module.signal_queue = FakeSignalQueue()
-    fake_events_module = types.ModuleType("src.events.events")
-    fake_events_module.ReplEvent = FakeReplEvent
-    fake_session_module = types.ModuleType("src.session")
-    fake_session_module.AISession = FakeAISession
-    fake_persistence_module = types.ModuleType("src.persistence.runtime")
 
     class ConversationStore:
         pass
@@ -331,27 +327,22 @@ def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
             session_store=SessionStore(),
         )
 
-    fake_persistence_module.build_persistence_services = build_persistence_services
-    fake_playerinfo_module = types.ModuleType("src.playerinfo")
-    fake_playerinfo_module.save_player_info = lambda replay, replay_store=None: None
-
     monkeypatch.setattr(coach, "load_runtime_settings", lambda: calls.append("load") or settings)
-    monkeypatch.setattr(coach, "_install_legacy_config", lambda runtime_settings: calls.append(("install", runtime_settings)))
+    monkeypatch.setattr(coach, "configure_application_logging", lambda *, logger: calls.append(("file_logging", logger.name)))
+    monkeypatch.setattr(coach, "log", logging.getLogger("coach-test"))
     monkeypatch.setattr(coach, "_install_rich_log_handler", lambda log: calls.append(("logging", log.name)))
     monkeypatch.setattr(coach, "_build_io_services", lambda runtime_settings: calls.append(("io", runtime_settings.audiomode)) or ("tts", "mic", "transcriber"))
-    monkeypatch.setitem(sys.modules, "log", fake_log_module)
-    monkeypatch.setitem(sys.modules, "shared", fake_shared_module)
-    monkeypatch.setitem(sys.modules, "src.events.events", fake_events_module)
-    monkeypatch.setitem(sys.modules, "src.persistence.runtime", fake_persistence_module)
-    monkeypatch.setitem(sys.modules, "src.playerinfo", fake_playerinfo_module)
-    monkeypatch.setitem(sys.modules, "src.session", fake_session_module)
+    monkeypatch.setattr(coach, "signal_queue", FakeSignalQueue())
+    monkeypatch.setattr(coach, "ReplEvent", FakeReplEvent)
+    monkeypatch.setattr(coach, "build_persistence_services", build_persistence_services)
+    monkeypatch.setattr(coach, "save_player_info", lambda replay, replay_store=None: None)
+    monkeypatch.setattr(coach, "AISession", FakeAISession)
 
     runner = CliRunner()
     result = runner.invoke(coach.main, ["--repl"], catch_exceptions=False)
 
     assert result.exit_code == 0
     assert calls[0] == "load"
-    assert calls[1] == ("install", settings)
     assert ("persistence", settings) in calls
     assert ("file_logging", "coach-test") in calls
     assert ("logging", "coach-test") in calls
@@ -359,6 +350,7 @@ def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
     assert ("io", AudioMode.text) in calls
     assert (
         "session",
+        settings,
         "tts",
         "mic",
         "transcriber",
@@ -418,26 +410,15 @@ def test_live_execution_selects_and_starts_configured_event_listeners(monkeypatc
         def join(self):
             calls.append(("join", self.name))
 
-    fake_log_module = types.ModuleType("log")
-    fake_log_module.configure_application_logging = lambda *, logger: None
-    fake_log_module.log = logging.getLogger("coach-test")
-    fake_shared_module = types.ModuleType("shared")
-    fake_shared_module.signal_queue = FakeSignalQueue()
-    fake_events_module = types.ModuleType("src.events.events")
-    fake_events_module.ReplEvent = type("FakeReplEvent", (), {})
-    fake_session_module = types.ModuleType("src.session")
-    fake_session_module.AISession = FakeAISession
-    fake_persistence_module = types.ModuleType("src.persistence.runtime")
-    fake_persistence_module.build_persistence_services = lambda runtime_settings: types.SimpleNamespace(
+    fake_persistence_services = lambda runtime_settings: types.SimpleNamespace(
         conversation_store=object(),
         replay_store=object(),
         session_store=object(),
     )
-    fake_playerinfo_module = types.ModuleType("src.playerinfo")
-    fake_playerinfo_module.save_player_info = lambda replay, replay_store=None: None
 
     monkeypatch.setattr(coach, "load_runtime_settings", lambda: settings)
-    monkeypatch.setattr(coach, "_install_legacy_config", lambda runtime_settings: None)
+    monkeypatch.setattr(coach, "configure_application_logging", lambda *, logger: None)
+    monkeypatch.setattr(coach, "log", logging.getLogger("coach-test"))
     monkeypatch.setattr(coach, "_install_rich_log_handler", lambda log: None)
     monkeypatch.setattr(coach, "_build_io_services", lambda runtime_settings: (None, None, None))
     monkeypatch.setattr(
@@ -450,12 +431,10 @@ def test_live_execution_selects_and_starts_configured_event_listeners(monkeypatc
             FakeListener("twitch"),
         ),
     )
-    monkeypatch.setitem(sys.modules, "log", fake_log_module)
-    monkeypatch.setitem(sys.modules, "shared", fake_shared_module)
-    monkeypatch.setitem(sys.modules, "src.events.events", fake_events_module)
-    monkeypatch.setitem(sys.modules, "src.persistence.runtime", fake_persistence_module)
-    monkeypatch.setitem(sys.modules, "src.playerinfo", fake_playerinfo_module)
-    monkeypatch.setitem(sys.modules, "src.session", fake_session_module)
+    monkeypatch.setattr(coach, "signal_queue", FakeSignalQueue())
+    monkeypatch.setattr(coach, "build_persistence_services", fake_persistence_services)
+    monkeypatch.setattr(coach, "save_player_info", lambda replay, replay_store=None: None)
+    monkeypatch.setattr(coach, "AISession", FakeAISession)
 
     runner = CliRunner()
     result = runner.invoke(coach.main, [], catch_exceptions=False)

@@ -12,12 +12,12 @@ import tesserocr
 from Levenshtein import distance as levenstein
 from PIL import Image
 
-from config import config
 from shared import signal_queue
 from src.events import NewMatchEvent
 from src.lib.sc2client import SC2Client
+from src.runtime.settings import Config, load_current_settings
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+log = logging.getLogger(__name__)
 
 cvflags: int = cv2.IMREAD_COLOR
 
@@ -36,13 +36,13 @@ def get_left_portrait(image):
 
 
 def save_portrait(portrait, new_name):
-    path, _ = split(config.screenshot)
+    path, _ = split(load_current_settings().screenshot)
     portrait_name = splitext(new_name)[0] + "_portrait.png"
     cv2.imwrite(join(path, "portraits", portrait_name), portrait)
 
 
 def is_student(player_name: str) -> bool:
-    return player_name.strip().lower() == config.student.name.lower()
+    return player_name.strip().lower() == load_current_settings().student.name.lower()
 
 
 def cv2_to_image(cv2_image: numpy.ndarray) -> Image.Image:
@@ -50,12 +50,13 @@ def cv2_to_image(cv2_image: numpy.ndarray) -> Image.Image:
 
 
 def parse_map_loading_screen(filename: str) -> tuple[str, str, str, numpy.ndarray]:
+    settings = load_current_settings()
     image = cv2.imread(filename, flags=cvflags)
 
     if type(image) is not numpy.ndarray:
         raise ValueError("Could not read screenshot image")
 
-    with tesserocr.PyTessBaseAPI(path=config.tessdata_dir) as tess:  # type: ignore
+    with tesserocr.PyTessBaseAPI(path=settings.tessdata_dir) as tess:  # type: ignore
         x, y, w, h = 940, 900, 670, 100
         ROI = image[y : y + h, x : x + w]
         tess.SetImage(cv2_to_image(ROI))
@@ -134,11 +135,12 @@ def wait_for_file(file_path: str, timeout: int = 3, delay: float = 0.1) -> bool:
 class NewMatchListener(threading.Thread):
     sc2client: SC2Client
 
-    def __init__(self):
+    def __init__(self, *, settings: Config | None = None):
         super().__init__()
+        self.settings = settings or load_current_settings()
         self._stop_event = threading.Event()
 
-        self.sc2client = SC2Client()
+        self.sc2client = SC2Client(settings=self.settings)
 
     def stop(self):
         self._stop_event.set()
@@ -160,18 +162,18 @@ class NewMatchListener(threading.Thread):
             if self.stopped():
                 log.debug("Stopping loading screen scanner")
                 break
-            if os.path.exists(config.screenshot):
+            if os.path.exists(self.settings.screenshot):
                 log.info("map loading screen detected")
                 sleep(0.3)
 
-                if wait_for_file(config.screenshot):
-                    parse = parse_map_loading_screen(config.screenshot)
+                if wait_for_file(self.settings.screenshot):
+                    parse = parse_map_loading_screen(self.settings.screenshot)
                 else:
                     log.error("File not readable")
                     continue
                 map, player1, player2, opponent_portrait = parse
 
-                map = clean_map_name(map, config.ladder_maps)
+                map = clean_map_name(map, self.settings.ladder_maps)
 
                 if len(player1) == 0:
                     player1 = barcode
@@ -186,13 +188,13 @@ class NewMatchListener(threading.Thread):
                 new_name = f"{map} - {cleanf.sub('', player1)} vs {cleanf.sub('', player2)} {now}.png"
                 new_name = re.sub(r"[^\w_. -]", "_", new_name)
 
-                if player1.lower() == config.student.name.lower():
+                if player1.lower() == self.settings.student.name.lower():
                     opponent = player2
-                elif player2.lower() == config.student.name.lower():
+                elif player2.lower() == self.settings.student.name.lower():
                     opponent = player1
                 else:
-                    log.info(f"not {config.student}, I'll keep looking")
-                    os.remove(config.screenshot)
+                    log.info(f"not {self.settings.student}, I'll keep looking")
+                    os.remove(self.settings.screenshot)
                     continue
 
                 if opponent == barcode:
@@ -203,11 +205,11 @@ class NewMatchListener(threading.Thread):
                     log.info(f"Barcode resolved to {opponent}")
 
                 if opponent is not None:
-                    rename_file(config.screenshot, new_name)
+                    rename_file(self.settings.screenshot, new_name)
                     save_portrait(opponent_portrait, new_name)
 
                     scanresult = NewMatchEvent(mapname=map, opponent=opponent)
 
                     signal_queue.put(scanresult)
 
-            sleep(config.deamon_polling_rate)
+            sleep(self.settings.deamon_polling_rate)

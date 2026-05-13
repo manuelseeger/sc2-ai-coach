@@ -2,14 +2,16 @@ import os
 import pathlib
 import sys
 import time
+from dataclasses import dataclass
 from os.path import exists, join
 from unittest.mock import MagicMock
 from urllib.parse import urljoin
+from uuid import uuid4
 
 import docker
 import httpx
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from pymongo import MongoClient
 from pytest_mock import MockerFixture
 
@@ -19,6 +21,7 @@ from src.persistence.replay_store import ReplayStore
 from src.persistence.session_store import SessionStore
 from src.runtime.settings import Config, load_current_settings
 from tests.support import pytest_services
+from tests.support.container_services import MongoServiceHandle, start_mongo_service
 
 pytest_services.bootstrap_test_services()
 
@@ -30,6 +33,15 @@ from src.replays.types import Player as ReplayPlayer  # noqa: E402
 from tests.critic import LmmCritic  # noqa: E402
 
 TESTDATA_DIR = "tests/testdata"
+
+
+@dataclass
+class SeededReplayMongoContainer:
+    service: MongoServiceHandle
+    settings: Config
+    database: MongoDatabase
+    replay_store: ReplayStore
+    seeded_replays: list
 
 
 def load_test_settings(*, require_prepared_environment: bool = True) -> Config:
@@ -61,6 +73,46 @@ def replay_store(mongo_database: MongoDatabase) -> ReplayStore:
 @pytest.fixture
 def session_store(mongo_database: MongoDatabase) -> SessionStore:
     return SessionStore(mongo_database)
+
+
+@pytest.fixture
+def seeded_replay_mongo_container(
+    runtime_settings: Config,
+) -> SeededReplayMongoContainer:
+    handle = start_mongo_service(
+        mode="container",
+        db_name=f"SC2AICOACH_TESTDATA_{uuid4().hex}",
+    )
+
+    database = MongoDatabase(
+        MongoDatabaseConfig(mongo_uri=handle.dsn, db_name=handle.db_name)
+    )
+    replay_store = ReplayStore(database)
+    reader = ReplayReader(settings=runtime_settings)
+    seeded_replays = []
+
+    try:
+        for replay_path in sorted(
+            pathlib.Path(TESTDATA_DIR, "replays").glob("*.SC2Replay")
+        ):
+            try:
+                replay = reader.load_replay(replay_path)
+            except (ValidationError, ValueError):
+                continue
+            replay_store.upsert(replay)
+            seeded_replays.append(replay)
+
+        assert seeded_replays
+
+        yield SeededReplayMongoContainer(
+            service=handle,
+            settings=runtime_settings,
+            database=database,
+            replay_store=replay_store,
+            seeded_replays=seeded_replays,
+        )
+    finally:
+        handle.stop()
 
 
 def pytest_addoption(parser):

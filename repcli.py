@@ -2,15 +2,13 @@ import glob
 import json
 import logging
 import os
-import sys
-import types
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from functools import partial
 from io import BytesIO
 from os.path import basename, getmtime, join
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import Annotated, Any
 
 import click
 import climage
@@ -23,10 +21,7 @@ from rich.table import Table
 from rich.theme import Theme
 
 from src.ai.utils import force_valid_json_string
-from src.runtime.settings import SettingsLoaderError, load_current_settings
-
-if TYPE_CHECKING:
-    from src.runtime.settings import Config
+from src.runtime.settings import Config, load_current_settings
 
 custom_theme = Theme(
     {
@@ -67,18 +62,8 @@ def _configure_cli_logging(*, debug: bool) -> logging.Logger:
     return logger
 
 
-def _install_legacy_config(settings: "Config") -> None:
-    legacy_config = types.ModuleType("config")
-    legacy_config.config = settings
-    legacy_config.Config = type(settings)
-    legacy_config.SettingsLoaderError = SettingsLoaderError
-    legacy_config.load_current_settings = load_current_settings
-    sys.modules["config"] = legacy_config
-
-
 def _build_runtime() -> RepCliRuntime:
     settings = load_runtime_settings()
-    _install_legacy_config(settings)
 
     from src.persistence.replay_store import PlayerInfo
     from src.persistence.runtime import build_persistence_services
@@ -90,7 +75,7 @@ def _build_runtime() -> RepCliRuntime:
 
     return RepCliRuntime(
         settings=settings,
-        reader=ReplayReader(),
+        reader=ReplayReader(settings=settings),
         replay_store=persistence.replay_store,
         replay_model=Replay,
         player_info_model=PlayerInfo,
@@ -184,6 +169,7 @@ def cli(ctx, clean, debug, simulation, verbose):
     console.print(
         "Verbose mode is %s" % ("[on]on[/on]" if verbose else "[off]off[/off]")
     )
+
 
 @cli.command()
 @click.pass_context

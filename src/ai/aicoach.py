@@ -7,18 +7,18 @@ from typing import Any, Generator, Literal, Optional, Type, TypeVar
 from openai import OpenAI
 from pydantic import BaseModel
 
-from config import config
 from src.persistence.conversation_store import ConversationStore, get_conversation_store
 from src.persistence.replay_store import ReplayStore
 from src.persistence.session_store import Session
 from src.replays.types import AIMessageRole
+from src.runtime.settings import Config, load_current_settings
 
 from .functions import build_ai_functions, responses_tools
 from .functions.base import strict_json_schema
 from .openai_provider import get_openai_client
 from .prompt import Templates
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+log = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -32,9 +32,11 @@ class AICoach:
         store: ConversationStore | None = None,
         replay_store: ReplayStore | None = None,
         trace: bool = False,
+        settings: Config | None = None,
     ):
         """Initialize the coach with the shared OpenAI client and local conversation store."""
-        self.client = client or get_openai_client()
+        self.settings = settings or load_current_settings()
+        self.client = client or get_openai_client(self.settings)
         self.store = store or get_conversation_store()
         self.replay_store = replay_store
         self.trace = trace
@@ -203,7 +205,7 @@ class AICoach:
         response_format: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         request_kwargs = {
-            "model": config.gpt_model,
+            "model": self.settings.gpt_model,
             "instructions": self._render_instructions(
                 conversation,
                 additional_instructions=additional_instructions,
@@ -236,7 +238,7 @@ class AICoach:
     ) -> str:
         sections = [
             Templates.initial_instructions.render(
-                {"student": str(config.student.name)}
+                {"student": str(self.settings.student.name)}
             ).strip(),
         ]
 
@@ -306,7 +308,7 @@ class AICoach:
         return None
 
     def _include_param(self) -> list[str] | None:
-        if getattr(config, "reasoning_continuity_enabled", False):
+        if getattr(self.settings, "reasoning_continuity_enabled", False):
             return ["reasoning.encrypted_content"]
         return None
 
@@ -316,11 +318,13 @@ class AICoach:
             or conversation.session
             or "global"
         )
-        raw_key = f"{config.student.name}|{session_id}|{conversation.trigger.value}"
+        raw_key = (
+            f"{self.settings.student.name}|{session_id}|{conversation.trigger.value}"
+        )
         return sha256(raw_key.encode("utf-8")).hexdigest()
 
     def _reasoning_param(self) -> dict[str, str] | None:
-        reasoning_effort = getattr(config, "reasoning_effort", None)
+        reasoning_effort = getattr(self.settings, "reasoning_effort", None)
         if not reasoning_effort:
             return None
         return {"effort": reasoning_effort}

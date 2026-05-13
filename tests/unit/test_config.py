@@ -1,5 +1,5 @@
-from config import Config
 from src.pricing import ModelPricingOverride
+from src.runtime.settings import Config
 
 
 def test_model_pricing_defaults_to_builtin_lookup():

@@ -98,7 +98,6 @@ def test_build_runtime_constructs_persistence_explicitly(monkeypatch):
 
     settings = object()
     monkeypatch.setattr(repcli, "load_runtime_settings", lambda: settings)
-    monkeypatch.setattr(repcli, "_install_legacy_config", lambda current: calls.append(("install", current)))
 
     class FakeReplayStore:
         pass
@@ -126,8 +125,8 @@ def test_build_runtime_constructs_persistence_explicitly(monkeypatch):
     fake_reader_module = types.ModuleType("src.replays.reader")
 
     class FakeReplayReader:
-        def __init__(self):
-            calls.append("reader")
+        def __init__(self, settings=None):
+            calls.append(("reader", settings))
 
     fake_reader_module.ReplayReader = FakeReplayReader
 
@@ -144,8 +143,7 @@ def test_build_runtime_constructs_persistence_explicitly(monkeypatch):
 
     assert runtime.settings is settings
     assert calls == [
-        ("install", settings),
         ("persistence", settings),
-        "reader",
+        ("reader", settings),
     ]
     assert runtime.replay_store is fake_replay_store

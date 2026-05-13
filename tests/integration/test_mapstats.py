@@ -1,45 +1,39 @@
-from rich import print
+from __future__ import annotations
 
-from src.persistence.replay_store import get_replay_store
 from src.replays.types import Replay
-from tests.conftest import load_test_settings
-
-replay_store = get_replay_store()
 
 
-def test_get_map_stats_for_map():
-    from src.mapstats import MatchupsByMap
+def test_matchups_by_map_aggregates_seeded_replays_in_fresh_container(
+    seeded_replay_mongo_container,
+):
+    from src.mapstats import MatchupsByMap, _configure_matchups_pipeline
 
-    runtime_settings = load_test_settings()
+    runtime_settings = seeded_replay_mongo_container.settings
+    replay_store = seeded_replay_mongo_container.replay_store
+    seeded_replays = seeded_replay_mongo_container.seeded_replays
+    _configure_matchups_pipeline(runtime_settings)
 
-    for map_name in runtime_settings.ladder_maps:
-        q = Replay.map_name == map_name
+    expected_maps = sorted(
+        {
+            replay.map_name
+            for replay in seeded_replays
+            if any(
+                player.name == runtime_settings.student.name
+                for player in replay.players
+            )
+            and replay.get_player(runtime_settings.student.name).play_race
+            == runtime_settings.student.race
+        }
+    )
 
+    assert expected_maps
+
+    for map_name in expected_maps:
         maps: list[MatchupsByMap] = replay_store.db.find_many(
-            Model=MatchupsByMap, query=q
+            Model=MatchupsByMap,
+            query=Replay.map_name == map_name,
         )
 
-        print(maps)
-        assert len(maps) > 0, map_name
-        assert len(maps[0].matchups) > 0, map_name
-
-
-def test_get_season_map_stats():
-    from src.mapstats import get_map_stats
-
-    runtime_settings = load_test_settings()
-
-    for map_name in runtime_settings.ladder_maps:
-        stats = get_map_stats(map_name)
-
-        assert stats is not None, map_name
-        assert stats.matchups is not None, map_name
-        assert len(stats.matchups) > 0, map_name
-        print(stats)
-
-
-def test_write_map_stats():
-    from src.mapstats import update_map_stats
-
-    map_name = "Taito Citadel LE"
-    update_map_stats(map_name)
+        assert len(maps) == 1, map_name
+        assert maps[0].map == map_name
+        assert maps[0].matchups, map_name

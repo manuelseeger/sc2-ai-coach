@@ -6,11 +6,11 @@ import httpx
 from blizzardapi2 import BlizzardApi
 from pydantic import BaseModel, HttpUrl
 
-from config import config
 from shared import REGION_MAP
 from src.replays.types import ToonHandle
+from src.runtime.settings import Config, load_current_settings
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+log = logging.getLogger(__name__)
 
 
 def toon_handle_from_id(toon_id: str, region: str) -> ToonHandle:
@@ -67,25 +67,34 @@ class BattleNet:
 
     http_client: httpx.Client
 
-    def __init__(self, http_client: Optional[httpx.Client] = None):
+    def __init__(
+        self,
+        http_client: Optional[httpx.Client] = None,
+        settings: Config | None = None,
+    ):
+        self.settings = settings or load_current_settings()
         if http_client:
             self.http_client = http_client
         else:
             self.http_client = httpx.Client()
 
-        if not config.blizzard_client_id or not config.blizzard_client_secret:
+        if (
+            not self.settings.blizzard_client_id
+            or not self.settings.blizzard_client_secret
+        ):
             self.bnet_integration = False
             return
         self.api_client = BlizzardApi(
-            config.blizzard_client_id, config.blizzard_client_secret
+            self.settings.blizzard_client_id,
+            self.settings.blizzard_client_secret,
         )
-        self.region_id = REGION_MAP[config.blizzard_region.value][0]
-        self.realm_id = REGION_MAP[config.blizzard_region.value][1]
+        self.region_id = REGION_MAP[self.settings.blizzard_region.value][0]
+        self.realm_id = REGION_MAP[self.settings.blizzard_region.value][1]
 
     def get_profile(self, profile_id: int) -> BattlenetProfile | None:
         try:
             p = self.api_client.starcraft2.community.get_profile(
-                region=config.blizzard_region,
+                region=self.settings.blizzard_region,
                 region_id=self.region_id,
                 realm_id=self.realm_id,
                 profile_id=profile_id,
@@ -106,8 +115,8 @@ class BattleNet:
         basename = parts[-1]
 
         # Only use caching if bnet_cache_dir is set
-        if config.bnet_cache_dir is not None:
-            cache_path = Path(config.bnet_cache_dir, guid, basename)
+        if self.settings.bnet_cache_dir is not None:
+            cache_path = Path(self.settings.bnet_cache_dir, guid, basename)
 
             if cache_path.exists():
                 return cache_path.read_bytes()
@@ -120,8 +129,8 @@ class BattleNet:
             return
 
         # Write to cache if caching is enabled
-        if config.bnet_cache_dir is not None:
-            cache_path = Path(config.bnet_cache_dir, guid, basename)
+        if self.settings.bnet_cache_dir is not None:
+            cache_path = Path(self.settings.bnet_cache_dir, guid, basename)
             cache_path.parent.mkdir(parents=True, exist_ok=True)
             cache_path.write_bytes(r.content)
 

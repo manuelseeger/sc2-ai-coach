@@ -12,7 +12,6 @@ from pyodmongo.models.responses import DbResponse
 from pyodmongo.queries import elem_match
 from pyodmongo.queries import sort as od_sort
 
-from config import config
 from shared import http_client
 from src.lib.battlenet import BattleNet
 from src.lib.sc2client import SC2Client
@@ -24,19 +23,13 @@ from src.persistence.replay_store import (
     get_replay_store,
 )
 from src.replays.types import Replay, to_bson_binary
+from src.runtime.settings import Config, load_current_settings
 from src.util import is_aware, is_barcode
 
-if config.obs_integration:
-    from external.fast_ssim.ssim import ssim
-
-log = logging.getLogger(f"{config.name}.{__name__}")
+log = logging.getLogger(__name__)
 
 PORTRAIT_DIR = "obs/screenshots/portraits"
 KAT_PORTRAIT = Image.open("assets/katchinsky_portrait.png")
-
-sc2pulse = SC2PulseClient(http_client=http_client)
-battlenet = BattleNet(http_client=http_client)
-sc2client = SC2Client()
 
 
 def is_portrait_match(
@@ -71,7 +64,8 @@ def is_portrait_match(
 
 
 def get_matching_portrait_from_replay(replay: Replay) -> bytes | None:
-    opponent = replay.get_opponent_of(config.student.name)
+    settings = load_current_settings()
+    opponent = replay.get_opponent_of(settings.student.name)
     reference_date = replay.date - timedelta(seconds=replay.real_length)
     reference_date = reference_date.replace(tzinfo=timezone.utc)
     return get_matching_portrait(opponent.name, replay.map_name, reference_date)
@@ -105,6 +99,7 @@ def get_matching_portrait(
 
 
 def portrait_construct_from_bnet(toon_id: int) -> bytes | None:
+    battlenet = BattleNet(http_client=http_client)
     if not battlenet.bnet_integration:
         return
 
@@ -137,18 +132,21 @@ def portrait_construct_from_bnet(toon_id: int) -> bytes | None:
 def save_player_info(
     replay: Replay,
     replay_store: ReplayStore | None = None,
+    *,
+    settings: Config | None = None,
 ) -> Tuple[DbResponse, PlayerInfo]:
+    settings = settings or load_current_settings()
     replay_store = replay_store or get_replay_store()
     portrait = None
     portrait_constructed = None
 
-    if config.obs_integration:
+    if settings.obs_integration:
         portrait = get_matching_portrait_from_replay(replay)
     else:
         portrait = None
 
     portrait_constructed = portrait_construct_from_bnet(
-        replay.get_opponent_of(config.student.name).toon_id
+        replay.get_opponent_of(settings.student.name).toon_id
     )
 
     if portrait is not None:
@@ -157,7 +155,7 @@ def save_player_info(
     if portrait_constructed is not None:
         portrait_constructed = to_bson_binary(portrait_constructed)
 
-    opponent = replay.get_opponent_of(config.student.name)
+    opponent = replay.get_opponent_of(settings.student.name)
 
     player_info = PlayerInfo(
         id=opponent.toon_handle,
@@ -195,6 +193,8 @@ def resolve_player_with_portrait(
     portrait: np.ndarray,
     replay_store: ReplayStore | None = None,
 ) -> PlayerInfo | None:
+    from external.fast_ssim.ssim import ssim
+
     replay_store = replay_store or get_replay_store()
     q = elem_match(Alias.name == name, field=PlayerInfo.aliases)  # type: ignore[arg-type]
 
@@ -250,6 +250,8 @@ def resolve_replays_from_current_opponent(
     mapname: str,
     mmr: int,
     replay_store: ReplayStore | None = None,
+    *,
+    settings: Config | None = None,
 ) -> Tuple[PlayerInfo | None, List[Replay]]:
     """Try to identify the opponent.
 
@@ -262,9 +264,12 @@ def resolve_replays_from_current_opponent(
     If player is identified, look for past replays against this player.
 
     Returns the player info and potentially a list of past replays."""
+    settings = settings or load_current_settings()
     playerinfo = None
     race = None
     replay_store = replay_store or get_replay_store()
+    sc2pulse = SC2PulseClient(http_client=http_client, settings=settings)
+    sc2client = SC2Client(settings=settings)
 
     if not is_barcode(opponent):
         log.debug(f"Trying to resolve {opponent} by name")

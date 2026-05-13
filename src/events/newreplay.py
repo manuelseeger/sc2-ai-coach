@@ -8,19 +8,16 @@ from typing import Callable
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-from config import config
 from shared import signal_queue
 from src.events import NewReplayEvent
 from src.persistence.replay_store import ReplayStore, get_replay_store
 from src.playerinfo import save_player_info
 from src.replays.reader import ReplayReader
+from src.runtime.settings import Config, load_current_settings
 from src.util import wait_for_file
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
-
-
-reader = ReplayReader()
 
 
 def wait_for_delete(file_path: Path, timeout: int = 10) -> bool:
@@ -39,10 +36,13 @@ class NewReplayHandler(FileSystemEventHandler):
         *,
         replay_store: ReplayStore | None = None,
         save_player_info_fn: Callable = save_player_info,
+        settings: Config | None = None,
     ):
         super().__init__()
+        self.settings = settings or load_current_settings()
         self.replay_store = replay_store or get_replay_store()
         self.save_player_info = save_player_info_fn
+        self.reader = ReplayReader(settings=self.settings)
 
     def on_created(self, event):
         if event.is_directory:
@@ -52,20 +52,25 @@ class NewReplayHandler(FileSystemEventHandler):
                 self.process_new_file(event.src_path)
 
     def process_new_file(self, file_path: str):
-        replay_raw = reader.load_replay_raw(file_path)
-        if reader.apply_filters(replay_raw):
+        replay_raw = self.reader.load_replay_raw(file_path)
+        if self.reader.apply_filters(replay_raw):
             log.info(f"New replay {basename(file_path)}")
-            replay = reader.to_typed_replay(replay_raw)
+            replay = self.reader.to_typed_replay(replay_raw)
             result = self.replay_store.upsert(replay)
             if not result.acknowledged:
                 log.error(f"Failed to save {replay}")
-            result, player_info = self.save_player_info(replay)
+            result, player_info = self.save_player_info(
+                replay,
+                settings=self.settings,
+            )
             if not result.acknowledged:
                 log.error(f"Failed to save player info for {replay}")
 
             signal_queue.put(NewReplayEvent(replay=replay))
         else:
-            if reader.is_instant_leave(replay_raw) or reader.has_afk_player(replay_raw):
+            if self.reader.is_instant_leave(replay_raw) or self.reader.has_afk_player(
+                replay_raw
+            ):
                 wait_for_delete(file_path)
                 log.info(f"Deleted {basename(file_path)}")
 
@@ -76,10 +81,17 @@ class NewReplayListener(Observer):
         *,
         replay_store: ReplayStore | None = None,
         save_player_info_fn: Callable = save_player_info,
+        settings: Config | None = None,
     ):
         super().__init__()
+        self.settings = settings or load_current_settings()
         self.event_handler = NewReplayHandler(
             replay_store=replay_store,
             save_player_info_fn=save_player_info_fn,
+            settings=self.settings,
         )
-        self.schedule(self.event_handler, path=config.replay_folder, recursive=False)
+        self.schedule(
+            self.event_handler,
+            path=self.settings.replay_folder,
+            recursive=False,
+        )

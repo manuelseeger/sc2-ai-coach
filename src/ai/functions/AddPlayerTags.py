@@ -3,13 +3,12 @@ from typing import Annotated
 
 from pyodmongo.queries import eq
 
-from config import config
 from src.persistence.replay_store import PlayerInfo, get_replay_store
 from src.replays.types import FieldTypeValidator, ToonHandle
 
 from .base import AIFunction
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+log = logging.getLogger(__name__)
 
 
 @AIFunction

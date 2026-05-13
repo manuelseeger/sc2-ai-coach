@@ -1,4 +1,3 @@
-import sys
 from datetime import datetime
 from enum import Enum
 from functools import cached_property
@@ -26,7 +25,6 @@ from pydantic_settings import (
     SettingsConfigDict,
     YamlConfigSettingsSource,
 )
-from rich import print
 
 from src.pricing import (
     ModelPricing,
@@ -302,41 +300,6 @@ class Config(BaseSettings):
             YamlConfigSettingsSource(settings_cls),
         )
 
-    def is_initial(self) -> bool:
-        return not Path(self.obs_dir).exists()
-
-    @classmethod
-    def check_initial(cls):
-        try:
-            config: Config = cls()  # type: ignore
-        except ValidationError as e:
-            print(e)
-            sys.exit(1)
-        if config.is_initial():
-            from rich.prompt import Confirm
-
-            do_init = Confirm.ask("Can't find initialized environment. Initialize now?")
-            if do_init:
-                config.init()
-                print("Initialized environment :white_heavy_check_mark:")
-            else:
-                sys.exit(0)
-        return config
-
-    def init(self):
-        Path(join(self.obs_dir, "screenshots")).mkdir(parents=True, exist_ok=True)
-        Path(join(self.log_dir)).mkdir(parents=True, exist_ok=True)
-
-        if self.obs_integration:
-            if self.wakeword.engine == "openwakeword":
-                from openwakeword.utils import download_models
-
-                download_models()
-
-            from src.io.tts import init_tts
-
-            init_tts(self.tts)
-
 
 class SettingsLoaderError(Exception):
     pass
@@ -348,7 +311,7 @@ def load_current_settings(*, require_prepared_environment: bool = True) -> Confi
     except ValidationError as exc:
         raise SettingsLoaderError("Failed to load runtime settings") from exc
 
-    if require_prepared_environment and settings.is_initial():
+    if require_prepared_environment and not Path(settings.obs_dir).exists():
         raise SettingsLoaderError("Runtime environment is not prepared")
 
     return settings

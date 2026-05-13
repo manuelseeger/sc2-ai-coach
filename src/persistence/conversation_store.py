@@ -8,7 +8,6 @@ from pymongo import ASCENDING, IndexModel
 from pyodmongo import DbModel, Id
 from pyodmongo.queries import eq, sort
 
-from config import config
 from src.persistence.database import MongoDatabase, get_database
 from src.replays.types import (
     AIContentPart,
@@ -17,6 +16,7 @@ from src.replays.types import (
     AIConversationTrigger,
     AIMessageRole,
 )
+from src.runtime.settings import load_current_settings
 
 if TYPE_CHECKING:
     from src.persistence.session_store import Session
@@ -189,7 +189,7 @@ class AIResponseRecord(DbModel):
         output_tokens = int(usage.get("output_tokens") or 0)
         total_tokens = int(usage.get("total_tokens") or input_tokens + output_tokens)
 
-        pricing = config.get_model_pricing(model)
+        pricing = load_current_settings().get_model_pricing(model)
         input_cost = max(0, input_tokens - cached_tokens) * pricing.prompt
         cached_input_cost = cached_tokens * pricing.cached_prompt
         output_cost = output_tokens * pricing.completion
