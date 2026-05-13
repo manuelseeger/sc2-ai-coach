@@ -1,13 +1,16 @@
 import logging
+from typing import TYPE_CHECKING
 
 from RealtimeTTS import SystemEngine, TextToAudioStream
 from RealtimeTTS.engines.kokoro_engine import KokoroEngine
 
-from config import config
 from src.contracts import TTSService
 from src.util import strip_markdown
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+if TYPE_CHECKING:
+    from src.runtime.settings import TTSConfig
+
+log = logging.getLogger(__name__)
 
 
 class TTS(TTSService):
@@ -43,27 +46,27 @@ class TTS(TTSService):
         # return self.tts.is_playing()
 
 
-def make_tts_stream() -> TTS:
+def make_tts_stream(*, tts_config: "TTSConfig") -> TTS:
     engine = None
-    if config.tts.engine == "kokoro":
+    if tts_config.engine == "kokoro":
         engine = KokoroEngine()
-        if config.tts.voice:
-            engine.set_voice(config.tts.voice)
-        if config.tts.speed:
-            engine.set_speed(config.tts.speed)
+        if tts_config.voice:
+            engine.set_voice(tts_config.voice)
+        if tts_config.speed:
+            engine.set_speed(tts_config.speed)
 
-    if config.tts.engine == "system":
+    if tts_config.engine == "system":
         engine = SystemEngine()
 
     return TTS(engine=engine)
 
 
-def init_tts():
+def init_tts(tts_config: "TTSConfig"):
     from RealtimeTTS import KokoroEngine, TextToAudioStream
 
     engine = KokoroEngine()
-    if config.tts.voice:
-        engine.set_voice(config.tts.voice)
+    if tts_config.voice:
+        engine.set_voice(tts_config.voice)
     text = "Warm up"
     TextToAudioStream(engine).feed(text).play(muted=True)
     text = "Hello, this is your friendly AI coach getting ready"

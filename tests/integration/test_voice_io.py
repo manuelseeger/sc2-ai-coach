@@ -5,13 +5,20 @@ pytest.importorskip("RealtimeTTS")
 pytest.importorskip("speech_recognition")
 pytest.importorskip("soundfile")
 
-from src.io import Transcriber
+from tests.conftest import load_test_settings
+from src.io import get_transcriber_class
 from src.io.mic import Microphone
 from src.io.tts import make_tts_stream
 
 
+settings = load_test_settings()
+
+
 def test_voice_input():
-    mic = Microphone()
+    mic = Microphone(
+        device_index=settings.microphone_index,
+        recognizer_config=settings.recognizer,
+    )
 
     audio = mic.listen()  # noqa: F841
 
@@ -36,13 +43,26 @@ You haven't played aikrash on Alcyone LE before, so he might try something diffe
     ],
 )
 def test_voice_output(text):
-    tts = make_tts_stream()
+    tts = make_tts_stream(tts_config=settings.tts)
     tts.feed(text)
 
 
 def test_transcribe():
-    mic = Microphone()
-    transcriber = Transcriber()
+    mic = Microphone(
+        device_index=settings.microphone_index,
+        recognizer_config=settings.recognizer,
+    )
+    transcriber_class = get_transcriber_class(settings.transcriber_backend)
+
+    if settings.transcriber_backend.value == "xai":
+        transcriber = transcriber_class(
+            api_key=settings.xai_api_key,
+            language=settings.xai_stt_language,
+        )
+    elif settings.transcriber_backend.value == "whisper":
+        transcriber = transcriber_class(model_id=settings.speech_recognition_model)
+    else:
+        transcriber = transcriber_class()
 
     audio = mic.listen()
 

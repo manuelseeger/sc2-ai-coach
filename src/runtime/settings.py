@@ -335,7 +335,7 @@ class Config(BaseSettings):
 
             from src.io.tts import init_tts
 
-            init_tts()
+            init_tts(self.tts)
 
 
 class SettingsLoaderError(Exception):

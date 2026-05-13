@@ -8,10 +8,9 @@ import numpy as np
 import soundfile as sf
 from speech_recognition.audio import AudioData
 
-from config import config
 from src.contracts import TranscriberService
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 MODEL_ID = "nvidia/canary-qwen-2.5b"

@@ -10,6 +10,7 @@ from coach import AISession
 from src.events import CastReplayEvent
 from src.io.tts import make_tts_stream
 from src.replays.reader import ReplayReader
+from tests.conftest import load_test_settings
 
 
 class MockGameInfo:
@@ -46,8 +47,9 @@ class MockSC2Client:
 def test_cast_replay(replay_file, mocker):
     # Arrange
     reader = ReplayReader()
+    settings = load_test_settings()
 
-    session = AISession(tts=make_tts_stream())
+    session = AISession(tts=make_tts_stream(tts_config=settings.tts))
 
     # Mock SC2Client to simulate game progression
     mock_sc2_client = MockSC2Client(max_iterations=3)
