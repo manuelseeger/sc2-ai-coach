@@ -115,3 +115,22 @@ pythonpath = [
 markers = [
   "mongo: uses a real MongoDB test service",
 ]
+
+[tool.pyright]
+include = [
+    "src",
+    "tests",
+    "*.py",
+]
+
+typeCheckingMode = "standard"
+
+exclude = [
+    "playground",
+    "**/__pycache__",
+    "**/node_modules",
+    "**/.*",
+    ".venv",
+    "venv",
+]
+reportMissingTypeStubs = "none"

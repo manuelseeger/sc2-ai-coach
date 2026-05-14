@@ -41,11 +41,13 @@ class DummyMicrophoneService(MicrophoneService):
 
 class DummyTranscriberService(TranscriberService):
     def transcribe(self, audio) -> str:
+        _ = audio
         return ""
 
 
 class DummyTTSService(TTSService):
     def feed(self, text: str) -> None:
+        _ = text
         pass
 
     def stop(self) -> None:
@@ -645,10 +647,6 @@ class AISession:
             while self.tts.is_speaking():
                 sleep(1)
 
-        # summary = self.chat(
-        #    "The game is over. Give us a short outro for winner and loser and a very short summary of the game."
-        # )
-        # self.say(summary)
         self.close()
 
     def save_replay_summary(self, replay: Replay):

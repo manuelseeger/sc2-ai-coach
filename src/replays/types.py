@@ -271,7 +271,7 @@ class Observer(MainBaseModel):
 
 
 class Replay(DbModel):
-    id: ReplayId = Field(...)
+    id: ReplayId = Field(...)  # type: ignore
     build: int
     category: str
     date: datetime

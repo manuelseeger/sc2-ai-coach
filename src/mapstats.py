@@ -136,7 +136,7 @@ def add_path_segment(url: HttpUrl, *segments: Any) -> str:
 
 
 def update_map_stats(
-    map,
+    map: str,
     replay_store: ReplayStore | None = None,
     *,
     settings: Config | None = None,
