@@ -26,7 +26,7 @@ from pydantic_settings import (
     YamlConfigSettingsSource,
 )
 
-from src.pricing import (
+from src.ai.pricing import (
     ModelPricing,
     ModelPricingOverride,
     get_default_model_pricing,
