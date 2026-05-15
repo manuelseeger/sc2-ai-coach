@@ -24,6 +24,10 @@ from src.runtime.settings import (
 from src.session import AISession
 
 
+def load_runtime_settings() -> "Config":
+    return get_config()
+
+
 @click.command()
 @click.option("--debug", is_flag=True, help="Debug mode")
 @click.option("--repl", is_flag=True, help="Start a text-only chat REPL")
@@ -33,7 +37,7 @@ from src.session import AISession
     help="Dump full LLM request and response traces to debug logs",
 )
 def main(debug, repl, trace):
-    settings = get_config()
+    settings = load_runtime_settings()
 
     configure_application_logging(logger=log)
     _install_rich_log_handler(log)

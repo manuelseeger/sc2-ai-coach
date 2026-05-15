@@ -1,6 +1,6 @@
-import logging
+from __future__ import annotations
 
-import pyaudio
+import logging
 
 from log import DEFAULT_LOGGER_NAME
 
@@ -9,11 +9,13 @@ log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 PREFERRED_MICROPHONE_NAME = "nvidia broadcast"
 
 
-def _get_audio() -> pyaudio.PyAudio:
+def _get_audio():
+    import pyaudio
+
     return pyaudio.PyAudio()
 
 
-def _iter_input_devices(audio: pyaudio.PyAudio):
+def _iter_input_devices(audio):
     for index in range(audio.get_device_count()):
         device = audio.get_device_info_by_index(index)
         if device.get("maxInputChannels"):

@@ -439,11 +439,14 @@ def test_live_execution_selects_and_starts_configured_event_listeners(monkeypatc
         def join(self):
             calls.append(("join", self.name))
 
-    fake_persistence_services = lambda runtime_settings: types.SimpleNamespace(
-        conversation_store=object(),
-        replay_store=object(),
-        session_store=object(),
-    )
+    def build_fake_persistence_services(runtime_settings):
+        return types.SimpleNamespace(
+            conversation_store=object(),
+            replay_store=object(),
+            session_store=object(),
+        )
+
+    fake_persistence_services = build_fake_persistence_services
     fake_player_identity_enricher = object()
 
     monkeypatch.setattr(coach, "load_runtime_settings", lambda: settings)
