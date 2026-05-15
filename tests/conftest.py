@@ -78,7 +78,7 @@ def session_store(mongo_database: MongoDatabase) -> SessionStore:
 @pytest.fixture
 def seeded_replay_mongo_container(
     runtime_settings: Config,
-) -> SeededReplayMongoContainer:
+) -> SeededReplayMongoContainer:  # type: ignore[return-value]
     handle = start_mongo_service(
         mode="container",
         db_name=f"SC2AICOACH_TESTDATA_{uuid4().hex}",
@@ -104,7 +104,7 @@ def seeded_replay_mongo_container(
 
         assert seeded_replays
 
-        yield SeededReplayMongoContainer(
+        yield SeededReplayMongoContainer(  # type: ignore[return-value]
             service=handle,
             settings=runtime_settings,
             database=database,
