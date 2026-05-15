@@ -188,6 +188,42 @@ _Avoid_: Component-local hard-coded styling, false requirement that all styles l
 A frontend styling rule where the first slice defines a small central set of tokens for core concerns such as typography, spacing, borders, surfaces, and emphasis.
 _Avoid_: Zero-token start, premature full design-system taxonomy
 
+**Example Style Reference**:
+A frontend styling rule where the webapp should roughly follow the color palette, typography direction, and overall feel of `playground/example_styles.css` without copying that stylesheet 1:1.
+_Avoid_: Unrelated visual direction, literal stylesheet transplantation
+
+**Single-Font First Slice**:
+A first-slice typography rule where the frontend may use one font family throughout even though the reference stylesheet suggests separate display and UI roles.
+_Avoid_: Forced type-system mimicry before the first slice is reviewed, premature font-role complexity
+
+**Dark-Default First Slice**:
+A frontend theming rule where the first slice ships with dark theme as the default visual mode, following the overall direction of the reference stylesheet.
+_Avoid_: Theme direction left implicit, first slice that drifts away from the reference feel
+
+**No Light Theme Day One**:
+A first-slice theming rule where light theme and theme-switching are out of scope until the dark-default slice has been reviewed.
+_Avoid_: Dual-theme complexity in the first slice, theme toggle before the default theme is validated
+
+**Distinct Semantic Accent Colors**:
+A frontend styling rule where the first slice uses distinct semantic accent colors for meaningful states and item kinds instead of collapsing nearly all emphasis onto one accent.
+_Avoid_: Single-accent visual flattening, semantic distinctions that rely on text labels alone
+
+**Small Semantic Signals**:
+A first-slice styling rule where semantic accent colors appear through restrained cues such as borders, pills, labels, and small highlights rather than large background treatments.
+_Avoid_: Heavy semantic tint blocks, visually loud item-kind backgrounds in the first slice
+
+**Motion-Off First Slice**:
+A frontend interaction rule where transitions and decorative motion stay off in the first slice even though the reference stylesheet includes motion tokens.
+_Avoid_: Animated polish in the first slice, motion introduced before the static review surface is validated
+
+**Flattened Surface Model**:
+A first-slice styling rule where the dark palette and general feel of the reference are kept, but the UI uses a flatter surface treatment rather than strongly elevated panels.
+_Avoid_: Heavy panel elevation copied from the reference, overly layered first-slice chrome
+
+**Subtle Surface Separation**:
+A first-slice styling rule where flatter surfaces still remain distinguishable through restrained borders and tonal shifts.
+_Avoid_: Completely undifferentiated dark planes, flatness that erases layout structure
+
 **Authoritative Sequence**:
 The persisted or API-declared ordering of transcript-like records that the client renders without local re-sorting.
 _Avoid_: Client prettified chronology, inferred order
@@ -532,6 +568,15 @@ _Avoid_: Editable map document, stats record
 - Frontend slices should use **Opportunistic Component Extraction** so the component library grows from concrete needs
 - Frontend components should use **Token-Routed Component Styling** so local styles remain centrally restylable
 - The first frontend slice should use a **Small Up-Front Token Set** rather than waiting for all tokenization to emerge reactively
+- Frontend styling should use **Example Style Reference** from `playground/example_styles.css` as a persistent palette-and-feel guide rather than a literal copy source
+- The first frontend slice may use **Single-Font First Slice** typography even while following the reference stylesheet's broader visual direction
+- The first frontend slice should use **Dark-Default First Slice** theming
+- The first frontend slice should use **No Light Theme Day One**
+- The first frontend slice should use **Distinct Semantic Accent Colors**
+- The first frontend slice should use **Small Semantic Signals** for those accent colors
+- The first frontend slice should use **Motion-Off First Slice**
+- The first frontend slice should use **Flattened Surface Model**
+- The first frontend slice should use **Subtle Surface Separation**
 - Transcript-like specialized screens should honor the backend's **Authoritative Sequence**
 - A conversation transcript should be a **Complete Conversation Transcript** containing all persisted items
 - A conversation detail view should use a **Complete Conversation Items View** that includes tool calls and tool results
@@ -726,6 +771,33 @@ _Avoid_: Editable map document, stats record
 >
 > **Dev:** "Should theme tokens appear only after we notice enough duplicated styles?"
 > **Domain expert:** "No. Start with a **Small Up-Front Token Set** so the first slice has a central styling spine without pretending to finalize the whole design system."
+>
+> **Dev:** "Should the new frontend visually ignore the reference stylesheet that lives in the repo?"
+> **Domain expert:** "No. Use **Example Style Reference** from `playground/example_styles.css` as a rough guide for palette, typography direction, and feel, without copying it 1:1."
+>
+> **Dev:** "Must the first slice copy the reference stylesheet's separate display and UI font roles?"
+> **Domain expert:** "No. Use **Single-Font First Slice** typography if that keeps the first slice simpler."
+>
+> **Dev:** "Should the first slice follow the reference stylesheet's dark-theme direction by default?"
+> **Domain expert:** "Yes. Use **Dark-Default First Slice** theming in the first webapp slice."
+>
+> **Dev:** "Should the first slice also ship a light theme toggle?"
+> **Domain expert:** "No. Use **No Light Theme Day One** and focus on getting the dark default right first."
+>
+> **Dev:** "Should the first slice keep almost everything on one accent color except errors?"
+> **Domain expert:** "No. Use **Distinct Semantic Accent Colors** so important states and item kinds remain visually distinct."
+>
+> **Dev:** "Should those semantic accents extend to larger background treatments for item kinds in the first slice?"
+> **Domain expert:** "No. Use **Small Semantic Signals** and keep semantic accents restrained for now."
+>
+> **Dev:** "Should the first slice use subtle motion and transitions in the spirit of the reference stylesheet?"
+> **Domain expert:** "No. Use **Motion-Off First Slice** and validate the static review surface first."
+>
+> **Dev:** "Should the first slice keep the reference stylesheet's elevated panel-heavy surface model?"
+> **Domain expert:** "No. Use **Flattened Surface Model** and keep the palette and feel without copying the heavier panel elevation."
+>
+> **Dev:** "Should the flatter first slice avoid most surface distinction too?"
+> **Domain expert:** "No. Use **Subtle Surface Separation** so borders and tonal shifts still preserve layout structure."
 >
 > **Dev:** "Should the conversation screen re-sort items or responses if a different order looks nicer?"
 > **Domain expert:** "No. It should render the backend's **Authoritative Sequence** so the transcript reflects the persisted record rather than a client interpretation."
@@ -997,6 +1069,15 @@ _Avoid_: Editable map document, stats record
 - "frontend component extraction timing" was underspecified; resolved: the frontend uses **Opportunistic Component Extraction** from concrete slice needs
 - "frontend component style placement" was underspecified; resolved: reusable components use **Token-Routed Component Styling** rather than hard-coded local styling or global-only styling
 - "frontend token timing" was underspecified; resolved: the first slice defines a **Small Up-Front Token Set** for central styling control
+- "frontend visual reference" was underspecified; resolved: the frontend uses **Example Style Reference** from `playground/example_styles.css` as a rough palette-and-feel guide
+- "frontend first-slice font-role complexity" was underspecified; resolved: the first slice may use **Single-Font First Slice** typography
+- "frontend default theme direction" was underspecified; resolved: the first slice uses **Dark-Default First Slice** theming
+- "frontend day-one theme scope" was underspecified; resolved: the first slice uses **No Light Theme Day One**
+- "frontend semantic accent strategy" was underspecified; resolved: the first slice uses **Distinct Semantic Accent Colors**
+- "frontend semantic accent intensity" was underspecified; resolved: the first slice uses **Small Semantic Signals** rather than large semantic background treatments
+- "frontend motion scope" was underspecified; resolved: the first slice uses **Motion-Off First Slice**
+- "frontend surface treatment" was underspecified; resolved: the first slice uses **Flattened Surface Model** rather than the reference's heavier panel elevation
+- "frontend surface separation" was underspecified; resolved: the first slice uses **Subtle Surface Separation** through restrained borders and tonal shifts
 - "transcript ordering" was underspecified; resolved: transcript-like specialized screens follow the backend's **Authoritative Sequence** rather than client-side re-sorting
 - "conversation action target" was underspecified; resolved: close/archive are **Conversation** actions, not **Conversation Item** actions
 - "conversation transcript scope" was underspecified; resolved: the conversation view is a **Complete Conversation Transcript** with all persisted items
