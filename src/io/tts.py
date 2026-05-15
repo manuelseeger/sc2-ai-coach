@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from src.runtime.settings import TTSConfig
 
 from log import DEFAULT_LOGGER_NAME
+
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 

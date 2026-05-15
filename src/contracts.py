@@ -11,6 +11,8 @@ class TranscriberService(Protocol):
 
 
 class MicrophoneService(Protocol):
+    name: str
+
     def listen(self) -> AudioData | None: ...
 
 

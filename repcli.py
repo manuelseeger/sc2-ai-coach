@@ -22,7 +22,7 @@ from rich.theme import Theme
 from src.ai.utils import force_valid_json_string
 from src.playeridentity import PlayerIdentityEnrichmentError
 from src.runtime.playeridentity import build_player_identity_services
-from src.runtime.settings import Config, load_current_settings
+from src.runtime.settings import Config, get_config
 
 custom_theme = Theme(
     {
@@ -45,14 +45,16 @@ class RepCliRuntime:
 
 
 def load_runtime_settings() -> "Config":
-    return load_current_settings()
+    return get_config()
 
 
 def _configure_cli_logging(*, debug: bool) -> logging.Logger:
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG if debug else logging.WARNING)
 
-    if not any(getattr(handler, "_repcli_owned_handler", False) for handler in logger.handlers):
+    if not any(
+        getattr(handler, "_repcli_owned_handler", False) for handler in logger.handlers
+    ):
         handler = RichHandler(show_time=False, rich_tracebacks=True)
         setattr(handler, "_repcli_owned_handler", True)
         logger.addHandler(handler)
@@ -281,7 +283,9 @@ def validate(logfile):
     runtime = _get_runtime(click.get_current_context())
     summary = ValidationSummary()
 
-    for replay in runtime.replay_store.find_many_dict(runtime.replay_model, raw_query={}):
+    for replay in runtime.replay_store.find_many_dict(
+        runtime.replay_model, raw_query={}
+    ):
         console.print(f"Validating {basename(replay['filename'])}", end=" ")
         try:
             rep = runtime.replay_model(**replay)  # noqa: F841

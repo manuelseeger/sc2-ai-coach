@@ -43,6 +43,7 @@ def configure_application_logging(
     log_directory: str | os.PathLike[str] = "logs",
 ) -> logging.Logger:
     warnings.filterwarnings("ignore")
+    logging.getLogger("phonemizer").propagate = False
     install(show_locals=True)
 
     target = logger or log

@@ -12,13 +12,14 @@ from sc2reader_plugins import (
 )
 
 import sc2reader
-from src.runtime.settings import Config, load_current_settings
+from src.runtime.settings import Config, get_config
 
 from .plugins.ReplayStats import ReplayStats
 from .plugins.SpawningTool import SpawningTool
 from .types import Replay
 
 from log import DEFAULT_LOGGER_NAME
+
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 
@@ -35,7 +36,7 @@ class ReplayReader:
     default_filters = []
 
     def __init__(self, settings: Config | None = None):
-        self.settings = settings or load_current_settings()
+        self.settings = settings or get_config()
         self.factory = sc2reader.factories.DictCachedSC2Factory(cache_max_size=1000)
         self.factory.register_plugin("Replay", ReplayStats())  # type: ignore
         self.factory.register_plugin(

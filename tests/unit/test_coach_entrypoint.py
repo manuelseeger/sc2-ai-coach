@@ -294,7 +294,7 @@ def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
             calls.append(
                 (
                     "session",
-                        settings,
+                    settings,
                     tts,
                     mic,
                     transcriber,
@@ -331,11 +331,28 @@ def test_repl_execution_loads_settings_and_composes_services(monkeypatch):
             session_store=SessionStore(),
         )
 
-    monkeypatch.setattr(coach, "load_runtime_settings", lambda: calls.append("load") or settings)
-    monkeypatch.setattr(coach, "configure_application_logging", lambda *, logger: calls.append(("file_logging", logger.name)))
+    monkeypatch.setattr(
+        coach, "load_runtime_settings", lambda: calls.append("load") or settings
+    )
+    monkeypatch.setattr(
+        coach,
+        "configure_application_logging",
+        lambda *, logger: calls.append(("file_logging", logger.name)),
+    )
     monkeypatch.setattr(coach, "log", logging.getLogger("coach-test"))
-    monkeypatch.setattr(coach, "_install_rich_log_handler", lambda log: calls.append(("logging", log.name)))
-    monkeypatch.setattr(coach, "_build_io_services", lambda runtime_settings: calls.append(("io", runtime_settings.audiomode)) or ("tts", "mic", "transcriber"))
+    monkeypatch.setattr(
+        coach,
+        "_install_rich_log_handler",
+        lambda log: calls.append(("logging", log.name)),
+    )
+    monkeypatch.setattr(
+        coach,
+        "_build_io_services",
+        lambda runtime_settings: (
+            calls.append(("io", runtime_settings.audiomode))
+            or ("tts", "mic", "transcriber")
+        ),
+    )
     monkeypatch.setattr(coach, "signal_queue", FakeSignalQueue())
     monkeypatch.setattr(coach, "ReplEvent", FakeReplEvent)
     monkeypatch.setattr(coach, "build_persistence_services", build_persistence_services)
@@ -422,18 +439,23 @@ def test_live_execution_selects_and_starts_configured_event_listeners(monkeypatc
         def join(self):
             calls.append(("join", self.name))
 
-    fake_persistence_services = lambda runtime_settings: types.SimpleNamespace(
-        conversation_store=object(),
-        replay_store=object(),
-        session_store=object(),
-    )
+    def build_fake_persistence_services(runtime_settings):
+        return types.SimpleNamespace(
+            conversation_store=object(),
+            replay_store=object(),
+            session_store=object(),
+        )
+
+    fake_persistence_services = build_fake_persistence_services
     fake_player_identity_enricher = object()
 
     monkeypatch.setattr(coach, "load_runtime_settings", lambda: settings)
     monkeypatch.setattr(coach, "configure_application_logging", lambda *, logger: None)
     monkeypatch.setattr(coach, "log", logging.getLogger("coach-test"))
     monkeypatch.setattr(coach, "_install_rich_log_handler", lambda log: None)
-    monkeypatch.setattr(coach, "_build_io_services", lambda runtime_settings: (None, None, None))
+    monkeypatch.setattr(
+        coach, "_build_io_services", lambda runtime_settings: (None, None, None)
+    )
     monkeypatch.setattr(
         coach,
         "_build_live_event_listeners",
@@ -520,15 +542,21 @@ def test_live_execution_composes_player_identity_services(monkeypatch):
     monkeypatch.setattr(coach, "configure_application_logging", lambda *, logger: None)
     monkeypatch.setattr(coach, "log", logging.getLogger("coach-test"))
     monkeypatch.setattr(coach, "_install_rich_log_handler", lambda log: None)
-    monkeypatch.setattr(coach, "_build_io_services", lambda runtime_settings: (None, None, None))
+    monkeypatch.setattr(
+        coach, "_build_io_services", lambda runtime_settings: (None, None, None)
+    )
     monkeypatch.setattr(coach, "signal_queue", FakeSignalQueue())
-    monkeypatch.setattr(coach, "build_persistence_services", lambda runtime_settings: persistence)
+    monkeypatch.setattr(
+        coach, "build_persistence_services", lambda runtime_settings: persistence
+    )
     monkeypatch.setattr(
         coach,
         "build_player_identity_services",
         fake_build_player_identity_services,
     )
-    monkeypatch.setattr(coach, "_build_live_event_listeners", fake_build_live_event_listeners)
+    monkeypatch.setattr(
+        coach, "_build_live_event_listeners", fake_build_live_event_listeners
+    )
     monkeypatch.setattr(coach, "AISession", FakeAISession)
 
     runner = CliRunner()

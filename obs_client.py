@@ -8,7 +8,7 @@ import obsws_python as obsws
 from rich import print
 
 from src.lib.sc2client import SC2Client, Screen
-from src.runtime.settings import load_current_settings
+from src.runtime.settings import get_config
 
 log = logging.getLogger(__name__)
 log_file = Path("logs/obs_client.log")
@@ -37,7 +37,7 @@ sys.stdout = open(log_file, "a", encoding="utf-8")
 @click.option("--debug", is_flag=True)
 def main(verbose, debug):
     """Monitor SC2 UI through client API and let OBS know when loading screen is active"""
-    settings = load_current_settings()
+    settings = get_config()
     sc2client = SC2Client(settings=settings)
 
     menu_screens = set([Screen.background, Screen.foreground, Screen.navigation])

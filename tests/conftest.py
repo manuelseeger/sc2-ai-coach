@@ -19,7 +19,18 @@ from src.persistence.conversation_store import ConversationStore
 from src.persistence.database import MongoDatabase, MongoDatabaseConfig
 from src.persistence.replay_store import ReplayStore
 from src.persistence.session_store import SessionStore
-from src.runtime.settings import Config, load_current_settings
+from src.runtime.settings import (
+    AIBackend,
+    AudioMode,
+    CoachEvent,
+    Config,
+    RecognizerConfig,
+    SC2Region,
+    StudentConfig,
+    TranscriberBackend,
+    TTSConfig,
+    WakeWordConfig,
+)
 from tests.support import pytest_services
 from tests.support.container_services import MongoServiceHandle, start_mongo_service
 
@@ -44,9 +55,94 @@ class SeededReplayMongoContainer:
     seeded_replays: list
 
 
-def load_test_settings(*, require_prepared_environment: bool = True) -> Config:
-    return load_current_settings(
-        require_prepared_environment=require_prepared_environment
+def load_test_settings(**_) -> Config:
+    return Config.model_construct(
+        name="AICoach",
+        replay_folder="tests/testdata/replays",
+        instant_leave_max=50,
+        deamon_polling_rate=1,
+        audiomode=AudioMode.text,
+        microphone_index=None,
+        wakeword=WakeWordConfig(
+            engine="openwakeword", model="hey_jarvis", sensitivity=0.65
+        ),
+        speech_recognition_model="openai/whisper-large-v3",
+        transcriber_backend=TranscriberBackend.xai,
+        xai_stt_language="en",
+        recognizer=RecognizerConfig(
+            energy_threshold=300,
+            pause_threshold=0.9,
+            phrase_threshold=0.3,
+            non_speaking_duration=0.3,
+            speech_threshold=0.3,
+        ),
+        wake_key="ctrl+alt+w",
+        interactive=True,
+        tts=TTSConfig(engine="kokoro", voice="af_heart", speed=1.25),
+        student=StudentConfig(name="zatic", race="Zerg"),
+        aibackend=AIBackend.openai,
+        openai_endpoint=os.environ.get("AICOACH_OPENAI_ENDPOINT") or None,
+        openai_api_key=os.environ.get("AICOACH_OPENAI_API_KEY", "test-api-key"),
+        openai_org_id=os.environ.get("AICOACH_OPENAI_ORG_ID", "test-org-id"),
+        gpt_model="gpt-5.4",
+        reasoning_effort="medium",
+        reasoning_continuity_enabled=False,
+        coach_events=[CoachEvent.game_start, CoachEvent.wake, CoachEvent.new_replay],
+        obs_integration=False,
+        sc2_client_url="http://127.0.0.1:6119",
+        blizzard_region=SC2Region.EU,
+        include_map_details=True,
+        rating_delta_max=750,
+        rating_delta_max_barcode=500,
+        last_played_ago_max=2400,
+        match_history_depth=100,
+        tessdata_dir=os.environ.get(
+            "AICOACH_TESSDATA_DIR", "/usr/share/tesseract-ocr/5/tessdata/"
+        ),
+        log_dir=pathlib.Path("logs"),
+        obs_dir=pathlib.Path("obs"),
+        season=67,
+        season_start=None,
+        ladder_maps=[
+            "Celestial Enclave LE",
+            "10000 Feet LE",
+            "Old Republic LE",
+            "White Rabbit LE",
+            "Tourmaline LE",
+            "Ruby Rock LE",
+            "Winter Madness LE",
+            "Taito Citadel LE",
+            "Mothership LE",
+        ],
+        default_projection={
+            "id": 1,
+            "date": 1,
+            "game_length": 1,
+            "map_name": 1,
+            "players.avg_apm": 1,
+            "players.highest_league": 1,
+            "players.name": 1,
+            "players.messages": 1,
+            "players.pick_race": 1,
+            "players.pid": 1,
+            "players.play_race": 1,
+            "players.result": 1,
+            "players.scaled_rating": 1,
+            "players.stats.avg_unspent_resources": 1,
+            "players.toon_handle": 1,
+            "players.build_order.time": 1,
+            "players.build_order.name": 1,
+            "players.build_order.supply": 1,
+            "players.build_order.is_chronoboosted": 1,
+            "players.worker_stats.worker_micro": 1,
+            "players.worker_stats.worker_split": 1,
+            "players.worker_stats.worker_trained_total": 1,
+            "real_length": 1,
+            "stats": 1,
+            "unix_timestamp": 1,
+        },
+        db_name=os.environ.get("AICOACH_DB_NAME", "SC2AICOACH_TEST"),
+        mongo_dsn=os.environ.get("AICOACH_MONGO_DSN", "mongodb://localhost:27018"),
     )
 
 

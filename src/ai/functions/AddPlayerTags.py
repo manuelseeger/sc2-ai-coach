@@ -9,6 +9,7 @@ from src.replays.types import FieldTypeValidator, ToonHandle
 from .base import AIFunction
 
 from log import DEFAULT_LOGGER_NAME
+
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 

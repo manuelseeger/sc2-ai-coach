@@ -5,7 +5,7 @@ import httpx
 from openai import OpenAI
 
 from shared import ctx
-from src.runtime.settings import Config, load_current_settings
+from src.runtime.settings import Config, get_config
 
 DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1/"
 
@@ -73,5 +73,5 @@ class OpenAIClientProvider:
 
 
 def get_openai_client(provider_config: Config | None = None) -> OpenAI:
-    provider = OpenAIClientProvider(provider_config or load_current_settings())
+    provider = OpenAIClientProvider(provider_config or get_config())
     return provider.client

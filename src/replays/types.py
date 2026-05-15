@@ -22,7 +22,7 @@ from pydantic_core import CoreSchema, core_schema
 from pyodmongo import DbModel, MainBaseModel
 
 from shared import REGION_MAP
-from src.runtime.settings import load_current_settings
+from src.runtime.settings import get_config
 from src.util import time2secs
 
 
@@ -124,7 +124,7 @@ class ToonHandle(str):
 
     @classmethod
     def from_id(cls, toon_id: str) -> "ToonHandle":
-        settings = load_current_settings()
+        settings = get_config()
         region = REGION_MAP[settings.blizzard_region.value][0]
         realm = REGION_MAP[settings.blizzard_region.value][1]
         return cls(f"{region}-S2-{realm}-{toon_id}")
@@ -344,7 +344,7 @@ class Replay(DbModel):
     def default_projection(self, limit=450, include_workers=True) -> dict:
         """Return a dictionary of replay limited to the default projection fields"""
         return self.projection(
-            load_current_settings().default_projection,
+            get_config().default_projection,
             limit,
             include_workers,
         )
@@ -382,7 +382,7 @@ class Replay(DbModel):
         Limit this to 450 seconds by default, as this results in a JSON string of about
         28Kb, which allows for an OpenAI prompt within the 32Kb API limit."""
         return self.projection_json(
-            load_current_settings().default_projection,
+            get_config().default_projection,
             limit,
             include_workers,
         )

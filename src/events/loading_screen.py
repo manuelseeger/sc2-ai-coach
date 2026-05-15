@@ -15,9 +15,10 @@ from PIL import Image
 from shared import signal_queue
 from src.events import NewMatchEvent
 from src.lib.sc2client import SC2Client
-from src.runtime.settings import Config, load_current_settings
+from src.runtime.settings import Config, get_config
 
 from log import DEFAULT_LOGGER_NAME
+
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 cvflags: int = cv2.IMREAD_COLOR
@@ -37,13 +38,13 @@ def get_left_portrait(image):
 
 
 def save_portrait(portrait, new_name):
-    path, _ = split(load_current_settings().screenshot)
+    path, _ = split(get_config().screenshot)
     portrait_name = splitext(new_name)[0] + "_portrait.png"
     cv2.imwrite(join(path, "portraits", portrait_name), portrait)
 
 
 def is_student(player_name: str) -> bool:
-    return player_name.strip().lower() == load_current_settings().student.name.lower()
+    return player_name.strip().lower() == get_config().student.name.lower()
 
 
 def cv2_to_image(cv2_image: numpy.ndarray) -> Image.Image:
@@ -51,7 +52,7 @@ def cv2_to_image(cv2_image: numpy.ndarray) -> Image.Image:
 
 
 def parse_map_loading_screen(filename: str) -> tuple[str, str, str, numpy.ndarray]:
-    settings = load_current_settings()
+    settings = get_config()
     image = cv2.imread(filename, flags=cvflags)
 
     if type(image) is not numpy.ndarray:
@@ -138,7 +139,7 @@ class NewMatchListener(threading.Thread):
 
     def __init__(self, *, settings: Config | None = None):
         super().__init__()
-        self.settings = settings or load_current_settings()
+        self.settings = settings or get_config()
         self._stop_event = threading.Event()
 
         self.sc2client = SC2Client(settings=self.settings)

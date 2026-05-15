@@ -14,10 +14,11 @@ from pydantic import BaseModel, computed_field
 
 from src.lib.sc2client import Race as GameInfoRace
 from src.replays.types import ToonHandle
-from src.runtime.settings import Config, load_current_settings
+from src.runtime.settings import Config, get_config
 from src.util import convert_enum, is_barcode
 
 from log import DEFAULT_LOGGER_NAME
+
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 LeagueMap = {
@@ -303,7 +304,7 @@ class SC2PulseClient:
         http_client: Optional[httpx.Client] = None,
         settings: Config | None = None,
     ):
-        self.settings = settings or load_current_settings()
+        self.settings = settings or get_config()
         if http_client:
             self.client = http_client
             self.client.base_url = self.BASE_URL
