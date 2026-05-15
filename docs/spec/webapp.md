@@ -35,11 +35,19 @@ The webapp should be domain-shaped in the same way as the API.
 
 It is not a uniform CRUD shell over arbitrary collections. Generic resource views are useful, but the UI should prefer dedicated flows where the backend defines a meaningful relationship surface:
 
-- Conversations are read together with ordered items and responses.
+- Conversations are read through a complete ordered conversation-item flow, with response records available separately for specialized or generic admin workflows.
 - Sessions are read together with conversations and summary totals.
 - Replays are read together with metadata and known players.
 - Players are read together with portrait assets, aliases, and related replays.
 - Map stats are read as an aggregation-backed reporting surface, not as editable documents.
+
+Conversation-view principles:
+
+- The curated conversation screen is a read-oriented review surface, not a transcript authoring or lifecycle-action surface.
+- The primary conversation experience is a deep-linkable detail route backed by the API's primary detail view.
+- The screen centers on the complete ordered set of persisted conversation items, including messages, tool calls, and tool results.
+- Response metadata and response-accounting facts are not part of the primary curated conversation screen.
+- Generic admin views and raw JSON fallback remain available elsewhere for exact document maintenance.
 
 ## Dependencies
 
@@ -204,23 +212,53 @@ Schema metadata from `GET /api/schema/{resource}` informs forms where practical,
 
 Conversation detail is a required specialized view.
 
-It should use:
+The conversation screen should use `GET /api/conversations/{conversation_id}/detail` as its primary load and treat additional endpoints as secondary admin tools.
+
+Primary conversation-review contract:
 
 - `GET /api/conversations/{conversation_id}/detail`
-- `GET /api/conversations/{conversation_id}/items`
-- `GET /api/conversations/{conversation_id}/responses`
-- `POST /api/conversations/{conversation_id}/close`
-- `POST /api/conversations/{conversation_id}/archive`
 
 The screen should present:
 
-- Conversation metadata.
-- Linked session summary context when present in the detail payload.
-- Ordered conversation items.
-- Response records in time order.
-- Linked replay and metadata context when present.
+- A compact conversation summary header with trigger, status, created time, total item count, and replay/session links when present.
+- The complete ordered conversation item flow from the backend, including messages, tool calls, and tool results.
+- Inline item timestamps.
+- Visible item-kind treatment so messages, tool calls, and tool results are immediately distinguishable.
+- Item-level markers when persisted items were excluded from model context.
+- Visible tool names on tool call and tool result items.
+- Raw tool arguments and raw tool results collapsed by default with explicit expansion.
+- Preserved message formatting with plain-text-oriented rendering and lightweight code styling for obviously code-like content.
+- Linked replay and session context as compact secondary context blocks when present in the detail payload.
 
-This is the primary readable transcript-style admin view.
+The conversation screen should not include:
+
+- Response metadata or response-accounting panels.
+- Close/archive controls.
+- Conversation-item create/edit controls.
+- Embedded raw JSON/document tabs.
+- Next/previous conversation stepping from detail.
+
+The conversation screen is the primary readable transcript-style admin view.
+
+Conversation-list behavior:
+
+- Show both active and closed conversations by default.
+- Default to recent-first ordering.
+- Keep rows compact and avoid transcript previews.
+- Show trigger, item count, and last-item timestamp in each row.
+- Show lightweight replay/session presence indicators.
+- Support a typed trigger filter with operator-friendly labels, defaulting to all triggers.
+- Keep trigger filter state stable during normal SPA navigation and restored list context, while resetting it on full page refresh.
+- Use paged results with a fixed page size.
+- Preserve restored list context, current-row highlight, and scroll position when possible.
+
+Loading, error, and refresh behavior:
+
+- Use simple loading states rather than transcript-shaped skeletons.
+- Use explicit not-found states for missing deep-linked conversations.
+- Keep refresh browser-level rather than adding in-app refresh buttons.
+- Use browser refresh as the recovery path for list/detail load failures.
+- Distinguish no-data and no-match list empty states, and name the active trigger in trigger-filtered no-match states.
 
 ### Session Detail
 
@@ -305,7 +343,11 @@ Manual verification covers:
 - Unavailable resources are shown as unavailable instead of failing navigation.
 - Generic list views respect pagination, sorting, and first-class filters.
 - Guarded `/query` flows work for writable resources that expose advanced read-only querying.
-- Conversation detail loads aggregate conversation data and supports close/archive actions.
+- The conversation list shows all statuses by default, defaults to recent-first ordering, and supports the typed trigger filter.
+- Trigger-filtered empty states explain the active trigger when no rows match.
+- Conversation detail loads the primary aggregate conversation data and renders the complete ordered conversation item flow without response metadata.
+- Conversation detail shows compact replay/session context when present and keeps lifecycle actions out of the curated conversation screen.
+- Browser refresh preserves list/detail browsing position when possible and remains the refresh path for the conversation list and conversation detail screen.
 - Session detail loads linked conversations and summary totals.
 - Replay detail loads linked metadata and players.
 - Player detail renders portrait metadata and displays portrait images from media endpoints.

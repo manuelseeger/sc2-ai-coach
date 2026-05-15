@@ -12,12 +12,19 @@ The API uses dedicated resource paths instead of a generic `/models/{resource}` 
 
 Dedicated paths make the API useful beyond raw collection editing:
 
-- Conversations expose their ordered conversation items and response records.
+- Conversations expose their ordered conversation items as the primary curated review surface. Response records remain separately addressable admin data.
 - Sessions expose their conversations.
 - Replays expose their metadata and participating players.
 - Players expose related replays.
 
 The implementation may share generic CRUD helpers internally. The public API is domain-shaped because the admin UI includes custom views rather than a uniform raw collection editor.
+
+The conversation contract follows two rules:
+
+- `GET /api/conversations/{conversation_id}/detail` is the primary backend-owned read model for conversation review.
+- The primary conversation detail contract centers on the complete ordered conversation item flow and compact related context, not on response-accounting data or lifecycle actions.
+
+Separate response-record and workflow-action endpoints remain part of the API for direct admin inspection, generic admin workflows, and other specialized screens.
 
 ## Scope
 
@@ -361,6 +368,8 @@ Response fields per resource:
 - `capabilities`
 - `relationships`
 - `schema_url`
+- `available`
+- `unavailable_reason`
 
 ### `GET /api/schema/{resource}`
 
@@ -770,6 +779,8 @@ Lists response records linked to the conversation.
 
 Default sort: `created_at` ascending.
 
+This endpoint exists for direct admin inspection and specialized workflows. It is not part of the primary conversation detail contract.
+
 ### `GET /api/conversations/{conversation_id}/detail`
 
 Returns an aggregate conversation view for custom UI screens.
@@ -779,11 +790,17 @@ Response fields:
 - `conversation`: `AIConversation`.
 - `session`: linked `Session | null`.
 - `items`: ordered `AIConversationItem` list.
-- `responses`: ordered `AIResponseRecord` list.
 - `metadata`: replay metadata when `conversation.replay_id` is present and metadata exists.
 - `replay`: compact replay table projection when `conversation.replay_id` exists and replay exists.
 
-This endpoint is the primary backend support for a readable conversation view.
+Detail contract rules:
+
+- `items` contains the complete persisted conversation item sequence in backend order, not only the subset previously included in model context.
+- Tool calls and tool results remain ordinary items in that authoritative sequence.
+- Related `session`, `replay`, and `metadata` values provide compact secondary context when available.
+- Response records are intentionally excluded from this primary detail payload and remain available through `/api/conversations/{conversation_id}/responses` and the generic response resource.
+
+This endpoint is the primary backend support for the readable conversation review surface.
 
 ### `POST /api/conversations/{conversation_id}/close`
 
@@ -791,9 +808,13 @@ Closes a conversation.
 
 The endpoint sets `status=closed` and `closed_at` using the model's close behavior. It returns the updated conversation.
 
+This endpoint is part of the broader admin API but is not required by the primary read-oriented conversation screen.
+
 ### `POST /api/conversations/{conversation_id}/archive`
 
 Archives a conversation by setting `status=archived`. It returns the updated conversation.
+
+This endpoint is part of the broader admin API but is not required by the primary read-oriented conversation screen.
 
 ## Conversation Item Endpoints
 
@@ -1054,12 +1075,13 @@ API tests use FastAPI `TestClient` and the project MongoDB test service pattern.
 Minimum coverage:
 
 - `GET /api/health` returns ok with a reachable test database.
-- `GET /api/resources` lists all available resource families.
+- `GET /api/resources` lists available and unavailable resource families.
 - `GET /api/schema/{resource}` returns valid JSON schema.
 - CRUD round trip for `Metadata`.
 - CRUD round trip for `AIConversation` and `AIConversationItem`.
 - `GET /api/conversations/{conversation_id}/items` returns ordered items.
-- `GET /api/conversations/{conversation_id}/detail` returns conversation, session, items, and responses.
+- `GET /api/conversations/{conversation_id}/responses` returns response records in ascending creation order.
+- `GET /api/conversations/{conversation_id}/detail` returns conversation, optional session/replay context, and the complete ordered item flow without response records.
 - `GET /api/sessions/{session_id}/conversations` returns linked conversations.
 - `GET /api/replays/{replay_id}/metadata` returns linked metadata.
 - `GET /api/map-stats/{map_name}` applies inclusive date filters before aggregation.
