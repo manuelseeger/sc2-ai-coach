@@ -62,6 +62,14 @@ student:
 # Address of the SC2 game client server
 sc2_client_url: "http://127.0.0.1:6119"
 
+# Optional Twitch integration
+# twitch:
+#   client_id: "your-twitch-app-client-id"
+#   client_secret: "your-twitch-app-client-secret"
+#   channel: "your_channel_name"
+#   mocked: false
+#   mocked_user_id:
+
 # AI coach backend
 aibackend: "OpenAI"
 # Optional custom OpenAI endpoint. Leave empty for the default OpenAI API.

@@ -112,6 +112,20 @@ class TTSConfig(BaseModel):
     speed: Optional[float] = 1.0
 
 
+class TwitchConfig(BaseModel):
+    client_id: str
+    client_secret: str
+    channel: str
+    mocked: bool = False
+    mocked_user_id: str | None = None
+
+    @model_validator(mode="after")
+    def validate_mocked_user_fields(self):
+        if self.mocked and self.mocked_user_id is None:
+            raise ValueError("mocked_user_id is required when twitch.mocked is enabled")
+        return self
+
+
 ReasoningEffort = Literal["none", "minimal", "low", "medium", "high", "xhigh"]
 
 
@@ -250,11 +264,7 @@ class Config(BaseSettings):
     bnet_cache_dir: Optional[DirectoryPath] = None
     include_map_details: bool = True
 
-    twitch_client_id: Optional[str] = None
-    twitch_client_secret: Optional[str] = None
-    twitch_channel: Optional[str] = None
-    twitch_mocked: bool = False
-    twitch_mocked_user_id: Optional[str] = None
+    twitch: TwitchConfig | None = None
 
     rating_delta_max: int
     rating_delta_max_barcode: int

@@ -663,7 +663,8 @@ Secrets in `.env` file:
 - `AICOACH_OPENAI_ORG_ID` - OpenAI organization ID forwarded to the SDK client when configured
 - `AICOACH_OPENAI_ENDPOINT` - Optional OpenAI-compatible endpoint. Empty/default values use `https://api.openai.com/v1/`; custom values are normalized to `{endpoint}/openai/v1/` and use `api-key` authorization.
 - `BLIZZARD_CLIENT_ID`, `BLIZZARD_CLIENT_SECRET` - Battle.net OAuth
-- `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` - Twitch API credentials
+- `AICOACH_TWITCH__CLIENT_ID`, `AICOACH_TWITCH__CLIENT_SECRET`, `AICOACH_TWITCH__CHANNEL` - Twitch integration credentials and target channel
+- `AICOACH_TWITCH__MOCKED`, `AICOACH_TWITCH__MOCKED_USER_ID` - Optional Twitch mock integration settings
 
 **Pydantic Settings**: `config.py` defines `AppSettings` using `pydantic-settings` with sources: YAML files → environment variables.
 
