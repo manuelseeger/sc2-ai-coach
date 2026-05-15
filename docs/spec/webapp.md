@@ -1,43 +1,61 @@
+
 # Webapp
 
 ## Purpose
 
-The webapp is a Vue 3 + Vite admin interface for the SC2 AI Coach backend API. It provides a usable browser/editor for API resources and specialized views for relationship-heavy workflows.
+The webapp is the admin interface for the SC2 AI Coach backend API. It is a browser-based operator tool for inspecting, editing, and navigating the MongoDB-backed domain resources exposed by the standalone API.
 
-The webapp lives in the root-level `webapp/` folder. The backend API serves the built webapp at `/`.
+The API is the source of truth for resource shape, capabilities, relationship routes, and read-only versus writable behavior. The webapp is an API client, not a direct MongoDB browser.
 
 ## Scope
 
-This frontend spec is intentionally thin. The webapp provides basic admin workflows and a small set of specialized relationship views.
-
 In scope:
 
-- Resource navigation based on `GET /api/resources`.
-- Basic list, detail, create, edit, and delete flows for API resources that support those operations.
-- Use of API schema metadata from `GET /api/schema/{resource}` for generic forms and JSON editing.
-- Basic relationship navigation for endpoints already exposed by the backend API.
-- Static build served by FastAPI at `/`.
+- A standalone SPA in a root-level `webapp/` folder.
+- Resource navigation driven by `GET /api/resources`.
+- Generic list, detail, create, edit, replace, and delete workflows for writable resources.
+- Specialized views for relationship-heavy resources where the API exposes aggregate endpoints.
+- Read-only query workflows for guarded `/query` endpoints.
+- Rendering of binary metadata and image endpoints for player portraits.
+- Read-only visualization of aggregation-backed map stats endpoints.
+- Static build output served by the backend API at `/`.
 
 Out of scope:
 
-- Fully polished custom views for every resource.
-- Advanced conversation transcript rendering details.
-- Rich replay visualization.
-- Authentication UI.
-- A complete JavaScript test strategy.
+- Direct database access.
+- Authentication and authorization UI.
+- Coach runtime control.
+- Replay ingestion workflows.
+- Custom visualization beyond what is needed for practical admin use.
+- A requirement for a large component framework.
+
+## Design Direction
+
+The webapp should be domain-shaped in the same way as the API.
+
+It is not a uniform CRUD shell over arbitrary collections. Generic resource views are useful, but the UI should prefer dedicated flows where the backend defines a meaningful relationship surface:
+
+- Conversations are read together with ordered items and responses.
+- Sessions are read together with conversations and summary totals.
+- Replays are read together with metadata and known players.
+- Players are read together with portrait assets, aliases, and related replays.
+- Map stats are read as an aggregation-backed reporting surface, not as editable documents.
 
 ## Dependencies
 
-Frontend dependencies in `webapp/package.json`:
+The frontend uses:
 
 - `vue`
-- `@vitejs/plugin-vue`
-- `vite`
 - `typescript`
+- `vite`
+- `@vitejs/plugin-vue`
+- `vue-router`
 
-Optional dependencies are limited to libraries that substantially simplify implementation. The webapp avoids a large UI framework unless it becomes clearly useful.
+Additional dependencies are acceptable when they clearly reduce complexity, but the default stays lightweight. The app avoids a large UI framework unless it provides a clear payoff.
 
-## File Layout
+## Repository Layout
+
+Repository layout:
 
 ```text
 webapp/
@@ -46,30 +64,20 @@ webapp/
     tsconfig.json
     vite.config.ts
     src/
-        App.vue
         main.ts
+        App.vue
+        router.ts
         api.ts
         types.ts
         components/
-            ResourceTable.vue
-            ResourceEditor.vue
-            JsonEditor.vue
-            FieldValue.vue
-            ConfirmDialog.vue
         views/
-            ResourceListView.vue
-            ResourceDetailView.vue
-            ResourceCreateView.vue
-            ConversationDetailView.vue
-            SessionDetailView.vue
-            ReplayDetailView.vue
 ```
 
-The exact component split is flexible. The important boundary is that the webapp talks to the backend API rather than directly to MongoDB.
+The exact component split is intentionally flexible. The important architectural boundary is that the frontend depends only on the backend API contract and never reaches into Python modules or MongoDB directly.
 
 ## Development and Build
 
-Development server:
+Local development uses:
 
 ```bash
 cd webapp
@@ -77,22 +85,22 @@ npm install
 npm run dev
 ```
 
-The Vite dev server proxies `/api` to `http://127.0.0.1:8765`.
+The Vite dev server should proxy `/api` to `http://127.0.0.1:8765`.
 
-Production/local build:
+Production build:
 
 ```bash
 cd webapp
 npm run build
 ```
 
-The FastAPI backend serves `webapp/dist` at `/`.
+The backend API serves the built frontend from `webapp/dist` at `/`. If `webapp/dist` does not exist, `/api` remains usable and `/` returns the configured missing-build response.
 
-## API Client
+## API Integration
 
-The webapp has a typed fetch wrapper in `webapp/src/api.ts`.
+The frontend should use a typed fetch wrapper for the API.
 
-Core methods:
+Core resource methods:
 
 - `getHealth()`
 - `listResources()`
@@ -105,103 +113,204 @@ Core methods:
 - `replaceResource(resource, id, body)`
 - `deleteResource(resource, id)`
 
-Relationship methods mirror the backend API:
+Relationship and resource-specific methods:
 
-- `getConversationItems(conversationId)`
+- `getConversationItems(conversationId, params)`
+- `createConversationItem(conversationId, body)`
+- `getConversationResponses(conversationId)`
 - `getConversationDetail(conversationId)`
+- `closeConversation(conversationId)`
+- `archiveConversation(conversationId)`
 - `getSessionConversations(sessionId)`
 - `getSessionSummary(sessionId)`
 - `getReplayMetadata(replayId)`
 - `getReplayPlayers(replayId)`
-- `getPlayerReplays(toonHandle)`
+- `getPlayerReplays(toonHandle, params)`
+- `getPlayerAliases(toonHandle, params)`
+- `getPlayerPortraitMetadata(toonHandle)`
+- `getMapStats(params)`
+- `queryMapStats(body)`
+- `getMapStatsByName(mapName, params)`
+- `getMapStatsRanges(mapName, ranges)`
 
-The wrapper normalizes API errors into one client-side error shape.
+Image endpoints do not need to be rewrapped as JSON helpers. The UI can use the portrait URLs returned by the API directly in image elements and related media previews.
+
+The client should normalize API failures to the backend error envelope:
+
+```json
+{
+  "error": {
+    "code": "not_found",
+    "message": "Document not found",
+    "details": {}
+  }
+}
+```
+
+## Resource Discovery
+
+The app should load `GET /api/resources` on startup and treat that response as the authoritative navigation model.
+
+Each resource entry should drive:
+
+- Title and path label.
+- Read-only state.
+- Supported capabilities.
+- Relationship affordances.
+- Schema link or schema availability.
+- Availability state for resources such as map stats when a deployment omits them.
+
+If a resource is reported as unavailable, the UI should surface that state clearly instead of assuming every documented resource exists in every deployment.
 
 ## Views
 
-### Resource Navigation
+### Workspace Navigation
 
-The app loads `GET /api/resources` on startup and renders available resource families.
+The first screen is the admin workspace, not a marketing landing page.
 
-Resource entries show:
+It should show the discovered resources and make it easy to jump into:
 
-- Title.
-- Path/resource name.
-- Read-only state.
-- Supported capabilities.
+- Generic resource lists.
+- Specialized conversation, session, replay, player, and map-stat views.
+- Health and schema inspection where useful for admin/debug workflows.
 
 ### Generic Resource List
 
-The generic list view supports:
+Generic list views should support:
 
-- Pagination.
-- Sort query string.
-- Basic search/filter fields exposed by the resource.
-- Optional raw JSON query editor for advanced read-only filters.
-- Row navigation to a detail view.
+- Pagination using the backend page shape.
+- Sort strings compatible with the API `sort` query parameter.
+- First-class resource filters where the API exposes them.
+- Projection selection where the resource supports `table` versus `detail`.
+- Row navigation to detail views.
+- Raw JSON query submission for guarded `/query` endpoints.
 
-### Generic Detail/Edit
+List views should default to compact table-style display and avoid rendering large nested structures inline.
 
-The generic detail view supports:
+### Generic Detail and Edit
 
-- Schema-generated scalar fields where practical.
-- Raw JSON editor fallback for complex documents.
+Generic detail views should support:
+
+- Read-only rendering for any resource.
+- JSON editing fallback for nested documents.
 - `PATCH` for partial edits.
-- `PUT` for whole-document replacement from raw JSON.
-- Delete confirmation for writable resources.
-- Disabled controls for read-only resources.
+- `PUT` for full replacement.
+- `DELETE` for writable resources.
+- Disabled or hidden write actions for read-only resources.
+
+Schema metadata from `GET /api/schema/{resource}` informs forms where practical, but raw JSON editing remains a first-class fallback for complex persisted models.
 
 ### Conversation Detail
 
-Conversation detail is a specialized view because conversations only make sense with their items.
+Conversation detail is a required specialized view.
 
-The view uses:
+It should use:
 
 - `GET /api/conversations/{conversation_id}/detail`
-- `GET /api/conversations/{conversation_id}/items` when item refresh is needed
-- `GET /api/conversations/{conversation_id}/responses` when response records are inspected separately
+- `GET /api/conversations/{conversation_id}/items`
+- `GET /api/conversations/{conversation_id}/responses`
+- `POST /api/conversations/{conversation_id}/close`
+- `POST /api/conversations/{conversation_id}/archive`
 
-The view shows conversation metadata, ordered items, and response records in readable sections.
+The screen should present:
+
+- Conversation metadata.
+- Linked session summary context when present in the detail payload.
+- Ordered conversation items.
+- Response records in time order.
+- Linked replay and metadata context when present.
+
+This is the primary readable transcript-style admin view.
 
 ### Session Detail
 
-Session detail combines the session document with linked conversations.
-
-The view uses:
+Session detail should combine:
 
 - `GET /api/sessions/{session_id}`
 - `GET /api/sessions/{session_id}/conversations`
 - `GET /api/sessions/{session_id}/summary`
 
+The summary section should emphasize computed totals such as conversation count, response count, token totals, and cost.
+
 ### Replay Detail
 
-Replay detail combines the replay document with linked metadata and players.
-
-The view uses:
+Replay detail should combine:
 
 - `GET /api/replays/{replay_id}`
 - `GET /api/replays/{replay_id}/metadata`
 - `GET /api/replays/{replay_id}/players`
 
+The screen should make it easy to inspect replay metadata and jump to related known player records.
+
+### Player Detail
+
+Player detail should be treated as a specialized view because of portrait media and alias structure.
+
+It should use:
+
+- `GET /api/players/{toon_handle}`
+- `GET /api/players/{toon_handle}/aliases`
+- `GET /api/players/{toon_handle}/portrait-metadata`
+- `GET /api/players/{toon_handle}/replays`
+
+The UI should:
+
+- Render portrait metadata and load portrait images from the dedicated media endpoints.
+- Show alias entries without forcing large binary payloads into the main JSON view.
+- Link to related replays for the selected player.
+
+### Map Stats View
+
+Map stats should be treated as a specialized read-only reporting view.
+
+It should use:
+
+- `GET /api/map-stats`
+- `GET /api/map-stats/{map_name}`
+- `GET /api/map-stats/{map_name}/ranges`
+- `POST /api/map-stats/query`
+
+The view should support:
+
+- Map selection.
+- Inclusive date filtering.
+- Named range comparisons.
+- Read-only grouped results from the guarded aggregation query surface.
+
+The UI must not imply that map stats are editable documents.
+
+## Binary and Media Handling
+
+The API distinguishes between JSON document responses and image/media endpoints. The frontend should preserve that distinction.
+
+- Table views should not inline large binary payloads.
+- Detail views should render binary metadata objects returned by the API.
+- Portrait image rendering should use the dedicated image endpoints.
+- Missing portraits should be treated as absent assets, not as client errors.
+
 ## UX Direction
 
-- The first screen is the admin workspace, not a landing page.
-- The layout is dense, readable, and useful for repeated admin work.
-- Raw JSON is available because replay and conversation documents are deeply nested.
-- Custom views are built around backend relationship endpoints and coexist with the generic editor.
-- Long strings wrap or truncate with copy affordances.
-- Large binary values are not rendered inline in tables.
+- The UI should optimize for repeated admin work, not first-run onboarding.
+- The layout should be dense, readable, and navigable on a desktop screen.
+- Nested JSON and long strings should remain inspectable without destroying table readability.
+- Relationship links should be prominent because most useful workflows cross multiple resources.
+- Read-only resources and unavailable resources should be visually obvious.
+- The app should work on narrower screens, but desktop admin usage is the primary target.
 
 ## Verification
 
-Manual verification:
+Manual verification covers:
 
-- Vite dev server loads the resource list.
-- FastAPI static serving loads the built app from `/`.
-- Basic list/detail/edit flows work for metadata.
-- Conversation detail loads conversation items.
-- Session detail loads linked conversations.
-- Replay detail loads linked metadata.
-- Read-only resources do not show write actions.
+- The app loads resource discovery from `GET /api/resources`.
+- Unavailable resources are shown as unavailable instead of failing navigation.
+- Generic list views respect pagination, sorting, and first-class filters.
+- Guarded `/query` flows work for writable resources that expose advanced read-only querying.
+- Conversation detail loads aggregate conversation data and supports close/archive actions.
+- Session detail loads linked conversations and summary totals.
+- Replay detail loads linked metadata and players.
+- Player detail renders portrait metadata and displays portrait images from media endpoints.
+- Map stats screens respect inclusive date filters and named range queries.
+- Read-only resources do not expose write actions.
+- The built frontend is served by the backend at `/`.
 
-Automated frontend tests are optional for this spec.
+Automated frontend tests are optional, but the frontend keeps API interactions structured enough that component and client tests fit naturally.

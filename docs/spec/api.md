@@ -17,7 +17,7 @@ Dedicated paths make the API useful beyond raw collection editing:
 - Replays expose their metadata and participating players.
 - Players expose related replays.
 
-The implementation can still share generic CRUD helpers internally. The public API is domain-shaped because the admin UI includes custom views rather than a uniform raw collection editor.
+The implementation may share generic CRUD helpers internally. The public API is domain-shaped because the admin UI includes custom views rather than a uniform raw collection editor.
 
 ## Scope
 
@@ -49,7 +49,7 @@ Python runtime dependencies:
 - `fastapi`
 - `uvicorn[standard]`
 
-Test dependencies already exist in the project, including `pytest`, `pytest-mock`, and the MongoDB test service helpers.
+Test dependencies include `pytest`, `pytest-mock`, and the MongoDB test service helpers.
 
 ## File Layout
 
@@ -96,7 +96,7 @@ class ApiConfig(BaseSettings):
 
 The API does not import a global project config module during app startup. Runtime settings load explicitly from `src.runtime.settings`, and API startup must not prompt, exit, or initialize voice/OBS-related paths.
 
-`ApiConfig` does not import `MongoSRVDsn` from root `config.py`; API configuration is self-contained. If DSN validation is desired, `src/api/config.py` defines its own local annotated type.
+`ApiConfig` does not import `MongoSRVDsn` from root `config.py`; API configuration is self-contained. When DSN validation is needed, `src/api/config.py` defines its own local annotated type.
 
 Environment variables:
 
@@ -107,7 +107,7 @@ Environment variables:
 - `AICOACH_API_WEB_DIST_DIR`
 - `AICOACH_API_CORS_ORIGINS`
 
-The API can reuse `MongoDatabase` and `MongoDatabaseConfig` with values from `ApiConfig`; it does not rely on the global project config object.
+The API uses `MongoDatabase` and `MongoDatabaseConfig` with values from `ApiConfig`; it does not rely on the global project config object.
 
 ## Import-Safe Model Imports
 
@@ -903,7 +903,7 @@ Lists map matchup stats.
 Query parameters:
 
 - `map`: optional map name filter.
-- `min_date`: inclusive ISO datetime lower bound for replay `date`; alias of `from_date` and named to match the existing `get_map_stats(map, min_date=...)` usage.
+- `min_date`: inclusive ISO datetime lower bound for replay `date`; alias of `from_date`.
 - `from_date`: inclusive ISO datetime lower bound for replay `date`.
 - `to_date`: inclusive ISO datetime upper bound for replay `date`.
 
@@ -993,7 +993,7 @@ Query parameters:
 - `from_date`: inclusive ISO datetime lower bound for replay `date`.
 - `to_date`: inclusive ISO datetime upper bound for replay `date`.
 
-This endpoint is equivalent to `GET /api/map-stats?map={map_name}` and exists for clients that already know the map name.
+This endpoint is equivalent to `GET /api/map-stats?map={map_name}` and serves clients that address a known map directly.
 
 ### `GET /api/map-stats/{map_name}/ranges`
 
@@ -1029,7 +1029,7 @@ Response shape:
 }
 ```
 
-If map stats are not available in a deployment, `/api/resources` reports the resource as unavailable with a reason.
+If map stats are not available in a deployment, `/api/resources` reports the resource as unavailable and includes the reason.
 
 ## Static Webapp Serving
 
@@ -1049,7 +1049,7 @@ When the dist folder does not exist:
 
 ## Verification
 
-API tests use FastAPI `TestClient` and the existing MongoDB test service pattern.
+API tests use FastAPI `TestClient` and the project MongoDB test service pattern.
 
 Minimum coverage:
 
