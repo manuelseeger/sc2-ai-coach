@@ -32,6 +32,14 @@ describe('WorkspaceView', () => {
       getConversationDetail: vi.fn(),
       closeConversation: vi.fn(),
       archiveConversation: vi.fn(),
+      listPlayers: vi.fn(),
+      getPlayerDetail: vi.fn(),
+      getPlayerAliases: vi.fn(),
+      getPlayerPortraitMetadata: vi.fn(),
+      getPlayerReplays: vi.fn(),
+      getReplayDetail: vi.fn(),
+      getReplayMetadata: vi.fn(),
+      getReplayPlayers: vi.fn(),
       listMapStats: vi.fn(),
       getMapStatsRanges: vi.fn(),
       queryMapStats: vi.fn(),
@@ -61,5 +69,70 @@ describe('WorkspaceView', () => {
     expect(wrapper.text()).toContain('Sessions')
     expect(wrapper.text()).toContain('Open session review')
     expect(wrapper.find('a[href="/sessions"]').exists()).toBe(true)
+  })
+
+  it('routes the discovered players resource into the player review workflow', async () => {
+    const client: AdminApiClient = {
+      listResources: vi.fn().mockResolvedValue([
+        {
+          name: 'players',
+          path: '/players',
+          collection: 'players',
+          title: 'Players',
+          id_field: 'id',
+          read_only: false,
+          capabilities: ['list', 'detail'],
+          relationships: ['replays', 'portraits'],
+          schema_url: '/api/schema/players',
+          available: true,
+          unavailable_reason: null,
+        },
+      ]),
+      listSessions: vi.fn(),
+      getSessionDetail: vi.fn(),
+      getSessionConversations: vi.fn(),
+      getSessionSummary: vi.fn(),
+      listConversations: vi.fn(),
+      getConversationSummary: vi.fn(),
+      getConversationDetail: vi.fn(),
+      closeConversation: vi.fn(),
+      archiveConversation: vi.fn(),
+      listPlayers: vi.fn(),
+      getPlayerDetail: vi.fn(),
+      getPlayerAliases: vi.fn(),
+      getPlayerPortraitMetadata: vi.fn(),
+      getPlayerReplays: vi.fn(),
+      getReplayDetail: vi.fn(),
+      getReplayMetadata: vi.fn(),
+      getReplayPlayers: vi.fn(),
+      listMapStats: vi.fn(),
+      getMapStatsRanges: vi.fn(),
+      queryMapStats: vi.fn(),
+    }
+
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: WorkspaceView },
+        { path: '/players', component: { template: '<div />' } },
+      ],
+    })
+    await router.push('/')
+    await router.isReady()
+
+    const wrapper = mount(WorkspaceView, {
+      global: {
+        plugins: [router],
+        provide: {
+          [adminApiKey as symbol]: client,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Players')
+    expect(wrapper.text()).toContain('Open player review')
+    expect(wrapper.find('a[href="/players"]').exists()).toBe(true)
   })
 })

@@ -140,6 +140,119 @@ describe('createAdminApiClient', () => {
     })
   })
 
+  it('loads the player review routes through the shared typed client', async () => {
+    const toonHandle = '2-S2-1-1248982'
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            items: [],
+            page: 1,
+            page_size: 20,
+            total: 0,
+            total_pages: 0,
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: toonHandle,
+            detail_path: `/players/${toonHandle}`,
+            name: 'Driftoss',
+            toon_handle: toonHandle,
+            alias_count: 2,
+            tags: ['known-opponent'],
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            toon_handle: toonHandle,
+            aliases: [],
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            toon_handle: toonHandle,
+            portrait: {
+              available: true,
+              length: 10,
+              content_type: 'image/png',
+              url: `/api/players/${toonHandle}/portrait`,
+            },
+            portrait_constructed: {
+              available: false,
+              length: null,
+              content_type: null,
+              url: null,
+            },
+            aliases: [],
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            toon_handle: toonHandle,
+            items: [],
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+
+    const client = createAdminApiClient(fetchMock)
+
+    await client.listPlayers({ page: 1, pageSize: 20, q: null, tag: null })
+    await client.getPlayerDetail(toonHandle)
+    await client.getPlayerAliases(toonHandle)
+    await client.getPlayerPortraitMetadata(toonHandle)
+    await client.getPlayerReplays(toonHandle)
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/players?page=1&page_size=20', {
+      headers: { Accept: 'application/json' },
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(2, `/api/players/${toonHandle}`, {
+      headers: { Accept: 'application/json' },
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(3, `/api/players/${toonHandle}/aliases`, {
+      headers: { Accept: 'application/json' },
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      4,
+      `/api/players/${toonHandle}/portrait-metadata`,
+      {
+        headers: { Accept: 'application/json' },
+      },
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(5, `/api/players/${toonHandle}/replays`, {
+      headers: { Accept: 'application/json' },
+    })
+  })
+
   it('loads session review routes with typed detail, summary, and related conversation requests', async () => {
     const fetchMock = vi
       .fn()

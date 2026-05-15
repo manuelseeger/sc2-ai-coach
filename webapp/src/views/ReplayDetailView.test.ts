@@ -19,6 +19,11 @@ describe('ReplayDetailView', () => {
       getConversationDetail: vi.fn(),
       closeConversation: vi.fn(),
       archiveConversation: vi.fn(),
+      listPlayers: vi.fn(),
+      getPlayerDetail: vi.fn(),
+      getPlayerAliases: vi.fn(),
+      getPlayerPortraitMetadata: vi.fn(),
+      getPlayerReplays: vi.fn(),
       getReplayDetail: vi.fn().mockResolvedValue({
         id: replayId,
         detail_path: `/replays/${replayId}`,
@@ -77,6 +82,7 @@ describe('ReplayDetailView', () => {
       routes: [
         { path: '/', component: { template: '<div />' } },
         { path: '/conversations/:conversationId', component: { template: '<div />' } },
+        { path: '/players/:toonHandle', component: { template: '<div />' } },
         { path: '/replays/:replayId', component: ReplayDetailView },
       ],
     })
@@ -107,5 +113,6 @@ describe('ReplayDetailView', () => {
     expect(wrapper.find(`a[href="/conversations/${'c'.repeat(24)}"]`).exists()).toBe(true)
     expect(wrapper.find('a[href="#player-2-S2-1-1248982"]').exists()).toBe(true)
     expect(wrapper.find('#player-2-S2-1-1248982').exists()).toBe(true)
+    expect(wrapper.find('a[href="/players/2-S2-1-1248982"]').exists()).toBe(true)
   })
 })

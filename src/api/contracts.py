@@ -112,6 +112,72 @@ class ReplayPlayersResponse(BaseModel):
     players: list[ReplayPlayerSummary]
 
 
+class PlayerListItem(BaseModel):
+    id: str
+    detail_path: str
+    name: str
+    toon_handle: str
+    alias_count: int
+    last_seen_at: datetime | None = None
+    has_portrait: bool
+    has_constructed_portrait: bool
+
+
+class PlayerListResponse(BaseModel):
+    items: list[PlayerListItem]
+    page: int
+    page_size: int
+    total: int
+    total_pages: int
+
+
+class PlayerDetailResponse(BaseModel):
+    id: str
+    detail_path: str
+    name: str
+    toon_handle: str
+    alias_count: int
+    tags: list[str]
+
+
+class PlayerPortraitAsset(BaseModel):
+    available: bool
+    length: int | None = None
+    content_type: str | None = None
+    url: str | None = None
+
+
+class AliasPortraitAsset(BaseModel):
+    index: int
+    length: int
+    content_type: str
+    url: str
+
+
+class PlayerAliasSummary(BaseModel):
+    index: int
+    name: str
+    seen_on: datetime | None = None
+    portraits: list[AliasPortraitAsset]
+
+
+class PlayerAliasesResponse(BaseModel):
+    toon_handle: str
+    aliases: list[PlayerAliasSummary]
+
+
+class PlayerPortraitMetadataResponse(BaseModel):
+    toon_handle: str
+    portrait: PlayerPortraitAsset
+    portrait_constructed: PlayerPortraitAsset
+    aliases: list[PlayerAliasSummary]
+
+
+class PlayerRelatedReplaysResponse(BaseModel):
+    toon_handle: str
+    items: list[ReplayDetailResponse]
+
+
 class MapStatsDateRange(BaseModel):
     from_date: datetime | None = None
     to_date: datetime | None = None

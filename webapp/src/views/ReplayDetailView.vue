@@ -115,6 +115,14 @@
               <p v-if="player.aliases.length > 0" class="alias-copy">
                 Aliases: {{ player.aliases.join(', ') }}
               </p>
+
+              <RouterLink
+                v-if="player.player_record"
+                class="context-link"
+                :to="player.player_record.path"
+              >
+                Open player review
+              </RouterLink>
             </article>
           </li>
         </ol>

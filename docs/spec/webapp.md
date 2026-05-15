@@ -312,6 +312,7 @@ The UI should:
 - Render portrait metadata and load portrait images from the dedicated media endpoints.
 - Show alias entries without forcing large binary payloads into the main JSON view.
 - Link to related replays for the selected player.
+- Route the discovered Players workspace card into a player-review entry list, then allow replay-to-player and player-to-replay navigation within the specialized review flow.
 
 ### Map Stats View
 

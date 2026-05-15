@@ -10,6 +10,7 @@ from src.api.app import create_app
 from src.api.config import ApiConfig
 from src.api.contracts import (
     ApiHealthResponse,
+    AliasPortraitAsset,
     ConversationDetailResponse,
     ConversationReviewItem,
     ConversationReviewLink,
@@ -19,6 +20,14 @@ from src.api.contracts import (
     ConversationSummary,
     MapStatsNamedRange,
     MapStatsQueryRequest,
+    PlayerAliasesResponse,
+    PlayerAliasSummary,
+    PlayerDetailResponse,
+    PlayerListItem,
+    PlayerListResponse,
+    PlayerPortraitAsset,
+    PlayerPortraitMetadataResponse,
+    PlayerRelatedReplaysResponse,
     ResourceDiscoveryEntry,
     ReplayDetailResponse,
     ReplayMetadataResponse,
@@ -1085,6 +1094,302 @@ def test_create_app_serves_replay_review_routes(tmp_path: Path):
         ("detail", replay_id),
         ("metadata", replay_id),
         ("players", replay_id),
+    ]
+
+
+def test_create_app_serves_player_review_routes(tmp_path: Path):
+    dist_dir = tmp_path / "dist"
+    dist_dir.mkdir()
+    (dist_dir / "index.html").write_text('<main id="app"></main>', encoding="utf-8")
+
+    toon_handle = "2-S2-1-1248982"
+    played_at = datetime(2026, 5, 15, 9, 45, tzinfo=UTC)
+    portrait_bytes = b"\x89PNG\r\n\x1a\nplayer"
+    alias_bytes = b"\x89PNG\r\n\x1a\nalias"
+    calls: list[tuple[str, str]] = []
+
+    class StubPlayerQueries:
+        def list_players(self, *, page: int, page_size: int, q: str | None, tag: str | None):
+            assert page == 1
+            assert page_size == 20
+            assert q is None
+            assert tag is None
+            calls.append(("list", toon_handle))
+            return PlayerListResponse(
+                items=[
+                    PlayerListItem(
+                        id=toon_handle,
+                        detail_path=f"/players/{toon_handle}",
+                        name="Driftoss",
+                        toon_handle=toon_handle,
+                        alias_count=2,
+                        last_seen_at=played_at,
+                        has_portrait=True,
+                        has_constructed_portrait=True,
+                    )
+                ],
+                page=1,
+                page_size=20,
+                total=1,
+                total_pages=1,
+            )
+
+        def get_player_detail(self, requested_toon_handle: str):
+            calls.append(("detail", requested_toon_handle))
+            return PlayerDetailResponse(
+                id=requested_toon_handle,
+                detail_path=f"/players/{requested_toon_handle}",
+                name="Driftoss",
+                toon_handle=requested_toon_handle,
+                alias_count=2,
+                tags=["known-opponent"],
+            )
+
+        def get_player_aliases(self, requested_toon_handle: str):
+            calls.append(("aliases", requested_toon_handle))
+            return PlayerAliasesResponse(
+                toon_handle=requested_toon_handle,
+                aliases=[
+                    PlayerAliasSummary(
+                        index=0,
+                        name="Driftoss",
+                        seen_on=played_at,
+                        portraits=[
+                            AliasPortraitAsset(
+                                index=0,
+                                length=len(alias_bytes),
+                                content_type="image/png",
+                                url=(
+                                    f"/api/players/{requested_toon_handle}/aliases/0/portraits/0"
+                                ),
+                            )
+                        ],
+                    )
+                ],
+            )
+
+        def get_player_portrait_metadata(self, requested_toon_handle: str):
+            calls.append(("portrait-metadata", requested_toon_handle))
+            return PlayerPortraitMetadataResponse(
+                toon_handle=requested_toon_handle,
+                portrait=PlayerPortraitAsset(
+                    available=True,
+                    length=len(portrait_bytes),
+                    content_type="image/png",
+                    url=f"/api/players/{requested_toon_handle}/portrait",
+                ),
+                portrait_constructed=PlayerPortraitAsset(
+                    available=True,
+                    length=len(portrait_bytes),
+                    content_type="image/png",
+                    url=f"/api/players/{requested_toon_handle}/portrait/constructed",
+                ),
+                aliases=[
+                    PlayerAliasSummary(
+                        index=0,
+                        name="Driftoss",
+                        seen_on=played_at,
+                        portraits=[
+                            AliasPortraitAsset(
+                                index=0,
+                                length=len(alias_bytes),
+                                content_type="image/png",
+                                url=(
+                                    f"/api/players/{requested_toon_handle}/aliases/0/portraits/0"
+                                ),
+                            )
+                        ],
+                    )
+                ],
+            )
+
+        def get_player_related_replays(self, requested_toon_handle: str):
+            calls.append(("replays", requested_toon_handle))
+            return PlayerRelatedReplaysResponse(
+                toon_handle=requested_toon_handle,
+                items=[
+                    ReplayDetailResponse(
+                        id="r" * 64,
+                        detail_path=f"/replays/{'r' * 64}",
+                        map_name="Site Delta LE",
+                        played_at=played_at,
+                        matchup="ZvZ",
+                        game_type="1v1",
+                        real_length_seconds=1060,
+                        player_count=2,
+                        winning_player_name="zatic",
+                    )
+                ],
+            )
+
+        def get_player_portrait(self, requested_toon_handle: str):
+            calls.append(("portrait", requested_toon_handle))
+            return portrait_bytes
+
+        def get_player_constructed_portrait(self, requested_toon_handle: str):
+            calls.append(("portrait-constructed", requested_toon_handle))
+            return portrait_bytes
+
+        def get_alias_portrait(
+            self,
+            requested_toon_handle: str,
+            *,
+            alias_index: int,
+            portrait_index: int,
+        ):
+            assert alias_index == 0
+            assert portrait_index == 0
+            calls.append(("alias-portrait", requested_toon_handle))
+            return alias_bytes
+
+    app = create_app(
+        ApiConfig(
+            mongo_dsn="mongodb://localhost:27017",
+            db_name="SC2AICOACH_TEST",
+            web_dist_dir=dist_dir,
+        ),
+        health_check=lambda: ApiHealthResponse(
+            status="ok",
+            database="ok",
+            db_name="SC2AICOACH_TEST",
+        ),
+        player_queries=StubPlayerQueries(),
+    )
+
+    client = TestClient(app)
+
+    list_response = client.get("/api/players")
+    detail_response = client.get(f"/api/players/{toon_handle}")
+    aliases_response = client.get(f"/api/players/{toon_handle}/aliases")
+    metadata_response = client.get(f"/api/players/{toon_handle}/portrait-metadata")
+    replays_response = client.get(f"/api/players/{toon_handle}/replays")
+    portrait_response = client.get(f"/api/players/{toon_handle}/portrait")
+    constructed_response = client.get(f"/api/players/{toon_handle}/portrait/constructed")
+    alias_portrait_response = client.get(
+        f"/api/players/{toon_handle}/aliases/0/portraits/0"
+    )
+
+    assert list_response.status_code == 200
+    assert list_response.json() == {
+        "items": [
+            {
+                "id": toon_handle,
+                "detail_path": f"/players/{toon_handle}",
+                "name": "Driftoss",
+                "toon_handle": toon_handle,
+                "alias_count": 2,
+                "last_seen_at": "2026-05-15T09:45:00Z",
+                "has_portrait": True,
+                "has_constructed_portrait": True,
+            }
+        ],
+        "page": 1,
+        "page_size": 20,
+        "total": 1,
+        "total_pages": 1,
+    }
+
+    assert detail_response.status_code == 200
+    assert detail_response.json() == {
+        "id": toon_handle,
+        "detail_path": f"/players/{toon_handle}",
+        "name": "Driftoss",
+        "toon_handle": toon_handle,
+        "alias_count": 2,
+        "tags": ["known-opponent"],
+    }
+
+    assert aliases_response.status_code == 200
+    assert aliases_response.json() == {
+        "toon_handle": toon_handle,
+        "aliases": [
+            {
+                "index": 0,
+                "name": "Driftoss",
+                "seen_on": "2026-05-15T09:45:00Z",
+                "portraits": [
+                    {
+                        "index": 0,
+                        "length": len(alias_bytes),
+                        "content_type": "image/png",
+                        "url": f"/api/players/{toon_handle}/aliases/0/portraits/0",
+                    }
+                ],
+            }
+        ],
+    }
+
+    assert metadata_response.status_code == 200
+    assert metadata_response.json() == {
+        "toon_handle": toon_handle,
+        "portrait": {
+            "available": True,
+            "length": len(portrait_bytes),
+            "content_type": "image/png",
+            "url": f"/api/players/{toon_handle}/portrait",
+        },
+        "portrait_constructed": {
+            "available": True,
+            "length": len(portrait_bytes),
+            "content_type": "image/png",
+            "url": f"/api/players/{toon_handle}/portrait/constructed",
+        },
+        "aliases": [
+            {
+                "index": 0,
+                "name": "Driftoss",
+                "seen_on": "2026-05-15T09:45:00Z",
+                "portraits": [
+                    {
+                        "index": 0,
+                        "length": len(alias_bytes),
+                        "content_type": "image/png",
+                        "url": f"/api/players/{toon_handle}/aliases/0/portraits/0",
+                    }
+                ],
+            }
+        ],
+    }
+
+    assert replays_response.status_code == 200
+    assert replays_response.json() == {
+        "toon_handle": toon_handle,
+        "items": [
+            {
+                "id": "r" * 64,
+                "detail_path": f"/replays/{'r' * 64}",
+                "map_name": "Site Delta LE",
+                "played_at": "2026-05-15T09:45:00Z",
+                "matchup": "ZvZ",
+                "game_type": "1v1",
+                "real_length_seconds": 1060,
+                "player_count": 2,
+                "winning_player_name": "zatic",
+            }
+        ],
+    }
+
+    assert portrait_response.status_code == 200
+    assert portrait_response.headers["content-type"] == "image/png"
+    assert portrait_response.content == portrait_bytes
+
+    assert constructed_response.status_code == 200
+    assert constructed_response.headers["content-type"] == "image/png"
+    assert constructed_response.content == portrait_bytes
+
+    assert alias_portrait_response.status_code == 200
+    assert alias_portrait_response.headers["content-type"] == "image/png"
+    assert alias_portrait_response.content == alias_bytes
+
+    assert calls == [
+        ("list", toon_handle),
+        ("detail", toon_handle),
+        ("aliases", toon_handle),
+        ("portrait-metadata", toon_handle),
+        ("replays", toon_handle),
+        ("portrait", toon_handle),
+        ("portrait-constructed", toon_handle),
+        ("alias-portrait", toon_handle),
     ]
 
 

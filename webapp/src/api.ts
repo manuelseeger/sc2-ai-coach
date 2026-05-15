@@ -12,6 +12,11 @@ import type {
   MapStatsQueryRequest,
   MapStatsQueryResponse,
   MapStatsRangesResponse,
+  PlayerAliasesResponse,
+  PlayerDetailResponse,
+  PlayerListResponse,
+  PlayerPortraitMetadataResponse,
+  PlayerRelatedReplaysResponse,
   ReplayDetailResponse,
   ReplayMetadataResponse,
   ReplayPlayersResponse,
@@ -42,6 +47,13 @@ export interface ListSessionsParams {
   toDate: string | null
 }
 
+export interface ListPlayersParams {
+  page: number
+  pageSize: number
+  q: string | null
+  tag: string | null
+}
+
 export interface AdminApiClient {
   listResources(): Promise<ResourceDiscoveryEntry[]>
   listSessions(params: ListSessionsParams): Promise<SessionListResponse>
@@ -53,6 +65,11 @@ export interface AdminApiClient {
   getConversationDetail(conversationId: string): Promise<ConversationDetailResponse>
   closeConversation(conversationId: string): Promise<ConversationReviewSummary>
   archiveConversation(conversationId: string): Promise<ConversationReviewSummary>
+  listPlayers(params: ListPlayersParams): Promise<PlayerListResponse>
+  getPlayerDetail(toonHandle: string): Promise<PlayerDetailResponse>
+  getPlayerAliases(toonHandle: string): Promise<PlayerAliasesResponse>
+  getPlayerPortraitMetadata(toonHandle: string): Promise<PlayerPortraitMetadataResponse>
+  getPlayerReplays(toonHandle: string): Promise<PlayerRelatedReplaysResponse>
   getReplayDetail(replayId: string): Promise<ReplayDetailResponse>
   getReplayMetadata(replayId: string): Promise<ReplayMetadataResponse>
   getReplayPlayers(replayId: string): Promise<ReplayPlayersResponse>
@@ -159,6 +176,42 @@ export function createAdminApiClient(fetchImpl: FetchLike = fetch): AdminApiClie
         fetchImpl,
         `/api/conversations/${conversationId}/archive`,
         { method: 'POST' },
+      )
+    },
+
+    async listPlayers(params) {
+      const search = new URLSearchParams({
+        page: String(params.page),
+        page_size: String(params.pageSize),
+      })
+      if (params.q !== null) {
+        search.set('q', params.q)
+      }
+      if (params.tag !== null) {
+        search.set('tag', params.tag)
+      }
+      return requestJson<PlayerListResponse>(fetchImpl, `/api/players?${search.toString()}`)
+    },
+
+    async getPlayerDetail(toonHandle) {
+      return requestJson<PlayerDetailResponse>(fetchImpl, `/api/players/${toonHandle}`)
+    },
+
+    async getPlayerAliases(toonHandle) {
+      return requestJson<PlayerAliasesResponse>(fetchImpl, `/api/players/${toonHandle}/aliases`)
+    },
+
+    async getPlayerPortraitMetadata(toonHandle) {
+      return requestJson<PlayerPortraitMetadataResponse>(
+        fetchImpl,
+        `/api/players/${toonHandle}/portrait-metadata`,
+      )
+    },
+
+    async getPlayerReplays(toonHandle) {
+      return requestJson<PlayerRelatedReplaysResponse>(
+        fetchImpl,
+        `/api/players/${toonHandle}/replays`,
       )
     },
 

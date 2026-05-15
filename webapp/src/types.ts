@@ -170,6 +170,72 @@ export interface ReplayPlayersResponse {
   players: ReplayPlayerSummary[]
 }
 
+export interface PlayerListItem {
+  id: string
+  detail_path: string
+  name: string
+  toon_handle: string
+  alias_count: number
+  last_seen_at: string | null
+  has_portrait: boolean
+  has_constructed_portrait: boolean
+}
+
+export interface PlayerListResponse {
+  items: PlayerListItem[]
+  page: number
+  page_size: number
+  total: number
+  total_pages: number
+}
+
+export interface PlayerDetailResponse {
+  id: string
+  detail_path: string
+  name: string
+  toon_handle: string
+  alias_count: number
+  tags: string[]
+}
+
+export interface AliasPortraitAsset {
+  index: number
+  length: number
+  content_type: string
+  url: string
+}
+
+export interface PlayerAliasSummary {
+  index: number
+  name: string
+  seen_on: string | null
+  portraits: AliasPortraitAsset[]
+}
+
+export interface PlayerAliasesResponse {
+  toon_handle: string
+  aliases: PlayerAliasSummary[]
+}
+
+export interface PlayerPortraitAsset {
+  available: boolean
+  length: number | null
+  content_type: string | null
+  url: string | null
+}
+
+export interface PlayerPortraitMetadataResponse {
+  toon_handle: string
+  portrait: PlayerPortraitAsset
+  portrait_constructed: PlayerPortraitAsset
+  aliases: PlayerAliasSummary[]
+}
+
+export interface PlayerRelatedReplaysResponse {
+  toon_handle: string
+  items: ReplayDetailResponse[]
+}
+
 export interface MapStatsDateRange {
   from_date: string | null
   to_date: string | null

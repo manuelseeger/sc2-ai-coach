@@ -36,6 +36,9 @@
         <p v-else-if="resource.available && resource.path === '/sessions'" class="resource-cta">
           Open session review
         </p>
+        <p v-else-if="resource.available && resource.path === '/players'" class="resource-cta">
+          Open player review
+        </p>
         <p v-else-if="resource.available && resource.path === '/map-stats'" class="resource-cta">
           Open map stats report
         </p>
@@ -72,6 +75,7 @@ function resourceRoute(resource: ResourceDiscoveryEntry): string | null {
   if (
     resource.path === '/sessions' ||
     resource.path === '/conversations' ||
+    resource.path === '/players' ||
     resource.path === '/map-stats'
   ) {
     return resource.path

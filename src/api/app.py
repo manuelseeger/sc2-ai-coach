@@ -7,7 +7,7 @@ from html import escape
 from pathlib import Path
 from typing import Callable, Protocol
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from pymongo import MongoClient
@@ -27,6 +27,11 @@ from src.api.contracts import (
     MapStatsQueryResponse,
     MapStatsRangesResponse,
     MapStatsSummary,
+    PlayerAliasesResponse,
+    PlayerDetailResponse,
+    PlayerListResponse,
+    PlayerPortraitMetadataResponse,
+    PlayerRelatedReplaysResponse,
     ReplayDetailResponse,
     ReplayMetadataResponse,
     ReplayPlayersResponse,
@@ -151,6 +156,41 @@ class ReplayQueries(Protocol):
     def get_replay_players(self, replay_id: str) -> ReplayPlayersResponse | None: ...
 
 
+class PlayerQueries(Protocol):
+    def list_players(
+        self,
+        *,
+        page: int,
+        page_size: int,
+        q: str | None,
+        tag: str | None,
+    ) -> PlayerListResponse: ...
+
+    def get_player_detail(self, toon_handle: str) -> PlayerDetailResponse | None: ...
+
+    def get_player_aliases(self, toon_handle: str) -> PlayerAliasesResponse | None: ...
+
+    def get_player_portrait_metadata(
+        self, toon_handle: str
+    ) -> PlayerPortraitMetadataResponse | None: ...
+
+    def get_player_related_replays(
+        self, toon_handle: str
+    ) -> PlayerRelatedReplaysResponse | None: ...
+
+    def get_player_portrait(self, toon_handle: str) -> bytes | None: ...
+
+    def get_player_constructed_portrait(self, toon_handle: str) -> bytes | None: ...
+
+    def get_alias_portrait(
+        self,
+        toon_handle: str,
+        *,
+        alias_index: int,
+        portrait_index: int,
+    ) -> bytes | None: ...
+
+
 def _not_found_error(resource: str, identifier_field: str, identifier: str) -> dict[str, object]:
     return {
         "error": {
@@ -195,6 +235,12 @@ def _default_replay_queries(config: ApiConfig) -> ReplayQueries:
     from src.api.replays import ReplayQueryService
 
     return ReplayQueryService(config)
+
+
+def _default_player_queries(config: ApiConfig) -> PlayerQueries:
+    from src.api.players import PlayerQueryService
+
+    return PlayerQueryService(config)
 
 
 def _build_health_check(config: ApiConfig) -> HealthCheck:
@@ -282,6 +328,7 @@ def create_app(
     map_stats_queries: MapStatsQueries | None = None,
     session_queries: SessionQueries | None = None,
     replay_queries: ReplayQueries | None = None,
+    player_queries: PlayerQueries | None = None,
 ) -> FastAPI:
     resolved_config = config or ApiConfig()
     resolved_health_check = health_check or _build_health_check(resolved_config)
@@ -295,6 +342,7 @@ def create_app(
         resolved_config
     )
     resolved_replay_queries = replay_queries or _default_replay_queries(resolved_config)
+    resolved_player_queries = player_queries or _default_player_queries(resolved_config)
     resolved_resource_discovery = resource_discovery or (
         lambda: discover_resources(
             map_stats_available=resolved_map_stats_queries.available,
@@ -406,6 +454,122 @@ def create_app(
                 detail=_not_found_error("replay", "replay_id", replay_id),
             )
         return players
+
+    @app.get("/api/players", response_model=PlayerListResponse)
+    def get_players(
+        page: int = Query(default=1, ge=1),
+        page_size: int = Query(default=20, ge=1, le=100),
+        q: str | None = Query(default=None),
+        tag: str | None = Query(default=None),
+    ) -> PlayerListResponse:
+        return resolved_player_queries.list_players(
+            page=page,
+            page_size=page_size,
+            q=q,
+            tag=tag,
+        )
+
+    @app.get("/api/players/{toon_handle}", response_model=PlayerDetailResponse)
+    def get_player_detail(toon_handle: str) -> PlayerDetailResponse:
+        detail = resolved_player_queries.get_player_detail(toon_handle)
+        if detail is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error("player", "toon_handle", toon_handle),
+            )
+        return detail
+
+    @app.get(
+        "/api/players/{toon_handle}/aliases",
+        response_model=PlayerAliasesResponse,
+    )
+    def get_player_aliases(toon_handle: str) -> PlayerAliasesResponse:
+        aliases = resolved_player_queries.get_player_aliases(toon_handle)
+        if aliases is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error("player", "toon_handle", toon_handle),
+            )
+        return aliases
+
+    @app.get(
+        "/api/players/{toon_handle}/portrait-metadata",
+        response_model=PlayerPortraitMetadataResponse,
+    )
+    def get_player_portrait_metadata(toon_handle: str) -> PlayerPortraitMetadataResponse:
+        metadata = resolved_player_queries.get_player_portrait_metadata(toon_handle)
+        if metadata is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error("player", "toon_handle", toon_handle),
+            )
+        return metadata
+
+    @app.get(
+        "/api/players/{toon_handle}/replays",
+        response_model=PlayerRelatedReplaysResponse,
+    )
+    def get_player_related_replays(toon_handle: str) -> PlayerRelatedReplaysResponse:
+        replays = resolved_player_queries.get_player_related_replays(toon_handle)
+        if replays is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error("player", "toon_handle", toon_handle),
+            )
+        return replays
+
+    @app.get("/api/players/{toon_handle}/portrait")
+    def get_player_portrait(toon_handle: str) -> Response:
+        portrait = resolved_player_queries.get_player_portrait(toon_handle)
+        if portrait is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error("player_portrait", "toon_handle", toon_handle),
+            )
+        return Response(content=portrait, media_type="image/png")
+
+    @app.get("/api/players/{toon_handle}/portrait/constructed")
+    def get_player_constructed_portrait(toon_handle: str) -> Response:
+        portrait = resolved_player_queries.get_player_constructed_portrait(toon_handle)
+        if portrait is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error(
+                    "player_constructed_portrait",
+                    "toon_handle",
+                    toon_handle,
+                ),
+            )
+        return Response(content=portrait, media_type="image/png")
+
+    @app.get("/api/players/{toon_handle}/aliases/{alias_index}/portraits/{portrait_index}")
+    def get_alias_portrait(
+        toon_handle: str,
+        alias_index: int,
+        portrait_index: int,
+    ) -> Response:
+        portrait = resolved_player_queries.get_alias_portrait(
+            toon_handle,
+            alias_index=alias_index,
+            portrait_index=portrait_index,
+        )
+        if portrait is None:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "error": {
+                        "code": "not_found",
+                        "message": "Alias portrait not found",
+                        "details": {
+                            "resource": "player_alias_portrait",
+                            "toon_handle": toon_handle,
+                            "alias_index": alias_index,
+                            "portrait_index": portrait_index,
+                        },
+                    }
+                },
+            )
+        return Response(content=portrait, media_type="image/png")
 
     @app.get("/api/map-stats", response_model=MapStatsListResponse)
     def get_map_stats_list(
