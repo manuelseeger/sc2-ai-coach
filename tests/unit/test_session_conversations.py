@@ -1,22 +1,25 @@
-from types import SimpleNamespace
-
+import pytest
 from pydantic import BaseModel
 
 from src.persistence.replay_store import Metadata
+from src.replays.types import Replay
 from src.session import AISession
 
 CONVERSATION_ID = "0123456789abcdef01234567"
 
 
-def test_save_replay_summary_upserts_metadata_linked_to_active_conversation(mocker):
+@pytest.mark.mongo
+def test_save_replay_summary_persists_metadata_linked_to_active_conversation(
+    mocker, replay_store
+):
     class ReplaySummary(BaseModel):
         description: str
         tags: list[str]
 
-    mocker.patch.object(AISession, "update_last_replay", autospec=True)
-    mocker.patch.object(AISession, "set_season", autospec=True)
-    session = AISession()
-    session.conversation_id = CONVERSATION_ID
+    session = object.__new__(AISession)
+    session.replay_store = replay_store
+    session._conversation_id = CONVERSATION_ID
+    session.coach = mocker.Mock()
 
     mocker.patch.object(
         session.coach,
@@ -26,15 +29,16 @@ def test_save_replay_summary_upserts_metadata_linked_to_active_conversation(mock
             tags=["muta", "two-base"],
         ),
     )
-    find_one = mocker.patch.object(session.replay_store.db, "find_one", return_value=None)
-    upsert = mocker.patch.object(session.replay_store, "upsert")
 
-    replay = SimpleNamespace(id="a" * 64)
+    replay = Replay.model_construct(id="a" * 64)
 
     session.save_replay_summary(replay)
 
-    find_one.assert_called_once()
-    saved_meta = upsert.call_args.args[0]
+    saved_meta = replay_store.db.find_one(
+        Model=Metadata,
+        query=Metadata.replay == replay.id,  # type: ignore[arg-type]
+    )
+
     assert isinstance(saved_meta, Metadata)
     assert saved_meta.replay == replay.id
     assert saved_meta.description == "Short replay summary"

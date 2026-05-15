@@ -18,7 +18,7 @@ replay_store = get_replay_store()
 
 
 def test_function_smurf_detection(util):
-    from src.ai import AICoach
+    from src.ai.aicoach import AICoach
 
     aicoach = AICoach()
 
@@ -36,7 +36,7 @@ def test_function_smurf_detection(util):
 
 
 def test_function_query_build_order(util):
-    from src.ai import AICoach
+    from src.ai.aicoach import AICoach
 
     aicoach = AICoach()
 
@@ -52,7 +52,7 @@ def test_function_query_build_order(util):
 
 
 def test_get_structured_response():
-    from src.ai import AICoach
+    from src.ai.aicoach import AICoach
     from src.ai.prompt import Templates
 
     runtime_settings = load_test_settings()
