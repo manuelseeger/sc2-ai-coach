@@ -60,7 +60,7 @@ AliasList.__getitem__ = lambda self, x: next(alias for alias in self if alias ==
 
 
 class PlayerInfo(DbModel):
-    id: ToonHandle = Field(...)
+    id: ToonHandle = Field(...)  # type: ignore[assignment]
     name: str
     aliases: AliasList = Field(default_factory=list)
     toon_handle: ToonHandle

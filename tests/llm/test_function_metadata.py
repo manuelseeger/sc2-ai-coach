@@ -14,7 +14,7 @@ from tests.conftest import load_test_settings
 
 
 def test_function_add_metadata(util):
-    from src.ai import AICoach
+    from src.ai.aicoach import AICoach
 
     aicoach = AICoach()
 
@@ -43,7 +43,7 @@ def test_function_add_metadata(util):
     indirect=True,
 )
 def test_add_tag_after_replay_summary(replay_file, util):
-    from src.ai import AICoach
+    from src.ai.aicoach import AICoach
     from src.ai.prompt import Templates
 
     runtime_settings = load_test_settings()
@@ -84,7 +84,7 @@ def test_add_tag_after_replay_summary(replay_file, util):
     indirect=True,
 )
 def test_add_player_tag_after_replay(replay_file, util):
-    from src.ai import AICoach
+    from src.ai.aicoach import AICoach
     from src.ai.prompt import Templates
 
     runtime_settings = load_test_settings()

@@ -1,5 +1,3 @@
-import importlib
-import sys
 from datetime import datetime
 
 import pytest
@@ -220,24 +218,6 @@ def test_record_response_calculates_costs_and_updates_session(
     assert reloaded_session.total_output_tokens == 40
     assert reloaded_session.total_tokens == 140
     assert reloaded_session.total_cost == pytest.approx(expected_total_cost)
-
-
-def test_importing_ai_state_does_not_construct_conversation_store(monkeypatch):
-    import src.persistence.conversation_store as conversation_store_module
-
-    sys.modules.pop("src.ai.state", None)
-    monkeypatch.setattr(
-        conversation_store_module,
-        "get_conversation_store",
-        lambda: (_ for _ in ()).throw(
-            AssertionError("src.ai.state constructed a conversation store at import")
-        ),
-    )
-
-    module = importlib.import_module("src.ai.state")
-
-    assert module is not None
-    assert "conversation_store" not in module.__all__
 
 
 def test_append_message_rejects_invalid_role(

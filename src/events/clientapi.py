@@ -44,7 +44,10 @@ class ClientAPIListener(threading.Thread):
             if is_live_game(gameinfo):
                 if gameinfo == self.last_gameinfo:
                     # same ongoing game, just later in time
-                    if gameinfo.displayTime >= self.last_gameinfo.displayTime:
+                    if (
+                        self.last_gameinfo
+                        and gameinfo.displayTime >= self.last_gameinfo.displayTime
+                    ):
                         continue
 
                 self.last_gameinfo = gameinfo

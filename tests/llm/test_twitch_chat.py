@@ -28,7 +28,7 @@ from tests.conftest import load_test_settings
 def test_get_viewer_replay(viewer, replay_file, mocker):
     """Test getting viewer replay."""
     # arrange
-    from src.ai import AICoach
+    from src.ai.aicoach import AICoach
     from src.ai.prompt import Templates
 
     runtime_settings = load_test_settings()

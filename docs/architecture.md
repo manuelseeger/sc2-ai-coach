@@ -159,7 +159,7 @@ Each handler typically:
 
 **`aicoach.py`**: Wrapper around stateless OpenAI Responses calls
 - Obtains its SDK client from `src.ai.openai_provider.get_openai_client()` unless a test injects a client explicitly
-- Owns the local conversation lifecycle backed by MongoDB through `src.ai.state.ConversationStore`
+- Owns the local conversation lifecycle backed by MongoDB through `src.persistence.conversation_store.ConversationStore`
 - Replays persisted messages, function calls, and function outputs on each Responses request with `store=False`
 - Implements non-streaming chat, streaming chat, tool execution loops, structured outputs, tracing, and response usage/cost persistence
 

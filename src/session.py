@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from rich.prompt import Prompt
 
 from log import log
-from src.ai import AICoach
+from src.ai.aicoach import AICoach
 from src.ai.prompt import Templates
 from src.contracts import MicrophoneService, TranscriberService, TTSService
 from src.events import (

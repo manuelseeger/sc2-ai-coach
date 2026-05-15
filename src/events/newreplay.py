@@ -5,7 +5,7 @@ from pathlib import Path
 from time import sleep
 
 from watchdog.events import FileSystemEventHandler
-from watchdog.observers import Observer
+from watchdog.observers import Observer as ObserverType
 
 from shared import signal_queue
 from src.events import NewReplayEvent
@@ -48,9 +48,9 @@ class NewReplayHandler(FileSystemEventHandler):
     def on_created(self, event):
         if event.is_directory:
             return
-        if event.src_path.endswith(".SC2Replay"):
-            if wait_for_file(event.src_path):
-                self.process_new_file(event.src_path)
+        if event.src_path.endswith(".SC2Replay"):  # type: ignore[union-attr]
+            if wait_for_file(str(event.src_path)):
+                self.process_new_file(str(event.src_path))
 
     def process_new_file(self, file_path: str):
         replay_raw = self.reader.load_replay_raw(file_path)
@@ -70,11 +70,11 @@ class NewReplayHandler(FileSystemEventHandler):
             if self.reader.is_instant_leave(replay_raw) or self.reader.has_afk_player(
                 replay_raw
             ):
-                wait_for_delete(file_path)
+                wait_for_delete(Path(file_path))
                 log.info(f"Deleted {basename(file_path)}")
 
 
-class NewReplayListener(Observer):
+class NewReplayListener(ObserverType):  # pyright: ignore[reportGeneralTypeIssues]
     def __init__(
         self,
         *,
