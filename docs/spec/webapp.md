@@ -221,6 +221,7 @@ Primary conversation-review contract:
 The screen should present:
 
 - A compact conversation summary header with trigger, status, created time, total item count, and replay/session links when present.
+- Workflow actions for closing and archiving only when the current conversation state supports them.
 - The complete ordered conversation item flow from the backend, including messages, tool calls, and tool results.
 - Inline item timestamps.
 - Visible item-kind treatment so messages, tool calls, and tool results are immediately distinguishable.
@@ -233,12 +234,18 @@ The screen should present:
 The conversation screen should not include:
 
 - Response metadata or response-accounting panels.
-- Close/archive controls.
 - Conversation-item create/edit controls.
 - Embedded raw JSON/document tabs.
 - Next/previous conversation stepping from detail.
 
 The conversation screen is the primary readable transcript-style admin view.
+
+Conversation workflow action behavior:
+
+- Closing is available only while the conversation is active.
+- Archiving is available while the conversation is active or closed.
+- Successful actions update the visible conversation status from the action response without a full page reload.
+- Action failures should use the shared backend error envelope and be surfaced inline on the detail screen.
 
 Conversation-list behavior:
 

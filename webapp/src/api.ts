@@ -2,6 +2,7 @@ import { inject, type InjectionKey } from 'vue'
 
 import type {
   ConversationDetailResponse,
+  ConversationReviewSummary,
   ConversationListResponse,
   ConversationStatus,
   ConversationSummary,
@@ -21,6 +22,8 @@ export interface AdminApiClient {
   listConversations(params: ListConversationsParams): Promise<ConversationListResponse>
   getConversationSummary(conversationId: string): Promise<ConversationSummary>
   getConversationDetail(conversationId: string): Promise<ConversationDetailResponse>
+  closeConversation(conversationId: string): Promise<ConversationReviewSummary>
+  archiveConversation(conversationId: string): Promise<ConversationReviewSummary>
 }
 
 export const adminApiKey: InjectionKey<AdminApiClient> = Symbol('admin-api')
@@ -28,6 +31,11 @@ export const adminApiKey: InjectionKey<AdminApiClient> = Symbol('admin-api')
 interface ErrorEnvelope {
   error?: {
     message?: string
+  }
+  detail?: {
+    error?: {
+      message?: string
+    }
   }
 }
 
@@ -70,6 +78,22 @@ export function createAdminApiClient(fetchImpl: FetchLike = fetch): AdminApiClie
         `/api/conversations/${conversationId}/detail`,
       )
     },
+
+    async closeConversation(conversationId) {
+      return requestJson<ConversationReviewSummary>(
+        fetchImpl,
+        `/api/conversations/${conversationId}/close`,
+        { method: 'POST' },
+      )
+    },
+
+    async archiveConversation(conversationId) {
+      return requestJson<ConversationReviewSummary>(
+        fetchImpl,
+        `/api/conversations/${conversationId}/archive`,
+        { method: 'POST' },
+      )
+    },
   }
 }
 
@@ -81,11 +105,21 @@ export function useAdminApi(): AdminApiClient {
   return client
 }
 
-async function requestJson<T>(fetchImpl: FetchLike, path: string): Promise<T> {
-  const response = await fetchImpl(path, { headers: { Accept: 'application/json' } })
+async function requestJson<T>(fetchImpl: FetchLike, path: string, init?: RequestInit): Promise<T> {
+  const response = await fetchImpl(path, {
+    ...init,
+    headers: {
+      Accept: 'application/json',
+      ...init?.headers,
+    },
+  })
   if (!response.ok) {
     const errorEnvelope = (await response.json().catch(() => null)) as ErrorEnvelope | null
-    throw new Error(errorEnvelope?.error?.message ?? `Request failed: ${response.status}`)
+    throw new Error(
+      errorEnvelope?.error?.message ??
+        errorEnvelope?.detail?.error?.message ??
+        `Request failed: ${response.status}`,
+    )
   }
   return (await response.json()) as T
 }

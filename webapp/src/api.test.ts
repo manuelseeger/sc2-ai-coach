@@ -69,4 +69,61 @@ describe('createAdminApiClient', () => {
       { headers: { Accept: 'application/json' } },
     )
   })
+
+  it('posts lifecycle actions for conversation workflow controls', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: 'a'.repeat(24),
+          detail_path: `/conversations/${'a'.repeat(24)}`,
+          trigger: 'repl',
+          status: 'closed',
+          item_count: 3,
+          created_at: '2026-05-15T08:30:00Z',
+          replay: null,
+          session: null,
+        }),
+        {
+          headers: { 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      ),
+    )
+
+    const client = createAdminApiClient(fetchMock)
+
+    await client.closeConversation('a'.repeat(24))
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/conversations/${'a'.repeat(24)}/close`,
+      {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+      },
+    )
+  })
+
+  it('uses the shared error envelope message when a workflow action fails', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: {
+            code: 'invalid_action',
+            message: 'Conversation is already archived.',
+            details: {},
+          },
+        }),
+        {
+          headers: { 'Content-Type': 'application/json' },
+          status: 409,
+        },
+      ),
+    )
+
+    const client = createAdminApiClient(fetchMock)
+
+    await expect(client.archiveConversation('a'.repeat(24))).rejects.toThrow(
+      'Conversation is already archived.',
+    )
+  })
 })

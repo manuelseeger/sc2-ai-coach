@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from bson import ObjectId
@@ -111,6 +111,44 @@ class ConversationQueryService:
             conversation=_conversation_review_summary(conversation),
             items=_conversation_review_items(item_documents, include_raw=False),
         )
+
+    def close_conversation(
+        self, conversation_id: str
+    ) -> ConversationReviewSummary | None:
+        return self._apply_action(conversation_id, action="close")
+
+    def archive_conversation(
+        self, conversation_id: str
+    ) -> ConversationReviewSummary | None:
+        return self._apply_action(conversation_id, action="archive")
+
+    def _apply_action(
+        self, conversation_id: str, *, action: str
+    ) -> ConversationReviewSummary | None:
+        conversation = self.collection.find_one(_conversation_id_query(conversation_id))
+        if conversation is None:
+            return None
+
+        updated = dict(conversation)
+        status = AIConversationStatus(updated["status"])
+
+        if action == "close":
+            if status != AIConversationStatus.active:
+                raise ValueError("Conversation can only be closed while active.")
+            updated["status"] = AIConversationStatus.closed.value
+            updated["closed_at"] = datetime.now(UTC)
+        elif action == "archive":
+            if status == AIConversationStatus.archived:
+                raise ValueError("Conversation is already archived.")
+            updated["status"] = AIConversationStatus.archived.value
+        else:
+            raise ValueError(f"Unsupported action: {action}")
+
+        self.collection.update_one(
+            {"_id": conversation["_id"]},
+            {"$set": {"status": updated["status"], "closed_at": updated.get("closed_at")}},
+        )
+        return _conversation_review_summary(updated)
 
 
 def _conversation_summary(document: dict) -> ConversationSummary:

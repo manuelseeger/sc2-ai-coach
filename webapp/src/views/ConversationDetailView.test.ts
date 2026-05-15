@@ -97,4 +97,120 @@ describe('ConversationDetailView', () => {
     expect(wrapper.find('details').attributes('open')).toBeUndefined()
     expect(wrapper.find('pre').text()).toContain('{')
   })
+
+  it('shows supported workflow actions and updates visible status from the action result', async () => {
+    const conversationId = 'c'.repeat(24)
+    const client: AdminApiClient = {
+      listResources: vi.fn(),
+      listConversations: vi.fn(),
+      getConversationSummary: vi.fn(),
+      getConversationDetail: vi.fn().mockResolvedValue({
+        conversation: {
+          id: conversationId,
+          detail_path: `/conversations/${conversationId}`,
+          trigger: 'repl',
+          status: 'active',
+          item_count: 1,
+          created_at: '2026-05-15T08:30:00Z',
+          replay: null,
+          session: null,
+        },
+        items: [],
+      }),
+      closeConversation: vi.fn().mockResolvedValue({
+        id: conversationId,
+        detail_path: `/conversations/${conversationId}`,
+        trigger: 'repl',
+        status: 'closed',
+        item_count: 1,
+        created_at: '2026-05-15T08:30:00Z',
+        replay: null,
+        session: null,
+      }),
+      archiveConversation: vi.fn(),
+    }
+
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/conversations', component: { template: '<div />' } },
+        { path: '/conversations/:conversationId', component: ConversationDetailView },
+      ],
+    })
+    await router.push(`/conversations/${conversationId}`)
+    await router.isReady()
+
+    const wrapper = mount(ConversationDetailView, {
+      global: {
+        plugins: [router],
+        provide: {
+          [adminApiKey as symbol]: client,
+        },
+      },
+    })
+
+    await flushPromises()
+    expect(wrapper.text()).toContain('Active')
+    expect(wrapper.find('button[data-action="close"]').exists()).toBe(true)
+    expect(wrapper.find('button[data-action="archive"]').exists()).toBe(true)
+
+    await wrapper.find('button[data-action="close"]').trigger('click')
+    await flushPromises()
+
+    expect(client.closeConversation).toHaveBeenCalledWith(conversationId)
+    expect(wrapper.text()).toContain('Closed')
+    expect(wrapper.find('button[data-action="close"]').exists()).toBe(false)
+    expect(wrapper.find('button[data-action="archive"]').exists()).toBe(true)
+  })
+
+  it('surfaces normalized action failures in the detail view', async () => {
+    const conversationId = 'd'.repeat(24)
+    const client: AdminApiClient = {
+      listResources: vi.fn(),
+      listConversations: vi.fn(),
+      getConversationSummary: vi.fn(),
+      getConversationDetail: vi.fn().mockResolvedValue({
+        conversation: {
+          id: conversationId,
+          detail_path: `/conversations/${conversationId}`,
+          trigger: 'repl',
+          status: 'closed',
+          item_count: 1,
+          created_at: '2026-05-15T08:30:00Z',
+          replay: null,
+          session: null,
+        },
+        items: [],
+      }),
+      closeConversation: vi.fn(),
+      archiveConversation: vi.fn().mockRejectedValue(new Error('Conversation is already archived.')),
+    }
+
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/conversations', component: { template: '<div />' } },
+        { path: '/conversations/:conversationId', component: ConversationDetailView },
+      ],
+    })
+    await router.push(`/conversations/${conversationId}`)
+    await router.isReady()
+
+    const wrapper = mount(ConversationDetailView, {
+      global: {
+        plugins: [router],
+        provide: {
+          [adminApiKey as symbol]: client,
+        },
+      },
+    })
+
+    await flushPromises()
+    await wrapper.find('button[data-action="archive"]').trigger('click')
+    await flushPromises()
+
+    expect(client.archiveConversation).toHaveBeenCalledWith(conversationId)
+    expect(wrapper.text()).toContain('Conversation is already archived.')
+    expect(wrapper.text()).toContain('Closed')
+  })
 })

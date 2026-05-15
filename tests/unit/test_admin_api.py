@@ -495,6 +495,170 @@ def test_create_app_serves_conversation_review_detail_and_item_routes(tmp_path: 
     assert calls["detail_conversation_id"] == conversation_id
 
 
+def test_create_app_serves_conversation_workflow_action_routes(tmp_path: Path):
+    dist_dir = tmp_path / "dist"
+    dist_dir.mkdir()
+    (dist_dir / "index.html").write_text('<main id="app"></main>', encoding="utf-8")
+
+    created_at = datetime(2026, 5, 15, 8, 30, tzinfo=UTC)
+    calls: list[tuple[str, str]] = []
+    conversation_id = "c" * 24
+
+    class StubConversationQueries:
+        def list_conversations(self, *, page, page_size, trigger, statuses):
+            raise AssertionError("list_conversations should not be called in this test")
+
+        def get_conversation_summary(self, conversation_id):
+            raise AssertionError(
+                "get_conversation_summary should not be called in this test"
+            )
+
+        def get_conversation_items(
+            self,
+            conversation_id: str,
+            *,
+            included_in_context: bool | None,
+            include_raw: bool,
+        ):
+            raise AssertionError("get_conversation_items should not be called")
+
+        def get_conversation_detail(self, conversation_id: str):
+            raise AssertionError("get_conversation_detail should not be called")
+
+        def close_conversation(self, conversation_id: str):
+            calls.append(("close", conversation_id))
+            return ConversationReviewSummary(
+                id=conversation_id,
+                detail_path=f"/conversations/{conversation_id}",
+                trigger=AIConversationTrigger.repl,
+                status=AIConversationStatus.closed,
+                item_count=2,
+                created_at=created_at,
+                replay=None,
+                session=None,
+            )
+
+        def archive_conversation(self, conversation_id: str):
+            calls.append(("archive", conversation_id))
+            return ConversationReviewSummary(
+                id=conversation_id,
+                detail_path=f"/conversations/{conversation_id}",
+                trigger=AIConversationTrigger.repl,
+                status=AIConversationStatus.archived,
+                item_count=2,
+                created_at=created_at,
+                replay=None,
+                session=None,
+            )
+
+    app = create_app(
+        ApiConfig(
+            mongo_dsn="mongodb://localhost:27017",
+            db_name="SC2AICOACH_TEST",
+            web_dist_dir=dist_dir,
+        ),
+        health_check=lambda: ApiHealthResponse(
+            status="ok",
+            database="ok",
+            db_name="SC2AICOACH_TEST",
+        ),
+        conversation_queries=StubConversationQueries(),
+    )
+
+    client = TestClient(app)
+
+    close_response = client.post(f"/api/conversations/{conversation_id}/close")
+
+    assert close_response.status_code == 200
+    assert close_response.json() == {
+        "id": conversation_id,
+        "detail_path": f"/conversations/{conversation_id}",
+        "trigger": "repl",
+        "status": "closed",
+        "item_count": 2,
+        "created_at": "2026-05-15T08:30:00Z",
+        "replay": None,
+        "session": None,
+    }
+
+    archive_response = client.post(f"/api/conversations/{conversation_id}/archive")
+
+    assert archive_response.status_code == 200
+    assert archive_response.json() == {
+        "id": conversation_id,
+        "detail_path": f"/conversations/{conversation_id}",
+        "trigger": "repl",
+        "status": "archived",
+        "item_count": 2,
+        "created_at": "2026-05-15T08:30:00Z",
+        "replay": None,
+        "session": None,
+    }
+    assert calls == [("close", conversation_id), ("archive", conversation_id)]
+
+
+def test_create_app_normalizes_missing_conversation_action_failures(tmp_path: Path):
+    dist_dir = tmp_path / "dist"
+    dist_dir.mkdir()
+    (dist_dir / "index.html").write_text('<main id="app"></main>', encoding="utf-8")
+
+    class StubConversationQueries:
+        def list_conversations(self, *, page, page_size, trigger, statuses):
+            raise AssertionError("list_conversations should not be called in this test")
+
+        def get_conversation_summary(self, conversation_id):
+            raise AssertionError(
+                "get_conversation_summary should not be called in this test"
+            )
+
+        def get_conversation_items(
+            self,
+            conversation_id: str,
+            *,
+            included_in_context: bool | None,
+            include_raw: bool,
+        ):
+            raise AssertionError("get_conversation_items should not be called")
+
+        def get_conversation_detail(self, conversation_id: str):
+            raise AssertionError("get_conversation_detail should not be called")
+
+        def close_conversation(self, conversation_id: str):
+            return None
+
+        def archive_conversation(self, conversation_id: str):
+            return None
+
+    app = create_app(
+        ApiConfig(
+            mongo_dsn="mongodb://localhost:27017",
+            db_name="SC2AICOACH_TEST",
+            web_dist_dir=dist_dir,
+        ),
+        health_check=lambda: ApiHealthResponse(
+            status="ok",
+            database="ok",
+            db_name="SC2AICOACH_TEST",
+        ),
+        conversation_queries=StubConversationQueries(),
+    )
+
+    client = TestClient(app)
+
+    response = client.post(f"/api/conversations/{'d' * 24}/close")
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "detail": {
+            "error": {
+                "code": "not_found",
+                "message": "Conversation not found",
+                "details": {"resource": "conversation", "conversation_id": "d" * 24},
+            }
+        }
+    }
+
+
 def test_workspace_deep_link_bootstraps_requested_conversation_path(tmp_path: Path):
     dist_dir = tmp_path / "dist"
     dist_dir.mkdir()

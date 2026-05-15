@@ -86,3 +86,54 @@ def test_conversation_query_service_can_filter_review_items_by_context(
 
     assert items is not None
     assert [item.message_text for item in items.items] == ["Second item"]
+
+
+def test_conversation_query_service_closes_conversation_and_returns_updated_review_summary(
+    conversation_store: ConversationStore,
+):
+    conversation = conversation_store.create_conversation(
+        AIConversationTrigger.repl,
+        initial_message=(AIMessageRole.user, "Close this conversation."),
+    )
+
+    config = ApiConfig(
+        mongo_dsn=conversation_store.database.config.mongo_uri,
+        db_name=conversation_store.database.config.db_name,
+    )
+    service = ConversationQueryService(config)
+
+    summary = service.close_conversation(str(conversation.id))
+
+    assert summary is not None
+    assert summary.id == str(conversation.id)
+    assert summary.status.value == "closed"
+
+    persisted = conversation_store.get_conversation(conversation)
+    assert persisted is not None
+    assert persisted.status.value == "closed"
+    assert persisted.closed_at is not None
+
+
+def test_conversation_query_service_archives_conversation_and_returns_updated_review_summary(
+    conversation_store: ConversationStore,
+):
+    conversation = conversation_store.create_conversation(
+        AIConversationTrigger.repl,
+        initial_message=(AIMessageRole.user, "Archive this conversation."),
+    )
+
+    config = ApiConfig(
+        mongo_dsn=conversation_store.database.config.mongo_uri,
+        db_name=conversation_store.database.config.db_name,
+    )
+    service = ConversationQueryService(config)
+
+    summary = service.archive_conversation(str(conversation.id))
+
+    assert summary is not None
+    assert summary.id == str(conversation.id)
+    assert summary.status.value == "archived"
+
+    persisted = conversation_store.get_conversation(conversation)
+    assert persisted is not None
+    assert persisted.status.value == "archived"

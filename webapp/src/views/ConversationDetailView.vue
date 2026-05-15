@@ -8,7 +8,22 @@
           Complete persisted conversation flow in authoritative backend order.
         </p>
       </div>
-      <RouterLink class="back-link" to="/conversations">Back to inbox</RouterLink>
+      <div class="detail-header__actions">
+        <div v-if="supportedActions.length > 0" class="workflow-actions">
+          <button
+            v-for="action in supportedActions"
+            :key="action"
+            type="button"
+            class="workflow-action-button"
+            :data-action="action"
+            :disabled="actionLoading"
+            @click="runAction(action)"
+          >
+            {{ actionLabel(action) }}
+          </button>
+        </div>
+        <RouterLink class="back-link" to="/conversations">Back to inbox</RouterLink>
+      </div>
     </header>
 
     <p v-if="loading" class="detail-copy">Loading conversation…</p>
@@ -62,6 +77,8 @@
       </dl>
     </article>
 
+    <p v-if="actionError" class="detail-error">{{ actionError }}</p>
+
     <ol v-if="detail" class="item-list">
       <li v-for="item in detail.items" :key="item.id">
         <article :class="['item-card', `item-card--${item.kind}`]">
@@ -99,19 +116,34 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
 import { useAdminApi } from '../api'
 import { formatStatus, formatTrigger, formatUtcDate } from '../format'
-import type { ConversationDetailResponse, ConversationItemKind } from '../types'
+import type { ConversationDetailResponse, ConversationItemKind, ConversationReviewSummary } from '../types'
+
+type ConversationAction = 'close' | 'archive'
 
 const client = useAdminApi()
 const route = useRoute()
 
 const loading = ref(true)
 const error = ref('')
+const actionError = ref('')
+const actionLoading = ref(false)
 const detail = ref<ConversationDetailResponse | null>(null)
+
+const supportedActions = computed<ConversationAction[]>(() => {
+  const status = detail.value?.conversation.status
+  if (status === 'active') {
+    return ['close', 'archive']
+  }
+  if (status === 'closed') {
+    return ['archive']
+  }
+  return []
+})
 
 onMounted(async () => {
   try {
@@ -122,6 +154,40 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+async function runAction(action: ConversationAction): Promise<void> {
+  const conversationId = String(route.params.conversationId)
+  actionError.value = ''
+  actionLoading.value = true
+
+  try {
+    const summary =
+      action === 'close'
+        ? await client.closeConversation(conversationId)
+        : await client.archiveConversation(conversationId)
+    updateConversation(summary)
+  } catch (failedAction) {
+    actionError.value =
+      failedAction instanceof Error ? failedAction.message : 'Unable to update conversation.'
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+function updateConversation(summary: ConversationReviewSummary): void {
+  if (detail.value === null) {
+    return
+  }
+
+  detail.value = {
+    ...detail.value,
+    conversation: summary,
+  }
+}
+
+function actionLabel(action: ConversationAction): string {
+  return action === 'close' ? 'Close conversation' : 'Archive conversation'
+}
 
 function itemKindLabel(kind: ConversationItemKind): string {
   switch (kind) {
@@ -165,6 +231,14 @@ function isCodeLike(text: string): boolean {
   align-items: end;
 }
 
+.detail-header__actions,
+.workflow-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .detail-header h1,
 .summary-card h2 {
   margin: 0;
@@ -183,6 +257,22 @@ function isCodeLike(text: string): boolean {
 .back-link {
   color: #8c3d1f;
   font-weight: 700;
+}
+
+.workflow-action-button {
+  border: 1px solid #c97f3a;
+  border-radius: 999px;
+  background: #fff3e2;
+  color: #7a3415;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.55rem 0.9rem;
+  cursor: pointer;
+}
+
+.workflow-action-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .context-link {
@@ -318,6 +408,10 @@ function isCodeLike(text: string): boolean {
 @media (max-width: 720px) {
   .detail-header {
     flex-direction: column;
+    align-items: start;
+  }
+
+  .detail-header__actions {
     align-items: start;
   }
 

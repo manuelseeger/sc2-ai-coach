@@ -18,6 +18,7 @@ from src.api.contracts import (
     ConversationDetailResponse,
     ConversationItemsResponse,
     ConversationListResponse,
+    ConversationReviewSummary,
     ConversationSummary,
     ResourceDiscoveryEntry,
     ResourceDiscoveryResponse,
@@ -60,6 +61,40 @@ class ConversationQueries(Protocol):
     def get_conversation_detail(
         self, conversation_id: str
     ) -> ConversationDetailResponse | None: ...
+
+    def close_conversation(
+        self, conversation_id: str
+    ) -> ConversationReviewSummary | None: ...
+
+    def archive_conversation(
+        self, conversation_id: str
+    ) -> ConversationReviewSummary | None: ...
+
+
+def _not_found_error(resource: str, identifier_field: str, identifier: str) -> dict[str, object]:
+    return {
+        "error": {
+            "code": "not_found",
+            "message": f"{resource.title()} not found",
+            "details": {
+                "resource": resource,
+                identifier_field: identifier,
+            },
+        }
+    }
+
+
+def _invalid_action_error(message: str, *, conversation_id: str) -> dict[str, object]:
+    return {
+        "error": {
+            "code": "invalid_action",
+            "message": message,
+            "details": {
+                "resource": "conversation",
+                "conversation_id": conversation_id,
+            },
+        }
+    }
 
 
 def _default_conversation_queries(config: ApiConfig) -> ConversationQueries:
@@ -223,6 +258,46 @@ def create_app(
         summary = resolved_conversation_queries.get_conversation_summary(conversation_id)
         if summary is None:
             raise HTTPException(status_code=404, detail="Conversation not found")
+        return summary
+
+    @app.post(
+        "/api/conversations/{conversation_id}/close",
+        response_model=ConversationReviewSummary,
+    )
+    def close_conversation(conversation_id: str) -> ConversationReviewSummary:
+        try:
+            summary = resolved_conversation_queries.close_conversation(conversation_id)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=409,
+                detail=_invalid_action_error(str(exc), conversation_id=conversation_id),
+            ) from exc
+
+        if summary is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error("conversation", "conversation_id", conversation_id),
+            )
+        return summary
+
+    @app.post(
+        "/api/conversations/{conversation_id}/archive",
+        response_model=ConversationReviewSummary,
+    )
+    def archive_conversation(conversation_id: str) -> ConversationReviewSummary:
+        try:
+            summary = resolved_conversation_queries.archive_conversation(conversation_id)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=409,
+                detail=_invalid_action_error(str(exc), conversation_id=conversation_id),
+            ) from exc
+
+        if summary is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error("conversation", "conversation_id", conversation_id),
+            )
         return summary
 
     @app.get("/{requested_path:path}", include_in_schema=False)

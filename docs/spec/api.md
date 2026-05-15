@@ -817,15 +817,19 @@ This endpoint is the primary backend support for the readable conversation revie
 
 Closes a conversation.
 
-The endpoint sets `status=closed` and `closed_at` using the model's close behavior. It returns the updated conversation.
+The endpoint sets `status=closed`, stamps `closed_at`, and returns the updated review-summary conversation state used by the specialized conversation workflow.
 
-This endpoint is part of the broader admin API but is not required by the primary read-oriented conversation screen.
+If the conversation cannot be closed from its current state, the endpoint returns `409` with the shared error envelope.
+
+This endpoint supports the specialized conversation review workflow.
 
 ### `POST /api/conversations/{conversation_id}/archive`
 
-Archives a conversation by setting `status=archived`. It returns the updated conversation.
+Archives a conversation by setting `status=archived`. It returns the updated review-summary conversation state used by the specialized conversation workflow.
 
-This endpoint is part of the broader admin API but is not required by the primary read-oriented conversation screen.
+If the conversation cannot be archived from its current state, the endpoint returns `409` with the shared error envelope.
+
+This endpoint supports the specialized conversation review workflow.
 
 ## Conversation Item Endpoints
 
