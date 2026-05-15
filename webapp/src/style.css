@@ -1,0 +1,90 @@
+:root {
+  color-scheme: light;
+  --bg: #f4efe7;
+  --panel: #fffaf2;
+  --text: #1f2933;
+  --muted: #52606d;
+  --accent: #8c3d1f;
+  --border: #d9cbb9;
+  --danger: #9b1c1c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  font-family: Georgia, 'Times New Roman', serif;
+  background:
+    radial-gradient(circle at top right, #f9d8a3, transparent 30%),
+    linear-gradient(180deg, #f7f1e8 0%, #efe2d0 100%);
+  color: var(--text);
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid rgba(217, 203, 185, 0.8);
+  background: rgba(255, 250, 242, 0.92);
+  backdrop-filter: blur(14px);
+  position: sticky;
+  top: 0;
+}
+
+.app-brand {
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.app-nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.app-nav a {
+  text-decoration: none;
+  color: var(--muted);
+}
+
+.app-nav .router-link-active,
+.app-nav .router-link-exact-active {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.app-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+@media (max-width: 720px) {
+  .app-header {
+    flex-direction: column;
+    align-items: start;
+  }
+
+  .app-nav {
+    flex-wrap: wrap;
+  }
+}

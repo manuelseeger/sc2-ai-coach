@@ -218,6 +218,26 @@ Please note: This is a hobby project and advanced features are not ready to use 
 **Prerequisites:**
 - All requirements from minimal setup above
 - NVIDIA GPU (for local voice recognition and synthesis)
+
+## Admin API And Webapp
+
+The standalone admin surface uses the FastAPI backend in [src/api](src/api) and a built frontend in [webapp](webapp).
+
+Build the webapp:
+
+```sh
+cd webapp
+npm install
+npm run build
+```
+
+Start the admin API:
+
+```sh
+uv run python -m src.api
+```
+
+Open `http://127.0.0.1:8765/` to navigate the workspace and the Conversations inbox.
 - Microphone and speakers
 
 For advanced setup with voice integration, see [Installation.md](Installation.md) for detailed steps. This requires Python experience and familiarity with machine learning tools.

@@ -19,6 +19,7 @@ user_token.json
 *.log
 *.mock
 .venv/
+webapp/node_modules/
 build/
 dist/
 .specstory/

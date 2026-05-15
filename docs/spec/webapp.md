@@ -247,7 +247,7 @@ Conversation-list behavior:
 - Keep rows compact and avoid transcript previews.
 - Show trigger, item count, and last-item timestamp in each row.
 - Show lightweight replay/session presence indicators.
-- Support a typed trigger filter with operator-friendly labels, defaulting to all triggers.
+- Support typed trigger and status filters with operator-friendly labels, defaulting to all triggers and the active/closed inbox pair.
 - Keep trigger filter state stable during normal SPA navigation and restored list context, while resetting it on full page refresh.
 - Use paged results with a fixed page size.
 - Preserve restored list context, current-row highlight, and scroll position when possible.

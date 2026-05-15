@@ -268,13 +268,13 @@ _Avoid_: Premature search semantics, transcript search before baseline review wo
 A typed conversation-list filter that lets operators narrow conversations by trigger in the first slice.
 _Avoid_: Visible-only trigger, discovery field that cannot be used for filtering
 
+**Status Filter**:
+A typed conversation-list filter that lets operators narrow the inbox by persisted conversation status while keeping active and closed visible by default.
+_Avoid_: Hidden status narrowing, status handling that only exists in the API
+
 **Non-Filterable Related Context**:
 A first-slice discovery rule where replay and session presence remain visible as context signals but are not exposed as typed filters.
 _Avoid_: Low-value presence filters, overbuilt phase-one discovery controls
-
-**Non-Filterable Status**:
-A first-slice discovery rule where conversation status remains visible but is not exposed as a separate list filter.
-_Avoid_: Extra phase-one list controls, status-only narrowing on an already inclusive default list
 
 **Paged Conversation List**:
 A conversation list rule where phase-one discovery uses page-based pagination rather than loading the full conversation set at once.
