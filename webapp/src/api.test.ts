@@ -70,6 +70,76 @@ describe('createAdminApiClient', () => {
     )
   })
 
+  it('loads the replay review routes through the shared typed client', async () => {
+    const replayId = 'r'.repeat(64)
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: replayId,
+            detail_path: `/replays/${replayId}`,
+            map_name: 'Site Delta LE',
+            played_at: '2026-05-15T09:45:00Z',
+            matchup: 'ZvZ',
+            game_type: '1v1',
+            real_length_seconds: 1060,
+            player_count: 2,
+            winning_player_name: 'zatic',
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            replay_id: replayId,
+            description: 'Aggressive muta opener into map control.',
+            tags: ['muta', 'macro'],
+            replay_summary_conversation: {
+              id: 'c'.repeat(24),
+              path: `/conversations/${'c'.repeat(24)}`,
+            },
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            replay_id: replayId,
+            players: [],
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+
+    const client = createAdminApiClient(fetchMock)
+
+    await client.getReplayDetail(replayId)
+    await client.getReplayMetadata(replayId)
+    await client.getReplayPlayers(replayId)
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, `/api/replays/${replayId}`, {
+      headers: { Accept: 'application/json' },
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(2, `/api/replays/${replayId}/metadata`, {
+      headers: { Accept: 'application/json' },
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(3, `/api/replays/${replayId}/players`, {
+      headers: { Accept: 'application/json' },
+    })
+  })
+
   it('loads session review routes with typed detail, summary, and related conversation requests', async () => {
     const fetchMock = vi
       .fn()

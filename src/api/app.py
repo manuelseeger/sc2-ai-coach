@@ -27,6 +27,9 @@ from src.api.contracts import (
     MapStatsQueryResponse,
     MapStatsRangesResponse,
     MapStatsSummary,
+    ReplayDetailResponse,
+    ReplayMetadataResponse,
+    ReplayPlayersResponse,
     ResourceDiscoveryEntry,
     ResourceDiscoveryResponse,
     SessionDetailResponse,
@@ -140,6 +143,14 @@ class SessionQueries(Protocol):
     def get_session_summary(self, session_id: str) -> SessionSummaryResponse | None: ...
 
 
+class ReplayQueries(Protocol):
+    def get_replay_detail(self, replay_id: str) -> ReplayDetailResponse | None: ...
+
+    def get_replay_metadata(self, replay_id: str) -> ReplayMetadataResponse | None: ...
+
+    def get_replay_players(self, replay_id: str) -> ReplayPlayersResponse | None: ...
+
+
 def _not_found_error(resource: str, identifier_field: str, identifier: str) -> dict[str, object]:
     return {
         "error": {
@@ -178,6 +189,12 @@ def _default_map_stats_queries(config: ApiConfig) -> MapStatsQueries:
 
 def _default_session_queries(config: ApiConfig) -> SessionQueries:
     return SessionQueryService(config)
+
+
+def _default_replay_queries(config: ApiConfig) -> ReplayQueries:
+    from src.api.replays import ReplayQueryService
+
+    return ReplayQueryService(config)
 
 
 def _build_health_check(config: ApiConfig) -> HealthCheck:
@@ -264,6 +281,7 @@ def create_app(
     conversation_queries: ConversationQueries | None = None,
     map_stats_queries: MapStatsQueries | None = None,
     session_queries: SessionQueries | None = None,
+    replay_queries: ReplayQueries | None = None,
 ) -> FastAPI:
     resolved_config = config or ApiConfig()
     resolved_health_check = health_check or _build_health_check(resolved_config)
@@ -276,6 +294,7 @@ def create_app(
     resolved_session_queries = session_queries or _default_session_queries(
         resolved_config
     )
+    resolved_replay_queries = replay_queries or _default_replay_queries(resolved_config)
     resolved_resource_discovery = resource_discovery or (
         lambda: discover_resources(
             map_stats_available=resolved_map_stats_queries.available,
@@ -351,6 +370,42 @@ def create_app(
                 detail=_not_found_error("session", "session_id", session_id),
             )
         return summary
+
+    @app.get("/api/replays/{replay_id}", response_model=ReplayDetailResponse)
+    def get_replay_detail(replay_id: str) -> ReplayDetailResponse:
+        detail = resolved_replay_queries.get_replay_detail(replay_id)
+        if detail is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error("replay", "replay_id", replay_id),
+            )
+        return detail
+
+    @app.get(
+        "/api/replays/{replay_id}/metadata",
+        response_model=ReplayMetadataResponse,
+    )
+    def get_replay_metadata(replay_id: str) -> ReplayMetadataResponse:
+        metadata = resolved_replay_queries.get_replay_metadata(replay_id)
+        if metadata is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error("replay", "replay_id", replay_id),
+            )
+        return metadata
+
+    @app.get(
+        "/api/replays/{replay_id}/players",
+        response_model=ReplayPlayersResponse,
+    )
+    def get_replay_players(replay_id: str) -> ReplayPlayersResponse:
+        players = resolved_replay_queries.get_replay_players(replay_id)
+        if players is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error("replay", "replay_id", replay_id),
+            )
+        return players
 
     @app.get("/api/map-stats", response_model=MapStatsListResponse)
     def get_map_stats_list(

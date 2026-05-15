@@ -135,6 +135,41 @@ export interface SessionSummaryResponse {
   total_cost: number
 }
 
+export interface ReplayDetailResponse {
+  id: string
+  detail_path: string
+  map_name: string
+  played_at: string
+  matchup: string
+  game_type: string
+  real_length_seconds: number
+  player_count: number
+  winning_player_name: string | null
+}
+
+export interface ReplayMetadataResponse {
+  replay_id: string
+  description: string | null
+  tags: string[]
+  replay_summary_conversation: ConversationReviewLink | null
+}
+
+export interface ReplayPlayerSummary {
+  name: string
+  toon_handle: string
+  play_race: string
+  result: string
+  scaled_rating: number
+  avg_apm: number
+  player_record: ConversationReviewLink | null
+  aliases: string[]
+}
+
+export interface ReplayPlayersResponse {
+  replay_id: string
+  players: ReplayPlayerSummary[]
+}
+
 export interface MapStatsDateRange {
   from_date: string | null
   to_date: string | null

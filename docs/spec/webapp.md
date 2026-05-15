@@ -289,6 +289,13 @@ Replay detail should combine:
 
 The screen should make it easy to inspect replay metadata and jump to related known player records.
 
+The first replay-review slice should:
+
+- Keep replay facts compact and operator-facing.
+- Render replay summary metadata separately from replay facts.
+- Show participating player records as a dedicated section on the replay screen instead of reconstructing joins in the client.
+- Provide visible in-screen navigation from replay facts into those player records.
+
 ### Player Detail
 
 Player detail should be treated as a specialized view because of portrait media and alias structure.
@@ -359,6 +366,7 @@ Manual verification covers:
 - Browser refresh preserves list/detail browsing position when possible and remains the refresh path for the conversation list and conversation detail screen.
 - Session detail loads linked conversations and summary totals.
 - Replay detail loads linked metadata and players.
+- Replay detail lets the operator jump from replay facts into the participating player-record section.
 - Player detail renders portrait metadata and displays portrait images from media endpoints.
 - Map stats screens respect inclusive date filters and named range queries.
 - Read-only resources do not expose write actions.

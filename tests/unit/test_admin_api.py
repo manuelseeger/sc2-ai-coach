@@ -20,6 +20,10 @@ from src.api.contracts import (
     MapStatsNamedRange,
     MapStatsQueryRequest,
     ResourceDiscoveryEntry,
+    ReplayDetailResponse,
+    ReplayMetadataResponse,
+    ReplayPlayerSummary,
+    ReplayPlayersResponse,
     SessionDetailResponse,
     SessionListItem,
     SessionListResponse,
@@ -935,6 +939,153 @@ def test_create_app_serves_conversation_review_detail_and_item_routes(tmp_path: 
         "items": [review_item.model_dump(mode="json")],
     }
     assert calls["detail_conversation_id"] == conversation_id
+
+
+def test_create_app_serves_replay_review_routes(tmp_path: Path):
+    dist_dir = tmp_path / "dist"
+    dist_dir.mkdir()
+    (dist_dir / "index.html").write_text('<main id="app"></main>', encoding="utf-8")
+
+    played_at = datetime(2026, 5, 15, 9, 45, tzinfo=UTC)
+    replay_id = "r" * 64
+    calls: list[tuple[str, str]] = []
+
+    class StubReplayQueries:
+        def get_replay_detail(self, requested_replay_id: str):
+            calls.append(("detail", requested_replay_id))
+            return ReplayDetailResponse(
+                id=requested_replay_id,
+                detail_path=f"/replays/{requested_replay_id}",
+                map_name="Site Delta LE",
+                played_at=played_at,
+                matchup="ZvZ",
+                game_type="1v1",
+                real_length_seconds=1060,
+                player_count=2,
+                winning_player_name="zatic",
+            )
+
+        def get_replay_metadata(self, requested_replay_id: str):
+            calls.append(("metadata", requested_replay_id))
+            return ReplayMetadataResponse(
+                replay_id=requested_replay_id,
+                description="Aggressive muta opener into map control.",
+                tags=["muta", "macro"],
+                replay_summary_conversation=ConversationReviewLink(
+                    id="c" * 24,
+                    path=f"/conversations/{'c' * 24}",
+                ),
+            )
+
+        def get_replay_players(self, requested_replay_id: str):
+            calls.append(("players", requested_replay_id))
+            return ReplayPlayersResponse(
+                replay_id=requested_replay_id,
+                players=[
+                    ReplayPlayerSummary(
+                        name="zatic",
+                        toon_handle="2-S2-1-1515247",
+                        play_race="Zerg",
+                        result="Win",
+                        scaled_rating=4182,
+                        avg_apm=287.4,
+                        player_record=None,
+                        aliases=[],
+                    ),
+                    ReplayPlayerSummary(
+                        name="Driftoss",
+                        toon_handle="2-S2-1-1248982",
+                        play_race="Zerg",
+                        result="Loss",
+                        scaled_rating=4110,
+                        avg_apm=266.1,
+                        player_record=ConversationReviewLink(
+                            id="2-S2-1-1248982",
+                            path="/players/2-S2-1-1248982",
+                        ),
+                        aliases=["Driftoss"],
+                    ),
+                ],
+            )
+
+    app = create_app(
+        ApiConfig(
+            mongo_dsn="mongodb://localhost:27017",
+            db_name="SC2AICOACH_TEST",
+            web_dist_dir=dist_dir,
+        ),
+        health_check=lambda: ApiHealthResponse(
+            status="ok",
+            database="ok",
+            db_name="SC2AICOACH_TEST",
+        ),
+        replay_queries=StubReplayQueries(),
+    )
+
+    client = TestClient(app)
+
+    detail_response = client.get(f"/api/replays/{replay_id}")
+    metadata_response = client.get(f"/api/replays/{replay_id}/metadata")
+    players_response = client.get(f"/api/replays/{replay_id}/players")
+
+    assert detail_response.status_code == 200
+    assert detail_response.json() == {
+        "id": replay_id,
+        "detail_path": f"/replays/{replay_id}",
+        "map_name": "Site Delta LE",
+        "played_at": "2026-05-15T09:45:00Z",
+        "matchup": "ZvZ",
+        "game_type": "1v1",
+        "real_length_seconds": 1060,
+        "player_count": 2,
+        "winning_player_name": "zatic",
+    }
+
+    assert metadata_response.status_code == 200
+    assert metadata_response.json() == {
+        "replay_id": replay_id,
+        "description": "Aggressive muta opener into map control.",
+        "tags": ["muta", "macro"],
+        "replay_summary_conversation": {
+            "id": "c" * 24,
+            "path": f"/conversations/{'c' * 24}",
+        },
+    }
+
+    assert players_response.status_code == 200
+    assert players_response.json() == {
+        "replay_id": replay_id,
+        "players": [
+            {
+                "name": "zatic",
+                "toon_handle": "2-S2-1-1515247",
+                "play_race": "Zerg",
+                "result": "Win",
+                "scaled_rating": 4182,
+                "avg_apm": 287.4,
+                "player_record": None,
+                "aliases": [],
+            },
+            {
+                "name": "Driftoss",
+                "toon_handle": "2-S2-1-1248982",
+                "play_race": "Zerg",
+                "result": "Loss",
+                "scaled_rating": 4110,
+                "avg_apm": 266.1,
+                "player_record": {
+                    "id": "2-S2-1-1248982",
+                    "path": "/players/2-S2-1-1248982",
+                },
+                "aliases": ["Driftoss"],
+            },
+        ],
+    }
+    assert calls == [
+        ("detail", replay_id),
+        ("metadata", replay_id),
+        ("players", replay_id),
+    ]
 
 
 def test_create_app_serves_conversation_workflow_action_routes(tmp_path: Path):

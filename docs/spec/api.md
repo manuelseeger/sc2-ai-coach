@@ -17,6 +17,12 @@ Dedicated paths make the API useful beyond raw collection editing:
 - Replays expose their metadata and participating players.
 - Players expose related replays.
 
+The replay review contract uses three dedicated read routes:
+
+- `GET /api/replays/{replay_id}` for compact replay facts.
+- `GET /api/replays/{replay_id}/metadata` for summary metadata tied to the replay.
+- `GET /api/replays/{replay_id}/players` for backend-joined participating player records.
+
 The implementation may share generic CRUD helpers internally. The public API is domain-shaped because the admin UI includes custom views rather than a uniform raw collection editor.
 
 The conversation contract follows two rules:

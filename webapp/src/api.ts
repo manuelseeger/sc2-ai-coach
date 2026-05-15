@@ -12,6 +12,9 @@ import type {
   MapStatsQueryRequest,
   MapStatsQueryResponse,
   MapStatsRangesResponse,
+  ReplayDetailResponse,
+  ReplayMetadataResponse,
+  ReplayPlayersResponse,
   ResourceDiscoveryEntry,
   SessionDetailResponse,
   SessionListResponse,
@@ -50,6 +53,9 @@ export interface AdminApiClient {
   getConversationDetail(conversationId: string): Promise<ConversationDetailResponse>
   closeConversation(conversationId: string): Promise<ConversationReviewSummary>
   archiveConversation(conversationId: string): Promise<ConversationReviewSummary>
+  getReplayDetail(replayId: string): Promise<ReplayDetailResponse>
+  getReplayMetadata(replayId: string): Promise<ReplayMetadataResponse>
+  getReplayPlayers(replayId: string): Promise<ReplayPlayersResponse>
   listMapStats(params: ListMapStatsParams): Promise<MapStatsListResponse>
   getMapStatsRanges(mapName: string, ranges: MapStatsNamedRange[]): Promise<MapStatsRangesResponse>
   queryMapStats(request: MapStatsQueryRequest): Promise<MapStatsQueryResponse>
@@ -154,6 +160,18 @@ export function createAdminApiClient(fetchImpl: FetchLike = fetch): AdminApiClie
         `/api/conversations/${conversationId}/archive`,
         { method: 'POST' },
       )
+    },
+
+    async getReplayDetail(replayId) {
+      return requestJson<ReplayDetailResponse>(fetchImpl, `/api/replays/${replayId}`)
+    },
+
+    async getReplayMetadata(replayId) {
+      return requestJson<ReplayMetadataResponse>(fetchImpl, `/api/replays/${replayId}/metadata`)
+    },
+
+    async getReplayPlayers(replayId) {
+      return requestJson<ReplayPlayersResponse>(fetchImpl, `/api/replays/${replayId}/players`)
     },
 
     async listMapStats(params) {

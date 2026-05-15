@@ -77,6 +77,41 @@ class SessionSummaryResponse(BaseModel):
     total_cost: float
 
 
+class ReplayDetailResponse(BaseModel):
+    id: str
+    detail_path: str
+    map_name: str
+    played_at: datetime
+    matchup: str
+    game_type: str
+    real_length_seconds: int
+    player_count: int
+    winning_player_name: str | None = None
+
+
+class ReplayMetadataResponse(BaseModel):
+    replay_id: str
+    description: str | None = None
+    tags: list[str]
+    replay_summary_conversation: ConversationReviewLink | None = None
+
+
+class ReplayPlayerSummary(BaseModel):
+    name: str
+    toon_handle: str
+    play_race: str
+    result: str
+    scaled_rating: int
+    avg_apm: float
+    player_record: ConversationReviewLink | None = None
+    aliases: list[str]
+
+
+class ReplayPlayersResponse(BaseModel):
+    replay_id: str
+    players: list[ReplayPlayerSummary]
+
+
 class MapStatsDateRange(BaseModel):
     from_date: datetime | None = None
     to_date: datetime | None = None
