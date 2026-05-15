@@ -140,90 +140,6 @@ _Avoid_: Full dump by default, scroll-only readability
 A reachable canonical document view that remains available even when a resource also has a richer specialized screen.
 _Avoid_: Specialized screen as the only path, hidden exact document access
 
-**Store-First API Surface**:
-An API implementation rule where handlers use the existing store and database abstractions directly and expand those stores when necessary instead of building a parallel data access layer.
-_Avoid_: Replacement DAL, handler-owned Mongo access, duplicated persistence abstractions
-
-**Direct FastAPI Model Reuse**:
-An API modeling rule where existing `DbModel` and `MainBaseModel` Pydantic models are used directly in FastAPI when the persisted or domain shape already matches the API need.
-_Avoid_: Redundant mirror DTOs, unnecessary wrapper models around existing Pydantic models
-
-**Shared Store Expansion**:
-A store-evolution rule where new persistence capabilities are added once in the existing store layer when they represent reusable behavior, rather than being reintroduced separately per endpoint or slice.
-_Avoid_: Slice-specific store forks, repeated generic query implementations, handler-local persistence growth
-
-**Store Model Boundary**:
-A persistence-layer rule where stores return existing persisted models and reusable persistence results without introducing new API-specific composed models.
-_Avoid_: Store-defined API DTOs, persistence layer that grows its own presentation models
-
-**App-Layer Read Composition**:
-An application-layer rule where API-specific composed read models are assembled in the app layer from existing `DbModel` or domain models when the API shape genuinely differs from stored models.
-_Avoid_: Handler-local dict plumbing, composed API models pushed down into the store layer
-
-**Shared App Read Module**:
-An application-structure rule where composed read models and read-assembly logic for a resource family live in a shared app-layer module rather than inline in FastAPI route files.
-_Avoid_: Route files that become the real application layer, repeated read assembly logic across endpoints
-
-**Unified Conversation Read Module**:
-A first-slice app-layer rule where conversation list and conversation detail read composition live together in one shared conversation-read module.
-_Avoid_: Premature split between list and detail composition, extra structure before first-slice learning
-
-**Component Library Growth**:
-A frontend development rule where each delivered slice should contribute reusable UI components rather than only one-off page-local markup.
-_Avoid_: Disposable slice-specific widgets, copy-pasted UI primitives
-
-**Central Styling Surface**:
-A frontend architecture rule where components are built so visual styling can be changed centrally after reviewing the first vertical slice.
-_Avoid_: Hard-coded page-local styling, restyling that requires component-by-component rewrites
-
-**Opportunistic Component Extraction**:
-A frontend development rule where reusable components are extracted from concrete slice needs as they appear rather than designed from an abstract inventory up front.
-_Avoid_: Speculative primitive catalog, upfront abstraction that slows the first slice
-
-**Token-Routed Component Styling**:
-A frontend styling rule where reusable components may keep local styles as long as those styles resolve through central variables or theme tokens.
-_Avoid_: Component-local hard-coded styling, false requirement that all styles live in one global file
-
-**Small Up-Front Token Set**:
-A frontend styling rule where the first slice defines a small central set of tokens for core concerns such as typography, spacing, borders, surfaces, and emphasis.
-_Avoid_: Zero-token start, premature full design-system taxonomy
-
-**Example Style Reference**:
-A frontend styling rule where the webapp should roughly follow the color palette, typography direction, and overall feel of `playground/example_styles.css` without copying that stylesheet 1:1.
-_Avoid_: Unrelated visual direction, literal stylesheet transplantation
-
-**Single-Font First Slice**:
-A first-slice typography rule where the frontend may use one font family throughout even though the reference stylesheet suggests separate display and UI roles.
-_Avoid_: Forced type-system mimicry before the first slice is reviewed, premature font-role complexity
-
-**Dark-Default First Slice**:
-A frontend theming rule where the first slice ships with dark theme as the default visual mode, following the overall direction of the reference stylesheet.
-_Avoid_: Theme direction left implicit, first slice that drifts away from the reference feel
-
-**No Light Theme Day One**:
-A first-slice theming rule where light theme and theme-switching are out of scope until the dark-default slice has been reviewed.
-_Avoid_: Dual-theme complexity in the first slice, theme toggle before the default theme is validated
-
-**Distinct Semantic Accent Colors**:
-A frontend styling rule where the first slice uses distinct semantic accent colors for meaningful states and item kinds instead of collapsing nearly all emphasis onto one accent.
-_Avoid_: Single-accent visual flattening, semantic distinctions that rely on text labels alone
-
-**Small Semantic Signals**:
-A first-slice styling rule where semantic accent colors appear through restrained cues such as borders, pills, labels, and small highlights rather than large background treatments.
-_Avoid_: Heavy semantic tint blocks, visually loud item-kind backgrounds in the first slice
-
-**Motion-Off First Slice**:
-A frontend interaction rule where transitions and decorative motion stay off in the first slice even though the reference stylesheet includes motion tokens.
-_Avoid_: Animated polish in the first slice, motion introduced before the static review surface is validated
-
-**Flattened Surface Model**:
-A first-slice styling rule where the dark palette and general feel of the reference are kept, but the UI uses a flatter surface treatment rather than strongly elevated panels.
-_Avoid_: Heavy panel elevation copied from the reference, overly layered first-slice chrome
-
-**Subtle Surface Separation**:
-A first-slice styling rule where flatter surfaces still remain distinguishable through restrained borders and tonal shifts.
-_Avoid_: Completely undifferentiated dark planes, flatness that erases layout structure
-
 **Authoritative Sequence**:
 The persisted or API-declared ordering of transcript-like records that the client renders without local re-sorting.
 _Avoid_: Client prettified chronology, inferred order
@@ -352,13 +268,13 @@ _Avoid_: Premature search semantics, transcript search before baseline review wo
 A typed conversation-list filter that lets operators narrow conversations by trigger in the first slice.
 _Avoid_: Visible-only trigger, discovery field that cannot be used for filtering
 
+**Status Filter**:
+A typed conversation-list filter that lets operators narrow the inbox by persisted conversation status while keeping active and closed visible by default.
+_Avoid_: Hidden status narrowing, status handling that only exists in the API
+
 **Non-Filterable Related Context**:
 A first-slice discovery rule where replay and session presence remain visible as context signals but are not exposed as typed filters.
 _Avoid_: Low-value presence filters, overbuilt phase-one discovery controls
-
-**Non-Filterable Status**:
-A first-slice discovery rule where conversation status remains visible but is not exposed as a separate list filter.
-_Avoid_: Extra phase-one list controls, status-only narrowing on an already inclusive default list
 
 **Paged Conversation List**:
 A conversation list rule where phase-one discovery uses page-based pagination rather than loading the full conversation set at once.
@@ -556,27 +472,6 @@ _Avoid_: Editable map document, stats record
 - Generic detail pages should link through **Declared Relationships** rather than guessed identifiers
 - Generic detail pages should prefer **Collapsed Detail** for long text and nested structures
 - A specialized resource should still expose a **Secondary Raw View** for exact document inspection and repair
-- API routes should prefer a **Store-First API Surface** and expand existing stores rather than introducing a parallel data access layer
-- FastAPI routes may use **Direct FastAPI Model Reuse** when existing `DbModel` or `MainBaseModel` shapes already fit the API contract
-- Store expansion should follow **Shared Store Expansion**, adding reusable persistence capabilities such as generic query once in the existing store layer
-- Stores should respect the **Store Model Boundary** and avoid introducing new API-specific composed models
-- API-specific composed reads should use **App-Layer Read Composition** from existing models when shapes genuinely differ
-- API-specific composed reads should live in a **Shared App Read Module** rather than inline in route files
-- The **Conversations-First Slice** should use a **Unified Conversation Read Module** for list and detail composition
-- Frontend slices should contribute to **Component Library Growth** rather than leaving reusable UI trapped inside page-specific implementations
-- Frontend components should preserve a **Central Styling Surface** so the visual system can be restyled centrally after the first slice review
-- Frontend slices should use **Opportunistic Component Extraction** so the component library grows from concrete needs
-- Frontend components should use **Token-Routed Component Styling** so local styles remain centrally restylable
-- The first frontend slice should use a **Small Up-Front Token Set** rather than waiting for all tokenization to emerge reactively
-- Frontend styling should use **Example Style Reference** from `playground/example_styles.css` as a persistent palette-and-feel guide rather than a literal copy source
-- The first frontend slice may use **Single-Font First Slice** typography even while following the reference stylesheet's broader visual direction
-- The first frontend slice should use **Dark-Default First Slice** theming
-- The first frontend slice should use **No Light Theme Day One**
-- The first frontend slice should use **Distinct Semantic Accent Colors**
-- The first frontend slice should use **Small Semantic Signals** for those accent colors
-- The first frontend slice should use **Motion-Off First Slice**
-- The first frontend slice should use **Flattened Surface Model**
-- The first frontend slice should use **Subtle Surface Separation**
 - Transcript-like specialized screens should honor the backend's **Authoritative Sequence**
 - A conversation transcript should be a **Complete Conversation Transcript** containing all persisted items
 - A conversation detail view should use a **Complete Conversation Items View** that includes tool calls and tool results
@@ -738,66 +633,6 @@ _Avoid_: Editable map document, stats record
 >
 > **Dev:** "If a resource has a specialized screen, should that replace the raw document view entirely?"
 > **Domain expert:** "No. Keep a **Secondary Raw View** available so operators can still inspect and repair the exact canonical document when needed."
->
-> **Dev:** "Should the new API build its own separate repository or DAO layer for admin reads?"
-> **Domain expert:** "No. Use a **Store-First API Surface** and expand the existing stores where the current methods are not enough."
->
-> **Dev:** "Should FastAPI get dedicated mirror DTOs even when our existing persisted models already fit?"
-> **Domain expert:** "No. Prefer **Direct FastAPI Model Reuse** with existing `DbModel` and `MainBaseModel` types, and only add wrappers when the API shape genuinely differs."
->
-> **Dev:** "If we know multiple resources will need a generic query capability, should we add it separately as each slice discovers the need?"
-> **Domain expert:** "No. Use **Shared Store Expansion** and add reusable persistence capabilities once in the existing store layer when the need is already clear."
->
-> **Dev:** "Should stores introduce new composed models for admin-specific conversation reads?"
-> **Domain expert:** "No. Respect the **Store Model Boundary**. Stores should return existing persisted models or reusable persistence results, not new API-specific composed models."
->
-> **Dev:** "If the API needs a composed conversation list row or detail shape that does not match an existing `DbModel`, where should that model be assembled?"
-> **Domain expert:** "Use **App-Layer Read Composition**. Compose the API-specific read model in the app layer from existing models rather than teaching the store layer new presentation models."
->
-> **Dev:** "Should those composed conversation read models live directly inside the FastAPI route files?"
-> **Domain expert:** "No. Use a **Shared App Read Module** so route files stay thin and read-assembly logic is shared deliberately."
->
-> **Dev:** "Should conversation list and detail composition live in separate app-layer modules from day one?"
-> **Domain expert:** "No. Use a **Unified Conversation Read Module** for the first slice and split later only if the slice proves the need."
->
-> **Dev:** "Can the first frontend slice use page-local components and styling that we clean up later?"
-> **Domain expert:** "No. Each slice should contribute to **Component Library Growth** and preserve a **Central Styling Surface** so we can restyle the webapp centrally after review."
->
-> **Dev:** "Should the frontend define a generic primitive set up front before building the first slice?"
-> **Domain expert:** "No. Use **Opportunistic Component Extraction** so reusable components emerge from concrete slice needs instead of speculative abstraction."
->
-> **Dev:** "Must reusable component styles live entirely in global theme files from day one?"
-> **Domain expert:** "No. Use **Token-Routed Component Styling** so components can own local styles while still routing through central variables or theme tokens."
->
-> **Dev:** "Should theme tokens appear only after we notice enough duplicated styles?"
-> **Domain expert:** "No. Start with a **Small Up-Front Token Set** so the first slice has a central styling spine without pretending to finalize the whole design system."
->
-> **Dev:** "Should the new frontend visually ignore the reference stylesheet that lives in the repo?"
-> **Domain expert:** "No. Use **Example Style Reference** from `playground/example_styles.css` as a rough guide for palette, typography direction, and feel, without copying it 1:1."
->
-> **Dev:** "Must the first slice copy the reference stylesheet's separate display and UI font roles?"
-> **Domain expert:** "No. Use **Single-Font First Slice** typography if that keeps the first slice simpler."
->
-> **Dev:** "Should the first slice follow the reference stylesheet's dark-theme direction by default?"
-> **Domain expert:** "Yes. Use **Dark-Default First Slice** theming in the first webapp slice."
->
-> **Dev:** "Should the first slice also ship a light theme toggle?"
-> **Domain expert:** "No. Use **No Light Theme Day One** and focus on getting the dark default right first."
->
-> **Dev:** "Should the first slice keep almost everything on one accent color except errors?"
-> **Domain expert:** "No. Use **Distinct Semantic Accent Colors** so important states and item kinds remain visually distinct."
->
-> **Dev:** "Should those semantic accents extend to larger background treatments for item kinds in the first slice?"
-> **Domain expert:** "No. Use **Small Semantic Signals** and keep semantic accents restrained for now."
->
-> **Dev:** "Should the first slice use subtle motion and transitions in the spirit of the reference stylesheet?"
-> **Domain expert:** "No. Use **Motion-Off First Slice** and validate the static review surface first."
->
-> **Dev:** "Should the first slice keep the reference stylesheet's elevated panel-heavy surface model?"
-> **Domain expert:** "No. Use **Flattened Surface Model** and keep the palette and feel without copying the heavier panel elevation."
->
-> **Dev:** "Should the flatter first slice avoid most surface distinction too?"
-> **Domain expert:** "No. Use **Subtle Surface Separation** so borders and tonal shifts still preserve layout structure."
 >
 > **Dev:** "Should the conversation screen re-sort items or responses if a different order looks nicer?"
 > **Domain expert:** "No. It should render the backend's **Authoritative Sequence** so the transcript reflects the persisted record rather than a client interpretation."
@@ -1057,27 +892,6 @@ _Avoid_: Editable map document, stats record
 - "relationship links" was underspecified; resolved: generic detail pages link only through **Declared Relationships** rather than guessed nested identifiers
 - "detail density" was underspecified; resolved: generic detail pages use **Collapsed Detail** for long text and nested structures by default
 - "specialized vs raw detail" was underspecified; resolved: specialized resources keep a reachable **Secondary Raw View** rather than replacing exact document access
-- "admin API data access strategy" was underspecified; resolved: the API uses a **Store-First API Surface** and expands existing stores instead of building a parallel data access layer
-- "FastAPI model strategy" was underspecified; resolved: the API prefers **Direct FastAPI Model Reuse** with existing `DbModel` and `MainBaseModel` types when shapes already fit
-- "store expansion granularity" was underspecified; resolved: reusable persistence capabilities follow **Shared Store Expansion** and are added once in the existing store layer
-- "store model boundary" was underspecified; resolved: stores follow **Store Model Boundary** and do not introduce new API-specific composed models
-- "composed read ownership" was underspecified; resolved: API-specific read shapes use **App-Layer Read Composition** from existing models when needed
-- "composed read placement" was underspecified; resolved: API-specific composed reads live in a **Shared App Read Module** rather than route files
-- "conversation read module split" was underspecified; resolved: the **Conversations-First Slice** uses a **Unified Conversation Read Module** for list and detail composition
-- "frontend reuse expectation" was underspecified; resolved: each delivered slice contributes to **Component Library Growth** rather than one-off page-local UI
-- "frontend styling architecture" was underspecified; resolved: the frontend preserves a **Central Styling Surface** so styling can be changed centrally after the first slice review
-- "frontend component extraction timing" was underspecified; resolved: the frontend uses **Opportunistic Component Extraction** from concrete slice needs
-- "frontend component style placement" was underspecified; resolved: reusable components use **Token-Routed Component Styling** rather than hard-coded local styling or global-only styling
-- "frontend token timing" was underspecified; resolved: the first slice defines a **Small Up-Front Token Set** for central styling control
-- "frontend visual reference" was underspecified; resolved: the frontend uses **Example Style Reference** from `playground/example_styles.css` as a rough palette-and-feel guide
-- "frontend first-slice font-role complexity" was underspecified; resolved: the first slice may use **Single-Font First Slice** typography
-- "frontend default theme direction" was underspecified; resolved: the first slice uses **Dark-Default First Slice** theming
-- "frontend day-one theme scope" was underspecified; resolved: the first slice uses **No Light Theme Day One**
-- "frontend semantic accent strategy" was underspecified; resolved: the first slice uses **Distinct Semantic Accent Colors**
-- "frontend semantic accent intensity" was underspecified; resolved: the first slice uses **Small Semantic Signals** rather than large semantic background treatments
-- "frontend motion scope" was underspecified; resolved: the first slice uses **Motion-Off First Slice**
-- "frontend surface treatment" was underspecified; resolved: the first slice uses **Flattened Surface Model** rather than the reference's heavier panel elevation
-- "frontend surface separation" was underspecified; resolved: the first slice uses **Subtle Surface Separation** through restrained borders and tonal shifts
 - "transcript ordering" was underspecified; resolved: transcript-like specialized screens follow the backend's **Authoritative Sequence** rather than client-side re-sorting
 - "conversation action target" was underspecified; resolved: close/archive are **Conversation** actions, not **Conversation Item** actions
 - "conversation transcript scope" was underspecified; resolved: the conversation view is a **Complete Conversation Transcript** with all persisted items

@@ -182,6 +182,11 @@ It should show the discovered resources and make it easy to jump into:
 - Specialized conversation, session, replay, player, and map-stat views.
 - Health and schema inspection where useful for admin/debug workflows.
 
+When a resource has a curated screen and is also writable, the workspace may expose both:
+
+- the curated route as the primary operator path
+- a generic maintenance route as the fallback document editor
+
 ### Generic Resource List
 
 Generic list views should support:
@@ -192,6 +197,8 @@ Generic list views should support:
 - Projection selection where the resource supports `table` versus `detail`.
 - Row navigation to detail views.
 - Raw JSON query submission for guarded `/query` endpoints.
+
+The generic maintenance route is `/resources/:resourceName`.
 
 List views should default to compact table-style display and avoid rendering large nested structures inline.
 
@@ -208,6 +215,11 @@ Generic detail views should support:
 
 Schema metadata from `GET /api/schema/{resource}` informs forms where practical, but raw JSON editing remains a first-class fallback for complex persisted models.
 
+The generic maintenance detail routes are:
+
+- `/resources/:resourceName/new`
+- `/resources/:resourceName/:documentId`
+
 ### Conversation Detail
 
 Conversation detail is a required specialized view.
@@ -221,6 +233,7 @@ Primary conversation-review contract:
 The screen should present:
 
 - A compact conversation summary header with trigger, status, created time, total item count, and replay/session links when present.
+- Workflow actions for closing and archiving only when the current conversation state supports them.
 - The complete ordered conversation item flow from the backend, including messages, tool calls, and tool results.
 - Inline item timestamps.
 - Visible item-kind treatment so messages, tool calls, and tool results are immediately distinguishable.
@@ -233,12 +246,18 @@ The screen should present:
 The conversation screen should not include:
 
 - Response metadata or response-accounting panels.
-- Close/archive controls.
 - Conversation-item create/edit controls.
 - Embedded raw JSON/document tabs.
 - Next/previous conversation stepping from detail.
 
 The conversation screen is the primary readable transcript-style admin view.
+
+Conversation workflow action behavior:
+
+- Closing is available only while the conversation is active.
+- Archiving is available while the conversation is active or closed.
+- Successful actions update the visible conversation status from the action response without a full page reload.
+- Action failures should use the shared backend error envelope and be surfaced inline on the detail screen.
 
 Conversation-list behavior:
 
@@ -247,7 +266,7 @@ Conversation-list behavior:
 - Keep rows compact and avoid transcript previews.
 - Show trigger, item count, and last-item timestamp in each row.
 - Show lightweight replay/session presence indicators.
-- Support a typed trigger filter with operator-friendly labels, defaulting to all triggers.
+- Support typed trigger and status filters with operator-friendly labels, defaulting to all triggers and the active/closed inbox pair.
 - Keep trigger filter state stable during normal SPA navigation and restored list context, while resetting it on full page refresh.
 - Use paged results with a fixed page size.
 - Preserve restored list context, current-row highlight, and scroll position when possible.
@@ -261,6 +280,8 @@ Loading, error, and refresh behavior:
 - Distinguish no-data and no-match list empty states, and name the active trigger in trigger-filtered no-match states.
 
 ### Session Detail
+
+The workspace enters the session workflow through a dedicated `/sessions` inbox route that lists recent sessions and links each row to its specialized detail page.
 
 Session detail should combine:
 
@@ -280,6 +301,13 @@ Replay detail should combine:
 
 The screen should make it easy to inspect replay metadata and jump to related known player records.
 
+The first replay-review slice should:
+
+- Keep replay facts compact and operator-facing.
+- Render replay summary metadata separately from replay facts.
+- Show participating player records as a dedicated section on the replay screen instead of reconstructing joins in the client.
+- Provide visible in-screen navigation from replay facts into those player records.
+
 ### Player Detail
 
 Player detail should be treated as a specialized view because of portrait media and alias structure.
@@ -296,6 +324,7 @@ The UI should:
 - Render portrait metadata and load portrait images from the dedicated media endpoints.
 - Show alias entries without forcing large binary payloads into the main JSON view.
 - Link to related replays for the selected player.
+- Route the discovered Players workspace card into a player-review entry list, then allow replay-to-player and player-to-replay navigation within the specialized review flow.
 
 ### Map Stats View
 
@@ -350,6 +379,7 @@ Manual verification covers:
 - Browser refresh preserves list/detail browsing position when possible and remains the refresh path for the conversation list and conversation detail screen.
 - Session detail loads linked conversations and summary totals.
 - Replay detail loads linked metadata and players.
+- Replay detail lets the operator jump from replay facts into the participating player-record section.
 - Player detail renders portrait metadata and displays portrait images from media endpoints.
 - Map stats screens respect inclusive date filters and named range queries.
 - Read-only resources do not expose write actions.

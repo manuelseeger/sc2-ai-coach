@@ -122,14 +122,15 @@ Inputs:
 - Linked implementation issues: discover from the PRD issue
 
 You must:
-1. List all remaining Open issues and pick ONE you think is the most important next step. Do not pick an issue with label `in-progress`
-   (**DO NOT pick multiple tasks, one per call**)
-2. Add the label `in-progress` to the issue you picked to indicate it's being worked on.
-3. Implement the selected task end-to-end, using /tdd TDD
-4. Review and make sure the issue's acceptance criteria are fully met, and all necessary code, tests, and documentation are complete.
-5. Remove the `in-progress` label. 
-6. Add the `to-be-verified` label to indicate completion.
-7. Once you have finished one task, STOP and return control to the orchestrator.
+1. List all remaining Open issues and pick ONE you think is the most important next step. 
+   (**DO NOT pick and issue that is blocked by another, open or incomplete issue**)
+2. If there is an item in status `incomplete` pick that as priority. 
+3. Add the label `in-progress` to the issue you picked to indicate it's being worked on.
+4. Implement the selected task end-to-end, using /tdd TDD
+5. Review and make sure the issue's acceptance criteria are fully met, and all necessary code, tests, and documentation are complete.
+6. Remove the `in-progress` label. 
+7. Add the `to-be-verified` label to indicate completion.
+8. Once you have finished one task, STOP and return control to the orchestrator.
     You shall NOT attempt implementing multiple tasks in one call.
 </CODER_SUBAGENT_INSTRUCTIONS>
 
@@ -145,7 +146,7 @@ You must:
 2. Review the code, tests, and documentation related to the issue. Ensure all acceptance criteria are met.
 3. Look up testing instructions in the PRD.
 4. Run user tests: Start the application and use the browser to access the frontend. Go through the user stories related to the issue you are verifying. Ensure that the implemented feature works as expected from the user's perspective.
-5. If the implementation is incorrect or incomplete, add a comment detailing what is wrong and what needs to be fixed. Remove the `to-be-verified` label and add the `in-progress` label. Return control to the orchestrator.
+5. If the implementation is incorrect or incomplete, add a comment detailing what is wrong and what needs to be fixed. Remove the `to-be-verified` label and add the `incomplete` label. Return control to the orchestrator.
 6. If the implementation is correct and meets all criteria, add a comment to the issue with your test results and close the issue.
 6b. Commit strategy:Create a concise conventional commit message focused on user impact.
 6c. Commit and push all changes. 
