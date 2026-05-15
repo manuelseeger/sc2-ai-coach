@@ -51,9 +51,7 @@ def get_database(app_config: Config | None = None) -> MongoDatabase:
 
     if app_config is None:
         if _database is None:
-            _database = MongoDatabase(
-                MongoDatabaseConfig.from_config(get_config())
-            )
+            _database = MongoDatabase(MongoDatabaseConfig.from_config(get_config()))
         return _database
 
     database = MongoDatabase(MongoDatabaseConfig.from_config(app_config))
