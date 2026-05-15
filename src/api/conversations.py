@@ -1,24 +1,43 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
+from bson import ObjectId
+from bson.errors import InvalidId
 from pymongo import MongoClient
+from pyodmongo import Id
 
 from src.api.config import ApiConfig
-from src.api.contracts import ConversationListResponse, ConversationSummary
+from src.api.contracts import (
+    ConversationDetailResponse,
+    ConversationItemsResponse,
+    ConversationListResponse,
+    ConversationReviewItem,
+    ConversationReviewLink,
+    ConversationReviewSummary,
+    ConversationSummary,
+)
 from src.api.conversation_types import AIConversationStatus, AIConversationTrigger
+from src.replays.types import AIContentPart, AIConversationItemType, AIMessageRole
 
 
 class ConversationQueryService:
     def __init__(self, config: ApiConfig):
         self._config = config
+        self._client = MongoClient(str(config.mongo_dsn))
+
+    @property
+    def database(self):
+        return self._client.get_database(self._config.db_name)
 
     @property
     def collection(self):
-        client = MongoClient(str(self._config.mongo_dsn))
-        return client.get_database(self._config.db_name).get_collection(
-            "ai_conversations"
-        )
+        return self.database.get_collection("ai_conversations")
+
+    @property
+    def item_collection(self):
+        return self.database.get_collection("ai_conversation_items")
 
     def list_conversations(
         self,
@@ -51,10 +70,47 @@ class ConversationQueryService:
     def get_conversation_summary(
         self, conversation_id: str
     ) -> ConversationSummary | None:
-        document = self.collection.find_one({"_id": conversation_id})
+        document = self.collection.find_one(_conversation_id_query(conversation_id))
         if document is None:
             return None
         return _conversation_summary(document)
+
+    def get_conversation_items(
+        self,
+        conversation_id: str,
+        *,
+        included_in_context: bool | None,
+        include_raw: bool,
+    ) -> ConversationItemsResponse | None:
+        conversation = self.collection.find_one(_conversation_id_query(conversation_id))
+        if conversation is None:
+            return None
+
+        query: dict[str, Any] = _conversation_item_query(conversation_id)
+        if included_in_context is not None:
+            query["included_in_context"] = included_in_context
+
+        documents = list(self.item_collection.find(query).sort([("order", 1)]))
+        return ConversationItemsResponse(
+            items=_conversation_review_items(documents, include_raw=include_raw)
+        )
+
+    def get_conversation_detail(
+        self, conversation_id: str
+    ) -> ConversationDetailResponse | None:
+        conversation = self.collection.find_one(_conversation_id_query(conversation_id))
+        if conversation is None:
+            return None
+
+        item_documents = list(
+            self.item_collection.find(_conversation_item_query(conversation_id)).sort(
+                [("order", 1)]
+            )
+        )
+        return ConversationDetailResponse(
+            conversation=_conversation_review_summary(conversation),
+            items=_conversation_review_items(item_documents, include_raw=False),
+        )
 
 
 def _conversation_summary(document: dict) -> ConversationSummary:
@@ -76,6 +132,53 @@ def _conversation_summary(document: dict) -> ConversationSummary:
     )
 
 
+def _conversation_review_summary(document: dict) -> ConversationReviewSummary:
+    conversation_id = str(document.get("_id"))
+    return ConversationReviewSummary(
+        id=conversation_id,
+        detail_path=f"/conversations/{conversation_id}",
+        trigger=AIConversationTrigger(document["trigger"]),
+        status=AIConversationStatus(document["status"]),
+        item_count=int(document.get("item_count") or 0),
+        created_at=_required_datetime(document.get("created_at")),
+        replay=_review_link(document.get("replay_id"), "/replays"),
+        session=_review_link(document.get("session"), "/sessions"),
+    )
+
+
+def _conversation_review_items(
+    documents: list[dict[str, Any]], *, include_raw: bool
+) -> list[ConversationReviewItem]:
+    tool_names_by_call_id: dict[str, str] = {}
+    items: list[ConversationReviewItem] = []
+
+    for document in documents:
+        call_id = _optional_id(document.get("call_id"))
+        tool_name = _optional_name(document.get("name"))
+        if call_id is not None and tool_name is not None:
+            tool_names_by_call_id[call_id] = tool_name
+
+        if tool_name is None and call_id is not None:
+            tool_name = tool_names_by_call_id.get(call_id)
+
+        items.append(
+            ConversationReviewItem(
+                id=str(document.get("_id")),
+                kind=AIConversationItemType(document["type"]),
+                created_at=_required_datetime(document.get("created_at")),
+                role=_optional_role(document.get("role")),
+                message_text=_message_text(document.get("content")),
+                tool_name=tool_name,
+                tool_arguments=_tool_arguments(document.get("arguments")),
+                tool_output=_tool_output(document.get("output")),
+                included_in_context=bool(document.get("included_in_context", True)),
+                raw_item=document.get("raw_item") if include_raw else None,
+            )
+        )
+
+    return items
+
+
 def _activity_sort_key(document: dict) -> datetime:
     created_at = _required_datetime(document.get("created_at"))
     return document.get("last_item_at") or created_at
@@ -91,6 +194,85 @@ def _optional_id(value: object) -> str | None:
     if value is None:
         return None
     return str(value)
+
+
+def _optional_name(value: object) -> str | None:
+    if value is None:
+        return None
+    return str(value)
+
+
+def _optional_role(value: object) -> AIMessageRole | None:
+    if value is None:
+        return None
+    return AIMessageRole(str(value))
+
+
+def _tool_arguments(value: object) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    return dict(value)
+
+
+def _tool_output(value: object) -> str | None:
+    if value is None:
+        return None
+    return str(value)
+
+
+def _message_text(value: object) -> str | None:
+    if value is None:
+        return None
+
+    parts: list[str] = []
+    for item in value:
+        if isinstance(item, AIContentPart):
+            parts.append(item.text)
+            continue
+
+        if isinstance(item, dict):
+            text = item.get("text")
+            if text is not None:
+                parts.append(str(text))
+
+    if not parts:
+        return None
+    return "\n\n".join(parts)
+
+
+def _review_link(value: object, prefix: str) -> ConversationReviewLink | None:
+    identifier = _optional_id(value)
+    if identifier is None:
+        return None
+    return ConversationReviewLink(id=identifier, path=f"{prefix}/{identifier}")
+
+
+def _conversation_id_query(conversation_id: str) -> dict[str, Any]:
+    return {"_id": {"$in": _possible_id_values(conversation_id)}}
+
+
+def _conversation_item_query(conversation_id: str) -> dict[str, Any]:
+    return {"conversation": {"$in": _possible_id_values(conversation_id)}}
+
+
+def _possible_id_values(value: str) -> list[object]:
+    values: list[object] = [value]
+
+    try:
+        values.append(Id(value))
+    except Exception:
+        pass
+
+    try:
+        values.append(ObjectId(value))
+    except (InvalidId, TypeError):
+        pass
+
+    unique_values: list[object] = []
+    for candidate in values:
+        if candidate not in unique_values:
+            unique_values.append(candidate)
+    return unique_values
 
 
 def _required_datetime(value: datetime | None) -> datetime:

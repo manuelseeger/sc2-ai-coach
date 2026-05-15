@@ -34,6 +34,49 @@ export interface ConversationListResponse {
   available_triggers: ConversationTrigger[]
 }
 
+export type ConversationItemKind =
+  | 'message'
+  | 'function_call'
+  | 'function_call_output'
+  | 'reasoning'
+  | 'summary'
+
+export type ConversationMessageRole = 'user' | 'assistant' | 'system' | 'developer' | 'tool'
+
+export interface ConversationReviewLink {
+  id: string
+  path: string
+}
+
+export interface ConversationReviewSummary {
+  id: string
+  detail_path: string
+  trigger: ConversationTrigger
+  status: ConversationStatus
+  item_count: number
+  created_at: string
+  replay: ConversationReviewLink | null
+  session: ConversationReviewLink | null
+}
+
+export interface ConversationReviewItem {
+  id: string
+  kind: ConversationItemKind
+  created_at: string
+  role: ConversationMessageRole | null
+  message_text: string | null
+  tool_name: string | null
+  tool_arguments: Record<string, unknown> | null
+  tool_output: string | null
+  included_in_context: boolean
+  raw_item: Record<string, unknown> | null
+}
+
+export interface ConversationDetailResponse {
+  conversation: ConversationReviewSummary
+  items: ConversationReviewItem[]
+}
+
 export interface ResourceDiscoveryEntry {
   name: string
   path: string

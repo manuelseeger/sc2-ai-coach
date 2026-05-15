@@ -36,4 +36,37 @@ describe('createAdminApiClient', () => {
       { headers: { Accept: 'application/json' } },
     )
   })
+
+  it('loads the specialized conversation detail route', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          conversation: {
+            id: 'a'.repeat(24),
+            detail_path: `/conversations/${'a'.repeat(24)}`,
+            trigger: 'repl',
+            status: 'closed',
+            item_count: 3,
+            created_at: '2026-05-15T08:30:00Z',
+            replay: { id: 'r1', path: '/replays/r1' },
+            session: null,
+          },
+          items: [],
+        }),
+        {
+          headers: { 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      ),
+    )
+
+    const client = createAdminApiClient(fetchMock)
+
+    await client.getConversationDetail('a'.repeat(24))
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/conversations/${'a'.repeat(24)}/detail`,
+      { headers: { Accept: 'application/json' } },
+    )
+  })
 })

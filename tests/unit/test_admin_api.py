@@ -10,11 +10,17 @@ from src.api.app import create_app
 from src.api.config import ApiConfig
 from src.api.contracts import (
     ApiHealthResponse,
+    ConversationDetailResponse,
+    ConversationReviewItem,
+    ConversationReviewLink,
+    ConversationReviewSummary,
+    ConversationItemsResponse,
     ConversationListResponse,
     ConversationSummary,
     ResourceDiscoveryEntry,
 )
 from src.api.conversation_types import AIConversationStatus, AIConversationTrigger
+from src.replays.types import AIConversationItemType, AIMessageRole
 
 
 def test_create_app_serves_health_resources_and_workspace_root(tmp_path: Path):
@@ -360,6 +366,133 @@ def test_create_app_serves_typed_conversation_list_and_summary_routes(tmp_path: 
     assert summary_response.status_code == 200
     assert summary_response.json()["id"] == "b" * 24
     assert calls["conversation_id"] == "b" * 24
+
+
+def test_default_conversation_queries_can_be_constructed_from_api_config():
+    from src.api.app import _default_conversation_queries
+
+    queries = _default_conversation_queries(
+        ApiConfig(
+            mongo_dsn="mongodb://localhost:27017",
+            db_name="SC2AICOACH_TEST",
+        )
+    )
+
+    assert hasattr(queries, "get_conversation_detail")
+
+
+def test_create_app_serves_conversation_review_detail_and_item_routes(tmp_path: Path):
+    dist_dir = tmp_path / "dist"
+    dist_dir.mkdir()
+    (dist_dir / "index.html").write_text('<main id="app"></main>', encoding="utf-8")
+
+    calls: dict[str, object] = {}
+    created_at = datetime(2026, 5, 15, 8, 30, tzinfo=UTC)
+    item_seen_at = datetime(2026, 5, 15, 8, 31, tzinfo=UTC)
+    conversation_id = "c" * 24
+
+    review_item = ConversationReviewItem(
+        id="d" * 24,
+        kind=AIConversationItemType.function_call,
+        created_at=item_seen_at,
+        role=None,
+        message_text=None,
+        tool_name="load_replay",
+        tool_arguments={"replay_id": "r1"},
+        tool_output=None,
+        included_in_context=False,
+        raw_item=None,
+    )
+
+    class StubConversationQueries:
+        def list_conversations(self, *, page, page_size, trigger, statuses):
+            raise AssertionError("list_conversations should not be called in this test")
+
+        def get_conversation_summary(self, conversation_id):
+            raise AssertionError("get_conversation_summary should not be called in this test")
+
+        def get_conversation_items(
+            self,
+            conversation_id: str,
+            *,
+            included_in_context: bool | None,
+            include_raw: bool,
+        ):
+            calls["items_conversation_id"] = conversation_id
+            calls["included_in_context"] = included_in_context
+            calls["include_raw"] = include_raw
+            return ConversationItemsResponse(items=[review_item])
+
+        def get_conversation_detail(self, conversation_id: str):
+            calls["detail_conversation_id"] = conversation_id
+            return ConversationDetailResponse(
+                conversation=ConversationReviewSummary(
+                    id=conversation_id,
+                    detail_path=f"/conversations/{conversation_id}",
+                    trigger=AIConversationTrigger.repl,
+                    status=AIConversationStatus.closed,
+                    item_count=1,
+                    created_at=created_at,
+                    replay=ConversationReviewLink(
+                        id="r1",
+                        path="/replays/r1",
+                    ),
+                    session=ConversationReviewLink(
+                        id="s1",
+                        path="/sessions/s1",
+                    ),
+                ),
+                items=[review_item],
+            )
+
+    app = create_app(
+        ApiConfig(
+            mongo_dsn="mongodb://localhost:27017",
+            db_name="SC2AICOACH_TEST",
+            web_dist_dir=dist_dir,
+        ),
+        health_check=lambda: ApiHealthResponse(
+            status="ok",
+            database="ok",
+            db_name="SC2AICOACH_TEST",
+        ),
+        conversation_queries=StubConversationQueries(),
+    )
+
+    client = TestClient(app)
+
+    items_response = client.get(
+        f"/api/conversations/{conversation_id}/items",
+        params={"included_in_context": "false", "include_raw": "true"},
+    )
+
+    assert items_response.status_code == 200
+    assert items_response.json() == {
+        "items": [review_item.model_dump(mode="json")],
+    }
+    assert calls == {
+        "items_conversation_id": conversation_id,
+        "included_in_context": False,
+        "include_raw": True,
+    }
+
+    detail_response = client.get(f"/api/conversations/{conversation_id}/detail")
+
+    assert detail_response.status_code == 200
+    assert detail_response.json() == {
+        "conversation": {
+            "id": conversation_id,
+            "detail_path": f"/conversations/{conversation_id}",
+            "trigger": "repl",
+            "status": "closed",
+            "item_count": 1,
+            "created_at": "2026-05-15T08:30:00Z",
+            "replay": {"id": "r1", "path": "/replays/r1"},
+            "session": {"id": "s1", "path": "/sessions/s1"},
+        },
+        "items": [review_item.model_dump(mode="json")],
+    }
+    assert calls["detail_conversation_id"] == conversation_id
 
 
 def test_workspace_deep_link_bootstraps_requested_conversation_path(tmp_path: Path):

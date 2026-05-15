@@ -15,6 +15,8 @@ from pymongo.errors import PyMongoError
 from src.api.config import ApiConfig
 from src.api.contracts import (
     ApiHealthResponse,
+    ConversationDetailResponse,
+    ConversationItemsResponse,
     ConversationListResponse,
     ConversationSummary,
     ResourceDiscoveryEntry,
@@ -47,8 +49,19 @@ class ConversationQueries(Protocol):
         self, conversation_id: str
     ) -> ConversationSummary | None: ...
 
+    def get_conversation_items(
+        self,
+        conversation_id: str,
+        *,
+        included_in_context: bool | None,
+        include_raw: bool,
+    ) -> ConversationItemsResponse | None: ...
 
-@lru_cache(maxsize=1)
+    def get_conversation_detail(
+        self, conversation_id: str
+    ) -> ConversationDetailResponse | None: ...
+
+
 def _default_conversation_queries(config: ApiConfig) -> ConversationQueries:
     from src.api.conversations import ConversationQueryService
 
@@ -141,6 +154,9 @@ def create_app(
     resolved_config = config or ApiConfig()
     resolved_health_check = health_check or _build_health_check(resolved_config)
     resolved_resource_discovery = resource_discovery or discover_resources
+    resolved_conversation_queries = conversation_queries or _default_conversation_queries(
+        resolved_config
+    )
 
     app = FastAPI(title="SC2 AI Coach Admin API")
     app.add_middleware(
@@ -166,10 +182,7 @@ def create_app(
         trigger: AIConversationTrigger | None = Query(default=None),
         status: list[AIConversationStatus] | None = Query(default=None),
     ) -> ConversationListResponse:
-        query_service = conversation_queries or _default_conversation_queries(
-            resolved_config
-        )
-        return query_service.list_conversations(
+        return resolved_conversation_queries.list_conversations(
             page=page,
             page_size=page_size,
             trigger=trigger,
@@ -177,12 +190,37 @@ def create_app(
             or [AIConversationStatus.active, AIConversationStatus.closed],
         )
 
+    @app.get(
+        "/api/conversations/{conversation_id}/items",
+        response_model=ConversationItemsResponse,
+    )
+    def get_conversation_items(
+        conversation_id: str,
+        included_in_context: bool | None = Query(default=None),
+        include_raw: bool = Query(default=False),
+    ) -> ConversationItemsResponse:
+        items = resolved_conversation_queries.get_conversation_items(
+            conversation_id,
+            included_in_context=included_in_context,
+            include_raw=include_raw,
+        )
+        if items is None:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        return items
+
+    @app.get(
+        "/api/conversations/{conversation_id}/detail",
+        response_model=ConversationDetailResponse,
+    )
+    def get_conversation_detail(conversation_id: str) -> ConversationDetailResponse:
+        detail = resolved_conversation_queries.get_conversation_detail(conversation_id)
+        if detail is None:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        return detail
+
     @app.get("/api/conversations/{conversation_id}", response_model=ConversationSummary)
     def get_conversation_summary(conversation_id: str) -> ConversationSummary:
-        query_service = conversation_queries or _default_conversation_queries(
-            resolved_config
-        )
-        summary = query_service.get_conversation_summary(conversation_id)
+        summary = resolved_conversation_queries.get_conversation_summary(conversation_id)
         if summary is None:
             raise HTTPException(status_code=404, detail="Conversation not found")
         return summary

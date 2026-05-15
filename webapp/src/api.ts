@@ -1,6 +1,7 @@
 import { inject, type InjectionKey } from 'vue'
 
 import type {
+  ConversationDetailResponse,
   ConversationListResponse,
   ConversationStatus,
   ConversationSummary,
@@ -19,6 +20,7 @@ export interface AdminApiClient {
   listResources(): Promise<ResourceDiscoveryEntry[]>
   listConversations(params: ListConversationsParams): Promise<ConversationListResponse>
   getConversationSummary(conversationId: string): Promise<ConversationSummary>
+  getConversationDetail(conversationId: string): Promise<ConversationDetailResponse>
 }
 
 export const adminApiKey: InjectionKey<AdminApiClient> = Symbol('admin-api')
@@ -60,6 +62,13 @@ export function createAdminApiClient(fetchImpl: FetchLike = fetch): AdminApiClie
 
     async getConversationSummary(conversationId) {
       return requestJson<ConversationSummary>(fetchImpl, `/api/conversations/${conversationId}`)
+    },
+
+    async getConversationDetail(conversationId) {
+      return requestJson<ConversationDetailResponse>(
+        fetchImpl,
+        `/api/conversations/${conversationId}/detail`,
+      )
     },
   }
 }

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from typing import Any
 from datetime import datetime
 
 from pydantic import BaseModel
 
 from src.api.conversation_types import AIConversationStatus, AIConversationTrigger
+from src.replays.types import AIConversationItemType, AIMessageRole
 
 
 class ApiHealthResponse(BaseModel):
@@ -52,3 +54,41 @@ class ConversationListResponse(BaseModel):
     total_pages: int
     available_statuses: list[AIConversationStatus]
     available_triggers: list[AIConversationTrigger]
+
+
+class ConversationReviewLink(BaseModel):
+    id: str
+    path: str
+
+
+class ConversationReviewSummary(BaseModel):
+    id: str
+    detail_path: str
+    trigger: AIConversationTrigger
+    status: AIConversationStatus
+    item_count: int
+    created_at: datetime
+    replay: ConversationReviewLink | None = None
+    session: ConversationReviewLink | None = None
+
+
+class ConversationReviewItem(BaseModel):
+    id: str
+    kind: AIConversationItemType
+    created_at: datetime
+    role: AIMessageRole | None = None
+    message_text: str | None = None
+    tool_name: str | None = None
+    tool_arguments: dict[str, Any] | None = None
+    tool_output: str | None = None
+    included_in_context: bool
+    raw_item: dict[str, Any] | None = None
+
+
+class ConversationItemsResponse(BaseModel):
+    items: list[ConversationReviewItem]
+
+
+class ConversationDetailResponse(BaseModel):
+    conversation: ConversationReviewSummary
+    items: list[ConversationReviewItem]

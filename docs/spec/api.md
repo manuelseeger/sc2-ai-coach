@@ -767,6 +767,20 @@ Query parameters:
 
 Default sort: `order` ascending.
 
+Phase-one review projection fields:
+
+- `id`
+- `kind`
+- `created_at`
+- `role`
+- `message_text`
+- `tool_name`
+- `tool_arguments`
+- `tool_output`
+- `included_in_context`
+
+When a persisted tool-result item does not carry its own tool name, the backend fills `tool_name` from the earlier tool-call item with the same `call_id` so the review UI can label tool results without inventing pair-grouping semantics.
+
 ### `POST /api/conversations/{conversation_id}/items`
 
 Creates a conversation item linked to the conversation.
@@ -787,17 +801,14 @@ Returns an aggregate conversation view for custom UI screens.
 
 Response fields:
 
-- `conversation`: `AIConversation`.
-- `session`: linked `Session | null`.
-- `items`: ordered `AIConversationItem` list.
-- `metadata`: replay metadata when `conversation.replay_id` is present and metadata exists.
-- `replay`: compact replay table projection when `conversation.replay_id` exists and replay exists.
+- `conversation`: compact review summary with `id`, `detail_path`, `trigger`, `status`, `item_count`, `created_at`, and optional `replay` / `session` links.
+- `items`: ordered conversation-review item list using the same review projection as `/api/conversations/{conversation_id}/items`.
 
 Detail contract rules:
 
 - `items` contains the complete persisted conversation item sequence in backend order, not only the subset previously included in model context.
 - Tool calls and tool results remain ordinary items in that authoritative sequence.
-- Related `session`, `replay`, and `metadata` values provide compact secondary context when available.
+- Related `session` and `replay` values provide compact secondary context when available.
 - Response records are intentionally excluded from this primary detail payload and remain available through `/api/conversations/{conversation_id}/responses` and the generic response resource.
 
 This endpoint is the primary backend support for the readable conversation review surface.
@@ -1081,7 +1092,7 @@ Minimum coverage:
 - CRUD round trip for `AIConversation` and `AIConversationItem`.
 - `GET /api/conversations/{conversation_id}/items` returns ordered items.
 - `GET /api/conversations/{conversation_id}/responses` returns response records in ascending creation order.
-- `GET /api/conversations/{conversation_id}/detail` returns conversation, optional session/replay context, and the complete ordered item flow without response records.
+- `GET /api/conversations/{conversation_id}/detail` returns compact conversation review context plus the complete ordered item flow without response records.
 - `GET /api/sessions/{session_id}/conversations` returns linked conversations.
 - `GET /api/replays/{replay_id}/metadata` returns linked metadata.
 - `GET /api/map-stats/{map_name}` applies inclusive date filters before aggregation.
