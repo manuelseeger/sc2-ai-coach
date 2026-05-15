@@ -8,7 +8,7 @@ from rich.markdown import Markdown
 from rich.status import Status
 
 from src.replays.types import Role
-from src.runtime.settings import load_current_settings
+from src.runtime.settings import get_config
 
 console = Console()
 
@@ -73,7 +73,7 @@ emoji_map_sorted_by_specificity = sorted(
 
 
 def get_emoji(name: str, funcName: str) -> str:
-    settings = load_current_settings()
+    settings = get_config()
     input_string = f"{name}.{funcName}".replace(f"{settings.name}.", "")
     for key in emoji_map_sorted_by_specificity:
         if input_string.startswith(key):
@@ -130,7 +130,7 @@ class RichConsoleLogHandler(Handler):
             emoji = Emojis.error
 
         role = getattr(record, "role", None)
-        settings = load_current_settings()
+        settings = get_config()
         if role is not None:
             if role == Role.assistant:
                 emoji = Emojis.aicoach

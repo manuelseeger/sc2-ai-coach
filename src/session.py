@@ -30,7 +30,7 @@ from src.persistence.replay_store import Metadata, ReplayStore, get_replay_store
 from src.persistence.session_store import Session, SessionStore
 from src.playerresolver import PlayerResolver
 from src.replays.types import AIConversationTrigger, Replay, Role
-from src.runtime.settings import AudioMode, Config, load_current_settings
+from src.runtime.settings import AudioMode, Config, get_config
 from src.util import secs2time
 
 
@@ -108,7 +108,7 @@ class AISession:
         session_store: SessionStore | None = None,
         player_resolver: PlayerResolver | None = None,
     ):
-        self.settings = settings or load_current_settings()
+        self.settings = settings or get_config()
         self.conversation_store = conversation_store or get_conversation_store()
         self.replay_store = replay_store or get_replay_store()
         self.session_store = session_store or SessionStore(self.replay_store.database)

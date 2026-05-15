@@ -6,6 +6,7 @@ import httpx
 from .base import AIFunction
 
 from log import DEFAULT_LOGGER_NAME
+
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 PROFILE_BASE = "https://starcraft2.com/en-us/profile/"

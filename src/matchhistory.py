@@ -9,9 +9,10 @@ from pydantic import BaseModel, ConfigDict, computed_field, field_validator
 from shared import http_client
 from src.lib.sc2pulse import SC2PulseClient, SC2PulseCommonCharacter, SC2PulseRace
 from src.replays.types import ToonHandle
-from src.runtime.settings import Config, load_current_settings
+from src.runtime.settings import Config, get_config
 
 from log import DEFAULT_LOGGER_NAME
+
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 
@@ -87,7 +88,7 @@ def get_sc2pulse_match_history(
     *,
     settings: Config | None = None,
 ) -> MatchHistory | None:
-    settings = settings or load_current_settings()
+    settings = settings or get_config()
     sc2pulse = SC2PulseClient(http_client=http_client, settings=settings)
 
     profile_link = toon_handle.to_profile_link()

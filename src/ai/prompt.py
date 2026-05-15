@@ -4,6 +4,7 @@ from jinja2 import Environment, FileSystemLoader, Template
 from typing_extensions import Dict
 
 from log import DEFAULT_LOGGER_NAME
+
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 log.setLevel(logging.DEBUG)
 

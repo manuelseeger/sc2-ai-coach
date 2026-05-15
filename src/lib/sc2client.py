@@ -9,9 +9,10 @@ from httpx import ConnectError
 from pydantic import BaseModel
 from pydantic_core import ValidationError
 
-from src.runtime.settings import Config, load_current_settings
+from src.runtime.settings import Config, get_config
 
 from log import DEFAULT_LOGGER_NAME
+
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 # Module-level constant
@@ -135,7 +136,7 @@ class SC2Client:
         http_client: httpx.Client = None,
         settings: Config | None = None,
     ):
-        self.settings = settings or load_current_settings()
+        self.settings = settings or get_config()
         if http_client:
             self.http_client = http_client
         else:

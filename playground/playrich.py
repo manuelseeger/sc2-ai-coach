@@ -7,9 +7,9 @@ from time import sleep
 
 from src.io.rich_log import RichConsoleLogHandler
 from src.replaydb.types import Role
-from src.runtime.settings import load_current_settings
+from src.runtime.settings import get_config
 
-log = logging.getLogger(load_current_settings().name)
+log = logging.getLogger(get_config().name)
 log.setLevel(logging.INFO)
 log.addHandler(RichConsoleLogHandler())
 

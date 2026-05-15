@@ -19,7 +19,7 @@ from src.runtime.settings import (
     AudioMode,
     Config,
     TranscriberBackend,
-    load_current_settings,
+    get_config,
 )
 from src.session import AISession
 
@@ -33,7 +33,7 @@ from src.session import AISession
     help="Dump full LLM request and response traces to debug logs",
 )
 def main(debug, repl, trace):
-    settings = load_runtime_settings()
+    settings = get_config()
 
     configure_application_logging(logger=log)
     _install_rich_log_handler(log)
@@ -125,10 +125,6 @@ def main(debug, repl, trace):
                 twitch.stop()
                 twitch.join()
             sys.exit(0)
-
-
-def load_runtime_settings() -> "Config":
-    return load_current_settings()
 
 
 def _install_rich_log_handler(log: logging.Logger) -> None:

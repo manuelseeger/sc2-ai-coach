@@ -327,7 +327,7 @@ class SettingsLoaderError(Exception):
 
 def load_current_settings(*, require_prepared_environment: bool = True) -> Config:
     try:
-        settings = Config()
+        settings = Config()  # type: ignore
     except ValidationError as exc:
         raise SettingsLoaderError("Failed to load runtime settings") from exc
 
@@ -335,3 +335,13 @@ def load_current_settings(*, require_prepared_environment: bool = True) -> Confi
         raise SettingsLoaderError("Runtime environment is not prepared")
 
     return settings
+
+
+_config_cache: Config | None = None
+
+
+def get_config() -> Config:
+    global _config_cache
+    if _config_cache is None:
+        _config_cache = load_current_settings()
+    return _config_cache

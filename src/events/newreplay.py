@@ -12,10 +12,11 @@ from src.events import NewReplayEvent
 from src.persistence.replay_store import ReplayStore, get_replay_store
 from src.playeridentity import PlayerIdentityEnricher, PlayerIdentityEnrichmentError
 from src.replays.reader import ReplayReader
-from src.runtime.settings import Config, load_current_settings
+from src.runtime.settings import Config, get_config
 from src.util import wait_for_file
 
 from log import DEFAULT_LOGGER_NAME
+
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 log.setLevel(logging.INFO)
 
@@ -39,7 +40,7 @@ class NewReplayHandler(FileSystemEventHandler):
         settings: Config | None = None,
     ):
         super().__init__()
-        self.settings = settings or load_current_settings()
+        self.settings = settings or get_config()
         self.replay_store = replay_store or get_replay_store()
         if player_identity_enricher is None:
             raise ValueError("player_identity_enricher must be provided")
@@ -84,7 +85,7 @@ class NewReplayListener(ObserverType):  # pyright: ignore[reportGeneralTypeIssue
         settings: Config | None = None,
     ):
         super().__init__()
-        self.settings = settings or load_current_settings()
+        self.settings = settings or get_config()
         if player_identity_enricher is None:
             raise ValueError("player_identity_enricher must be provided")
         self.event_handler = NewReplayHandler(

@@ -20,6 +20,7 @@ from src.runtime.settings import Config
 from src.util import is_barcode
 
 from log import DEFAULT_LOGGER_NAME
+
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 KAT_PORTRAIT = Image.open("assets/katchinsky_portrait.png")

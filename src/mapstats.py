@@ -11,9 +11,10 @@ from pyodmongo import DbModel, MainBaseModel
 
 from src.persistence.replay_store import ReplayStore, get_replay_store
 from src.replays.types import Replay
-from src.runtime.settings import Config, load_current_settings
+from src.runtime.settings import Config, get_config
 
 from log import DEFAULT_LOGGER_NAME
+
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 
@@ -122,7 +123,7 @@ def _configure_matchups_pipeline(settings: Config) -> None:
     MatchupsByMap._pipeline.extend(_map_stats_pipeline(settings))
 
 
-_configure_matchups_pipeline(load_current_settings())
+_configure_matchups_pipeline(get_config())
 
 
 def add_path_segment(url: HttpUrl, *segments: Any) -> str:
@@ -142,7 +143,7 @@ def update_map_stats(
     *,
     settings: Config | None = None,
 ):
-    settings = settings or load_current_settings()
+    settings = settings or get_config()
     season_stats = get_map_stats(
         map,
         settings.season_start,
@@ -190,7 +191,7 @@ def get_map_stats(
     *,
     settings: Config | None = None,
 ) -> MatchupsByMap | None:
-    settings = settings or load_current_settings()
+    settings = settings or get_config()
     if min_date is None:
         min_date = settings.season_start
 

@@ -11,7 +11,7 @@ from src.persistence.conversation_store import ConversationStore, get_conversati
 from src.persistence.replay_store import ReplayStore
 from src.persistence.session_store import Session
 from src.replays.types import AIMessageRole
-from src.runtime.settings import Config, load_current_settings
+from src.runtime.settings import Config, get_config
 
 from .functions import build_ai_functions, responses_tools
 from .functions.base import strict_json_schema
@@ -19,6 +19,7 @@ from .openai_provider import get_openai_client
 from .prompt import Templates
 
 from log import DEFAULT_LOGGER_NAME
+
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 T = TypeVar("T", bound=BaseModel)
@@ -36,7 +37,7 @@ class AICoach:
         settings: Config | None = None,
     ):
         """Initialize the coach with the shared OpenAI client and local conversation store."""
-        self.settings = settings or load_current_settings()
+        self.settings = settings or get_config()
         self.client = client or get_openai_client(self.settings)
         self.store = store or get_conversation_store()
         self.replay_store = replay_store

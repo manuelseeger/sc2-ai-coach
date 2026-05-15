@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel, ConfigDict
 from pyodmongo import DbEngine
 
-from src.runtime.settings import load_current_settings
+from src.runtime.settings import get_config
 
 if TYPE_CHECKING:
     from src.runtime.settings import Config
@@ -52,7 +52,7 @@ def get_database(app_config: Config | None = None) -> MongoDatabase:
     if app_config is None:
         if _database is None:
             _database = MongoDatabase(
-                MongoDatabaseConfig.from_config(load_current_settings())
+                MongoDatabaseConfig.from_config(get_config())
             )
         return _database
 

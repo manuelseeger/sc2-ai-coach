@@ -5,16 +5,17 @@ import keyboard
 
 from shared import signal_queue
 from src.events import WakeEvent
-from src.runtime.settings import Config, load_current_settings
+from src.runtime.settings import Config, get_config
 
 from log import DEFAULT_LOGGER_NAME
+
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 
 class WakeKeyListener(threading.Thread):
     def __init__(self, *, settings: Config | None = None):
         super().__init__()
-        self.settings = settings or load_current_settings()
+        self.settings = settings or get_config()
         self.daemon = True
         self._stop_event = threading.Event()
 

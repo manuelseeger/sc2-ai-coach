@@ -22,7 +22,9 @@ def test_replay_typing(replay_file):
     replay = reader.to_typed_replay(raw_replay)
 
     assert replay.map_name == "Equilibrium LE"
-    assert replay.id == "3966c5a1c6e15e84e63e033e54783c74b1ccb78bc9194b47bb6fb11f0ada64c6"
+    assert (
+        replay.id == "3966c5a1c6e15e84e63e033e54783c74b1ccb78bc9194b47bb6fb11f0ada64c6"
+    )
     assert replay.id == raw_replay.filehash
     assert len(replay.players) == 2
 

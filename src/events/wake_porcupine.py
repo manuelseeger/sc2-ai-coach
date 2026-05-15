@@ -11,7 +11,7 @@ import pyaudio
 from log import DEFAULT_LOGGER_NAME
 from shared import signal_queue
 from src.events import WakeEvent
-from src.runtime.settings import Config, load_current_settings
+from src.runtime.settings import Config, get_config
 
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
@@ -22,7 +22,7 @@ CHANNELS = 1
 class WakeWordListener(threading.Thread):
     def __init__(self, *, settings: Config | None = None):
         super().__init__()
-        self.settings = settings or load_current_settings()
+        self.settings = settings or get_config()
         self.daemon = True
         self._stop_event = threading.Event()
         porcupine_model_path = self.settings.wakeword.porcupine_model_path
