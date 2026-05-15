@@ -137,14 +137,19 @@ def _install_rich_log_handler(log: logging.Logger) -> None:
     log.addHandler(rich_handler)
 
 
-def _build_io_services(settings: "Config") -> tuple[
+def _build_io_services(
+    settings: "Config",
+) -> tuple[
     TTSService | None,
     MicrophoneService | None,
     TranscriberService | None,
 ]:
     tts, mic, transcriber = None, None, None
 
-    if settings.audiomode in [AudioMode.voice_in, AudioMode.full] and settings.interactive:
+    if (
+        settings.audiomode in [AudioMode.voice_in, AudioMode.full]
+        and settings.interactive
+    ):
         from src.io.mic import Microphone
 
         mic = Microphone(
@@ -193,7 +198,10 @@ def _build_live_event_listeners(
         twitch = TwitchListener(settings=settings)
 
     if CoachEvent.wake in settings.coach_events:
-        if settings.audiomode in [AudioMode.full, AudioMode.voice_in] and settings.interactive:
+        if (
+            settings.audiomode in [AudioMode.full, AudioMode.voice_in]
+            and settings.interactive
+        ):
             if settings.wakeword.engine == "porcupine":
                 from src.events.wake_porcupine import WakeWordListener
             else:

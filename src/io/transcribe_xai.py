@@ -8,7 +8,7 @@ from speech_recognition.audio import AudioData
 from src.contracts import TranscriberService
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+
 
 STT_URL = "https://api.x.ai/v1/stt"
 
