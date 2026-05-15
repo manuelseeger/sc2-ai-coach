@@ -3,7 +3,8 @@ import logging
 from jinja2 import Environment, FileSystemLoader, Template
 from typing_extensions import Dict
 
-log = logging.getLogger(__name__)
+from log import DEFAULT_LOGGER_NAME
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 log.setLevel(logging.DEBUG)
 
 

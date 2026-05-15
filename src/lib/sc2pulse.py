@@ -17,7 +17,8 @@ from src.replays.types import ToonHandle
 from src.runtime.settings import Config, load_current_settings
 from src.util import convert_enum, is_barcode
 
-log = logging.getLogger(__name__)
+from log import DEFAULT_LOGGER_NAME
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 LeagueMap = {
     0: "Bronze",

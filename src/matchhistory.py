@@ -11,7 +11,8 @@ from src.lib.sc2pulse import SC2PulseClient, SC2PulseCommonCharacter, SC2PulseRa
 from src.replays.types import ToonHandle
 from src.runtime.settings import Config, load_current_settings
 
-log = logging.getLogger(__name__)
+from log import DEFAULT_LOGGER_NAME
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 
 def build_race_report(df: pd.DataFrame) -> pd.DataFrame:

@@ -15,7 +15,8 @@ from src.replays.reader import ReplayReader
 from src.runtime.settings import Config, load_current_settings
 from src.util import wait_for_file
 
-log = logging.getLogger(__name__)
+from log import DEFAULT_LOGGER_NAME
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 log.setLevel(logging.INFO)
 
 

@@ -9,7 +9,8 @@ from src.persistence.replay_store import Metadata, ReplayStore, get_replay_store
 
 from .base import AIFunction
 
-log = logging.getLogger(__name__)
+from log import DEFAULT_LOGGER_NAME
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 
 class AddMetadataArgs(BaseModel):

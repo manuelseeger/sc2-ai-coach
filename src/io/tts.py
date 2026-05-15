@@ -10,7 +10,8 @@ from src.util import strip_markdown
 if TYPE_CHECKING:
     from src.runtime.settings import TTSConfig
 
-log = logging.getLogger(__name__)
+from log import DEFAULT_LOGGER_NAME
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 
 class TTS(TTSService):

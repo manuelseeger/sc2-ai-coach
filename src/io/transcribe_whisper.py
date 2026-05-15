@@ -17,12 +17,12 @@ from transformers.models.whisper import WhisperFeatureExtractor
 from transformers.utils import is_flash_attn_2_available
 from typing_extensions import override
 
+from log import DEFAULT_LOGGER_NAME
 from src.contracts import TranscriberService
 
 transformers.logging.set_verbosity_error()
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 vad = webrtcvad.Vad()
 
