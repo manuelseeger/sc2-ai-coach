@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from functools import lru_cache
 from html import escape
 from pathlib import Path
@@ -20,10 +21,21 @@ from src.api.contracts import (
     ConversationListResponse,
     ConversationReviewSummary,
     ConversationSummary,
+    MapStatsListResponse,
+    MapStatsNamedRange,
+    MapStatsQueryRequest,
+    MapStatsQueryResponse,
+    MapStatsRangesResponse,
+    MapStatsSummary,
     ResourceDiscoveryEntry,
     ResourceDiscoveryResponse,
 )
 from src.api.conversation_types import AIConversationStatus, AIConversationTrigger
+from src.api.map_stats import (
+    InvalidMapStatsQueryError,
+    MapStatsQueryService,
+    MapStatsUnavailableError,
+)
 from src.api.resources import discover_resources
 
 HealthCheck = Callable[[], ApiHealthResponse]
@@ -71,6 +83,39 @@ class ConversationQueries(Protocol):
     ) -> ConversationReviewSummary | None: ...
 
 
+class MapStatsQueries(Protocol):
+    @property
+    def available(self) -> bool: ...
+
+    @property
+    def unavailable_reason(self) -> str: ...
+
+    def list_map_stats(
+        self,
+        *,
+        map_name: str | None,
+        from_date: datetime | None,
+        to_date: datetime | None,
+    ) -> MapStatsListResponse: ...
+
+    def get_map_stats(
+        self,
+        map_name: str,
+        *,
+        from_date: datetime | None,
+        to_date: datetime | None,
+    ) -> MapStatsSummary | None: ...
+
+    def get_map_stats_ranges(
+        self,
+        map_name: str,
+        *,
+        ranges: list[MapStatsNamedRange],
+    ) -> MapStatsRangesResponse: ...
+
+    def query_map_stats(self, request: MapStatsQueryRequest) -> MapStatsQueryResponse: ...
+
+
 def _not_found_error(resource: str, identifier_field: str, identifier: str) -> dict[str, object]:
     return {
         "error": {
@@ -101,6 +146,10 @@ def _default_conversation_queries(config: ApiConfig) -> ConversationQueries:
     from src.api.conversations import ConversationQueryService
 
     return ConversationQueryService(config)
+
+
+def _default_map_stats_queries(config: ApiConfig) -> MapStatsQueries:
+    return MapStatsQueryService.from_api_config(config)
 
 
 def _build_health_check(config: ApiConfig) -> HealthCheck:
@@ -185,12 +234,21 @@ def create_app(
     health_check: HealthCheck | None = None,
     resource_discovery: ResourceDiscovery | None = None,
     conversation_queries: ConversationQueries | None = None,
+    map_stats_queries: MapStatsQueries | None = None,
 ) -> FastAPI:
     resolved_config = config or ApiConfig()
     resolved_health_check = health_check or _build_health_check(resolved_config)
-    resolved_resource_discovery = resource_discovery or discover_resources
     resolved_conversation_queries = conversation_queries or _default_conversation_queries(
         resolved_config
+    )
+    resolved_map_stats_queries = map_stats_queries or _default_map_stats_queries(
+        resolved_config
+    )
+    resolved_resource_discovery = resource_discovery or (
+        lambda: discover_resources(
+            map_stats_available=resolved_map_stats_queries.available,
+            map_stats_unavailable_reason=resolved_map_stats_queries.unavailable_reason,
+        )
     )
 
     app = FastAPI(title="SC2 AI Coach Admin API")
@@ -209,6 +267,68 @@ def create_app(
     @app.get("/api/resources", response_model=ResourceDiscoveryResponse)
     def get_resources() -> ResourceDiscoveryResponse:
         return ResourceDiscoveryResponse(resources=resolved_resource_discovery())
+
+    @app.get("/api/map-stats", response_model=MapStatsListResponse)
+    def get_map_stats_list(
+        map: str | None = Query(default=None),
+        min_date: datetime | None = Query(default=None),
+        from_date: datetime | None = Query(default=None),
+        to_date: datetime | None = Query(default=None),
+    ) -> MapStatsListResponse:
+        resolved_from_date, resolved_to_date = _resolve_date_range(
+            min_date=min_date,
+            from_date=from_date,
+            to_date=to_date,
+        )
+        return _handle_map_stats(
+            lambda: resolved_map_stats_queries.list_map_stats(
+                map_name=map,
+                from_date=resolved_from_date,
+                to_date=resolved_to_date,
+            )
+        )
+
+    @app.get("/api/map-stats/{map_name}", response_model=MapStatsSummary)
+    def get_map_stats_detail(
+        map_name: str,
+        min_date: datetime | None = Query(default=None),
+        from_date: datetime | None = Query(default=None),
+        to_date: datetime | None = Query(default=None),
+    ) -> MapStatsSummary:
+        resolved_from_date, resolved_to_date = _resolve_date_range(
+            min_date=min_date,
+            from_date=from_date,
+            to_date=to_date,
+        )
+        summary = _handle_map_stats(
+            lambda: resolved_map_stats_queries.get_map_stats(
+                map_name,
+                from_date=resolved_from_date,
+                to_date=resolved_to_date,
+            )
+        )
+        if summary is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error("map_stats", "map_name", map_name),
+            )
+        return summary
+
+    @app.get("/api/map-stats/{map_name}/ranges", response_model=MapStatsRangesResponse)
+    def get_map_stats_ranges(
+        map_name: str,
+        range_values: list[str] = Query(default_factory=list, alias="range"),
+    ) -> MapStatsRangesResponse:
+        return _handle_map_stats(
+            lambda: resolved_map_stats_queries.get_map_stats_ranges(
+                map_name,
+                ranges=[_parse_named_range(value) for value in range_values],
+            )
+        )
+
+    @app.post("/api/map-stats/query", response_model=MapStatsQueryResponse)
+    def post_map_stats_query(request: MapStatsQueryRequest) -> MapStatsQueryResponse:
+        return _handle_map_stats(lambda: resolved_map_stats_queries.query_map_stats(request))
 
     @app.get("/api/conversations", response_model=ConversationListResponse)
     def get_conversations(
@@ -331,6 +451,106 @@ def create_app(
         return HTMLResponse(content, headers=FRONTEND_NO_CACHE_HEADERS)
 
     return app
+
+
+def _handle_map_stats(callback):
+    try:
+        return callback()
+    except MapStatsUnavailableError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": {
+                    "code": "resource_unavailable",
+                    "message": str(exc),
+                    "details": {"resource": "map-stats"},
+                }
+            },
+        ) from exc
+    except InvalidMapStatsQueryError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": {
+                    "code": "invalid_query",
+                    "message": str(exc),
+                    "details": {"resource": "map-stats"},
+                }
+            },
+        ) from exc
+    except PyMongoError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": {
+                    "code": "database_unavailable",
+                    "message": str(exc),
+                    "details": {"resource": "map-stats"},
+                }
+            },
+        ) from exc
+
+
+def _resolve_date_range(*, min_date, from_date, to_date):
+    if min_date is not None and from_date is not None and min_date != from_date:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": {
+                    "code": "invalid_query",
+                    "message": "min_date and from_date must refer to the same instant.",
+                    "details": {"resource": "map-stats"},
+                }
+            },
+        )
+    resolved_from_date = from_date or min_date
+    return resolved_from_date, to_date
+
+
+def _parse_named_range(value: str) -> MapStatsNamedRange:
+    if ":" not in value:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": {
+                    "code": "invalid_query",
+                    "message": f"Invalid map-stats range expression: {value}.",
+                    "details": {"resource": "map-stats"},
+                }
+            },
+        )
+
+    name, remainder = value.split(":", 1)
+    colon_positions = [index for index, character in enumerate(remainder) if character == ":"]
+    for split_index in reversed(colon_positions):
+        from_candidate = remainder[:split_index]
+        to_candidate = remainder[split_index + 1 :]
+        try:
+            parsed_from = _parse_datetime(from_candidate)
+            parsed_to = _parse_datetime(to_candidate) if to_candidate else None
+        except ValueError:
+            continue
+        return MapStatsNamedRange(
+            name=name,
+            from_date=parsed_from,
+            to_date=parsed_to,
+        )
+
+    raise HTTPException(
+        status_code=400,
+        detail={
+            "error": {
+                "code": "invalid_query",
+                "message": f"Invalid map-stats range expression: {value}.",
+                "details": {"resource": "map-stats"},
+            }
+        },
+    )
+
+
+def _parse_datetime(value: str):
+    normalized = value.replace("Z", "+00:00")
+    return datetime.fromisoformat(normalized)
 
 
 app = create_app()

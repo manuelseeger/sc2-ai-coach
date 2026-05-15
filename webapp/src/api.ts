@@ -7,6 +7,11 @@ import type {
   ConversationStatus,
   ConversationSummary,
   ConversationTrigger,
+  MapStatsListResponse,
+  MapStatsNamedRange,
+  MapStatsQueryRequest,
+  MapStatsQueryResponse,
+  MapStatsRangesResponse,
   ResourceDiscoveryEntry,
 } from './types'
 
@@ -17,6 +22,12 @@ export interface ListConversationsParams {
   statuses: ConversationStatus[]
 }
 
+export interface ListMapStatsParams {
+  map: string | null
+  fromDate: string | null
+  toDate: string | null
+}
+
 export interface AdminApiClient {
   listResources(): Promise<ResourceDiscoveryEntry[]>
   listConversations(params: ListConversationsParams): Promise<ConversationListResponse>
@@ -24,6 +35,9 @@ export interface AdminApiClient {
   getConversationDetail(conversationId: string): Promise<ConversationDetailResponse>
   closeConversation(conversationId: string): Promise<ConversationReviewSummary>
   archiveConversation(conversationId: string): Promise<ConversationReviewSummary>
+  listMapStats(params: ListMapStatsParams): Promise<MapStatsListResponse>
+  getMapStatsRanges(mapName: string, ranges: MapStatsNamedRange[]): Promise<MapStatsRangesResponse>
+  queryMapStats(request: MapStatsQueryRequest): Promise<MapStatsQueryResponse>
 }
 
 export const adminApiKey: InjectionKey<AdminApiClient> = Symbol('admin-api')
@@ -93,6 +107,46 @@ export function createAdminApiClient(fetchImpl: FetchLike = fetch): AdminApiClie
         `/api/conversations/${conversationId}/archive`,
         { method: 'POST' },
       )
+    },
+
+    async listMapStats(params) {
+      const search = new URLSearchParams()
+      if (params.map !== null) {
+        search.set('map', params.map)
+      }
+      if (params.fromDate !== null) {
+        search.set('from_date', params.fromDate)
+      }
+      if (params.toDate !== null) {
+        search.set('to_date', params.toDate)
+      }
+      const suffix = search.toString()
+      return requestJson<MapStatsListResponse>(
+        fetchImpl,
+        suffix.length > 0 ? `/api/map-stats?${suffix}` : '/api/map-stats',
+      )
+    },
+
+    async getMapStatsRanges(mapName, ranges) {
+      const search = new URLSearchParams()
+      for (const range of ranges) {
+        const encoded = `${range.name}:${range.from_date}:${range.to_date ?? ''}`
+        search.append('range', encoded)
+      }
+      return requestJson<MapStatsRangesResponse>(
+        fetchImpl,
+        `/api/map-stats/${encodeURIComponent(mapName)}/ranges?${search.toString()}`,
+      )
+    },
+
+    async queryMapStats(request) {
+      return requestJson<MapStatsQueryResponse>(fetchImpl, '/api/map-stats/query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      })
     },
   }
 }

@@ -15,10 +15,10 @@
 
     <section v-else class="resource-grid">
       <component
-        :is="resource.available && resource.path === '/conversations' ? RouterLink : 'article'"
+        :is="resource.available && resourceRoute(resource) !== null ? RouterLink : 'article'"
         v-for="resource in resources"
         :key="resource.name"
-        :to="resource.path"
+        :to="resourceRoute(resource) ?? undefined"
         class="resource-card"
       >
         <header>
@@ -32,6 +32,9 @@
         </p>
         <p v-if="resource.available && resource.path === '/conversations'" class="resource-cta">
           Open conversation inbox
+        </p>
+        <p v-else-if="resource.available && resource.path === '/map-stats'" class="resource-cta">
+          Open map stats report
         </p>
         <p v-else-if="resource.available" class="resource-copy">Specialized UI coming soon.</p>
       </component>
@@ -61,6 +64,13 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+function resourceRoute(resource: ResourceDiscoveryEntry): string | null {
+  if (resource.path === '/conversations' || resource.path === '/map-stats') {
+    return resource.path
+  }
+  return null
+}
 </script>
 
 <style scoped>

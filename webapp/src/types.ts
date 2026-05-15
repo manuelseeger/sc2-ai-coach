@@ -90,3 +90,85 @@ export interface ResourceDiscoveryEntry {
   available: boolean
   unavailable_reason: string | null
 }
+
+export interface MapStatsDateRange {
+  from_date: string | null
+  to_date: string | null
+}
+
+export interface MapStatsMatchupSummary {
+  matchup: string
+  games: number
+  wins: number
+  losses: number
+  winrate: number
+}
+
+export interface MapStatsSummary {
+  map: string
+  games: number
+  wins: number
+  losses: number
+  winrate: number
+  matchups: MapStatsMatchupSummary[]
+}
+
+export interface MapStatsListResponse {
+  items: MapStatsSummary[]
+  selected_map: string | null
+  date_range: MapStatsDateRange
+}
+
+export interface MapStatsNamedRange {
+  name: string
+  from_date: string
+  to_date: string | null
+}
+
+export interface MapStatsRangeSummary {
+  name: string
+  from_date: string
+  to_date: string | null
+  stats: MapStatsSummary | null
+}
+
+export interface MapStatsRangesResponse {
+  map: string
+  ranges: MapStatsRangeSummary[]
+}
+
+export interface MapStatsMetricSummary {
+  games: number
+  wins: number
+  losses: number
+  winrate: number
+}
+
+export interface MapStatsQueryGroup {
+  key: Record<string, string>
+  games: number | null
+  wins: number | null
+  losses: number | null
+  winrate: number | null
+  ranges: Record<string, MapStatsMetricSummary> | null
+}
+
+export interface MapStatsQueryRequest {
+  filter: Record<string, unknown>
+  date_range: MapStatsDateRange
+  ranges: MapStatsNamedRange[]
+  group_by: string[]
+  metrics: string[]
+  sort: Record<string, number>
+  limit: number
+  include_pipeline: boolean
+}
+
+export interface MapStatsQueryResponse {
+  filter: Record<string, unknown>
+  date_range: MapStatsDateRange
+  group_by: string[]
+  metrics: string[]
+  groups: MapStatsQueryGroup[]
+  pipeline: Record<string, unknown>[] | null
+}

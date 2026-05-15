@@ -32,6 +32,12 @@ describe('ConversationsView', () => {
         available_triggers: ['repl', 'wake'],
       }),
       getConversationSummary: vi.fn(),
+      getConversationDetail: vi.fn(),
+      closeConversation: vi.fn(),
+      archiveConversation: vi.fn(),
+      listMapStats: vi.fn(),
+      getMapStatsRanges: vi.fn(),
+      queryMapStats: vi.fn(),
     }
 
     const router = createRouter({

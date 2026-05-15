@@ -33,6 +33,88 @@ class ResourceDiscoveryResponse(BaseModel):
     resources: list[ResourceDiscoveryEntry]
 
 
+class MapStatsDateRange(BaseModel):
+    from_date: datetime | None = None
+    to_date: datetime | None = None
+
+
+class MapStatsMatchupSummary(BaseModel):
+    matchup: str
+    games: int
+    wins: int
+    losses: int
+    winrate: float
+
+
+class MapStatsSummary(BaseModel):
+    map: str
+    games: int
+    wins: int
+    losses: int
+    winrate: float
+    matchups: list[MapStatsMatchupSummary]
+
+
+class MapStatsListResponse(BaseModel):
+    items: list[MapStatsSummary]
+    selected_map: str | None = None
+    date_range: MapStatsDateRange
+
+
+class MapStatsNamedRange(BaseModel):
+    name: str
+    from_date: datetime
+    to_date: datetime | None = None
+
+
+class MapStatsRangeSummary(BaseModel):
+    name: str
+    from_date: datetime
+    to_date: datetime | None = None
+    stats: MapStatsSummary | None = None
+
+
+class MapStatsRangesResponse(BaseModel):
+    map: str
+    ranges: list[MapStatsRangeSummary]
+
+
+class MapStatsQueryRequest(BaseModel):
+    filter: dict[str, Any] = {}
+    date_range: MapStatsDateRange = MapStatsDateRange()
+    ranges: list[MapStatsNamedRange] = []
+    group_by: list[str] = ["map", "matchup"]
+    metrics: list[str] = ["games", "wins", "losses", "winrate"]
+    sort: dict[str, int] = {}
+    limit: int = 100
+    include_pipeline: bool = False
+
+
+class MapStatsMetricSummary(BaseModel):
+    games: int
+    wins: int
+    losses: int
+    winrate: float
+
+
+class MapStatsQueryGroup(BaseModel):
+    key: dict[str, Any]
+    games: int | None = None
+    wins: int | None = None
+    losses: int | None = None
+    winrate: float | None = None
+    ranges: dict[str, MapStatsMetricSummary] | None = None
+
+
+class MapStatsQueryResponse(BaseModel):
+    filter: dict[str, Any]
+    date_range: MapStatsDateRange
+    group_by: list[str]
+    metrics: list[str]
+    groups: list[MapStatsQueryGroup]
+    pipeline: list[dict[str, Any]] | None = None
+
+
 class ConversationSummary(BaseModel):
     id: str
     detail_path: str

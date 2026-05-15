@@ -62,6 +62,11 @@ describe('ConversationDetailView', () => {
           },
         ],
       }),
+      closeConversation: vi.fn(),
+      archiveConversation: vi.fn(),
+      listMapStats: vi.fn(),
+      getMapStatsRanges: vi.fn(),
+      queryMapStats: vi.fn(),
     }
 
     const router = createRouter({
@@ -128,6 +133,9 @@ describe('ConversationDetailView', () => {
         session: null,
       }),
       archiveConversation: vi.fn(),
+      listMapStats: vi.fn(),
+      getMapStatsRanges: vi.fn(),
+      queryMapStats: vi.fn(),
     }
 
     const router = createRouter({
@@ -184,6 +192,9 @@ describe('ConversationDetailView', () => {
       }),
       closeConversation: vi.fn(),
       archiveConversation: vi.fn().mockRejectedValue(new Error('Conversation is already archived.')),
+      listMapStats: vi.fn(),
+      getMapStatsRanges: vi.fn(),
+      queryMapStats: vi.fn(),
     }
 
     const router = createRouter({

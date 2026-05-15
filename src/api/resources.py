@@ -3,7 +3,11 @@ from __future__ import annotations
 from src.api.contracts import ResourceDiscoveryEntry
 
 
-def discover_resources() -> list[ResourceDiscoveryEntry]:
+def discover_resources(
+    *,
+    map_stats_available: bool = False,
+    map_stats_unavailable_reason: str | None = None,
+) -> list[ResourceDiscoveryEntry]:
     return [
         ResourceDiscoveryEntry(
             name="conversations",
@@ -92,10 +96,9 @@ def discover_resources() -> list[ResourceDiscoveryEntry]:
             capabilities=["report"],
             relationships=[],
             schema_url=None,
-            available=False,
+            available=map_stats_available,
             unavailable_reason=(
-                "Map stats are unavailable until the reporting pipeline is decoupled "
-                "from runtime settings."
+                None if map_stats_available else map_stats_unavailable_reason
             ),
         ),
     ]

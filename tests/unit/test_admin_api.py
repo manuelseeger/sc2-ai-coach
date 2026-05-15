@@ -17,6 +17,8 @@ from src.api.contracts import (
     ConversationItemsResponse,
     ConversationListResponse,
     ConversationSummary,
+    MapStatsNamedRange,
+    MapStatsQueryRequest,
     ResourceDiscoveryEntry,
 )
 from src.api.conversation_types import AIConversationStatus, AIConversationTrigger
@@ -135,7 +137,7 @@ def test_workspace_asset_responses_disable_caching(tmp_path: Path):
     assert response.text == "console.log('hello')"
 
 
-def test_default_resource_discovery_reports_available_and_unavailable_resources(
+def test_default_resource_discovery_reports_map_stats_state_from_available_config(
     tmp_path: Path,
 ):
     dist_dir = tmp_path / "dist"
@@ -167,6 +169,41 @@ def test_default_resource_discovery_reports_available_and_unavailable_resources(
 
     map_stats = next(
         resource for resource in resources if resource["name"] == "map-stats"
+    )
+    assert map_stats["available"] is True
+    assert map_stats["unavailable_reason"] is None
+
+
+def test_default_resource_discovery_reports_map_stats_unavailable_without_config(
+    monkeypatch, tmp_path: Path
+):
+    dist_dir = tmp_path / "dist"
+    dist_dir.mkdir()
+    (dist_dir / "index.html").write_text(
+        "<main>__RESOURCE_DISCOVERY__</main>", encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+
+    app = create_app(
+        ApiConfig(
+            mongo_dsn="mongodb://localhost:27017",
+            db_name="SC2AICOACH_TEST",
+            web_dist_dir=dist_dir,
+        ),
+        health_check=lambda: ApiHealthResponse(
+            status="ok",
+            database="ok",
+            db_name="SC2AICOACH_TEST",
+        ),
+    )
+
+    client = TestClient(app)
+
+    response = client.get("/api/resources")
+
+    assert response.status_code == 200
+    map_stats = next(
+        resource for resource in response.json()["resources"] if resource["name"] == "map-stats"
     )
     assert map_stats["available"] is False
     assert map_stats["unavailable_reason"]
@@ -379,6 +416,259 @@ def test_default_conversation_queries_can_be_constructed_from_api_config():
     )
 
     assert hasattr(queries, "get_conversation_detail")
+
+
+def test_create_app_serves_map_stats_reporting_routes(tmp_path: Path):
+    dist_dir = tmp_path / "dist"
+    dist_dir.mkdir()
+    (dist_dir / "index.html").write_text('<main id="app"></main>', encoding="utf-8")
+
+    calls: dict[str, object] = {}
+
+    class StubMapStatsQueries:
+        def list_map_stats(self, *, map_name, from_date, to_date):
+            calls["list"] = {
+                "map_name": map_name,
+                "from_date": from_date,
+                "to_date": to_date,
+            }
+            return {
+                "items": [
+                    {
+                        "map": "Site Delta LE",
+                        "games": 7,
+                        "wins": 4,
+                        "losses": 3,
+                        "winrate": 57.1428571429,
+                        "matchups": [
+                            {
+                                "matchup": "ZvT",
+                                "games": 7,
+                                "wins": 4,
+                                "losses": 3,
+                                "winrate": 57.1428571429,
+                            }
+                        ],
+                    }
+                ],
+                "selected_map": map_name,
+                "date_range": {
+                    "from_date": "2026-05-01T00:00:00Z",
+                    "to_date": "2026-05-07T23:59:59Z",
+                },
+            }
+
+        def get_map_stats(self, map_name, *, from_date, to_date):
+            calls["detail"] = {
+                "map_name": map_name,
+                "from_date": from_date,
+                "to_date": to_date,
+            }
+            return {
+                "map": map_name,
+                "games": 7,
+                "wins": 4,
+                "losses": 3,
+                "winrate": 57.1428571429,
+                "matchups": [
+                    {
+                        "matchup": "ZvT",
+                        "games": 7,
+                        "wins": 4,
+                        "losses": 3,
+                        "winrate": 57.1428571429,
+                    }
+                ],
+            }
+
+        def get_map_stats_ranges(self, map_name, *, ranges):
+            calls["ranges"] = {
+                "map_name": map_name,
+                "ranges": ranges,
+            }
+            return {
+                "map": map_name,
+                "ranges": [
+                    {
+                        "name": "season",
+                        "from_date": "2026-05-01T00:00:00Z",
+                        "to_date": None,
+                        "stats": {
+                            "map": map_name,
+                            "games": 7,
+                            "wins": 4,
+                            "losses": 3,
+                            "winrate": 57.1428571429,
+                            "matchups": [],
+                        },
+                    }
+                ],
+            }
+
+        def query_map_stats(self, request):
+            calls["query"] = request
+            return {
+                "filter": {"map_name": {"$in": ["Site Delta LE"]}},
+                "date_range": {
+                    "from_date": "2026-05-01T00:00:00Z",
+                    "to_date": "2026-05-07T23:59:59Z",
+                },
+                "group_by": ["map", "matchup"],
+                "metrics": ["games", "wins", "losses", "winrate"],
+                "groups": [
+                    {
+                        "key": {"map": "Site Delta LE", "matchup": "ZvT"},
+                        "games": 7,
+                        "wins": 4,
+                        "losses": 3,
+                        "winrate": 57.1428571429,
+                        "ranges": {
+                            "season": {
+                                "games": 7,
+                                "wins": 4,
+                                "losses": 3,
+                                "winrate": 57.1428571429,
+                            }
+                        },
+                    }
+                ],
+                "pipeline": None,
+            }
+
+    app = create_app(
+        ApiConfig(
+            mongo_dsn="mongodb://localhost:27017",
+            db_name="SC2AICOACH_TEST",
+            web_dist_dir=dist_dir,
+        ),
+        health_check=lambda: ApiHealthResponse(
+            status="ok",
+            database="ok",
+            db_name="SC2AICOACH_TEST",
+        ),
+        resource_discovery=lambda: [
+            ResourceDiscoveryEntry(
+                name="map-stats",
+                path="/map-stats",
+                collection="replays",
+                title="Map Stats",
+                id_field="map_name",
+                read_only=True,
+                capabilities=["report"],
+                relationships=[],
+                schema_url=None,
+                available=True,
+                unavailable_reason=None,
+            )
+        ],
+        map_stats_queries=StubMapStatsQueries(),
+    )
+
+    client = TestClient(app)
+
+    list_response = client.get(
+        "/api/map-stats",
+        params={
+            "map": "Site Delta LE",
+            "from_date": "2026-05-01T00:00:00Z",
+            "to_date": "2026-05-07T23:59:59Z",
+        },
+    )
+
+    assert list_response.status_code == 200
+    assert list_response.json()["items"][0]["map"] == "Site Delta LE"
+    assert calls["list"] == {
+        "map_name": "Site Delta LE",
+        "from_date": datetime(2026, 5, 1, 0, 0, tzinfo=UTC),
+        "to_date": datetime(2026, 5, 7, 23, 59, 59, tzinfo=UTC),
+    }
+
+    detail_response = client.get(
+        "/api/map-stats/Site Delta LE",
+        params={"min_date": "2026-05-01T00:00:00Z"},
+    )
+
+    assert detail_response.status_code == 200
+    assert detail_response.json()["map"] == "Site Delta LE"
+    assert calls["detail"] == {
+        "map_name": "Site Delta LE",
+        "from_date": datetime(2026, 5, 1, 0, 0, tzinfo=UTC),
+        "to_date": None,
+    }
+
+    ranges_response = client.get(
+        "/api/map-stats/Site Delta LE/ranges",
+        params=[
+            ("range", "season:2026-05-01T00:00:00Z:"),
+            ("range", "today:2026-05-07T00:00:00Z:"),
+        ],
+    )
+
+    assert ranges_response.status_code == 200
+    assert ranges_response.json()["ranges"][0]["name"] == "season"
+    assert calls["ranges"] == {
+        "map_name": "Site Delta LE",
+        "ranges": [
+            MapStatsNamedRange(
+                name="season",
+                from_date=datetime(2026, 5, 1, 0, 0, tzinfo=UTC),
+                to_date=None,
+            ),
+            MapStatsNamedRange(
+                name="today",
+                from_date=datetime(2026, 5, 7, 0, 0, tzinfo=UTC),
+                to_date=None,
+            ),
+        ],
+    }
+
+    query_response = client.post(
+        "/api/map-stats/query",
+        json={
+            "filter": {"map_name": {"$in": ["Site Delta LE"]}},
+            "date_range": {
+                "from_date": "2026-05-01T00:00:00Z",
+                "to_date": "2026-05-07T23:59:59Z",
+            },
+            "ranges": [
+                {
+                    "name": "season",
+                    "from_date": "2026-05-01T00:00:00Z",
+                    "to_date": None,
+                }
+            ],
+            "group_by": ["map", "matchup"],
+            "metrics": ["games", "wins", "losses", "winrate"],
+            "sort": {"games": -1},
+            "limit": 100,
+            "include_pipeline": False,
+        },
+    )
+
+    assert query_response.status_code == 200
+    assert query_response.json()["groups"][0]["key"] == {
+        "map": "Site Delta LE",
+        "matchup": "ZvT",
+    }
+    assert calls["query"] == MapStatsQueryRequest(
+        filter={"map_name": {"$in": ["Site Delta LE"]}},
+        date_range={
+            "from_date": datetime(2026, 5, 1, 0, 0, tzinfo=UTC),
+            "to_date": datetime(2026, 5, 7, 23, 59, 59, tzinfo=UTC),
+        },
+        ranges=[
+            {
+                "name": "season",
+                "from_date": datetime(2026, 5, 1, 0, 0, tzinfo=UTC),
+                "to_date": None,
+            }
+        ],
+        group_by=["map", "matchup"],
+        metrics=["games", "wins", "losses", "winrate"],
+        sort={"games": -1},
+        limit=100,
+        include_pipeline=False,
+    )
 
 
 def test_create_app_serves_conversation_review_detail_and_item_routes(tmp_path: Path):
