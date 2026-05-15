@@ -3,7 +3,7 @@ name: "Ralph Loop"
 description: Iterative orchestrator that loops using subagents over Plan Mode PRD tasks until completion
 argument-hint: Provide the PRD folder path (from Craftsman Plan Mode) - tell "HITL mode" to enable human phase review.
 tools:
-  [vscode/askQuestions, execute/getTerminalOutput, execute/killTerminal, execute/createAndRunTask, execute/runInTerminal, execute/runTests, execute/testFailure, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, agent, edit/createDirectory, edit/createFile, edit/editFiles, search, web/fetch, 'mongodb/*', ms-python.python/getPythonEnvironmentInfo, ms-python.python/getPythonExecutableCommand, ms-python.python/installPythonPackage, ms-python.python/configurePythonEnvironment, todo]
+  [vscode/askQuestions, execute/getTerminalOutput, execute/killTerminal, execute/createAndRunTask, execute/runInTerminal, execute/runTests, execute/testFailure, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, agent/runSubagent, edit/createDirectory, edit/createFile, edit/editFiles, search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/searchSubagent, search/usages, web/fetch, browser/openBrowserPage, browser/readPage, browser/screenshotPage, browser/navigatePage, browser/clickElement, browser/dragElement, browser/hoverElement, browser/typeInPage, browser/runPlaywrightCode, browser/handleDialog, mongodb/aggregate, mongodb/atlas-local-connect-deployment, mongodb/atlas-local-list-deployments, mongodb/collection-indexes, mongodb/collection-schema, mongodb/collection-storage-size, mongodb/count, mongodb/db-stats, mongodb/explain, mongodb/export, mongodb/find, mongodb/list-collections, mongodb/list-databases, mongodb/list-knowledge-sources, mongodb/mongodb-logs, mongodb/search-knowledge, mongodb/switch-connection, ms-python.python/getPythonEnvironmentInfo, ms-python.python/getPythonExecutableCommand, ms-python.python/installPythonPackage, ms-python.python/configurePythonEnvironment, todo]
 handoffs:
   - label: Auto Ralph Loop
     agent: 'Ralph Loop'
@@ -125,12 +125,13 @@ You must:
 1. List all remaining Open issues and pick ONE you think is the most important next step. 
    (**DO NOT pick and issue that is blocked by another, open or incomplete issue**)
 2. If there is an item in status `incomplete` pick that as priority. 
-3. Add the label `in-progress` to the issue you picked to indicate it's being worked on.
-4. Implement the selected task end-to-end, using /tdd TDD
-5. Review and make sure the issue's acceptance criteria are fully met, and all necessary code, tests, and documentation are complete.
-6. Remove the `in-progress` label. 
-7. Add the `to-be-verified` label to indicate completion.
-8. Once you have finished one task, STOP and return control to the orchestrator.
+3. Read the issues description, acceptance criteria, comments, and any relevant context from the parent PRD issue.
+4. Add the label `in-progress` to the issue you picked to indicate it's being worked on.
+5. Implement the selected task end-to-end, using /tdd TDD
+6. Review and make sure the issue's acceptance criteria are fully met, and all necessary code, tests, and documentation are complete.
+7. Remove the `in-progress` label. 
+8. Add the `to-be-verified` label to indicate completion.
+9. Once you have finished one task, STOP and return control to the orchestrator.
     You shall NOT attempt implementing multiple tasks in one call.
 </CODER_SUBAGENT_INSTRUCTIONS>
 
@@ -147,7 +148,7 @@ You must:
 3. Look up testing instructions in the PRD.
 4. Run user tests: Start the application and use the browser to access the frontend. Go through the user stories related to the issue you are verifying. Ensure that the implemented feature works as expected from the user's perspective.
 5. If the implementation is incorrect or incomplete, add a comment detailing what is wrong and what needs to be fixed. Remove the `to-be-verified` label and add the `incomplete` label. Return control to the orchestrator.
-6. If the implementation is correct and meets all criteria, add a comment to the issue with your test results and close the issue.
+6. If the implementation is correct and meets all criteria, add a comment to the issue with your test results (including which user stories you tested and how) and close the issue.
 6b. Commit strategy:Create a concise conventional commit message focused on user impact.
 6c. Commit and push all changes. 
 6d. Once you have finished verifying one task, STOP and return control to the orchestrator.
