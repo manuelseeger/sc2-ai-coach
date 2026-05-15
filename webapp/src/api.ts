@@ -7,6 +7,10 @@ import type {
   ConversationStatus,
   ConversationSummary,
   ConversationTrigger,
+  GenericResourceDeleteResponse,
+  GenericResourceListResponse,
+  GenericResourceQueryRequest,
+  GenericResourceSchemaResponse,
   MapStatsListResponse,
   MapStatsNamedRange,
   MapStatsQueryRequest,
@@ -54,8 +58,24 @@ export interface ListPlayersParams {
   tag: string | null
 }
 
+export interface ListGenericResourceParams {
+  page: number
+  pageSize: number
+  sort: string | null
+  projection: string
+  filters: Record<string, unknown>
+}
+
 export interface AdminApiClient {
   listResources(): Promise<ResourceDiscoveryEntry[]>
+  getResourceSchema(resource: string): Promise<GenericResourceSchemaResponse>
+  listResource(resource: string, params: ListGenericResourceParams): Promise<GenericResourceListResponse>
+  queryResource(resource: string, request: GenericResourceQueryRequest): Promise<GenericResourceListResponse>
+  getResource(resource: string, id: string, projection?: string): Promise<Record<string, unknown>>
+  createResource(resource: string, body: Record<string, unknown>): Promise<Record<string, unknown>>
+  patchResource(resource: string, id: string, patch: Record<string, unknown>): Promise<Record<string, unknown>>
+  replaceResource(resource: string, id: string, body: Record<string, unknown>): Promise<Record<string, unknown>>
+  deleteResource(resource: string, id: string): Promise<GenericResourceDeleteResponse>
   listSessions(params: ListSessionsParams): Promise<SessionListResponse>
   getSessionDetail(sessionId: string): Promise<SessionDetailResponse>
   getSessionConversations(sessionId: string): Promise<ConversationListResponse>
@@ -101,6 +121,87 @@ export function createAdminApiClient(fetchImpl: FetchLike = fetch): AdminApiClie
         '/api/resources',
       )
       return payload.resources
+    },
+
+    async getResourceSchema(resource) {
+      return requestJson<GenericResourceSchemaResponse>(fetchImpl, `/api/schema/${resource}`)
+    },
+
+    async listResource(resource, params) {
+      const search = new URLSearchParams({
+        page: String(params.page),
+        page_size: String(params.pageSize),
+      })
+      if (params.sort !== null) {
+        search.set('sort', params.sort)
+      }
+      search.set('projection', params.projection)
+      for (const [key, value] of Object.entries(params.filters)) {
+        appendSearchParam(search, key, value)
+      }
+      return requestJson<GenericResourceListResponse>(
+        fetchImpl,
+        `/api/admin/resources/${resource}?${search.toString()}`,
+      )
+    },
+
+    async queryResource(resource, request) {
+      return requestJson<GenericResourceListResponse>(
+        fetchImpl,
+        `/api/admin/resources/${resource}/query`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(request),
+        },
+      )
+    },
+
+    async getResource(resource, id, projection = 'detail') {
+      return requestJson<Record<string, unknown>>(
+        fetchImpl,
+        `/api/admin/resources/${resource}/${id}?projection=${encodeURIComponent(projection)}`,
+      )
+    },
+
+    async createResource(resource, body) {
+      return requestJson<Record<string, unknown>>(fetchImpl, `/api/admin/resources/${resource}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      })
+    },
+
+    async patchResource(resource, id, patch) {
+      return requestJson<Record<string, unknown>>(fetchImpl, `/api/admin/resources/${resource}/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(patch),
+      })
+    },
+
+    async replaceResource(resource, id, body) {
+      return requestJson<Record<string, unknown>>(fetchImpl, `/api/admin/resources/${resource}/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      })
+    },
+
+    async deleteResource(resource, id) {
+      return requestJson<GenericResourceDeleteResponse>(
+        fetchImpl,
+        `/api/admin/resources/${resource}/${id}`,
+        { method: 'DELETE' },
+      )
     },
 
     async listSessions(params) {
@@ -294,4 +395,17 @@ async function requestJson<T>(fetchImpl: FetchLike, path: string, init?: Request
     )
   }
   return (await response.json()) as T
+}
+
+function appendSearchParam(search: URLSearchParams, key: string, value: unknown): void {
+  if (value === null || value === undefined) {
+    return
+  }
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      appendSearchParam(search, key, entry)
+    }
+    return
+  }
+  search.append(key, String(value))
 }

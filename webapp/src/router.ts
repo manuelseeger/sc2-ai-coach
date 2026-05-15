@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import ConversationDetailView from './views/ConversationDetailView.vue'
 import ConversationsView from './views/ConversationsView.vue'
+import GenericResourceDetailView from './views/GenericResourceDetailView.vue'
+import GenericResourceListView from './views/GenericResourceListView.vue'
 import MapStatsView from './views/MapStatsView.vue'
 import PlayerDetailView from './views/PlayerDetailView.vue'
 import PlayersView from './views/PlayersView.vue'
@@ -20,6 +22,9 @@ export const router = createRouter({
     { path: '/conversations/:conversationId', component: ConversationDetailView },
     { path: '/players', component: PlayersView },
     { path: '/players/:toonHandle', component: PlayerDetailView },
+    { path: '/resources/:resourceName', component: GenericResourceListView },
+    { path: '/resources/:resourceName/new', component: GenericResourceDetailView },
+    { path: '/resources/:resourceName/:documentId', component: GenericResourceDetailView },
     { path: '/replays/:replayId', component: ReplayDetailView },
     { path: '/map-stats', component: MapStatsView },
   ],

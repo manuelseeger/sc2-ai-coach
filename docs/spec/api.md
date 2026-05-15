@@ -168,6 +168,7 @@ All JSON API routes are under `/api`.
 
 Resource route families:
 
+- `/api/admin/resources/{resource}`
 - `/api/replays`
 - `/api/metadata`
 - `/api/players`
@@ -392,6 +393,77 @@ Supported resources:
 - `conversations`
 - `conversation-items`
 - `responses`
+
+## Generic Maintenance Endpoints
+
+These endpoints provide the generic admin fallback used by the webapp maintenance views.
+They do not replace the curated read models under the domain-shaped routes.
+
+### `GET /api/admin/resources/{resource}`
+
+Lists documents for a writable discovered resource.
+
+Query parameters:
+
+- `page`
+- `page_size`
+- `sort`
+- `projection`: `table` or `detail`
+- additional top-level query parameters are treated as typed field filters when the model field can be coerced safely
+
+Response shape:
+
+```json
+{
+    "resource": "metadata",
+    "items": [],
+    "page": 1,
+    "page_size": 20,
+    "total": 0,
+    "total_pages": 0,
+    "sort": "-created_at",
+    "projection": "table",
+    "filters": {}
+}
+```
+
+### `POST /api/admin/resources/{resource}/query`
+
+Runs a guarded read-only query for the resource.
+
+Request body:
+
+```json
+{
+    "filter": {},
+    "sort": {"created_at": -1},
+    "page": 1,
+    "page_size": 20,
+    "projection": "table"
+}
+```
+
+The filter accepts a read-only MongoDB subset. Write operators and JavaScript execution operators are rejected.
+
+### `POST /api/admin/resources/{resource}`
+
+Creates a document for the resource.
+
+### `GET /api/admin/resources/{resource}/{id}`
+
+Returns the generic detail document for the resource.
+
+### `PATCH /api/admin/resources/{resource}/{id}`
+
+Applies a partial update using load-merge-validate-save semantics.
+
+### `PUT /api/admin/resources/{resource}/{id}`
+
+Replaces the document. Path id and body id must match when the body includes `id`.
+
+### `DELETE /api/admin/resources/{resource}/{id}`
+
+Deletes the document and returns a small delete confirmation payload.
 
 ## Replay Endpoints
 

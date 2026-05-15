@@ -14,13 +14,7 @@
     <p v-else-if="error" class="workspace-error">{{ error }}</p>
 
     <section v-else class="resource-grid">
-      <component
-        :is="resource.available && resourceRoute(resource) !== null ? RouterLink : 'article'"
-        v-for="resource in resources"
-        :key="resource.name"
-        :to="resourceRoute(resource) ?? undefined"
-        class="resource-card"
-      >
+      <article v-for="resource in resources" :key="resource.name" class="resource-card">
         <header>
           <h2>{{ resource.title }}</h2>
           <span>{{ resource.available ? 'Available' : 'Unavailable' }}</span>
@@ -30,20 +24,18 @@
         <p v-if="resource.unavailable_reason" class="resource-reason">
           {{ resource.unavailable_reason }}
         </p>
-        <p v-if="resource.available && resource.path === '/conversations'" class="resource-cta">
-          Open conversation inbox
-        </p>
-        <p v-else-if="resource.available && resource.path === '/sessions'" class="resource-cta">
-          Open session review
-        </p>
-        <p v-else-if="resource.available && resource.path === '/players'" class="resource-cta">
-          Open player review
-        </p>
-        <p v-else-if="resource.available && resource.path === '/map-stats'" class="resource-cta">
-          Open map stats report
-        </p>
+        <RouterLink v-if="primaryRoute(resource) !== null" class="resource-cta-link" :to="primaryRoute(resource) ?? undefined">
+          {{ primaryCta(resource) }}
+        </RouterLink>
+        <RouterLink
+          v-if="maintenanceRoute(resource) !== null && resourceRoute(resource) !== maintenanceRoute(resource)"
+          class="resource-maintenance-link"
+          :to="maintenanceRoute(resource) ?? undefined"
+        >
+          Open maintenance view
+        </RouterLink>
         <p v-else-if="resource.available" class="resource-copy">Specialized UI coming soon.</p>
-      </component>
+      </article>
     </section>
   </section>
 </template>
@@ -52,6 +44,7 @@
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
+import { resourceMaintenancePath } from '../genericResource'
 import { useAdminApi } from '../api'
 import type { ResourceDiscoveryEntry } from '../types'
 
@@ -81,6 +74,33 @@ function resourceRoute(resource: ResourceDiscoveryEntry): string | null {
     return resource.path
   }
   return null
+}
+
+function maintenanceRoute(resource: ResourceDiscoveryEntry): string | null {
+  if (!resource.available || resource.read_only || resource.schema_url === null) {
+    return null
+  }
+  return resourceMaintenancePath(resource.name)
+}
+
+function primaryRoute(resource: ResourceDiscoveryEntry): string | null {
+  return resourceRoute(resource) ?? maintenanceRoute(resource)
+}
+
+function primaryCta(resource: ResourceDiscoveryEntry): string {
+  if (resource.path === '/conversations') {
+    return 'Open conversation inbox'
+  }
+  if (resource.path === '/sessions') {
+    return 'Open session review'
+  }
+  if (resource.path === '/players') {
+    return 'Open player review'
+  }
+  if (resource.path === '/map-stats') {
+    return 'Open map stats report'
+  }
+  return 'Open maintenance view'
 }
 </script>
 
@@ -115,7 +135,9 @@ function resourceRoute(resource: ResourceDiscoveryEntry): string | null {
 .resource-cta,
 .resource-path,
 .resource-collection,
-.resource-reason {
+.resource-reason,
+.resource-maintenance-link,
+.resource-cta-link {
   margin: 0;
   color: #52606d;
 }
@@ -148,9 +170,17 @@ function resourceRoute(resource: ResourceDiscoveryEntry): string | null {
 }
 
 .resource-card span,
-.resource-cta {
+.resource-cta,
+.resource-cta-link {
   color: #8c3d1f;
   font-weight: 700;
+}
+
+.resource-cta-link,
+.resource-maintenance-link {
+  color: #8c3d1f;
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .resource-reason {

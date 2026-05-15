@@ -91,6 +91,43 @@ export interface ResourceDiscoveryEntry {
   unavailable_reason: string | null
 }
 
+export interface GenericResourceSchemaResponse {
+  resource: string
+  title: string
+  id_field: string
+  read_only: boolean
+  capabilities: string[]
+  schema: Record<string, unknown>
+  available_projections: string[]
+  default_projection: string
+}
+
+export interface GenericResourceListResponse {
+  resource: string
+  items: Record<string, unknown>[]
+  page: number
+  page_size: number
+  total: number
+  total_pages: number
+  sort: string | null
+  projection: string
+  filters: Record<string, unknown>
+}
+
+export interface GenericResourceQueryRequest {
+  filter: Record<string, unknown>
+  sort?: Record<string, number>
+  page?: number
+  page_size?: number
+  projection?: string
+}
+
+export interface GenericResourceDeleteResponse {
+  resource: string
+  id: string
+  deleted: boolean
+}
+
 export interface SessionListItem {
   id: string
   detail_path: string

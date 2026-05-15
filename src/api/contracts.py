@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.api.conversation_types import AIConversationStatus, AIConversationTrigger
 from src.replays.types import AIConversationItemType, AIMessageRole
@@ -31,6 +31,19 @@ class ResourceDiscoveryEntry(BaseModel):
 
 class ResourceDiscoveryResponse(BaseModel):
     resources: list[ResourceDiscoveryEntry]
+
+
+class GenericResourceSchemaResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    resource: str
+    title: str
+    id_field: str
+    read_only: bool
+    capabilities: list[str]
+    schema_definition: dict[str, Any] = Field(alias="schema")
+    available_projections: list[str]
+    default_projection: str
 
 
 class SessionListItem(BaseModel):

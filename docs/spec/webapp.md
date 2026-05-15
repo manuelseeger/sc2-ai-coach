@@ -121,6 +121,17 @@ Core resource methods:
 - `replaceResource(resource, id, body)`
 - `deleteResource(resource, id)`
 
+The generic maintenance methods use the generic admin prefix:
+
+- `GET /api/schema/{resource}`
+- `GET /api/admin/resources/{resource}`
+- `POST /api/admin/resources/{resource}/query`
+- `POST /api/admin/resources/{resource}`
+- `GET /api/admin/resources/{resource}/{id}`
+- `PATCH /api/admin/resources/{resource}/{id}`
+- `PUT /api/admin/resources/{resource}/{id}`
+- `DELETE /api/admin/resources/{resource}/{id}`
+
 Relationship and resource-specific methods:
 
 - `getConversationItems(conversationId, params)`
@@ -182,6 +193,11 @@ It should show the discovered resources and make it easy to jump into:
 - Specialized conversation, session, replay, player, and map-stat views.
 - Health and schema inspection where useful for admin/debug workflows.
 
+When a resource has a curated screen and is also writable, the workspace may expose both:
+
+- the curated route as the primary operator path
+- a generic maintenance route as the fallback document editor
+
 ### Generic Resource List
 
 Generic list views should support:
@@ -192,6 +208,8 @@ Generic list views should support:
 - Projection selection where the resource supports `table` versus `detail`.
 - Row navigation to detail views.
 - Raw JSON query submission for guarded `/query` endpoints.
+
+The generic maintenance route is `/resources/:resourceName`.
 
 List views should default to compact table-style display and avoid rendering large nested structures inline.
 
@@ -207,6 +225,11 @@ Generic detail views should support:
 - Disabled or hidden write actions for read-only resources.
 
 Schema metadata from `GET /api/schema/{resource}` informs forms where practical, but raw JSON editing remains a first-class fallback for complex persisted models.
+
+The generic maintenance detail routes are:
+
+- `/resources/:resourceName/new`
+- `/resources/:resourceName/:documentId`
 
 ### Conversation Detail
 

@@ -23,6 +23,14 @@ describe('WorkspaceView', () => {
           unavailable_reason: null,
         },
       ]),
+      getResourceSchema: vi.fn(),
+      listResource: vi.fn(),
+      queryResource: vi.fn(),
+      getResource: vi.fn(),
+      createResource: vi.fn(),
+      patchResource: vi.fn(),
+      replaceResource: vi.fn(),
+      deleteResource: vi.fn(),
       listSessions: vi.fn(),
       getSessionDetail: vi.fn(),
       getSessionConversations: vi.fn(),
@@ -88,6 +96,14 @@ describe('WorkspaceView', () => {
           unavailable_reason: null,
         },
       ]),
+      getResourceSchema: vi.fn(),
+      listResource: vi.fn(),
+      queryResource: vi.fn(),
+      getResource: vi.fn(),
+      createResource: vi.fn(),
+      patchResource: vi.fn(),
+      replaceResource: vi.fn(),
+      deleteResource: vi.fn(),
       listSessions: vi.fn(),
       getSessionDetail: vi.fn(),
       getSessionConversations: vi.fn(),
@@ -134,5 +150,78 @@ describe('WorkspaceView', () => {
     expect(wrapper.text()).toContain('Players')
     expect(wrapper.text()).toContain('Open player review')
     expect(wrapper.find('a[href="/players"]').exists()).toBe(true)
+  })
+
+  it('routes generic-only writable resources into the maintenance workflow', async () => {
+    const client: AdminApiClient = {
+      listResources: vi.fn().mockResolvedValue([
+        {
+          name: 'metadata',
+          path: '/metadata',
+          collection: 'meta',
+          title: 'Metadata',
+          id_field: 'id',
+          read_only: false,
+          capabilities: ['list', 'detail', 'query', 'create', 'patch', 'replace', 'delete'],
+          relationships: ['replay'],
+          schema_url: '/api/schema/metadata',
+          available: true,
+          unavailable_reason: null,
+        },
+      ]),
+      getResourceSchema: vi.fn(),
+      listResource: vi.fn(),
+      queryResource: vi.fn(),
+      getResource: vi.fn(),
+      createResource: vi.fn(),
+      patchResource: vi.fn(),
+      replaceResource: vi.fn(),
+      deleteResource: vi.fn(),
+      listSessions: vi.fn(),
+      getSessionDetail: vi.fn(),
+      getSessionConversations: vi.fn(),
+      getSessionSummary: vi.fn(),
+      listConversations: vi.fn(),
+      getConversationSummary: vi.fn(),
+      getConversationDetail: vi.fn(),
+      closeConversation: vi.fn(),
+      archiveConversation: vi.fn(),
+      listPlayers: vi.fn(),
+      getPlayerDetail: vi.fn(),
+      getPlayerAliases: vi.fn(),
+      getPlayerPortraitMetadata: vi.fn(),
+      getPlayerReplays: vi.fn(),
+      getReplayDetail: vi.fn(),
+      getReplayMetadata: vi.fn(),
+      getReplayPlayers: vi.fn(),
+      listMapStats: vi.fn(),
+      getMapStatsRanges: vi.fn(),
+      queryMapStats: vi.fn(),
+    }
+
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: WorkspaceView },
+        { path: '/resources/metadata', component: { template: '<div />' } },
+      ],
+    })
+    await router.push('/')
+    await router.isReady()
+
+    const wrapper = mount(WorkspaceView, {
+      global: {
+        plugins: [router],
+        provide: {
+          [adminApiKey as symbol]: client,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Metadata')
+    expect(wrapper.text()).toContain('Open maintenance view')
+    expect(wrapper.find('a[href="/resources/metadata"]').exists()).toBe(true)
   })
 })

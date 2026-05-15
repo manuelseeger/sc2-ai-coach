@@ -3,6 +3,17 @@ from __future__ import annotations
 from src.api.contracts import ResourceDiscoveryEntry
 
 
+WRITABLE_RESOURCE_CAPABILITIES = [
+    "list",
+    "detail",
+    "query",
+    "create",
+    "patch",
+    "replace",
+    "delete",
+]
+
+
 def discover_resources(
     *,
     map_stats_available: bool = False,
@@ -16,7 +27,7 @@ def discover_resources(
             title="Conversations",
             id_field="id",
             read_only=False,
-            capabilities=["list", "detail"],
+            capabilities=WRITABLE_RESOURCE_CAPABILITIES,
             relationships=["items", "responses", "session", "replay"],
             schema_url="/api/schema/conversations",
         ),
@@ -27,7 +38,7 @@ def discover_resources(
             title="Sessions",
             id_field="id",
             read_only=False,
-            capabilities=["list", "detail"],
+            capabilities=WRITABLE_RESOURCE_CAPABILITIES,
             relationships=["conversations"],
             schema_url="/api/schema/sessions",
         ),
@@ -38,7 +49,7 @@ def discover_resources(
             title="Replays",
             id_field="id",
             read_only=False,
-            capabilities=["list", "detail"],
+            capabilities=WRITABLE_RESOURCE_CAPABILITIES,
             relationships=["metadata", "players"],
             schema_url="/api/schema/replays",
         ),
@@ -49,7 +60,7 @@ def discover_resources(
             title="Metadata",
             id_field="id",
             read_only=False,
-            capabilities=["list", "detail"],
+            capabilities=WRITABLE_RESOURCE_CAPABILITIES,
             relationships=["replay"],
             schema_url="/api/schema/metadata",
         ),
@@ -60,7 +71,7 @@ def discover_resources(
             title="Players",
             id_field="id",
             read_only=False,
-            capabilities=["list", "detail"],
+            capabilities=WRITABLE_RESOURCE_CAPABILITIES,
             relationships=["replays", "portraits"],
             schema_url="/api/schema/players",
         ),
@@ -71,7 +82,7 @@ def discover_resources(
             title="Conversation Items",
             id_field="id",
             read_only=False,
-            capabilities=["list", "detail"],
+            capabilities=WRITABLE_RESOURCE_CAPABILITIES,
             relationships=["conversation"],
             schema_url="/api/schema/conversation-items",
         ),
@@ -82,7 +93,7 @@ def discover_resources(
             title="Responses",
             id_field="id",
             read_only=False,
-            capabilities=["list", "detail"],
+            capabilities=WRITABLE_RESOURCE_CAPABILITIES,
             relationships=["conversation", "session"],
             schema_url="/api/schema/responses",
         ),

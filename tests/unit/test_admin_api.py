@@ -226,6 +226,385 @@ def test_default_resource_discovery_reports_map_stats_unavailable_without_config
     assert map_stats["unavailable_reason"]
 
 
+def test_create_app_serves_generic_resource_schema_for_writable_resources(tmp_path: Path):
+    dist_dir = tmp_path / "dist"
+    dist_dir.mkdir()
+    (dist_dir / "index.html").write_text('<main id="app"></main>', encoding="utf-8")
+
+    class StubGenericResourceService:
+        def get_schema(self, resource_name: str) -> dict[str, object] | None:
+            if resource_name != "metadata":
+                return None
+            return {
+                "resource": "metadata",
+                "title": "Metadata",
+                "id_field": "id",
+                "read_only": False,
+                "capabilities": [
+                    "list",
+                    "detail",
+                    "query",
+                    "create",
+                    "patch",
+                    "replace",
+                    "delete",
+                ],
+                "schema": {
+                    "title": "Metadata",
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "string"},
+                        "replay": {"type": "string"},
+                        "description": {"type": ["string", "null"]},
+                    },
+                    "required": ["replay"],
+                },
+                "available_projections": ["table", "detail"],
+                "default_projection": "table",
+            }
+
+    app = create_app(
+        ApiConfig(
+            mongo_dsn="mongodb://localhost:27017",
+            db_name="SC2AICOACH_TEST",
+            web_dist_dir=dist_dir,
+        ),
+        health_check=lambda: ApiHealthResponse(
+            status="ok",
+            database="ok",
+            db_name="SC2AICOACH_TEST",
+        ),
+        generic_resource_service=StubGenericResourceService(),
+    )
+
+    client = TestClient(app)
+
+    response = client.get("/api/schema/metadata")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "resource": "metadata",
+        "title": "Metadata",
+        "id_field": "id",
+        "read_only": False,
+        "capabilities": [
+            "list",
+            "detail",
+            "query",
+            "create",
+            "patch",
+            "replace",
+            "delete",
+        ],
+        "schema": {
+            "title": "Metadata",
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+                "replay": {"type": "string"},
+                "description": {"type": ["string", "null"]},
+            },
+            "required": ["replay"],
+        },
+        "available_projections": ["table", "detail"],
+        "default_projection": "table",
+    }
+
+
+def test_create_app_serves_generic_resource_maintenance_routes(tmp_path: Path):
+    dist_dir = tmp_path / "dist"
+    dist_dir.mkdir()
+    (dist_dir / "index.html").write_text('<main id="app"></main>', encoding="utf-8")
+
+    calls: list[tuple[str, object]] = []
+
+    class StubGenericResourceService:
+        def get_schema(self, resource_name: str) -> dict[str, object] | None:
+            return None
+
+        def list_resources(
+            self,
+            resource_name: str,
+            *,
+            page: int,
+            page_size: int,
+            sort: str | None,
+            projection: str,
+            filters: dict[str, object],
+        ) -> dict[str, object]:
+            calls.append(
+                (
+                    "list",
+                    {
+                        "resource_name": resource_name,
+                        "page": page,
+                        "page_size": page_size,
+                        "sort": sort,
+                        "projection": projection,
+                        "filters": filters,
+                    },
+                )
+            )
+            return {
+                "resource": resource_name,
+                "items": [{"id": "m1", "replay": "a" * 64, "description": "focus"}],
+                "page": page,
+                "page_size": page_size,
+                "total": 1,
+                "total_pages": 1,
+                "sort": sort,
+                "projection": projection,
+                "filters": filters,
+            }
+
+        def query_resources(
+            self,
+            resource_name: str,
+            request: dict[str, object],
+        ) -> dict[str, object]:
+            calls.append(("query", {"resource_name": resource_name, "request": request}))
+            return {
+                "resource": resource_name,
+                "items": [{"id": "m2", "replay": "b" * 64, "description": "query hit"}],
+                "page": 1,
+                "page_size": 20,
+                "total": 1,
+                "total_pages": 1,
+                "sort": "-created_at",
+                "projection": "table",
+                "filters": {"description": {"$regex": "query"}},
+            }
+
+        def get_resource(
+            self,
+            resource_name: str,
+            resource_id: str,
+            *,
+            projection: str,
+        ) -> dict[str, object] | None:
+            calls.append(
+                (
+                    "detail",
+                    {
+                        "resource_name": resource_name,
+                        "resource_id": resource_id,
+                        "projection": projection,
+                    },
+                )
+            )
+            return {"id": resource_id, "replay": "c" * 64, "description": "detail"}
+
+        def create_resource(
+            self,
+            resource_name: str,
+            document: dict[str, object],
+        ) -> dict[str, object]:
+            calls.append(("create", {"resource_name": resource_name, "document": document}))
+            return {"id": "created", **document}
+
+        def patch_resource(
+            self,
+            resource_name: str,
+            resource_id: str,
+            patch: dict[str, object],
+        ) -> dict[str, object] | None:
+            calls.append(
+                (
+                    "patch",
+                    {
+                        "resource_name": resource_name,
+                        "resource_id": resource_id,
+                        "patch": patch,
+                    },
+                )
+            )
+            return {"id": resource_id, "replay": "d" * 64, **patch}
+
+        def replace_resource(
+            self,
+            resource_name: str,
+            resource_id: str,
+            document: dict[str, object],
+        ) -> dict[str, object] | None:
+            calls.append(
+                (
+                    "replace",
+                    {
+                        "resource_name": resource_name,
+                        "resource_id": resource_id,
+                        "document": document,
+                    },
+                )
+            )
+            return {"id": resource_id, **document}
+
+        def delete_resource(self, resource_name: str, resource_id: str) -> bool:
+            calls.append(
+                (
+                    "delete",
+                    {"resource_name": resource_name, "resource_id": resource_id},
+                )
+            )
+            return True
+
+    app = create_app(
+        ApiConfig(
+            mongo_dsn="mongodb://localhost:27017",
+            db_name="SC2AICOACH_TEST",
+            web_dist_dir=dist_dir,
+        ),
+        health_check=lambda: ApiHealthResponse(
+            status="ok",
+            database="ok",
+            db_name="SC2AICOACH_TEST",
+        ),
+        generic_resource_service=StubGenericResourceService(),
+    )
+
+    client = TestClient(app)
+
+    list_response = client.get(
+        "/api/admin/resources/metadata",
+        params={
+            "page": 2,
+            "page_size": 10,
+            "sort": "-created_at",
+            "projection": "table",
+            "description": "focus",
+        },
+    )
+    query_response = client.post(
+        "/api/admin/resources/metadata/query",
+        json={
+            "filter": {"description": {"$regex": "query"}},
+            "sort": {"created_at": -1},
+            "page": 1,
+            "page_size": 20,
+            "projection": "table",
+        },
+    )
+    detail_response = client.get(
+        "/api/admin/resources/metadata/m1",
+        params={"projection": "detail"},
+    )
+    create_response = client.post(
+        "/api/admin/resources/metadata",
+        json={"replay": "e" * 64, "description": "created"},
+    )
+    patch_response = client.patch(
+        "/api/admin/resources/metadata/m1",
+        json={"description": "patched"},
+    )
+    replace_response = client.put(
+        "/api/admin/resources/metadata/m1",
+        json={"replay": "f" * 64, "description": "replaced"},
+    )
+    delete_response = client.delete("/api/admin/resources/metadata/m1")
+
+    assert list_response.status_code == 200
+    assert list_response.json()["items"][0]["description"] == "focus"
+
+    assert query_response.status_code == 200
+    assert query_response.json()["items"][0]["description"] == "query hit"
+
+    assert detail_response.status_code == 200
+    assert detail_response.json() == {
+        "id": "m1",
+        "replay": "c" * 64,
+        "description": "detail",
+    }
+
+    assert create_response.status_code == 201
+    assert create_response.json() == {
+        "id": "created",
+        "replay": "e" * 64,
+        "description": "created",
+    }
+
+    assert patch_response.status_code == 200
+    assert patch_response.json() == {
+        "id": "m1",
+        "replay": "d" * 64,
+        "description": "patched",
+    }
+
+    assert replace_response.status_code == 200
+    assert replace_response.json() == {
+        "id": "m1",
+        "replay": "f" * 64,
+        "description": "replaced",
+    }
+
+    assert delete_response.status_code == 200
+    assert delete_response.json() == {
+        "resource": "metadata",
+        "id": "m1",
+        "deleted": True,
+    }
+
+    assert calls == [
+        (
+            "list",
+            {
+                "resource_name": "metadata",
+                "page": 2,
+                "page_size": 10,
+                "sort": "-created_at",
+                "projection": "table",
+                "filters": {"description": "focus"},
+            },
+        ),
+        (
+            "query",
+            {
+                "resource_name": "metadata",
+                "request": {
+                    "filter": {"description": {"$regex": "query"}},
+                    "sort": {"created_at": -1},
+                    "page": 1,
+                    "page_size": 20,
+                    "projection": "table",
+                },
+            },
+        ),
+        (
+            "detail",
+            {
+                "resource_name": "metadata",
+                "resource_id": "m1",
+                "projection": "detail",
+            },
+        ),
+        (
+            "create",
+            {
+                "resource_name": "metadata",
+                "document": {"replay": "e" * 64, "description": "created"},
+            },
+        ),
+        (
+            "patch",
+            {
+                "resource_name": "metadata",
+                "resource_id": "m1",
+                "patch": {"description": "patched"},
+            },
+        ),
+        (
+            "replace",
+            {
+                "resource_name": "metadata",
+                "resource_id": "m1",
+                "document": {"replay": "f" * 64, "description": "replaced"},
+            },
+        ),
+        (
+            "delete",
+            {"resource_name": "metadata", "resource_id": "m1"},
+        ),
+    ]
+
+
 def test_importing_admin_app_does_not_require_runtime_only_modules(tmp_path: Path):
     repo_root = Path(__file__).resolve().parents[2]
     guard_dir = tmp_path / "guards"

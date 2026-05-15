@@ -7,9 +7,10 @@ from html import escape
 from pathlib import Path
 from typing import Callable, Protocol
 
-from fastapi import FastAPI, HTTPException, Query, Response
+from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
+from pydantic import ValidationError
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
@@ -25,6 +26,7 @@ from src.api.contracts import (
     MapStatsNamedRange,
     MapStatsQueryRequest,
     MapStatsQueryResponse,
+    GenericResourceSchemaResponse,
     MapStatsRangesResponse,
     MapStatsSummary,
     PlayerAliasesResponse,
@@ -42,6 +44,12 @@ from src.api.contracts import (
     SessionSummaryResponse,
 )
 from src.api.conversation_types import AIConversationStatus, AIConversationTrigger
+from src.api.generic_resources import (
+    GenericResourceService,
+    InvalidResourceRequestError,
+    ResourceConflictError,
+    UnknownResourceError,
+)
 from src.api.map_stats import (
     InvalidMapStatsQueryError,
     MapStatsQueryService,
@@ -129,6 +137,59 @@ class MapStatsQueries(Protocol):
 
 
 class SessionQueries(Protocol):
+
+
+    class GenericResources(Protocol):
+        def get_schema(
+            self, resource_name: str
+        ) -> GenericResourceSchemaResponse | None: ...
+
+        def list_resources(
+            self,
+            resource_name: str,
+            *,
+            page: int,
+            page_size: int,
+            sort: str | None,
+            projection: str,
+            filters: dict[str, object],
+        ) -> dict[str, object]: ...
+
+        def query_resources(
+            self,
+            resource_name: str,
+            request: dict[str, object],
+        ) -> dict[str, object]: ...
+
+        def get_resource(
+            self,
+            resource_name: str,
+            resource_id: str,
+            *,
+            projection: str,
+        ) -> dict[str, object] | None: ...
+
+        def create_resource(
+            self,
+            resource_name: str,
+            document: dict[str, object],
+        ) -> dict[str, object]: ...
+
+        def patch_resource(
+            self,
+            resource_name: str,
+            resource_id: str,
+            patch: dict[str, object],
+        ) -> dict[str, object] | None: ...
+
+        def replace_resource(
+            self,
+            resource_name: str,
+            resource_id: str,
+            document: dict[str, object],
+        ) -> dict[str, object] | None: ...
+
+        def delete_resource(self, resource_name: str, resource_id: str) -> bool: ...
     def list_sessions(
         self,
         *,
@@ -231,6 +292,10 @@ def _default_session_queries(config: ApiConfig) -> SessionQueries:
     return SessionQueryService(config)
 
 
+def _default_generic_resources(config: ApiConfig) -> GenericResources:
+    return GenericResourceService.from_api_config(config)
+
+
 def _default_replay_queries(config: ApiConfig) -> ReplayQueries:
     from src.api.replays import ReplayQueryService
 
@@ -324,6 +389,7 @@ def create_app(
     *,
     health_check: HealthCheck | None = None,
     resource_discovery: ResourceDiscovery | None = None,
+    generic_resource_service: GenericResources | None = None,
     conversation_queries: ConversationQueries | None = None,
     map_stats_queries: MapStatsQueries | None = None,
     session_queries: SessionQueries | None = None,
@@ -349,6 +415,9 @@ def create_app(
             map_stats_unavailable_reason=resolved_map_stats_queries.unavailable_reason,
         )
     )
+    resolved_generic_resources = generic_resource_service or _default_generic_resources(
+        resolved_config
+    )
 
     app = FastAPI(title="SC2 AI Coach Admin API")
     app.add_middleware(
@@ -366,6 +435,143 @@ def create_app(
     @app.get("/api/resources", response_model=ResourceDiscoveryResponse)
     def get_resources() -> ResourceDiscoveryResponse:
         return ResourceDiscoveryResponse(resources=resolved_resource_discovery())
+
+    @app.get(
+        "/api/schema/{resource_name}",
+        response_model=GenericResourceSchemaResponse,
+    )
+    def get_resource_schema(resource_name: str) -> GenericResourceSchemaResponse:
+        schema = resolved_generic_resources.get_schema(resource_name)
+        if schema is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error("resource_schema", "resource", resource_name),
+            )
+        return schema
+
+    @app.get("/api/admin/resources/{resource_name}")
+    def list_generic_resource_documents(
+        resource_name: str,
+        request: Request,
+        page: int = Query(default=1, ge=1),
+        page_size: int = Query(default=20, ge=1, le=100),
+        sort: str | None = Query(default=None),
+        projection: str = Query(default="table"),
+    ) -> dict[str, object]:
+        return _handle_generic_resource(
+            resource_name,
+            lambda: resolved_generic_resources.list_resources(
+                resource_name,
+                page=page,
+                page_size=page_size,
+                sort=sort,
+                projection=projection,
+                filters=_generic_filters(request),
+            ),
+        )
+
+    @app.post("/api/admin/resources/{resource_name}/query")
+    def query_generic_resource_documents(
+        resource_name: str,
+        request: dict[str, object],
+    ) -> dict[str, object]:
+        return _handle_generic_resource(
+            resource_name,
+            lambda: resolved_generic_resources.query_resources(resource_name, request),
+        )
+
+    @app.post("/api/admin/resources/{resource_name}", status_code=201)
+    def create_generic_resource_document(
+        resource_name: str,
+        document: dict[str, object],
+    ) -> dict[str, object]:
+        return _handle_generic_resource(
+            resource_name,
+            lambda: resolved_generic_resources.create_resource(resource_name, document),
+        )
+
+    @app.get("/api/admin/resources/{resource_name}/{resource_id}")
+    def get_generic_resource_document(
+        resource_name: str,
+        resource_id: str,
+        projection: str = Query(default="detail"),
+    ) -> dict[str, object]:
+        document = _handle_generic_resource(
+            resource_name,
+            lambda: resolved_generic_resources.get_resource(
+                resource_name,
+                resource_id,
+                projection=projection,
+            ),
+        )
+        if document is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error(resource_name, "id", resource_id),
+            )
+        return document
+
+    @app.patch("/api/admin/resources/{resource_name}/{resource_id}")
+    def patch_generic_resource_document(
+        resource_name: str,
+        resource_id: str,
+        patch: dict[str, object],
+    ) -> dict[str, object]:
+        document = _handle_generic_resource(
+            resource_name,
+            lambda: resolved_generic_resources.patch_resource(
+                resource_name,
+                resource_id,
+                patch,
+            ),
+        )
+        if document is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error(resource_name, "id", resource_id),
+            )
+        return document
+
+    @app.put("/api/admin/resources/{resource_name}/{resource_id}")
+    def replace_generic_resource_document(
+        resource_name: str,
+        resource_id: str,
+        document: dict[str, object],
+    ) -> dict[str, object]:
+        saved = _handle_generic_resource(
+            resource_name,
+            lambda: resolved_generic_resources.replace_resource(
+                resource_name,
+                resource_id,
+                document,
+            ),
+        )
+        if saved is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error(resource_name, "id", resource_id),
+            )
+        return saved
+
+    @app.delete("/api/admin/resources/{resource_name}/{resource_id}")
+    def delete_generic_resource_document(
+        resource_name: str,
+        resource_id: str,
+    ) -> dict[str, object]:
+        deleted = _handle_generic_resource(
+            resource_name,
+            lambda: resolved_generic_resources.delete_resource(resource_name, resource_id),
+        )
+        if not deleted:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error(resource_name, "id", resource_id),
+            )
+        return {
+            "resource": resource_name,
+            "id": resource_id,
+            "deleted": True,
+        }
 
     @app.get("/api/sessions", response_model=SessionListResponse)
     def get_sessions(
@@ -794,6 +1000,63 @@ def _handle_map_stats(callback):
         ) from exc
 
 
+def _handle_generic_resource(resource_name: str, callback):
+    try:
+        return callback()
+    except UnknownResourceError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=_not_found_error("resource", "resource", resource_name),
+        ) from exc
+    except InvalidResourceRequestError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": {
+                    "code": "invalid_query",
+                    "message": str(exc),
+                    "details": {"resource": resource_name},
+                }
+            },
+        ) from exc
+    except ResourceConflictError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": {
+                    "code": "conflict",
+                    "message": str(exc),
+                    "details": {"resource": resource_name},
+                }
+            },
+        ) from exc
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": {
+                    "code": "validation_error",
+                    "message": "Resource payload validation failed.",
+                    "details": {
+                        "resource": resource_name,
+                        "errors": exc.errors(),
+                    },
+                }
+            },
+        ) from exc
+    except PyMongoError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": {
+                    "code": "database_unavailable",
+                    "message": str(exc),
+                    "details": {"resource": resource_name},
+                }
+            },
+        ) from exc
+
+
 def _resolve_date_range(*, min_date, from_date, to_date):
     if min_date is not None and from_date is not None and min_date != from_date:
         raise HTTPException(
@@ -808,6 +1071,17 @@ def _resolve_date_range(*, min_date, from_date, to_date):
         )
     resolved_from_date = from_date or min_date
     return resolved_from_date, to_date
+
+
+def _generic_filters(request: Request) -> dict[str, object]:
+    reserved = {"page", "page_size", "sort", "projection"}
+    filters: dict[str, object] = {}
+    for key in request.query_params.keys():
+        if key in reserved:
+            continue
+        values = request.query_params.getlist(key)
+        filters[key] = values[0] if len(values) == 1 else values
+    return filters
 
 
 def _parse_named_range(value: str) -> MapStatsNamedRange:

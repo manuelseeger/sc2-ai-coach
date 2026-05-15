@@ -520,4 +520,210 @@ describe('createAdminApiClient', () => {
       }),
     })
   })
+
+  it('routes generic maintenance requests through the shared typed client', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            resource: 'metadata',
+            title: 'Metadata',
+            id_field: 'id',
+            read_only: false,
+            capabilities: ['list', 'detail', 'query', 'create', 'patch', 'replace', 'delete'],
+            schema: {
+              title: 'Metadata',
+              type: 'object',
+              properties: {
+                replay: { type: 'string' },
+                description: { type: ['string', 'null'] },
+              },
+            },
+            available_projections: ['table', 'detail'],
+            default_projection: 'table',
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            resource: 'metadata',
+            items: [],
+            page: 2,
+            page_size: 10,
+            total: 0,
+            total_pages: 0,
+            sort: '-created_at',
+            projection: 'table',
+            filters: { description: 'focus' },
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            resource: 'metadata',
+            items: [],
+            page: 1,
+            page_size: 20,
+            total: 0,
+            total_pages: 0,
+            sort: '-created_at',
+            projection: 'table',
+            filters: { description: { $regex: 'focus' } },
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ id: 'm1', replay: 'a'.repeat(64), description: 'detail' }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ id: 'm2', replay: 'b'.repeat(64), description: 'created' }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 201,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ id: 'm2', replay: 'b'.repeat(64), description: 'patched' }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ id: 'm2', replay: 'c'.repeat(64), description: 'replaced' }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ resource: 'metadata', id: 'm2', deleted: true }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+
+    const client = createAdminApiClient(fetchMock)
+
+    await client.getResourceSchema('metadata')
+    await client.listResource('metadata', {
+      page: 2,
+      pageSize: 10,
+      sort: '-created_at',
+      projection: 'table',
+      filters: { description: 'focus' },
+    })
+    await client.queryResource('metadata', {
+      filter: { description: { $regex: 'focus' } },
+      sort: { created_at: -1 },
+      page: 1,
+      page_size: 20,
+      projection: 'table',
+    })
+    await client.getResource('metadata', 'm1', 'detail')
+    await client.createResource('metadata', {
+      replay: 'b'.repeat(64),
+      description: 'created',
+    })
+    await client.patchResource('metadata', 'm2', { description: 'patched' })
+    await client.replaceResource('metadata', 'm2', {
+      id: 'm2',
+      replay: 'c'.repeat(64),
+      description: 'replaced',
+    })
+    await client.deleteResource('metadata', 'm2')
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/schema/metadata', {
+      headers: { Accept: 'application/json' },
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/admin/resources/metadata?page=2&page_size=10&sort=-created_at&projection=table&description=focus',
+      { headers: { Accept: 'application/json' } },
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/admin/resources/metadata/query', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        filter: { description: { $regex: 'focus' } },
+        sort: { created_at: -1 },
+        page: 1,
+        page_size: 20,
+        projection: 'table',
+      }),
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      4,
+      '/api/admin/resources/metadata/m1?projection=detail',
+      { headers: { Accept: 'application/json' } },
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(5, '/api/admin/resources/metadata', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        replay: 'b'.repeat(64),
+        description: 'created',
+      }),
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(6, '/api/admin/resources/metadata/m2', {
+      method: 'PATCH',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ description: 'patched' }),
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(7, '/api/admin/resources/metadata/m2', {
+      method: 'PUT',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: 'm2',
+        replay: 'c'.repeat(64),
+        description: 'replaced',
+      }),
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(8, '/api/admin/resources/metadata/m2', {
+      method: 'DELETE',
+      headers: { Accept: 'application/json' },
+    })
+  })
 })
