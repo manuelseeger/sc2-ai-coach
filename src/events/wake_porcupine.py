@@ -82,8 +82,6 @@ class WakeWordListener(threading.Thread):
             if keyword_index >= 0:
                 if (datetime.now() - last_score_timestamp).seconds > 5:
                     last_score_timestamp = datetime.now()
-                    log.info(
-                        f"Porcupine detected wake word 'hey coach' (index: {keyword_index})"
-                    )
+                    log.info("Wakeword detected")
                     signal_queue.put(WakeEvent(awake=True))
                     sleep(5)

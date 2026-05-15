@@ -70,7 +70,7 @@ class WakeWordListener(threading.Thread):
             if score > self.settings.wakeword.sensitivity:
                 if (datetime.now() - last_score_timestamp).seconds > 5:
                     last_score_timestamp = datetime.now()
-                    log.info(f"Model woke up with a score of {score:.2f}")
+                    log.info("Wakeword detected")
                     signal_queue.put(WakeEvent(awake=True))
                     self.oww_model.reset()
                     sleep(5)
