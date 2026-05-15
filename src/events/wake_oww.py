@@ -9,37 +9,41 @@ import pyaudio
 import torch
 from openwakeword.model import Model
 
-from config import config
+from log import DEFAULT_LOGGER_NAME
 from shared import signal_queue
 from src.events import WakeEvent
+from src.runtime.settings import Config, get_config
 
 onnxruntime.set_default_logger_severity(3)
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 16000
 CHUNK = 1280
-MIC_INDEX = 2
-audio = pyaudio.PyAudio()
-mic_stream = audio.open(
-    format=FORMAT,
-    channels=CHANNELS,
-    rate=RATE,
-    input=True,
-    frames_per_buffer=CHUNK,
-    input_device_index=MIC_INDEX,
-)
-
-owwModel = Model([config.wakeword.model], inference_framework="onnx")  # type: ignore
 
 
 class WakeWordListener(threading.Thread):
-    def __init__(self):
+    def __init__(self, *, settings: Config | None = None):
         super().__init__()
+        self.settings = settings or get_config()
         self.daemon = True
         self._stop_event = threading.Event()
+        self.audio = pyaudio.PyAudio()
+        self.mic_stream = self.audio.open(
+            format=FORMAT,
+            channels=CHANNELS,
+            rate=RATE,
+            input=True,
+            frames_per_buffer=CHUNK,
+            input_device_index=self.settings.microphone_index,
+        )
+        self.oww_model = Model(
+            [self.settings.wakeword.model],
+            inference_framework="onnx",
+        )  # type: ignore[arg-type]
 
     def stop(self):
         self._stop_event.set()
@@ -59,16 +63,16 @@ class WakeWordListener(threading.Thread):
             if self.stopped():
                 log.debug("Stopping wakeword listener")
                 break
-            audio = np.frombuffer(mic_stream.read(CHUNK), dtype=np.int16)
+            audio = np.frombuffer(self.mic_stream.read(CHUNK), dtype=np.int16)
 
-            prediction = owwModel.predict(audio)
+            prediction = self.oww_model.predict(audio)
 
-            score = prediction[config.wakeword.model]  # type: ignore
+            score = prediction[self.settings.wakeword.model]  # type: ignore[index]
 
-            if score > config.wakeword.sensitivity:
+            if score > self.settings.wakeword.sensitivity:
                 if (datetime.now() - last_score_timestamp).seconds > 5:
                     last_score_timestamp = datetime.now()
-                    log.info(f"Model woke up with a score of {score:.2f}")
+                    log.info("Wakeword detected")
                     signal_queue.put(WakeEvent(awake=True))
-                    owwModel.reset()
+                    self.oww_model.reset()
                     sleep(5)

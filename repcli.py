@@ -2,11 +2,12 @@ import glob
 import json
 import logging
 import os
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from io import BytesIO
 from os.path import basename, getmtime, join
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import click
 import climage
@@ -18,12 +19,10 @@ from rich.logging import RichHandler
 from rich.table import Table
 from rich.theme import Theme
 
-from config import config
 from src.ai.utils import force_valid_json_string
-from src.playerinfo import save_player_info
-from src.replaydb.db import replaydb
-from src.replaydb.reader import ReplayReader
-from src.replaydb.types import PlayerInfo, Replay
+from src.playeridentity import PlayerIdentityEnrichmentError
+from src.runtime.playeridentity import build_player_identity_services
+from src.runtime.settings import Config, get_config
 
 custom_theme = Theme(
     {
@@ -34,11 +33,68 @@ custom_theme = Theme(
 
 console = Console(theme=custom_theme)
 
-log = logging.getLogger()
-log.setLevel(logging.WARNING)
-log.addHandler(RichHandler(show_time=False, rich_tracebacks=True))
 
-reader = ReplayReader()
+@dataclass
+class RepCliRuntime:
+    settings: "Config"
+    reader: Any
+    replay_store: Any
+    replay_model: type
+    player_info_model: type
+    player_identity_enricher: Any
+
+
+def load_runtime_settings() -> "Config":
+    return get_config()
+
+
+def _configure_cli_logging(*, debug: bool) -> logging.Logger:
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG if debug else logging.WARNING)
+
+    if not any(
+        getattr(handler, "_repcli_owned_handler", False) for handler in logger.handlers
+    ):
+        handler = RichHandler(show_time=False, rich_tracebacks=True)
+        setattr(handler, "_repcli_owned_handler", True)
+        logger.addHandler(handler)
+
+    if not debug:
+        logging.getLogger("sc2reader").setLevel(logging.CRITICAL)
+
+    return logger
+
+
+def _build_runtime() -> RepCliRuntime:
+    settings = load_runtime_settings()
+
+    from src.persistence.replay_store import PlayerInfo
+    from src.persistence.runtime import build_persistence_services
+    from src.replays.reader import ReplayReader
+    from src.replays.types import Replay
+
+    persistence = build_persistence_services(settings)
+    player_identity = build_player_identity_services(
+        settings,
+        replay_store=persistence.replay_store,
+    )
+
+    return RepCliRuntime(
+        settings=settings,
+        reader=ReplayReader(settings=settings),
+        replay_store=persistence.replay_store,
+        replay_model=Replay,
+        player_info_model=PlayerInfo,
+        player_identity_enricher=player_identity.enricher,
+    )
+
+
+def _get_runtime(ctx) -> RepCliRuntime:
+    runtime = ctx.obj.get("RUNTIME")
+    if runtime is None:
+        runtime = _build_runtime()
+        ctx.obj["RUNTIME"] = runtime
+    return runtime
 
 
 def dformat(x):
@@ -106,6 +162,8 @@ def cli(ctx, clean, debug, simulation, verbose):
     ctx.obj["SIMULATION"] = simulation
     ctx.obj["VERBOSE"] = verbose
 
+    _configure_cli_logging(debug=debug)
+
     console.print("Debug mode is %s" % ("[on]on[/on]" if debug else "[off]off[/off]"))
     console.print("Clean mode is %s" % ("[on]on[/on]" if clean else "[off]off[/off]"))
     console.print(
@@ -114,11 +172,6 @@ def cli(ctx, clean, debug, simulation, verbose):
     console.print(
         "Verbose mode is %s" % ("[on]on[/on]" if verbose else "[off]off[/off]")
     )
-
-    if debug:
-        log.setLevel(logging.DEBUG)
-    else:
-        logging.getLogger("sc2reader").setLevel(logging.CRITICAL)
 
 
 @cli.command()
@@ -150,17 +203,27 @@ def cli(ctx, clean, debug, simulation, verbose):
 )
 def sync(ctx, from_: datetime, to_: datetime, from_most_recent: bool):
     """Sync replays and players from replay folder to MongoDB"""
+    runtime = _get_runtime(ctx)
+    settings = runtime.settings
 
     if from_most_recent:
-        most_recent = replaydb.get_most_recent()
-        sync_from_date = most_recent.unix_timestamp
+        try:
+            most_recent = runtime.replay_store.get_most_recent_for_player(
+                settings.student.name
+            )
+            sync_from_date = most_recent.unix_timestamp
+        except ValueError:
+            sync_from_date = from_.timestamp()
+            console.print(
+                f":warning: No replays found in DB for {settings.student.name}, falling back to --from"
+            )
     else:
         sync_from_date = from_.timestamp()
 
     sync_to_date = (to_ + timedelta(days=1)).timestamp()
 
     console.print(f"Syncing from {dformat(sync_from_date)} to {dformat(sync_to_date)}")
-    list_of_files = glob.glob(join(config.replay_folder, "*.SC2Replay"))
+    list_of_files = glob.glob(join(settings.replay_folder, "*.SC2Replay"))
     list_of_files = [
         f
         for f in list_of_files
@@ -170,39 +233,39 @@ def sync(ctx, from_: datetime, to_: datetime, from_most_recent: bool):
     list_of_files.sort(key=getmtime)
     console.print(f"Found {len(list_of_files)} potential replays to sync")
 
-    summary = _sync(list_of_files, ctx)
+    summary = _sync(list_of_files, ctx, runtime)
 
     console.print(summary.to_table())
 
 
-def _sync(list_of_files, ctx) -> SyncSummary:
+def _sync(list_of_files, ctx, runtime: RepCliRuntime) -> SyncSummary:
     summary = SyncSummary()
     summary.total_replays = len(list_of_files)
 
     for file_path in list_of_files:
-        replay_raw = reader.load_replay_raw(file_path)
-        if reader.apply_filters(replay_raw):
+        replay_raw = runtime.reader.load_replay_raw(file_path)
+        if runtime.reader.apply_filters(replay_raw):
             console.print(f"Adding {basename(file_path)}")
-            replay = reader.to_typed_replay(replay_raw)
+            replay = runtime.reader.to_typed_replay(replay_raw)
 
-            syncreplay(ctx, replay, summary)
-            syncplayer(ctx, replay, summary)
+            syncreplay(ctx, replay, summary, runtime)
+            syncplayer(ctx, replay, summary, runtime)
         else:
             console.print(f"Filtered {basename(file_path)}")
             summary.filtered_replays += 1
-            if reader.is_archon_mode(replay_raw):
+            if runtime.reader.is_archon_mode(replay_raw):
                 console.print(
                     f":couple: Archon mode is not supported {basename(file_path)}"
                 )
                 continue
-            if reader.is_instant_leave(replay_raw):
+            if runtime.reader.is_instant_leave(replay_raw):
                 summary.instant_leave_replays += 1
                 if ctx.obj["CLEAN"]:
                     summary.deleted_replays += 1
                     os.remove(file_path)
                     console.print(f":litter_in_bin_sign: Deleted {basename(file_path)}")
                     continue
-            if reader.has_afk_player(replay_raw):
+            if runtime.reader.has_afk_player(replay_raw):
                 summary.afk_replays += 1
                 if ctx.obj["CLEAN"]:
                     summary.deleted_replays += 1
@@ -217,12 +280,15 @@ def _sync(list_of_files, ctx) -> SyncSummary:
 def validate(logfile):
     "Validate all replays in the DB. Shows replays in DB which can't be read"
 
+    runtime = _get_runtime(click.get_current_context())
     summary = ValidationSummary()
 
-    for replay in replaydb.find_many_dict(Replay, raw_query={}):
+    for replay in runtime.replay_store.find_many_dict(
+        runtime.replay_model, raw_query={}
+    ):
         console.print(f"Validating {basename(replay['filename'])}", end=" ")
         try:
-            rep = Replay(**replay)  # noqa: F841
+            rep = runtime.replay_model(**replay)  # noqa: F841
             console.print(":white_heavy_check_mark:")
             summary.valid_replays += 1
 
@@ -252,10 +318,13 @@ def query(ctx):
 @click.option("--query", "-q", type=str, prompt="MongoDB Query")
 def players(ctx, query):
     """Query the DB for players"""
+    runtime = _get_runtime(ctx)
     query = force_valid_json_string(query)
     query = json.loads(query)
 
-    players = replaydb.db.find_many(PlayerInfo, raw_query=query)
+    players = runtime.replay_store.db.find_many(
+        runtime.player_info_model, raw_query=query
+    )
 
     if not isinstance(players, list):
         console.print(f":x: Expected list of players, got {type(players).__name__}")
@@ -272,6 +341,7 @@ def players(ctx, query):
 @click.argument("replay", type=click.Path(exists=False), required=True, nargs=-1)
 def add(ctx, replay):
     """Add one or more replays to the DB"""
+    runtime = _get_runtime(ctx)
 
     list_of_files = []
 
@@ -288,7 +358,7 @@ def add(ctx, replay):
         console.print(f":x: No replays found for {replay}")
         return
 
-    summary = _sync(list_of_files, ctx)
+    summary = _sync(list_of_files, ctx, runtime)
 
     console.print(summary.to_table())
 
@@ -299,14 +369,15 @@ def add(ctx, replay):
 @click.option("--json", "-j", is_flag=True, default=False, help="Print in JSON")
 def echo(ctx, replay, json):
     """Echo pretty-printed parsed replay data from a .SC2Replay file"""
-    rep = reader.load_replay(replay)
+    runtime = _get_runtime(ctx)
+    rep = runtime.reader.load_replay(replay)
     if json:
         console.print_json(rep.default_projection_json())
     else:
         console.print(rep)
 
 
-def print_player_portrait(player: PlayerInfo):
+def print_player_portrait(player):
     portrait = player.portrait or player.portrait_constructed
     if portrait:
         img = Image.open(BytesIO(portrait)).resize((40, 40))
@@ -317,15 +388,14 @@ def print_player_portrait(player: PlayerInfo):
         print(output)
 
 
-def syncplayer(ctx, replay: Replay, summary: SyncSummary):
-    opponent = replay.get_opponent_of(config.student.name)
+def syncplayer(ctx, replay, summary: SyncSummary, runtime: RepCliRuntime):
+    opponent = replay.get_opponent_of(runtime.settings.student.name)
 
     if ctx.obj["SIMULATION"]:
         console.print(f"Simulation, would add {opponent.name} ({opponent.toon_handle})")
     else:
-        result, player_info = save_player_info(replay)
-
-        if result.acknowledged:
+        try:
+            player_info = runtime.player_identity_enricher.save_from_replay(replay)
             console.print(
                 f":white_heavy_check_mark: {opponent.name} ({opponent.toon_handle}) added to DB from {replay}"
             )
@@ -338,17 +408,17 @@ def syncplayer(ctx, replay: Replay, summary: SyncSummary):
                 )
             if ctx.obj["VERBOSE"]:
                 print_player_portrait(player_info)
-        else:
+        except PlayerIdentityEnrichmentError as exc:
             console.print(
-                f":x: {opponent.name} ({opponent.toon_handle}) not added to DB"
+                f":x: {opponent.name} ({opponent.toon_handle}) not added to DB: {exc}"
             )
 
 
-def syncreplay(ctx, replay: Replay, summary: SyncSummary):
+def syncreplay(ctx, replay, summary: SyncSummary, runtime: RepCliRuntime):
     if ctx.obj["SIMULATION"]:
         console.print(f"Simulation, would add {replay}")
     else:
-        result = replaydb.upsert(replay)
+        result = runtime.replay_store.upsert(replay)
         if result.acknowledged:
             console.print(f":white_heavy_check_mark: {replay} added to DB")
             summary.replays_added += 1

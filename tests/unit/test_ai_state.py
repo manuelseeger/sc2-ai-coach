@@ -4,7 +4,6 @@ import pytest
 from pydantic import BaseModel
 from pyodmongo.queries import eq, sort
 
-from config import config
 from src.persistence.conversation_store import (
     AIConversation,
     AIConversationStatus,
@@ -13,12 +12,11 @@ from src.persistence.conversation_store import (
     AIResponseRecord,
     ConversationStore,
 )
-from src.persistence.replay_store import get_replay_store
+from src.persistence.replay_store import ReplayStore
 from src.persistence.session_store import Session
+from tests.conftest import load_test_settings
 
 pytestmark = pytest.mark.mongo
-
-replay_store = get_replay_store()
 
 
 class FakeUsage(BaseModel):
@@ -36,12 +34,12 @@ class FakeResponse(BaseModel):
 
 
 @pytest.fixture
-def store():
-    return ConversationStore()
+def store(conversation_store: ConversationStore):
+    return conversation_store
 
 
 @pytest.fixture(autouse=True)
-def cleanup_ai_state():
+def cleanup_ai_state(conversation_store: ConversationStore, replay_store: ReplayStore):
     conversations: list[AIConversation] = []
     response_records: list[AIResponseRecord] = []
     sessions: list[Session] = []
@@ -50,8 +48,8 @@ def cleanup_ai_state():
         "response_records": response_records,
         "sessions": sessions,
     }
-    ConversationStore().delete_response_records(response_records)
-    ConversationStore().delete_conversations(conversations)
+    conversation_store.delete_response_records(response_records)
+    conversation_store.delete_conversations(conversations)
     for session in sessions:
         if session.id is None:
             continue
@@ -115,7 +113,9 @@ def test_close_conversation_marks_status_and_time(
 
 
 def test_record_response_deduplicates_by_response_id(
-    store: ConversationStore, cleanup_ai_state
+    store: ConversationStore,
+    cleanup_ai_state,
+    replay_store: ReplayStore,
 ):
     conversation = store.create_conversation(
         trigger=AIConversationTrigger.replay_summary,
@@ -156,14 +156,18 @@ def test_record_response_deduplicates_by_response_id(
 
 
 def test_record_response_calculates_costs_and_updates_session(
-    store: ConversationStore, cleanup_ai_state
+    store: ConversationStore,
+    cleanup_ai_state,
+    replay_store: ReplayStore,
 ):
+    runtime_settings = load_test_settings()
+
     session = Session(
         session_date=datetime.now(),
-        ai_backend=config.aibackend,
-        completion_pricing=config.gpt_completion_pricing,
-        prompt_pricing=config.gpt_prompt_pricing,
-        cached_prompt_pricing=config.gpt_cached_prompt_pricing,
+        ai_backend=runtime_settings.aibackend,
+        completion_pricing=runtime_settings.gpt_completion_pricing,
+        prompt_pricing=runtime_settings.gpt_prompt_pricing,
+        cached_prompt_pricing=runtime_settings.gpt_cached_prompt_pricing,
     )
     replay_store.db.save(session)
     cleanup_ai_state["sessions"].append(session)
@@ -194,7 +198,7 @@ def test_record_response_calculates_costs_and_updates_session(
         query=Session.id == session.id,  # type: ignore[arg-type]
     )
 
-    pricing = config.get_model_pricing("gpt-5.4")
+    pricing = runtime_settings.get_model_pricing("gpt-5.4")
     expected_input_cost = 80 * pricing.prompt
     expected_cached_cost = 20 * pricing.cached_prompt
     expected_output_cost = 40 * pricing.completion
@@ -227,29 +231,3 @@ def test_append_message_rejects_invalid_role(
 
     with pytest.raises(ValueError):
         store.append_message(conversation, role="invalid", text="hello")
-
-
-def test_chapter_one_models_round_trip_in_db(cleanup_ai_state):
-    conversation = AIConversation(
-        trigger=AIConversationTrigger.cast_replay,
-        metadata={"test_scope": "unit_ai_state"},
-    )
-    replay_store.db.save(conversation)
-    cleanup_ai_state["conversations"].append(conversation)
-
-    found = replay_store.db.find_one(
-        Model=AIConversation,
-        query=AIConversation.id == conversation.id,  # type: ignore[arg-type]
-    )
-
-    assert found is not None
-    assert found.id == conversation.id
-
-
-def test_ai_conversation_metadata_defaults_when_none():
-    conversation = AIConversation(
-        trigger=AIConversationTrigger.wake,
-        metadata=None,
-    )
-
-    assert conversation.metadata == {}

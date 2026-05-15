@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from shared import signal_queue
 from src.ai.functions.base import AIFunction
 from src.events.events import CastReplayEvent
-from src.persistence.replay_store import get_replay_store
+from src.persistence.replay_store import ReplayStore, get_replay_store
 from src.replays.types import Replay
 
 
@@ -22,6 +22,7 @@ def _cast_replay(
         str,
         "The unique ID of a replay. Also called the filehash of the replay.",
     ],
+    replay_store: ReplayStore | None = None,
 ) -> str:
     """
     Start casting / commentating a replay.
@@ -35,7 +36,7 @@ def _cast_replay(
         q = Replay.unix_timestamp == int(replay_id[:10])
     else:
         q = Replay.filehash == replay_id
-    replay_store = get_replay_store()
+    replay_store = replay_store or get_replay_store()
     replay: Replay = replay_store.db.find_one(Replay, query=q)  # type: ignore
     if not replay:
         return f"Replay with ID {replay_id} not found."
@@ -44,6 +45,14 @@ def _cast_replay(
     signal_queue.put(event)
 
     return f"Casting for {replay_id} started. Thank you, you can close this conversation now!"
+
+
+def build_cast_replay_function(replay_store: ReplayStore):
+    return AIFunction(
+        fn=lambda **kwargs: _cast_replay(replay_store=replay_store, **kwargs),
+        args_model=CastReplayArgs,
+        name="CastReplay",
+    )
 
 
 CastReplay = AIFunction(

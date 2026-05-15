@@ -1,5 +1,4 @@
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
     from speech_recognition.audio import AudioData
@@ -7,27 +6,27 @@ else:
     AudioData = Any
 
 
-class TranscriberService(ABC):
-    @abstractmethod
-    def transcribe(self, audio: AudioData) -> str:
-        pass
+class TranscriberService(Protocol):
+    def transcribe(self, audio: AudioData) -> str: ...
 
 
-class MicrophoneService(ABC):
-    @abstractmethod
-    def listen(self) -> AudioData | None:
-        pass
+class MicrophoneService(Protocol):
+    name: str
+
+    def listen(self) -> AudioData | None: ...
 
 
-class TTSService(ABC):
-    @abstractmethod
-    def feed(self, text: str) -> None:
-        pass
+class TTSService(Protocol):
+    def feed(self, text: str) -> None: ...
 
-    @abstractmethod
-    def stop(self) -> None:
-        pass
+    def stop(self) -> None: ...
 
-    @abstractmethod
-    def is_speaking(self) -> bool:
-        pass
+    def is_speaking(self) -> bool: ...
+
+
+class LiveEventListener(Protocol):
+    def start(self) -> None: ...
+
+    def stop(self) -> None: ...
+
+    def join(self) -> None: ...

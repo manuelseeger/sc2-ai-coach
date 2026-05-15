@@ -9,11 +9,13 @@ from jinja2 import Environment, FileSystemLoader
 from pydantic import HttpUrl, computed_field
 from pyodmongo import DbModel, MainBaseModel
 
-from config import config
-from src.persistence.replay_store import get_replay_store
+from src.persistence.replay_store import ReplayStore, get_replay_store
 from src.replays.types import Replay
+from src.runtime.settings import Config, get_config
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+from log import DEFAULT_LOGGER_NAME
+
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 
 class Matchup(MainBaseModel):
@@ -32,10 +34,12 @@ class MatchupsByMap(DbModel):
     map: str
     matchups: list[Matchup]
     _collection: ClassVar = "replays"
-    _pipeline: ClassVar = [
-        {"$match": {"players.name": config.student.name}},
-        # unwind the unordered player array so that we have dedicated
-        # objects for student and opponent
+    _pipeline: ClassVar[list[dict[str, Any]]] = []
+
+
+def _map_stats_pipeline(settings: Config) -> list[dict[str, Any]]:
+    return [
+        {"$match": {"players.name": settings.student.name}},
         {
             "$project": {
                 "map_name": 1,
@@ -43,7 +47,7 @@ class MatchupsByMap(DbModel):
                 "student": {
                     "$arrayElemAt": [
                         "$players",
-                        {"$indexOfArray": ["$players.name", config.student.name]},
+                        {"$indexOfArray": ["$players.name", settings.student.name]},
                     ]
                 },
                 "opponent": {
@@ -56,7 +60,7 @@ class MatchupsByMap(DbModel):
                                         {
                                             "$indexOfArray": [
                                                 "$players.name",
-                                                config.student.name,
+                                                settings.student.name,
                                             ]
                                         },
                                         0,
@@ -70,7 +74,7 @@ class MatchupsByMap(DbModel):
                 },
             }
         },
-        {"$match": {"$expr": {"$eq": ["$student.play_race", config.student.race]}}},
+        {"$match": {"$expr": {"$eq": ["$student.play_race", settings.student.race]}}},
         {
             "$group": {
                 "_id": {
@@ -114,6 +118,14 @@ class MatchupsByMap(DbModel):
     ]
 
 
+def _configure_matchups_pipeline(settings: Config) -> None:
+    MatchupsByMap._pipeline.clear()
+    MatchupsByMap._pipeline.extend(_map_stats_pipeline(settings))
+
+
+_configure_matchups_pipeline(get_config())
+
+
 def add_path_segment(url: HttpUrl, *segments: Any) -> str:
     parsed_url = urlparse(str(url))
 
@@ -125,10 +137,24 @@ def add_path_segment(url: HttpUrl, *segments: Any) -> str:
     return updated_url
 
 
-def update_map_stats(map):
-    season_stats = get_map_stats(map, config.season_start)
+def update_map_stats(
+    map: str,
+    replay_store: ReplayStore | None = None,
+    *,
+    settings: Config | None = None,
+):
+    settings = settings or get_config()
+    season_stats = get_map_stats(
+        map,
+        settings.season_start,
+        replay_store=replay_store,
+        settings=settings,
+    )
     todays_stats = get_map_stats(
-        map, min_date=datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        map,
+        min_date=datetime.now().replace(hour=0, minute=0, second=0, microsecond=0),
+        replay_store=replay_store,
+        settings=settings,
     )
 
     if season_stats is not None:
@@ -148,7 +174,7 @@ def update_map_stats(map):
                         losses=0,
                     )
                 )
-        stats_html_file = Path(config.obs_dir) / "map_stats_obs.html"
+        stats_html_file = Path(settings.obs_dir) / "map_stats_obs.html"
         env = Environment(loader=FileSystemLoader("templates"))
         template = env.get_template("map_stats.jinja2")
         rendered = template.render(
@@ -158,13 +184,22 @@ def update_map_stats(map):
             f.write(rendered)
 
 
-def get_map_stats(map: str, min_date: datetime | None = None) -> MatchupsByMap | None:
+def get_map_stats(
+    map: str,
+    min_date: datetime | None = None,
+    replay_store: ReplayStore | None = None,
+    *,
+    settings: Config | None = None,
+) -> MatchupsByMap | None:
+    settings = settings or get_config()
     if min_date is None:
-        min_date = config.season_start
+        min_date = settings.season_start
 
-    q = (Replay.map_name == map) & (Replay.date >= min_date)  # pyright: ignore[reportOperatorIssue]
-
-    replay_store = get_replay_store()
-    maps: list[MatchupsByMap] = replay_store.db.find_many(Model=MatchupsByMap, query=q)  # type: ignore
-
+    replay_store = replay_store or get_replay_store()
+    _configure_matchups_pipeline(settings)
+    query = (Replay.map_name == map) & (Replay.date >= min_date)  # pyright: ignore[reportOperatorIssue]
+    maps: list[MatchupsByMap] = replay_store.db.find_many(
+        Model=MatchupsByMap,
+        query=query,  # type: ignore[assignment]
+    )
     return maps[0] if maps else None

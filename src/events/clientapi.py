@@ -2,12 +2,14 @@ import logging
 import threading
 from time import sleep
 
-from config import config
 from shared import signal_queue
 from src.events import NewMatchEvent
 from src.lib.sc2client import SC2Client, is_live_game
+from src.runtime.settings import Config, get_config
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+from log import DEFAULT_LOGGER_NAME
+
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 
 class ClientAPIListener(threading.Thread):
@@ -15,11 +17,12 @@ class ClientAPIListener(threading.Thread):
 
     sc2client: SC2Client
 
-    def __init__(self):
+    def __init__(self, *, settings: Config | None = None):
         super().__init__()
+        self.settings = settings or get_config()
         self._stop_event = threading.Event()
 
-        self.sc2client = SC2Client()
+        self.sc2client = SC2Client(settings=self.settings)
 
     def stop(self):
         self._stop_event.set()
@@ -43,7 +46,10 @@ class ClientAPIListener(threading.Thread):
             if is_live_game(gameinfo):
                 if gameinfo == self.last_gameinfo:
                     # same ongoing game, just later in time
-                    if gameinfo.displayTime >= self.last_gameinfo.displayTime:
+                    if (
+                        self.last_gameinfo
+                        and gameinfo.displayTime >= self.last_gameinfo.displayTime
+                    ):
                         continue
 
                 self.last_gameinfo = gameinfo

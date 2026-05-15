@@ -3,11 +3,11 @@ from datetime import datetime
 import pytest
 from pyodmongo.queries import eq
 
-from config import config
 from src.persistence.conversation_store import AIConversation
 from src.persistence.replay_store import Metadata, get_replay_store
 from src.replays.reader import ReplayReader
 from src.replays.types import AIConversationTrigger, Replay
+from tests.conftest import load_test_settings
 
 replay_store = get_replay_store()
 
@@ -108,6 +108,12 @@ def test_upsert_new_replay():
 
 
 def test_get_most_recent():
-    replay: Replay = replay_store.get_most_recent_for_player(config.student.name)
-    assert any(config.student.name in player.name for player in replay.players)
+    runtime_settings = load_test_settings()
+
+    replay: Replay = replay_store.get_most_recent_for_player(
+        runtime_settings.student.name
+    )
+    assert any(
+        runtime_settings.student.name in player.name for player in replay.players
+    )
     assert replay is not None

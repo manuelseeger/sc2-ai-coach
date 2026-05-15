@@ -4,14 +4,16 @@ from typing import Annotated
 from bson.json_util import dumps, loads
 from pydantic import BaseModel, ConfigDict, Field
 
-from config import config
-from src.persistence.replay_store import get_replay_store
+from src.persistence.replay_store import ReplayStore, get_replay_store
 from src.replays.types import Replay
+from src.runtime.settings import get_config
 
 from ..utils import force_valid_json_string
 from .base import AIFunction
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+from log import DEFAULT_LOGGER_NAME
+
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 example = """
 {
@@ -89,16 +91,16 @@ example = """
 """
 
 
-QUERY_REPLAY_DB_DESCRIPTION = f"""Query the replay database and return JSON representation of all matching replays.
+QUERY_REPLAY_DB_DESCRIPTION = """Query the replay database and return JSON representation of all matching replays.
 
 The replay DB is a MongoDB database. Query this according to your instructions. Here are a few examples of how to translate questions to query filters:
 
 Q: Get replays of player Driftoss on the map Hecate LE
 F: {{"players.name": "Driftoss", "map_name": "Hecate LE"}}
 Q: Get replays against my Protoss opponents
-F: {{"players": {{$elemMatch: {{"play_race": "Protoss", "name": {{$ne: "{config.student.name}"}}}}}}}}
+F: {"players": {$elemMatch: {"play_race": "Protoss", "name": {$ne: "<student-name>"}}}}
 Q: Get replays against my Protoss opponents who build an oracle
-F: {{"players.build_order": {{$elemMatch: {{"name": "Oracle"}}}} ,"players": {{$elemMatch: {{"play_race": "Protoss", "name": {{$ne: "{config.student.name}"}}}}}}}}
+F: {"players.build_order": {$elemMatch: {"name": "Oracle"}} ,"players": {$elemMatch: {"play_race": "Protoss", "name": {$ne: "<student-name>"}}}}
 """
 
 
@@ -134,7 +136,7 @@ def _query_replay_db(
     projection: Annotated[
         str,
         'A MongoDB projection document to specifiy which fields of the document to return. Example projection to get only the map name for returned replays: {"map_name": 1}. This is optional and defaults to returning all fields.',
-    ] = dumps(config.default_projection),
+    ] = dumps(get_config().default_projection),
     sort: Annotated[
         str,
         'A MongoDB sort document to specify how to sort the returned documents. Example to sort by game length: {"game_length": -1}. This is optional and defaults to sorting by unix_timestamp, descending.',
@@ -147,6 +149,7 @@ def _query_replay_db(
         int,
         "An integer to specify the maximum number of seconds to include results from. When limit_time is given, arrays in the result set are filtered to only include elements up to that time. This is optional.",
     ] = 600,
+    replay_store: ReplayStore | None = None,
 ) -> list:
     """Query the replay database and return JSON representation of all matching replays.
 
@@ -160,8 +163,9 @@ def _query_replay_db(
     F: {"players.build_order": {$elemMatch: {"name": "Oracle"}} ,"players": {$elemMatch: {"play_race": "Protoss", "name": {$ne: "Johnny"}}}}
     """
     # Force the arguments to be valid JSON
+    settings = get_config()
     if filter is None or filter == "{{}}":
-        filter = f'{{"player.name": "{config.student.name}"}}'
+        filter = f'{{"player.name": "{settings.student.name}"}}'
     filter = force_valid_json_string(filter)
     projection = force_valid_json_string(projection)
     sort = force_valid_json_string(sort)
@@ -170,7 +174,7 @@ def _query_replay_db(
     projection = projection.replace(".$.", ".")
 
     try:
-        replay_store = get_replay_store()
+        replay_store = replay_store or get_replay_store()
         cursor = replay_store.replays.find(
             filter=loads(str(filter)),
             sort=loads(str(sort)),
@@ -192,6 +196,15 @@ def _query_replay_db(
     except Exception as e:
         log.error(e)
         return []
+
+
+def build_query_replay_db_function(replay_store: ReplayStore):
+    return AIFunction(
+        fn=lambda **kwargs: _query_replay_db(replay_store=replay_store, **kwargs),
+        args_model=QueryReplayDBArgs,
+        name="QueryReplayDB",
+        description=QUERY_REPLAY_DB_DESCRIPTION,
+    )
 
 
 QueryReplayDB = AIFunction(

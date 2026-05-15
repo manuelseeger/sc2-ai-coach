@@ -17,13 +17,12 @@ from transformers.models.whisper import WhisperFeatureExtractor
 from transformers.utils import is_flash_attn_2_available
 from typing_extensions import override
 
-from config import config
+from log import DEFAULT_LOGGER_NAME
 from src.contracts import TranscriberService
 
 transformers.logging.set_verbosity_error()
 
-log = logging.getLogger(f"{config.name}.{__name__}")
-log.setLevel(logging.DEBUG)
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 vad = webrtcvad.Vad()
 
@@ -81,12 +80,11 @@ class GPUWhisperFeatureExtractor(WhisperFeatureExtractor):
 
 
 class Transcriber(TranscriberService):
-    def __init__(self):
+    def __init__(self, *, model_id: str):
         self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
         torch.set_default_device(self.device)
         self.torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-        model_id = config.speech_recognition_model
 
         self.model = AutoModelForSpeechSeq2Seq.from_pretrained(
             model_id,

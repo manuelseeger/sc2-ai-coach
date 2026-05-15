@@ -7,8 +7,8 @@ import click
 import obsws_python as obsws
 from rich import print
 
-from config import config
 from src.lib.sc2client import SC2Client, Screen
+from src.runtime.settings import get_config
 
 log = logging.getLogger(__name__)
 log_file = Path("logs/obs_client.log")
@@ -27,9 +27,6 @@ sys.excepthook = log_uncaught_exceptions
 sys.stdout = open(log_file, "a", encoding="utf-8")
 
 
-sc2client = SC2Client()
-
-
 # we set this up as a standalone process so that OBS can run and react to SC2 UI changes without the need
 # to run the rest of the project.
 # This will send the currently visible screen(s) in SC2 menus to OBS via the AdvancedSceneSwitcher plugin
@@ -40,6 +37,8 @@ sc2client = SC2Client()
 @click.option("--debug", is_flag=True)
 def main(verbose, debug):
     """Monitor SC2 UI through client API and let OBS know when loading screen is active"""
+    settings = get_config()
+    sc2client = SC2Client(settings=settings)
 
     menu_screens = set([Screen.background, Screen.foreground, Screen.navigation])
 
@@ -51,7 +50,7 @@ def main(verbose, debug):
 
     try:
         with obsws.ReqClient(
-            host="localhost", port=4455, password=config.obs_ws_pw, timeout=3
+            host="localhost", port=4455, password=settings.obs_ws_pw, timeout=3
         ) as obs:
             resp = obs.get_version()
             if isinstance(resp, dict):

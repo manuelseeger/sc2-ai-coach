@@ -10,11 +10,13 @@ from twitchAPI.object.eventsub import ChannelFollowEvent, ChannelRaidEvent
 from twitchAPI.twitch import Twitch
 from twitchAPI.type import AuthScope, ChatEvent
 
-from config import config
 from shared import signal_queue
 from src.events import TwitchChatEvent, TwitchFollowEvent, TwitchRaidEvent
+from src.runtime.settings import Config, get_config
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+from log import DEFAULT_LOGGER_NAME
+
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 USER_SCOPE = [
     AuthScope.CHAT_READ,
@@ -24,29 +26,33 @@ USER_SCOPE = [
 
 
 class TwitchListener(threading.Thread):
-    def __init__(self):
+    def __init__(self, *, settings: Config | None = None):
         super().__init__()
+        self.settings = settings or get_config()
+        if self.settings.twitch is None:
+            raise ValueError("twitch must be configured")
+        self.twitch_settings = self.settings.twitch
         self.daemon = True
         self._stop_event = threading.Event()
 
     def stop(self):
         self._stop_event.set()
         self.chat.stop()
-        self.eventsub.stop()
-        self.twitch.close()
+        asyncio.run(self.eventsub.stop())
+        asyncio.run(self.twitch.close())
 
     def stopped(self):
         return self._stop_event.is_set()
 
     def run(self):
-        if config.twitch_mocked:
+        if self.twitch_settings.mocked:
             asyncio.run(self.twitch_async_mocked())
         else:
             asyncio.run(self.twitch_async())
 
     async def on_ready(self, ready_event: EventData):
-        log.debug(f"Bot ready, joining {config.twitch_channel}")
-        await ready_event.chat.join_room(config.twitch_channel)
+        log.debug(f"Bot ready, joining {self.twitch_settings.channel}")
+        await ready_event.chat.join_room(self.twitch_settings.channel)
 
     async def on_follow(self, follow_event: ChannelFollowEvent):
         log.debug(f"Followed by {follow_event.event.user_name}")
@@ -69,6 +75,9 @@ class TwitchListener(threading.Thread):
         signal_queue.put(result)
 
     async def on_message(self, msg: ChatMessage):
+        if not msg.room:
+            log.warning("Received message without room info, ignoring")
+            return
         log.debug(f"Message in {msg.room.name}, {msg.user.name}: {msg.text}")
         result = TwitchChatEvent(
             user=msg.user.name, channel=msg.room.name, message=msg.text
@@ -80,7 +89,10 @@ class TwitchListener(threading.Thread):
 
         Join the streamer chat channel, and subscribe to raid and follow events.
         """
-        self.twitch = await Twitch(config.twitch_client_id, config.twitch_client_secret)
+        self.twitch = await Twitch(
+            self.twitch_settings.client_id,
+            self.twitch_settings.client_secret,
+        )
         helper = UserAuthenticationStorageHelper(self.twitch, USER_SCOPE)
         await helper.bind()
 
@@ -90,6 +102,8 @@ class TwitchListener(threading.Thread):
         self.chat.start()
 
         user = await first(self.twitch.get_users())
+        if user is None:
+            raise ValueError("Failed to get authenticated twitch user")
         self.eventsub = EventSubWebsocket(self.twitch)
         self.eventsub.start()
 
@@ -106,8 +120,8 @@ class TwitchListener(threading.Thread):
             AuthScope.MODERATOR_READ_FOLLOWERS,
         ]
         self.twitch = await Twitch(
-            config.twitch_client_id,
-            config.twitch_client_secret,
+            self.twitch_settings.client_id,
+            self.twitch_settings.client_secret,
             base_url="http://localhost:8080/mock/",
             auth_base_url="http://localhost:8080/auth/",
         )
@@ -115,9 +129,16 @@ class TwitchListener(threading.Thread):
         auth = UserAuthenticator(
             self.twitch, mock_scope, auth_base_url="http://localhost:8080/auth/"
         )
-        token = await auth.mock_authenticate(config.twitch_mocked_user_id)
+        if self.twitch_settings.mocked_user_id is None:
+            raise ValueError(
+                "twitch.mocked_user_id must be configured when twitch.mocked is enabled"
+            )
+        mocked_user_id = self.twitch_settings.mocked_user_id
+        token = await auth.mock_authenticate(mocked_user_id)
         await self.twitch.set_user_authentication(token, mock_scope)
         user = await first(self.twitch.get_users())
+        if user is None:
+            raise ValueError("Failed to get authenticated twitch user")
 
         self.eventsub = EventSubWebsocket(
             self.twitch,

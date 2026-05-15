@@ -1,11 +1,10 @@
 import pytest
 
 import sc2reader
-from config import config
 from src.replays.plugins.ReplayStats import is_gg, player_worker_micro
 from src.replays.reader import ReplayReader
 from src.util import time2secs
-from tests.conftest import only_in_debugging
+from tests.conftest import load_test_settings, only_in_debugging
 
 
 @pytest.mark.parametrize(
@@ -23,6 +22,41 @@ def test_replay_typing(replay_file):
     replay = reader.to_typed_replay(raw_replay)
 
     assert replay.map_name == "Equilibrium LE"
+    assert (
+        replay.id == "3966c5a1c6e15e84e63e033e54783c74b1ccb78bc9194b47bb6fb11f0ada64c6"
+    )
+    assert replay.id == raw_replay.filehash
+    assert len(replay.players) == 2
+
+    player_one, player_two = replay.players
+
+    assert player_one.name == "FuRoar"
+    assert player_one.pid == 1
+    assert player_one.pick_race == "Protoss"
+    assert player_one.play_race == "Protoss"
+    assert player_one.result == "Loss"
+    assert player_one.uid == 0
+    assert player_one.toon_id == 9928025
+    assert player_one.toon_handle == "2-S2-1-9928025"
+    assert player_one.url == "https://starcraft2.com/en-us/profile/2/1/9928025"
+    assert player_one.highest_league == 5
+    assert player_one.scaled_rating == 3965
+    assert player_one.build_order
+    assert player_one.stats.avg_unspent_resources == pytest.approx(778.4645669291339)
+    assert player_one.worker_stats.worker_trained_total == 106
+
+    assert player_two.name == "zatic"
+    assert player_two.pid == 2
+    assert player_two.pick_race == "Zerg"
+    assert player_two.play_race == "Zerg"
+    assert player_two.result == "Win"
+    assert player_two.uid == 1
+    assert player_two.toon_id == 691545
+    assert player_two.toon_handle == "2-S2-1-691545"
+    assert player_two.url == "https://starcraft2.com/en-us/profile/2/1/691545"
+    assert player_two.highest_league == 5
+    assert player_two.scaled_rating == 3701
+    assert player_two.build_order
 
 
 @pytest.mark.parametrize(
@@ -219,7 +253,7 @@ def test_worker_tracker(replay_file):
     ],
     indirect=True,
 )
-def test_spending_quotient(replay_file):
+def test_replay_reader_enables_spending_quotient_plugin(replay_file):
     reader = ReplayReader()
 
     replay = reader.load_replay(replay_file)
@@ -238,7 +272,7 @@ def test_spending_quotient(replay_file):
     ],
     indirect=True,
 )
-def test_player_stats_tracker(replay_file):
+def test_replay_reader_enables_player_stats_tracker_plugin(replay_file):
     reader = ReplayReader()
 
     replay = reader.load_replay(replay_file)
@@ -312,6 +346,7 @@ def test_afk_replay(replay_file):
     indirect=True,
 )
 def test_replay_colors_positions(replay_file):
+    runtime_settings = load_test_settings()
     reader = ReplayReader()
 
     replay_raw = reader.load_replay_raw(replay_file)
@@ -323,7 +358,7 @@ def test_replay_colors_positions(replay_file):
     assert p1.color.name.lower() == "red"
     assert p2.color.name.lower() == "blue"
 
-    if config.include_map_details:
+    if runtime_settings.include_map_details:
         assert p1.clock_position == 1
         assert p2.clock_position == 7
     else:

@@ -9,13 +9,13 @@ if not os.getenv("RUN_LIVE_OPENAI_TESTS"):
         allow_module_level=True,
     )
 
-from config import config
-from src.ai import AICoach
-from src.ai.prompt import Templates
 from src.replays.reader import ReplayReader
+from tests.conftest import load_test_settings
 
 
 def test_function_add_metadata(util):
+    from src.ai.aicoach import AICoach
+
     aicoach = AICoach()
 
     rep_id = "e22f8952c22a61a86ae3d2dd3fb2e5f650f7504a15c186f3f8761727cfaa3eea"
@@ -43,15 +43,19 @@ def test_function_add_metadata(util):
     indirect=True,
 )
 def test_add_tag_after_replay_summary(replay_file, util):
+    from src.ai.aicoach import AICoach
+    from src.ai.prompt import Templates
+
+    runtime_settings = load_test_settings()
     coach = AICoach()
 
     reader = ReplayReader()
 
     replay = reader.load_replay(replay_file)
 
-    opponent = replay.get_player(config.student.name, opponent=True).name
+    opponent = replay.get_player(runtime_settings.student.name, opponent=True).name
     replacements = {
-        "student": str(config.student.name),
+        "student": str(runtime_settings.student.name),
         "map": str(replay.map_name),
         "opponent": str(opponent),
         "replay": str(replay.default_projection_json(limit=600, include_workers=False)),
@@ -80,15 +84,19 @@ def test_add_tag_after_replay_summary(replay_file, util):
     indirect=True,
 )
 def test_add_player_tag_after_replay(replay_file, util):
+    from src.ai.aicoach import AICoach
+    from src.ai.prompt import Templates
+
+    runtime_settings = load_test_settings()
     coach = AICoach()
 
     reader = ReplayReader()
 
     replay = reader.load_replay(replay_file)
 
-    opponent = replay.get_player(config.student.name, opponent=True).name
+    opponent = replay.get_player(runtime_settings.student.name, opponent=True).name
     replacements = {
-        "student": str(config.student.name),
+        "student": str(runtime_settings.student.name),
         "map": str(replay.map_name),
         "opponent": str(opponent),
         "replay": str(replay.default_projection_json(limit=600, include_workers=False)),

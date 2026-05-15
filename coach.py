@@ -4,18 +4,28 @@ import sys
 
 import click
 
-from config import AudioMode, CoachEvent, config
-from log import log
+from log import configure_application_logging, log
 from shared import signal_queue
-from src.contracts import MicrophoneService, TranscriberService, TTSService
-from src.events import ReplEvent
-from src.io.rich_log import RichConsoleLogHandler
+from src.contracts import (
+    LiveEventListener,
+    MicrophoneService,
+    TranscriberService,
+    TTSService,
+)
+from src.events.events import ReplEvent
+from src.persistence.runtime import build_persistence_services
+from src.runtime.playeridentity import build_player_identity_services
+from src.runtime.settings import (
+    AudioMode,
+    Config,
+    TranscriberBackend,
+    get_config,
+)
 from src.session import AISession
 
-rich_handler = RichConsoleLogHandler()
-rich_handler.setLevel(logging.INFO)
 
-log.addHandler(rich_handler)
+def load_runtime_settings() -> "Config":
+    return get_config()
 
 
 @click.command()
@@ -27,61 +37,65 @@ log.addHandler(rich_handler)
     help="Dump full LLM request and response traces to debug logs",
 )
 def main(debug, repl, trace):
+    settings = load_runtime_settings()
+
+    configure_application_logging(logger=log)
+    _install_rich_log_handler(log)
+    persistence = build_persistence_services(settings)
+    player_identity = build_player_identity_services(
+        settings,
+        replay_store=persistence.replay_store,
+    )
+
     if debug:
         log.setLevel(logging.DEBUG)
         log.debug("debugging on")
 
     if repl:
-        config.audiomode = AudioMode.text
+        settings.audiomode = AudioMode.text
         signal_queue.put(ReplEvent())
 
-    tts, mic, transcriber = _build_io_services()
+    tts, mic, transcriber = _build_io_services(settings)
 
     # Build session and initialize event handlers
     # Each handler is a threading.thread that listens for configured events
     # On an event, the handler puts a new task in the signal_queue
-    session = AISession(tts=tts, mic=mic, transcriber=transcriber, trace=trace)
+    session = AISession(
+        settings=settings,
+        tts=tts,
+        mic=mic,
+        transcriber=transcriber,
+        trace=trace,
+        conversation_store=persistence.conversation_store,
+        replay_store=persistence.replay_store,
+        session_store=persistence.session_store,
+        player_resolver=player_identity.resolver,
+    )
 
-    wake = None
-    scanner = None
-    replay_scanner = None
-    twitch = None
+    wake, scanner, replay_scanner, twitch = _build_live_event_listeners(
+        settings,
+        replay_store=persistence.replay_store,
+        player_identity_enricher=player_identity.enricher,
+        repl=repl,
+    )
 
-    if not repl and CoachEvent.twitch in config.coach_events:
-        from src.events import TwitchListener
+    for listener in [twitch, wake, scanner, replay_scanner]:
+        if listener is not None:
+            listener.start()
 
-        twitch = TwitchListener()
-        twitch.start()
-
-    if not repl and CoachEvent.wake in config.coach_events:
-        from src.events import WakeListener
-
-        wake = WakeListener()
-        wake.start()
-
-    if not repl and CoachEvent.game_start in config.coach_events:
-        from src.events import GameStartedListener
-
-        scanner = GameStartedListener()
-        scanner.start()
-
-    if not repl and CoachEvent.new_replay in config.coach_events:
-        from src.events import NewReplayListener
-
-        replay_scanner = NewReplayListener()
-        replay_scanner.start()
-
-    if config.audiomode in [AudioMode.voice_out, AudioMode.full] and tts is not None:
+    if settings.audiomode in [AudioMode.voice_out, AudioMode.full] and tts is not None:
         tts.feed("Starting TTS")
 
-    log.info(f"Audio mode: {str(config.audiomode)}")
-    log.info(f"OBS integration: {str(config.obs_integration)}")
-    log.info(f"AI Backend: {str(config.aibackend)} {config.gpt_model}")
-    if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
-        log.info(f"Transcriber: {config.transcriber_backend}")
-    log.info(f"Coach events enabled: {', '.join(config.coach_events)}")
+    log.info(f"Audio mode: {str(settings.audiomode)}")
+    log.info(f"OBS integration: {str(settings.obs_integration)}")
+    log.info(f"AI Backend: {str(settings.aibackend)} {settings.gpt_model}")
+    if settings.audiomode in [AudioMode.voice_in, AudioMode.full]:
+        log.info(f"Microphone: {mic.name if mic is not None else 'none'}")
+        log.info(f"Transcriber: {settings.transcriber_backend}")
 
-    log.info(f"Starting {'non-' * (not config.interactive)}interactive session")
+    log.info(f"Coach events enabled: {', '.join(settings.coach_events)}")
+
+    log.info(f"Starting {'non-' * (not settings.interactive)}interactive session")
 
     # Main loop: Every 1s get a task from the signal_queue first in first out, and let the session process it
     # On shutdown, close all event listener threads and exit
@@ -100,7 +114,7 @@ def main(debug, repl, trace):
             if session.is_active():
                 session.close()
             if (
-                config.audiomode in [AudioMode.voice_out, AudioMode.full]
+                settings.audiomode in [AudioMode.voice_out, AudioMode.full]
                 and tts is not None
             ):
                 tts.stop()
@@ -119,33 +133,133 @@ def main(debug, repl, trace):
             sys.exit(0)
 
 
-def _build_io_services() -> tuple[
+def _install_rich_log_handler(log: logging.Logger) -> None:
+    from src.io.rich_log import RichConsoleLogHandler
+
+    if any(isinstance(handler, RichConsoleLogHandler) for handler in log.handlers):
+        return
+
+    rich_handler = RichConsoleLogHandler()
+    rich_handler.setLevel(logging.INFO)
+    log.addHandler(rich_handler)
+
+
+def _build_io_services(
+    settings: "Config",
+) -> tuple[
     TTSService | None,
     MicrophoneService | None,
     TranscriberService | None,
 ]:
     tts, mic, transcriber = None, None, None
 
-    if config.audiomode in [AudioMode.voice_in, AudioMode.full] and config.interactive:
-        from src.io import Transcriber
+    if (
+        settings.audiomode in [AudioMode.voice_in, AudioMode.full]
+        and settings.interactive
+    ):
         from src.io.mic import Microphone
 
-        mic = Microphone()
-        transcriber = Transcriber()
+        mic = Microphone(
+            device_index=settings.microphone_index,
+            recognizer_config=settings.recognizer,
+        )
+        transcriber = _build_transcriber(settings)
+        logging.getLogger(__name__).info(f"Using microphone: {mic.name}")
 
-        if "nvidia broadcast" not in mic.name.lower():
-            log.warning("Using a non-NVIDIA Broadcast microphone")
-
-    if config.audiomode in [AudioMode.voice_out, AudioMode.full]:
+    if settings.audiomode in [AudioMode.voice_out, AudioMode.full]:
         from src.io.tts import make_tts_stream
 
-        tts = make_tts_stream()
+        tts = make_tts_stream(tts_config=settings.tts)
     else:
         from src.io.dummy import TTSDummy
 
         tts = TTSDummy()
 
     return tts, mic, transcriber
+
+
+def _build_live_event_listeners(
+    settings: "Config",
+    *,
+    replay_store,
+    player_identity_enricher,
+    repl: bool,
+) -> tuple[
+    LiveEventListener | None,
+    LiveEventListener | None,
+    LiveEventListener | None,
+    LiveEventListener | None,
+]:
+    from src.runtime.settings import CoachEvent
+
+    wake = None
+    scanner = None
+    replay_scanner = None
+    twitch = None
+
+    if repl:
+        return wake, scanner, replay_scanner, twitch
+
+    if CoachEvent.twitch in settings.coach_events:
+        from src.events.twitch import TwitchListener
+
+        twitch = TwitchListener(settings=settings)
+
+    if CoachEvent.wake in settings.coach_events:
+        if (
+            settings.audiomode in [AudioMode.full, AudioMode.voice_in]
+            and settings.interactive
+        ):
+            if settings.wakeword.engine == "porcupine":
+                from src.events.wake_porcupine import WakeWordListener
+            else:
+                from src.events.wake_oww import WakeWordListener
+
+            wake = WakeWordListener(settings=settings)
+        else:
+            from src.events.wake_key import WakeKeyListener
+
+            wake = WakeKeyListener(settings=settings)
+
+    if CoachEvent.game_start in settings.coach_events:
+        if settings.obs_integration:
+            from src.events.loading_screen import NewMatchListener
+
+            scanner = NewMatchListener(settings=settings)
+        else:
+            from src.events.clientapi import ClientAPIListener
+
+            scanner = ClientAPIListener(settings=settings)
+
+    if CoachEvent.new_replay in settings.coach_events:
+        from src.events.newreplay import NewReplayListener
+
+        replay_scanner = NewReplayListener(
+            settings=settings,
+            replay_store=replay_store,
+            player_identity_enricher=player_identity_enricher,
+        )
+
+    return wake, scanner, replay_scanner, twitch
+
+
+def _build_transcriber(settings: "Config") -> TranscriberService:
+    if settings.transcriber_backend == TranscriberBackend.canary_qwen:
+        from src.io.transcribe_qwen import QwenTranscriberService
+
+        return QwenTranscriberService()
+
+    if settings.transcriber_backend == TranscriberBackend.xai:
+        from src.io.transcribe_xai import XAITranscriberService
+
+        return XAITranscriberService(
+            api_key=settings.xai_api_key,
+            language=settings.xai_stt_language,
+        )
+
+    from src.io.transcribe_whisper import Transcriber
+
+    return Transcriber(model_id=settings.speech_recognition_model)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, TypeVar, overload
 
-import sc2reader
 from sc2reader.engine.plugins import ContextLoader, CreepTracker
 from sc2reader_plugins import (
     APMTracker,
@@ -12,13 +11,16 @@ from sc2reader_plugins import (
     WorkerTracker,
 )
 
-from config import config
+import sc2reader
+from src.runtime.settings import Config, get_config
 
 from .plugins.ReplayStats import ReplayStats
 from .plugins.SpawningTool import SpawningTool
 from .types import Replay
 
-log = logging.getLogger(config.name)
+from log import DEFAULT_LOGGER_NAME
+
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 
 sc2reader.engine.register_plugin(EventSecondCorrector())  # type: ignore
@@ -30,18 +32,17 @@ sc2reader.engine.register_plugin(SQTracker())  # type: ignore
 sc2reader.engine.register_plugin(PlayerStatsTracker())  # type: ignore
 
 
-factory = sc2reader.factories.DictCachedSC2Factory(cache_max_size=1000)
-factory.register_plugin("Replay", ReplayStats())  # type: ignore
-factory.register_plugin(
-    "Replay",
-    SpawningTool(include_map_details=config.include_map_details),  # type: ignore
-)
-
-
 class ReplayReader:
     default_filters = []
 
-    def __init__(self):
+    def __init__(self, settings: Config | None = None):
+        self.settings = settings or get_config()
+        self.factory = sc2reader.factories.DictCachedSC2Factory(cache_max_size=1000)
+        self.factory.register_plugin("Replay", ReplayStats())  # type: ignore
+        self.factory.register_plugin(
+            "Replay",
+            SpawningTool(include_map_details=self.settings.include_map_details),  # type: ignore
+        )
         self.default_filters = [
             lambda x: not self.is_ladder(x),
             self.is_archon_mode,
@@ -52,7 +53,7 @@ class ReplayReader:
     def load_replay_raw(self, file_path: str | Path):
         if isinstance(file_path, Path):
             file_path = str(file_path)
-        replay = factory.load_replay(file_path)
+        replay = self.factory.load_replay(file_path)
         log.debug(f"Loaded {replay.filename}")
         return replay
 
@@ -65,7 +66,7 @@ class ReplayReader:
         return is_ladder
 
     def is_instant_leave(self, replay):
-        is_instant_leave = replay.real_length.seconds < config.instant_leave_max
+        is_instant_leave = replay.real_length.seconds < self.settings.instant_leave_max
         log.debug(
             f"is_instant_leave: {is_instant_leave}, {replay.real_length.seconds}s"
         )

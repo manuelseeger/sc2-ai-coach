@@ -3,11 +3,11 @@ from typing import Annotated
 
 import httpx
 
-from config import config
-
 from .base import AIFunction
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+from log import DEFAULT_LOGGER_NAME
+
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 PROFILE_BASE = "https://starcraft2.com/en-us/profile/"
 API_BASE = "https://starcraft2.blizzard.com/en-us/api/sc2/profile/"

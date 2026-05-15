@@ -6,12 +6,14 @@ from typing import Any, Optional
 import pandas as pd
 from pydantic import BaseModel, ConfigDict, computed_field, field_validator
 
-from config import config
 from shared import http_client
 from src.lib.sc2pulse import SC2PulseClient, SC2PulseCommonCharacter, SC2PulseRace
 from src.replays.types import ToonHandle
+from src.runtime.settings import Config, get_config
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+from log import DEFAULT_LOGGER_NAME
+
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 
 def build_race_report(df: pd.DataFrame) -> pd.DataFrame:
@@ -81,8 +83,13 @@ class MatchHistory(BaseModel):
         return len(self.data)
 
 
-def get_sc2pulse_match_history(toon_handle: ToonHandle) -> MatchHistory | None:
-    sc2pulse = SC2PulseClient(http_client=http_client)
+def get_sc2pulse_match_history(
+    toon_handle: ToonHandle,
+    *,
+    settings: Config | None = None,
+) -> MatchHistory | None:
+    settings = settings or get_config()
+    sc2pulse = SC2PulseClient(http_client=http_client, settings=settings)
 
     profile_link = toon_handle.to_profile_link()
 
@@ -100,7 +107,8 @@ def get_sc2pulse_match_history(toon_handle: ToonHandle) -> MatchHistory | None:
     # chars[0].members.character.name # battletag
 
     common = sc2pulse.get_character_common(
-        sc2pulse_char_id, match_history_depth=config.match_history_depth
+        sc2pulse_char_id,
+        match_history_depth=settings.match_history_depth,
     )
 
     if common is None:

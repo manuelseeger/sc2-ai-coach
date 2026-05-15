@@ -7,19 +7,13 @@ import numpy as np
 import pytest
 from PIL import Image
 
-import src.playerinfo
-from config import config
 from external.fast_ssim.ssim import ssim
-from src.lib.sc2client import GameInfo, Player
 from src.lib.sc2pulse import SC2PulseClient
-from src.persistence.replay_store import PlayerInfo, get_replay_store
-from src.playerinfo import (
-    is_portrait_match,
-    resolve_replays_from_current_opponent,
-    save_player_info,
-)
+from src.persistence.replay_store import Alias, PlayerInfo, get_replay_store
+from src.playeridentity import PlayerIdentityEnricher, PlayerPortraitSource
+from src.playerresolver import PlayerResolver
 from src.replays.reader import ReplayReader
-from tests.conftest import only_in_debugging
+from tests.conftest import load_test_settings, only_in_debugging
 
 replay_store = get_replay_store()
 
@@ -43,11 +37,12 @@ def test_save_existing_player_info(replay_file, portrait_file):
 
     # act
     replay = reader.load_replay(replay_file)
-    result, player_info = save_player_info(replay)
+    player_info = PlayerIdentityEnricher(load_test_settings()).save_from_replay(replay)
+    stored_player_info = replay_store.find(player_info)
 
     # assert
-    assert result.acknowledged
-    assert result.modified_count == 1
+    assert stored_player_info is not None
+    assert stored_player_info.toon_handle == player_info.toon_handle
 
 
 @pytest.mark.parametrize(
@@ -61,26 +56,30 @@ def test_save_existing_player_info(replay_file, portrait_file):
     indirect=["replay_file", "portrait_file"],
 )
 def test_existing_player_info_update_alias(replay_file, portrait_file, mocker):
+    runtime_settings = load_test_settings()
+
     # arrange
-    def get_portrait_mocked(o, m, r):
+    def get_portrait_mocked(replay):
         return open(portrait_file, "rb").read()
 
-    mocker.patch("src.playerinfo.get_matching_portrait", get_portrait_mocked)
+    mocker.patch.object(
+        PlayerPortraitSource,
+        "get_matching_portrait_from_replay",
+        side_effect=get_portrait_mocked,
+    )
 
     reader = ReplayReader()
     replay = reader.load_replay(replay_file)
-    opponent_handle = replay.get_opponent_of(config.student.name).toon_handle
+    opponent_handle = replay.get_opponent_of(runtime_settings.student.name).toon_handle
 
     player_info = replay_store.db.find_one(
         PlayerInfo, raw_query={"_id": opponent_handle}
     )
 
     # act
-    result, new_player_info = save_player_info(replay)
+    new_player_info = PlayerIdentityEnricher(runtime_settings).save_from_replay(replay)
 
     # assert
-    assert result.acknowledged
-    assert result.modified_count == 1
     assert any([a == player_info for a in new_player_info.aliases])
 
     # Undo the alias update
@@ -93,27 +92,39 @@ def test_existing_player_info_update_alias(replay_file, portrait_file, mocker):
     indirect=True,
 )
 def test_save_player_without_obs_integration(replay_file):
-    config.obs_integration = False
+    runtime_settings = load_test_settings()
+    runtime_settings.obs_integration = False
 
     reader = ReplayReader()
     replay = reader.load_replay(replay_file)
-    result, player_info = save_player_info(replay)
+    player_info = PlayerIdentityEnricher(runtime_settings).save_from_replay(replay)
 
-    assert result.acknowledged
+    assert (
+        player_info.toon_handle
+        == replay.get_opponent_of(runtime_settings.student.name).toon_handle
+    )
 
 
 @pytest.mark.parametrize(
-    "portrait_file",
-    ["Goldenaura LE - BlackEyed vs zatic 2024-06-02 15-24-03_portrait.png"],
-    indirect=True,
+    "replay_file,portrait_file",
+    [
+        (
+            "Goldenaura LE (282) 2 base Terran tank allin.SC2Replay",
+            "Goldenaura LE - BlackEyed vs zatic 2024-06-02 15-24-03_portrait.png",
+        )
+    ],
+    indirect=["replay_file", "portrait_file"],
 )
-def test_read_player_portrait(portrait_file):
-    playerinfo = replay_store.find(
-        PlayerInfo(id="2-S2-2-504151", name="BlackEyed", toon_handle="2-S2-2-504151")
-    )
+def test_read_player_portrait(replay_file, portrait_file):
+    os.makedirs("obs/screenshots/portraits", exist_ok=True)
+    shutil.copy(portrait_file, "obs/screenshots/portraits/")
+    replay = ReplayReader().load_replay(replay_file)
+    runtime_settings = load_test_settings()
+    runtime_settings.obs_integration = True
+    playerinfo = PlayerIdentityEnricher(runtime_settings).save_from_replay(replay)
 
     portrait = Image.open(portrait_file)
-    db_portrait = Image.open(BytesIO(playerinfo.portrait))
+    db_portrait = Image.open(BytesIO(bytes(playerinfo.portrait)))
 
     score = ssim(np.array(portrait), np.array(db_portrait))
 
@@ -130,10 +141,18 @@ def test_read_player_portrait(portrait_file):
 def test_resolve_barcode_player(portrait_file):
     barcode = "IIIIIIIIIIII"
     barcode1 = "2-S2-1-10088973"
+    resolver = PlayerResolver(load_test_settings())
+    player_info = PlayerInfo(
+        id=barcode1,
+        name=barcode,
+        toon_handle=barcode1,
+        aliases=[Alias(name=barcode)],
+    )
+    resolver.replay_store.db.find_many = lambda *args, **kwargs: [player_info]
 
     portrait = Image.open(portrait_file)
 
-    player_info = src.playerinfo.resolve_player_with_portrait(
+    player_info = resolver.resolve_player_with_portrait(
         barcode, portrait=np.array(portrait)
     )
 
@@ -158,6 +177,8 @@ def test_resolve_barcode_player(portrait_file):
     indirect=["portrait_file"],
 )
 def test_resolve_current_player(portrait_file, opponent, num_replays, mocker):
+    from src.lib.sc2client import GameInfo, Player
+
     # arrange
     def get_portrait_mocked(o, m, r):
         return open(portrait_file, "rb").read()
@@ -173,26 +194,43 @@ def test_resolve_current_player(portrait_file, opponent, num_replays, mocker):
             opponent_player,
         ],
     )
+    resolver = PlayerResolver(load_test_settings())
+    mocker.patch.object(resolver.sc2client, "wait_for_gameinfo", return_value=gameinfo)
     mocker.patch.object(
-        src.playerinfo.sc2client, "wait_for_gameinfo", return_value=gameinfo
-    )
-    mocker.patch.object(
-        src.playerinfo.sc2client,
+        resolver.sc2client,
         "get_opponent",
         return_value=(opponent_player.name, opponent_player.race),
     )
-    mocker.patch("src.playerinfo.get_matching_portrait", get_portrait_mocked)
+    if num_replays > 0:
+        mocker.patch.object(
+            resolver.replay_store.db,
+            "find_many",
+            return_value=[
+                PlayerInfo(
+                    id="2-S2-1-3637118",
+                    name=opponent,
+                    toon_handle="2-S2-1-3637118",
+                    aliases=[Alias(name=opponent)],
+                )
+            ],
+        )
+    else:
+        mocker.patch.object(resolver.replay_store.db, "find_many", return_value=[])
+    mocker.patch.object(
+        resolver.portrait_source,
+        "get_matching_portrait",
+        side_effect=get_portrait_mocked,
+    )
 
     mapname = "Post-Youth LE"
     mmr = 4000
 
     # act
-    playerinfo, replays = resolve_replays_from_current_opponent(
-        opponent=opponent, mapname=mapname, mmr=mmr
-    )
+    playerinfo = resolver.resolve_player(opponent=opponent, mapname=mapname, mmr=mmr)
+    expected_found = num_replays > 0
 
     # assert
-    assert len(replays) == num_replays
+    assert (playerinfo is not None) is expected_found
 
 
 # requires sc2client to connect to the game
@@ -205,16 +243,27 @@ def test_resolve_current_barcode_player(portrait_file, mocker):
     def get_portrait_mocked(o, m, r):
         return open(portrait_file, "rb").read()
 
-    mocker.patch("src.playerinfo.get_matching_portrait", get_portrait_mocked)
+    resolver = PlayerResolver(load_test_settings())
+    playerinfo = PlayerInfo(
+        id="2-S2-1-8773156",
+        name="IIIIIIIIIIII",
+        toon_handle="2-S2-1-8773156",
+        aliases=[Alias(name="IIIIIIIIIIII")],
+    )
+    mocker.patch.object(
+        resolver.replay_store.db, "find_many", return_value=[playerinfo]
+    )
+    mocker.patch.object(
+        resolver.portrait_source,
+        "get_matching_portrait",
+        side_effect=get_portrait_mocked,
+    )
     bc = "IIIIIIIIIIII"
     mapname = "Post-Youth LE"
     mmr = 4000
-    playerinfo, replays = resolve_replays_from_current_opponent(
-        opponent=bc, mapname=mapname, mmr=mmr
-    )
+    playerinfo = resolver.resolve_player(opponent=bc, mapname=mapname, mmr=mmr)
 
     assert playerinfo.name == bc
-    assert len(replays) > 0
 
 
 @pytest.mark.parametrize(
@@ -259,7 +308,11 @@ def test_resolve_current_barcode_player(portrait_file, mocker):
     ],
 )
 def test_match_portrait_filename(portrait_file, map_name, replay_date, expected):
-    assert is_portrait_match(portrait_file, map_name, replay_date) == expected
+    portrait_source = PlayerPortraitSource(load_test_settings())
+    assert (
+        portrait_source.is_portrait_match(portrait_file, map_name, replay_date)
+        == expected
+    )
 
 
 @only_in_debugging

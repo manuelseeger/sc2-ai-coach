@@ -5,10 +5,8 @@ import pytest
 if sys.gettrace() is None:
     pytest.skip("Skipping debug-only integration test.", allow_module_level=True)
 
-from coach import AISession
-from config import config
-from src.events import NewReplayEvent
 from src.replays.reader import ReplayReader
+from tests.conftest import load_test_settings
 from tests.mocks import MicMock, TranscriberMock, TTSMock
 
 
@@ -20,6 +18,8 @@ from tests.mocks import MicMock, TranscriberMock, TTSMock
     indirect=True,
 )
 def test_init_from_new_replay(replay_file, mocker):
+    from coach import AISession
+
     reader = ReplayReader()
     session = AISession()
 
@@ -46,6 +46,8 @@ def test_init_from_new_replay(replay_file, mocker):
     indirect=True,
 )
 def test_init_from_replay_with_nonutf8_chars(replay_file, mocker):
+    from coach import AISession
+
     reader = ReplayReader()
     session = AISession()
 
@@ -71,8 +73,12 @@ def test_init_from_replay_with_nonutf8_chars(replay_file, mocker):
     indirect=["replay_file"],
 )
 def test_init_from_replay_with_metadata(replay_file, mocker):
+    from coach import AISession
+    from src.events import NewReplayEvent
 
-    assert config.interactive
+    runtime_settings = load_test_settings()
+
+    assert runtime_settings.interactive
     reader = ReplayReader()
     session = AISession()
 

@@ -4,7 +4,7 @@ version = "0.6.0"
 requires-python = ">=3.12"
 readme = "README.md"
 dependencies = [
-  "blizzardapi2>=3.0.4",
+  "blizzardapi2>=4.0.2",
   "click>=8.3.3",
   "climage>=0.2.2",
   "httpx>=0.28.1",
@@ -89,6 +89,7 @@ dev = [
   "ruff>=0.13.0",
   "setuptools>=75.8.0",
   "tiktoken>=0.12.0",
+  "pre-commit>=4.6.0",
 ]
 
 
@@ -115,3 +116,22 @@ pythonpath = [
 markers = [
   "mongo: uses a real MongoDB test service",
 ]
+
+[tool.pyright]
+include = [
+    "src",
+    "tests",
+    "*.py",
+]
+
+typeCheckingMode = "standard"
+
+exclude = [
+    "playground",
+    "**/__pycache__",
+    "**/node_modules",
+    "**/.*",
+    ".venv",
+    "venv",
+]
+reportMissingTypeStubs = "none"

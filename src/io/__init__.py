@@ -1,12 +1,12 @@
-from config import TranscriberBackend, config
+from src.runtime.settings import TranscriberBackend
 
 
-def _load_transcriber():
-    if config.transcriber_backend == TranscriberBackend.canary_qwen:
+def get_transcriber_class(transcriber_backend: TranscriberBackend):
+    if transcriber_backend == TranscriberBackend.canary_qwen:
         from src.io.transcribe_qwen import QwenTranscriberService
 
         return QwenTranscriberService
-    if config.transcriber_backend == TranscriberBackend.xai:
+    if transcriber_backend == TranscriberBackend.xai:
         from src.io.transcribe_xai import XAITranscriberService
 
         return XAITranscriberService
@@ -16,10 +16,4 @@ def _load_transcriber():
     return Transcriber
 
 
-def __getattr__(name: str):
-    if name == "Transcriber":
-        return _load_transcriber()
-    raise AttributeError(name)
-
-
-__all__ = ["Transcriber"]
+__all__ = ["get_transcriber_class"]

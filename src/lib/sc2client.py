@@ -9,9 +9,11 @@ from httpx import ConnectError
 from pydantic import BaseModel
 from pydantic_core import ValidationError
 
-from config import config
+from src.runtime.settings import Config, get_config
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+from log import DEFAULT_LOGGER_NAME
+
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 # Module-level constant
 NORMAL_MAP: dict = {
@@ -129,7 +131,12 @@ class UIInfo(BaseModel):
 class SC2Client:
     http_client: httpx.Client
 
-    def __init__(self, http_client: httpx.Client = None):
+    def __init__(
+        self,
+        http_client: httpx.Client = None,
+        settings: Config | None = None,
+    ):
+        self.settings = settings or get_config()
         if http_client:
             self.http_client = http_client
         else:
@@ -158,13 +165,13 @@ class SC2Client:
             gameinfo = self.get_gameinfo()
         if gameinfo:
             for player in gameinfo.players:
-                if player.name != config.student.name:
+                if player.name != self.settings.student.name:
                     return player.name, player.race
         return (None, None)
 
     def _get_info(self, path) -> str:
         try:
-            response = self.http_client.get(urljoin(config.sc2_client_url, path))
+            response = self.http_client.get(urljoin(self.settings.sc2_client_url, path))
             if response.status_code == 200:
                 return response.text
         except ConnectError:

@@ -4,13 +4,14 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from pyodmongo.queries import eq
 
-from config import config
 from src.ai.utils import get_clean_tags
-from src.persistence.replay_store import Metadata, get_replay_store
+from src.persistence.replay_store import Metadata, ReplayStore, get_replay_store
 
 from .base import AIFunction
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+from log import DEFAULT_LOGGER_NAME
+
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 
 class AddMetadataArgs(BaseModel):
@@ -33,6 +34,7 @@ def _add_metadata(
         str,
         "A list of keywords to add to the replay, comma separated. Example: 'smurf, cheese, proxy'",
     ],
+    replay_store: ReplayStore | None = None,
 ) -> bool:
     """Add tags to a replay for a given replay unique ID."""
 
@@ -48,7 +50,7 @@ def _add_metadata(
         log.warning(f"Invalid replay ID: {replay_id}")
         return False
 
-    replay_store = get_replay_store()
+    replay_store = replay_store or get_replay_store()
     meta: Metadata = replay_store.db.find_one(
         Model=Metadata,
         query=eq(Metadata.replay, replay_id),  # type: ignore
@@ -64,6 +66,14 @@ def _add_metadata(
     replay_store.upsert(meta)
 
     return True
+
+
+def build_add_metadata_function(replay_store: ReplayStore):
+    return AIFunction(
+        fn=lambda **kwargs: _add_metadata(replay_store=replay_store, **kwargs),
+        args_model=AddMetadataArgs,
+        name="AddMetadata",
+    )
 
 
 AddMetadata = AIFunction(

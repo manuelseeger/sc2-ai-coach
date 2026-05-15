@@ -12,12 +12,14 @@ from typing import Any, List, Optional
 import httpx
 from pydantic import BaseModel, computed_field
 
-from config import config
 from src.lib.sc2client import Race as GameInfoRace
 from src.replays.types import ToonHandle
+from src.runtime.settings import Config, get_config
 from src.util import convert_enum, is_barcode
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+from log import DEFAULT_LOGGER_NAME
+
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 LeagueMap = {
     0: "Bronze",
@@ -297,7 +299,12 @@ class SC2PulseClient:
     base_timeout: float = 10.0
     retry_backoff_factor: float = 2.0
 
-    def __init__(self, http_client: Optional[httpx.Client] = None):
+    def __init__(
+        self,
+        http_client: Optional[httpx.Client] = None,
+        settings: Config | None = None,
+    ):
+        self.settings = settings or get_config()
         if http_client:
             self.client = http_client
             self.client.base_url = self.BASE_URL
@@ -305,7 +312,7 @@ class SC2PulseClient:
             self.client = httpx.Client(
                 base_url=self.BASE_URL, timeout=httpx.Timeout(self.base_timeout)
             )
-        self.region = SC2PulseRegion(config.blizzard_region.value)
+        self.region = SC2PulseRegion(self.settings.blizzard_region.value)
 
     def _make_request_with_retry(
         self,
@@ -396,7 +403,7 @@ class SC2PulseClient:
             params={
                 "name": name,
                 "region": self.region.value,
-                "season": config.season,
+                "season": self.settings.season,
                 "queue": self.queue,
                 "caseSensitive": caseSensitive,
             },
@@ -528,7 +535,7 @@ class SC2PulseClient:
                 url="/group/team",
                 params={
                     "characterId": ",".join(map(str, batch)),
-                    "season": config.season,
+                    "season": self.settings.season,
                     "queue": self.queue,
                     # "race": race.value,
                 },
@@ -576,9 +583,9 @@ class SC2PulseClient:
         teams = self.get_teams(char_ids, pulse_race)
 
         delta = (
-            config.rating_delta_max_barcode
+            self.settings.rating_delta_max_barcode
             if is_barcode(opponent)
-            else config.rating_delta_max
+            else self.settings.rating_delta_max
         )
 
         close_opponent_teams = [
@@ -589,7 +596,7 @@ class SC2PulseClient:
             team
             for team in close_opponent_teams
             if (datetime.now(UTC) - team.lastPlayed).seconds  # type: ignore
-            < config.last_played_ago_max
+            < self.settings.last_played_ago_max
         ]
 
         final_opponent_teams = sorted(
@@ -626,11 +633,14 @@ class SC2PulseClient:
 
     def get_current_season(self) -> Optional[SC2PulseSeason]:
         return self.get_season(
-            config.season, SC2PulseRegion(config.blizzard_region.value)
+            self.settings.season,
+            SC2PulseRegion(self.settings.blizzard_region.value),
         )
 
-    def get_league_bounds(self, season=config.season) -> SC2PulseLeagueBounds:
+    def get_league_bounds(self, season: int | None = None) -> SC2PulseLeagueBounds:
         # https://sc2pulse.nephest.com/sc2/api/ladder/league/bounds?season=62&queue=LOTV_1V1&team-type=ARRANGED&eu=true&bro=true&sil=true&gol=true&pla=true&dia=true&mas=true&gra=true
+
+        season = season or self.settings.season
 
         response = self._make_request_with_retry(
             method="GET",

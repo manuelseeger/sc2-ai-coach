@@ -20,17 +20,18 @@ pytestmark = pytest.mark.mongo
 
 
 @pytest.fixture(autouse=True)
-def cleanup_ai_conversations():
+def cleanup_ai_conversations(conversation_store: ConversationStore):
     conversations: list[AIConversation] = []
     response_records: list[AIResponseRecord] = []
     yield {"conversations": conversations, "response_records": response_records}
-    store = ConversationStore()
-    store.delete_response_records(response_records)
-    store.delete_conversations(conversations)
+    conversation_store.delete_response_records(response_records)
+    conversation_store.delete_conversations(conversations)
 
 
 def test_get_response_assembles_full_history_and_persists_response(
     cleanup_ai_conversations,
+    conversation_store: ConversationStore,
+    replay_store,
 ):
     client = FakeOpenAIClient(
         queued=[
@@ -46,7 +47,11 @@ def test_get_response_assembles_full_history_and_persists_response(
             )
         ]
     )
-    coach = AICoach(client=client)
+    coach = AICoach(
+        client=client,
+        store=conversation_store,
+        replay_store=replay_store,
+    )
     coach.init_additional_instructions("Keep the advice matchup-specific.")
 
     conversation_id = coach.create_conversation(
@@ -97,6 +102,8 @@ def test_get_response_assembles_full_history_and_persists_response(
 def test_get_response_executes_tool_loop_and_replays_tool_transcript(
     cleanup_ai_conversations,
     mocker,
+    conversation_store: ConversationStore,
+    replay_store,
 ):
     client = FakeOpenAIClient(
         queued=[
@@ -128,7 +135,11 @@ def test_get_response_executes_tool_loop_and_replays_tool_transcript(
             ),
         ]
     )
-    coach = AICoach(client=client)
+    coach = AICoach(
+        client=client,
+        store=conversation_store,
+        replay_store=replay_store,
+    )
     warning_log = mocker.patch("src.ai.aicoach.log.warning")
     info_log = mocker.patch("src.ai.aicoach.log.info")
     query_tool = coach.functions["QueryReplayDB"]
@@ -185,7 +196,12 @@ def test_get_response_executes_tool_loop_and_replays_tool_transcript(
     assert second_input[2]["type"] == "function_call_output"
 
 
-def test_trace_logs_full_request_and_response(cleanup_ai_conversations, mocker):
+def test_trace_logs_full_request_and_response(
+    cleanup_ai_conversations,
+    mocker,
+    conversation_store: ConversationStore,
+    replay_store,
+):
     client = FakeOpenAIClient(
         queued=[
             make_response(
@@ -201,7 +217,12 @@ def test_trace_logs_full_request_and_response(cleanup_ai_conversations, mocker):
         ]
     )
     debug_log = mocker.patch("src.ai.aicoach.log.debug")
-    coach = AICoach(client=client, trace=True)
+    coach = AICoach(
+        client=client,
+        store=conversation_store,
+        replay_store=replay_store,
+        trace=True,
+    )
 
     conversation_id = coach.create_conversation(
         trigger=AIConversationTrigger.wake,
@@ -219,7 +240,11 @@ def test_trace_logs_full_request_and_response(cleanup_ai_conversations, mocker):
     assert any("LLM response trace" in str(message) for message in trace_messages)
 
 
-def test_chat_streams_text_and_persists_streamed_response(cleanup_ai_conversations):
+def test_chat_streams_text_and_persists_streamed_response(
+    cleanup_ai_conversations,
+    conversation_store: ConversationStore,
+    replay_store,
+):
     response = make_response(
         response_id="resp-stream-1",
         output_text="Coach streamed reply",
@@ -242,7 +267,11 @@ def test_chat_streams_text_and_persists_streamed_response(cleanup_ai_conversatio
             )
         ]
     )
-    coach = AICoach(client=client)
+    coach = AICoach(
+        client=client,
+        store=conversation_store,
+        replay_store=replay_store,
+    )
 
     conversation_id = coach.create_conversation(
         trigger=AIConversationTrigger.wake,
@@ -273,7 +302,12 @@ def test_chat_streams_text_and_persists_streamed_response(cleanup_ai_conversatio
     assert response_record.total_tokens == 23
 
 
-def test_chat_streams_then_executes_tool_loop(cleanup_ai_conversations, mocker):
+def test_chat_streams_then_executes_tool_loop(
+    cleanup_ai_conversations,
+    mocker,
+    conversation_store: ConversationStore,
+    replay_store,
+):
     first_response = make_response(
         response_id="resp-stream-tool-1",
         output=[
@@ -316,7 +350,11 @@ def test_chat_streams_then_executes_tool_loop(cleanup_ai_conversations, mocker):
             ),
         ]
     )
-    coach = AICoach(client=client)
+    coach = AICoach(
+        client=client,
+        store=conversation_store,
+        replay_store=replay_store,
+    )
     query_tool = coach.functions["QueryReplayDB"]
     invoke_spy = mocker.patch.object(
         query_tool,
@@ -362,6 +400,8 @@ def test_chat_streams_then_executes_tool_loop(cleanup_ai_conversations, mocker):
 def test_get_structured_response_executes_tool_loop_and_parses_schema(
     cleanup_ai_conversations,
     mocker,
+    conversation_store: ConversationStore,
+    replay_store,
 ):
     class TwitchChatResponse(BaseModel):
         is_question: bool
@@ -397,7 +437,11 @@ def test_get_structured_response_executes_tool_loop_and_parses_schema(
             ),
         ]
     )
-    coach = AICoach(client=client)
+    coach = AICoach(
+        client=client,
+        store=conversation_store,
+        replay_store=replay_store,
+    )
     query_tool = coach.functions["QueryReplayDB"]
     invoke_spy = mocker.patch.object(
         query_tool,

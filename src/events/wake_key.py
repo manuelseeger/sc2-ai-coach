@@ -3,16 +3,19 @@ import threading
 
 import keyboard
 
-from config import config
 from shared import signal_queue
 from src.events import WakeEvent
+from src.runtime.settings import Config, get_config
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+from log import DEFAULT_LOGGER_NAME
+
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 
 class WakeKeyListener(threading.Thread):
-    def __init__(self):
+    def __init__(self, *, settings: Config | None = None):
         super().__init__()
+        self.settings = settings or get_config()
         self.daemon = True
         self._stop_event = threading.Event()
 
@@ -23,7 +26,7 @@ class WakeKeyListener(threading.Thread):
         return self._stop_event.is_set()
 
     def run(self):
-        keyboard.add_hotkey(config.wake_key, self.listen_for_wake_key)
+        keyboard.add_hotkey(self.settings.wake_key, self.listen_for_wake_key)
         self._stop_event.wait()
 
     def listen_for_wake_key(self):

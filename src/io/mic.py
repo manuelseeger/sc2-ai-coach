@@ -1,43 +1,50 @@
 import logging
 from time import time
+from typing import TYPE_CHECKING
 
-import pyaudio
 import speech_recognition as sr
 from speech_recognition.audio import AudioData
 
-from config import config
 from src.contracts import MicrophoneService
+from src.runtime.audio_devices import get_microphone_name
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+if TYPE_CHECKING:
+    from src.runtime.settings import RecognizerConfig
 
+from log import DEFAULT_LOGGER_NAME
 
-audio = pyaudio.PyAudio()
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 
 class Microphone(MicrophoneService):
     name: str
 
-    def __init__(self, device_index=None):
-        if device_index is None:
-            device_index = config.microphone_index
+    def __init__(
+        self,
+        *,
+        device_index: int | None,
+        recognizer_config: "RecognizerConfig",
+    ):
         self.device_index = device_index
 
         self.recognizer = sr.Recognizer()
 
-        self.recognizer.energy_threshold = config.recognizer.energy_threshold
-        self.recognizer.pause_threshold = config.recognizer.pause_threshold
-        self.recognizer.phrase_threshold = config.recognizer.phrase_threshold
-        self.recognizer.non_speaking_duration = config.recognizer.non_speaking_duration
+        self.recognizer.energy_threshold = recognizer_config.energy_threshold
+        self.recognizer.pause_threshold = recognizer_config.pause_threshold
+        self.recognizer.phrase_threshold = recognizer_config.phrase_threshold
+        self.recognizer.non_speaking_duration = recognizer_config.non_speaking_duration
 
         self.recognizer.dynamic_energy_threshold = True
         self.recognizer.dynamic_energy_adjustment_damping = 0.15
         self.recognizer.dynamic_energy_ratio = 1.5
 
-        # log the selected audio device:
-        dev = audio.get_device_info_by_index(self.device_index)
-        log.debug(f"Using microphone: {dev['name']}")
+        microphone_name = get_microphone_name(self.device_index)
+        if microphone_name is None:
+            microphone_name = "system default input"
 
-        self.name = str(dev["name"])
+        log.debug(f"Using microphone: {microphone_name}")
+
+        self.name = microphone_name
 
         self.microphone = sr.Microphone(device_index=self.device_index)
 
@@ -50,6 +57,6 @@ class Microphone(MicrophoneService):
                     return audio
                 except sr.WaitTimeoutError:
                     continue
-
-            if time() - start_time > 60:
-                return None
+                finally:
+                    if time() - start_time > 60:
+                        return None

@@ -4,8 +4,8 @@ from typing import Callable
 import httpx
 from openai import OpenAI
 
-from config import Config, config
 from shared import ctx
+from src.runtime.settings import Config, get_config
 
 DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1/"
 
@@ -72,8 +72,6 @@ class OpenAIClientProvider:
         self._client = None
 
 
-_provider = OpenAIClientProvider(config)
-
-
-def get_openai_client() -> OpenAI:
-    return _provider.client
+def get_openai_client(provider_config: Config | None = None) -> OpenAI:
+    provider = OpenAIClientProvider(provider_config or get_config())
+    return provider.client

@@ -5,20 +5,21 @@ import httpx
 import soundfile as sf
 from speech_recognition.audio import AudioData
 
-from config import config
+from log import DEFAULT_LOGGER_NAME
 from src.contracts import TranscriberService
 
-log = logging.getLogger(f"{config.name}.{__name__}")
-log.setLevel(logging.DEBUG)
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
+
 
 STT_URL = "https://api.x.ai/v1/stt"
 
 
 class XAITranscriberService(TranscriberService):
-    def __init__(self):
-        if not config.xai_api_key:
+    def __init__(self, *, api_key: str | None, language: str | None = "en"):
+        if not api_key:
             raise ValueError("xai_api_key is required for the xai transcriber backend")
-        self.headers = {"Authorization": f"Bearer {config.xai_api_key}"}
+        self.headers = {"Authorization": f"Bearer {api_key}"}
+        self.language = language
         log.debug("XAITranscriberService initialized")
 
     def transcribe(self, audio: AudioData) -> str:
@@ -32,7 +33,7 @@ class XAITranscriberService(TranscriberService):
             log.debug(f"Audio too short for transcription: {duration:.2f}s")
             return ""
 
-        data = {"language": config.xai_stt_language} if config.xai_stt_language else {}
+        data = {"language": self.language} if self.language else {}
         response = httpx.post(
             STT_URL,
             headers=self.headers,

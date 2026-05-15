@@ -4,16 +4,15 @@ from typing import Optional
 import pytest
 from pydantic import BaseModel
 
-from config import config
-from src.lib.sc2client import Player, SC2Client, Screen
+from tests.conftest import load_test_settings
 
 
 class SC2ApiEmulatorData(BaseModel):
     state: str = "ingame"
-    menu_state: str = Screen.home.value
+    menu_state: str = "ScreenHome/ScreenHome"
     additional_menu_state: Optional[str] = None
     replay: bool = False
-    players: list[Player] = []
+    players: list[dict] = []
     displaytime: int = 0
     autotime: bool = True
     set_at: int = int(time.time())
@@ -22,16 +21,25 @@ class SC2ApiEmulatorData(BaseModel):
 # uses SC2ApiEmulator docker image
 @pytest.mark.parametrize("opponent", ["BarCode", "HobGoblin"])
 def test_sc2client_get_opponent(opponent, sc2apiemulator):
-    # arrange
-    sc2api_set: SC2ApiEmulatorData = SC2ApiEmulatorData()
+    from src.lib.sc2client import Player, SC2Client, Screen
 
-    sc2api_set.menu_state = Screen.multiplayer.value
+    runtime_settings = load_test_settings()
+
+    # arrange
+    sc2api_set: SC2ApiEmulatorData = SC2ApiEmulatorData(
+        menu_state=Screen.multiplayer.value
+    )
 
     sc2api_set.players.append(
-        Player(id=0, name=config.student.name, race="Terr", result="Undecided")
+        Player(
+            id=0,
+            name=runtime_settings.student.name,
+            race="Terr",
+            result="Undecided",
+        ).model_dump()
     )
     sc2api_set.players.append(
-        Player(id=1, name=opponent, race="Zerg", result="Undecided")
+        Player(id=1, name=opponent, race="Zerg", result="Undecided").model_dump()
     )
 
     response = sc2apiemulator(sc2api_set)

@@ -12,7 +12,7 @@
 
 The AI coach is embedded with a voice engine and can be interacted with live during gameplay via microphone (optional, can run in text-only mode).
 
-New chat sessions with the AI coach are initiated when a new ladder game is starting, when a game just finished, or on voice command. The LLM can use multiple high-level capabilities such as querying a MongoDB replay database, looking up a player's Battle.net profile, or adding comments to a replay. Tool calls, responses, usage, and conversation history are stored locally in MongoDB while OpenAI is called through stateless Responses API requests.
+New chat sessions with the AI coach are initiated when a new ladder game is starting, when a game just finished, or on voice command. The LLM can use multiple high-level capabilities such as querying a replay database, looking up a player's Battle.net profile, or adding comments to a replay. 
 
 This is a personal research project to explore LLM-based agents applied to competitive gaming.
 
@@ -61,7 +61,7 @@ student:
 
 The rest of the settings will be taken from `config.yml`.
 
-Secrets are configured with environment variables. Either provide them at runtime or put them in a local `.env` file. Note: `.env` is ignored by the application, so keep your personal secrets there.
+Secrets are configured with environment variables. Either provide them at runtime or put them in a local `.env` file. Note: `.env.example` is ignored by the application.
 
 ### Database
 
@@ -86,7 +86,7 @@ and add the MongoDB connection string to the env variable `AICOACH_MONGO_DSN`.
 Use the tool [repcli.py](repcli.py) to populate your DB with replays. The tool offers a few options:
 
 ```sh
-> python repcli.py --help
+> uv run repcli.py --help
 ```
 
 ```text
@@ -110,7 +110,7 @@ Commands:
 Run
 
 ```sh
-> python repcli.py sync --from=2024-01-01 
+> uv run repcli.py sync --from=2024-01-01 
 ```
 to read all 1v1 ladder replays from beginning of 2024, and add the replays and the players from the replays to the DB. 
 
@@ -118,7 +118,7 @@ Use the `--simulation` flag to just read replays but not commit to DB.
 
 The `replays` collection of the DB should now be populated with replay documents.
 
-See `python repcli.py sync --help` for more options. You can always repopulate the DB from replay files without destroying anything. AICoach does not change anything on the replay data in the DB.
+See `uv run repcli.py sync --help` for more options. You can always repopulate the DB from replay files without destroying anything. AICoach does not change anything on the replay data in the DB.
 
 
 Prerequisites:
@@ -233,6 +233,11 @@ For advanced setup with voice integration, see [Installation.md](Installation.md
 - SC2 Pulse integration - can unmask barcode players
 - Smurf detection - analyzes whether opponents are smurfs
 - Replay commentary - AICoach can commentate games from replays
+
+## Testing
+
+Tests are import-safe by default and should not load runtime settings at module import time.
+When a test intentionally needs the current yaml/env-backed runtime settings, use `tests.conftest.load_test_settings()` or the `runtime_settings` fixture.
 
 ## Limitations
 

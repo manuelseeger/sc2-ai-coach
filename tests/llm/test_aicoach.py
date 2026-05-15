@@ -11,15 +11,15 @@ if not os.getenv("RUN_LIVE_OPENAI_TESTS"):
 from pydantic import BaseModel
 from rich import print
 
-from config import config
-from src.ai import AICoach
-from src.ai.prompt import Templates
 from src.persistence.replay_store import get_replay_store
+from tests.conftest import load_test_settings
 
 replay_store = get_replay_store()
 
 
 def test_function_smurf_detection(util):
+    from src.ai.aicoach import AICoach
+
     aicoach = AICoach()
 
     handle = "2-S2-1-691545"
@@ -36,6 +36,8 @@ def test_function_smurf_detection(util):
 
 
 def test_function_query_build_order(util):
+    from src.ai.aicoach import AICoach
+
     aicoach = AICoach()
 
     message = "My player ID is 'zatic'. Get the build order of the opponent of the last game I played against 'protoss' opponents."
@@ -50,14 +52,18 @@ def test_function_query_build_order(util):
 
 
 def test_get_structured_response():
+    from src.ai.aicoach import AICoach
+    from src.ai.prompt import Templates
+
+    runtime_settings = load_test_settings()
     aicoach = AICoach()
 
-    replay = replay_store.get_most_recent_for_player(config.student.name)
+    replay = replay_store.get_most_recent_for_player(runtime_settings.student.name)
 
     replacements = {
-        "student": str(config.student.name),
+        "student": str(runtime_settings.student.name),
         "map": str(replay.map_name),
-        "opponent": str(replay.get_opponent_of(config.student.name).name),
+        "opponent": str(replay.get_opponent_of(runtime_settings.student.name).name),
         "replay": str(replay.default_projection_json(limit=600, include_workers=False)),
     }
     prompt = Templates.new_replay.render(replacements)

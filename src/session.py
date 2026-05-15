@@ -7,9 +7,8 @@ from Levenshtein import distance as levenshtein
 from pydantic import BaseModel
 from rich.prompt import Prompt
 
-from config import AudioMode, config
 from log import log
-from src.ai import AICoach
+from src.ai.aicoach import AICoach
 from src.ai.prompt import Templates
 from src.contracts import MicrophoneService, TranscriberService, TTSService
 from src.events import (
@@ -26,29 +25,31 @@ from src.lib.sc2client import SC2Client
 from src.lib.sc2pulse import SC2PulseClient, get_division_for_mmr
 from src.mapstats import update_map_stats
 from src.matchhistory import get_sc2pulse_match_history
-from src.persistence.conversation_store import get_conversation_store
-from src.persistence.replay_store import Metadata, get_replay_store
-from src.persistence.session_store import Session
-from src.playerinfo import resolve_replays_from_current_opponent
+from src.persistence.conversation_store import ConversationStore, get_conversation_store
+from src.persistence.replay_store import Metadata, ReplayStore, get_replay_store
+from src.persistence.session_store import Session, SessionStore
+from src.playerresolver import PlayerResolver
 from src.replays.types import AIConversationTrigger, Replay, Role
+from src.runtime.settings import AudioMode, Config, get_config
 from src.util import secs2time
-
-conversation_store = get_conversation_store()
-replay_store = get_replay_store()
 
 
 class DummyMicrophoneService(MicrophoneService):
+    name = "dummy"
+
     def listen(self) -> None:
         return None
 
 
 class DummyTranscriberService(TranscriberService):
     def transcribe(self, audio) -> str:
+        _ = audio
         return ""
 
 
 class DummyTTSService(TTSService):
     def feed(self, text: str) -> None:
+        _ = text
         pass
 
     def stop(self) -> None:
@@ -97,19 +98,43 @@ class AISession:
     mic: MicrophoneService
     transcriber: TranscriberService
 
-    def __init__(self, tts=None, mic=None, transcriber=None, trace: bool = False):
+    def __init__(
+        self,
+        settings: Config | None = None,
+        tts=None,
+        mic=None,
+        transcriber=None,
+        trace: bool = False,
+        conversation_store: ConversationStore | None = None,
+        replay_store: ReplayStore | None = None,
+        session_store: SessionStore | None = None,
+        player_resolver: PlayerResolver | None = None,
+    ):
+        self.settings = settings or get_config()
+        self.conversation_store = conversation_store or get_conversation_store()
+        self.replay_store = replay_store or get_replay_store()
+        self.session_store = session_store or SessionStore(self.replay_store.database)
+        self.player_resolver = player_resolver or PlayerResolver(
+            self.settings,
+            replay_store=self.replay_store,
+        )
         self.update_last_replay()
         self.set_season()
-        self.coach = AICoach(trace=trace)
+        self.coach = AICoach(
+            settings=self.settings,
+            store=self.conversation_store,
+            replay_store=self.replay_store,
+            trace=trace,
+        )
 
         self.session = Session(
             session_date=datetime.now(),
-            completion_pricing=config.gpt_completion_pricing,
-            prompt_pricing=config.gpt_prompt_pricing,
-            cached_prompt_pricing=config.gpt_cached_prompt_pricing,
-            ai_backend=config.aibackend,
+            completion_pricing=self.settings.gpt_completion_pricing,
+            prompt_pricing=self.settings.gpt_prompt_pricing,
+            cached_prompt_pricing=self.settings.gpt_cached_prompt_pricing,
+            ai_backend=self.settings.aibackend,
         )
-        replay_store.db.save(self.session)
+        self.session_store.save(self.session)
 
         self.handlers = {
             TwitchChatEvent: self.handle_twitch_chat,
@@ -147,10 +172,10 @@ class AISession:
         self.session.current_conversation = value
         if value is not None and value not in self.session.conversations:
             self.session.conversations.append(value)
-        replay_store.db.save(self.session)
+        self.session_store.save(self.session)
 
     def set_season(self):
-        sc2pulse = SC2PulseClient()
+        sc2pulse = SC2PulseClient(settings=self.settings)
         season = sc2pulse.get_current_season()
         if season is None:
             log.warning("Could not get current SC2 season")
@@ -158,19 +183,23 @@ class AISession:
         log.info(
             f"Current SC2 season is {season.year}-{season.number}, started {season.start.date()}"
         )
-        config.season_start = season.start
+        self.settings.season_start = season.start
 
     def update_last_replay(self, replay: Replay | None = None):
         if replay is None:
             try:
-                replay = replay_store.get_most_recent_for_player(config.student.name)
+                replay = self.replay_store.get_most_recent_for_player(
+                    self.settings.student.name
+                )
             except:  # noqa: E722
                 log.error("Error getting most recent replay, is DB running?")
                 sys.exit(1)
 
         self.last_map = replay.map_name
-        self.last_opponent = replay.get_player(config.student.name, opponent=True).name
-        self.last_mmr = replay.get_player(config.student.name).scaled_rating
+        self.last_opponent = replay.get_player(
+            self.settings.student.name, opponent=True
+        ).name
+        self.last_mmr = replay.get_player(self.settings.student.name).scaled_rating
         self.last_rep_id = replay.id
 
     def converse(self):
@@ -179,7 +208,7 @@ class AISession:
         Exit once AI coach thinks the conversation is over.
         """
 
-        if not config.interactive:
+        if not self.settings.interactive:
             sleep(1)
             log.info("No input, closing conversation")
             sleep(1)
@@ -190,7 +219,7 @@ class AISession:
             if time() - start_time > 60 * 3:
                 log.info("No input, closing conversation")
                 return True
-            if config.audiomode in [AudioMode.voice_in, AudioMode.full]:
+            if self.settings.audiomode in [AudioMode.voice_in, AudioMode.full]:
                 audio = self.mic.listen()
                 if audio is None:
                     continue
@@ -202,7 +231,7 @@ class AISession:
                 log.debug(text)
             else:
                 text = Prompt.ask(
-                    config.student.emoji,
+                    self.settings.student.emoji,
                 )
             log.info(text, extra={"role": Role.user})
 
@@ -248,9 +277,11 @@ class AISession:
         log.info("Closing conversation")
         self.calculate_usage()
         if self.conversation_id and self.conversation_id != self.twitch_conversation_id:
-            conversation = conversation_store.get_conversation(self.conversation_id)
+            conversation = self.conversation_store.get_conversation(
+                self.conversation_id
+            )
             if conversation is not None:
-                conversation_store.close_conversation(conversation)
+                self.conversation_store.close_conversation(conversation)
         self.conversation_id = None
 
     def is_active(self):
@@ -261,17 +292,14 @@ class AISession:
         and save it to the session in the DB."""
         if self.session.id is None:
             return
-        reloaded = replay_store.db.find_one(
-            Model=Session,
-            query=Session.id == self.session.id,  # type: ignore[arg-type]
-        )
+        reloaded = self.session_store.get(self.session)
         if reloaded is None:
             return
         self.session = reloaded
         log.info(
             f"Total tokens: {self.session.total_tokens} (~${self.session.total_cost:.2f})"
         )
-        replay_store.db.save(self.session)
+        self.session_store.save(self.session)
 
     def is_goodbye(self, response: str):
         return levenshtein(response[-20:].lower().strip(), "good luck, have fun") < 8
@@ -287,7 +315,7 @@ class AISession:
         """
 
         replacements = {
-            "student": str(config.student.name),
+            "student": str(self.settings.student.name),
             "map": str(map),
             "opponent": str(opponent),
             "mmr": str(mmr),
@@ -297,12 +325,18 @@ class AISession:
         prompt = None
         match_history = None
 
-        playerinfo, past_replays = resolve_replays_from_current_opponent(
-            opponent, map, mmr
-        )
+        playerinfo = self.player_resolver.resolve_player(opponent, map, mmr)
+        past_replays = []
 
         if playerinfo is not None:
+            past_replays = self.replay_store.get_recent_for_player(
+                playerinfo.toon_handle
+            )
             match_history = get_sc2pulse_match_history(playerinfo.toon_handle)
+            match_history = get_sc2pulse_match_history(
+                playerinfo.toon_handle,
+                settings=self.settings,
+            )
             if match_history is not None and len(match_history):
                 match_history.data.to_csv(
                     f"logs/match_history_{opponent}_{playerinfo.toon_handle}.csv",
@@ -339,9 +373,9 @@ class AISession:
     def initiate_from_new_replay(self, replay: Replay):
         """Adds replay information to conversation context"""
 
-        opponent = replay.get_opponent_of(config.student.name).name
+        opponent = replay.get_opponent_of(self.settings.student.name).name
         replacements = {
-            "student": str(config.student.name),
+            "student": str(self.settings.student.name),
             "map": str(replay.map_name),
             "opponent": str(opponent),
             "replay": str(
@@ -366,8 +400,12 @@ class AISession:
         """
         log.debug(scanresult)
 
-        if scanresult.mapname and config.obs_integration:
-            update_map_stats(scanresult.mapname)
+        if scanresult.mapname and self.settings.obs_integration:
+            update_map_stats(
+                scanresult.mapname,
+                replay_store=self.replay_store,
+                settings=self.settings,
+            )
 
         if not self.is_active():
             self.initiate_from_game_start(
@@ -455,7 +493,7 @@ class AISession:
         log.debug(f"{twitch_follow.user} followed")
         replacements = {
             "user": twitch_follow.user,
-            "student": config.student.name,
+            "student": self.settings.student.name,
         }
         prompt = Templates.twitch_follow.render(replacements)
         self.conversation_id = self.coach.create_conversation(
@@ -477,7 +515,7 @@ class AISession:
         replacements = {
             "user": twitch_raid.user,
             "viewers": twitch_raid.viewers,
-            "student": config.student.name,
+            "student": self.settings.student.name,
         }
         prompt = Templates.twitch_raid.render(replacements)
         self.conversation_id = self.coach.create_conversation(
@@ -518,7 +556,7 @@ class AISession:
                 session=self.session,
             )
             self.session.twitch_conversation = self.twitch_conversation_id
-            replay_store.db.save(self.session)
+            self.session_store.save(self.session)
         else:
             self.coach.set_active_conversation(self.twitch_conversation_id)
 
@@ -528,7 +566,7 @@ class AISession:
             message=prompt,
             schema=TwitchChatResponse,
             additional_instructions=Templates.init_twitch.render(
-                {"student": config.student.name}
+                {"student": self.settings.student.name}
             ),
         )
 
@@ -550,12 +588,12 @@ class AISession:
         """
         replay = cast_result.replay
 
-        sc2client = SC2Client()
-        sc2pulse = SC2PulseClient()
+        sc2client = SC2Client(settings=self.settings)
+        sc2pulse = SC2PulseClient(settings=self.settings)
 
         # init cast instructions with replay data
-        opponent = replay.get_opponent_of(config.student.name)
-        player = replay.get_player(config.student.name)
+        opponent = replay.get_opponent_of(self.settings.student.name)
+        player = replay.get_player(self.settings.student.name)
 
         replacements = {
             "replay": str(
@@ -577,7 +615,7 @@ class AISession:
             player.scaled_rating, league_bounds=league_bounds
         )
         intro_replacements = {
-            "student": str(config.student.name),
+            "student": str(self.settings.student.name),
             "student_color": player.color.name,
             "student_position": str(player.clock_position),
             "map": str(replay.map_name),
@@ -611,10 +649,6 @@ class AISession:
             while self.tts.is_speaking():
                 sleep(1)
 
-        # summary = self.chat(
-        #    "The game is over. Give us a short outro for winner and loser and a very short summary of the game."
-        # )
-        # self.say(summary)
         self.close()
 
     def save_replay_summary(self, replay: Replay):
@@ -631,7 +665,7 @@ class AISession:
             schema=ReplaySummary,
         )
 
-        meta = replay_store.db.find_one(
+        meta = self.replay_store.db.find_one(
             Model=Metadata,
             query=Metadata.replay == replay.id,  # type: ignore[arg-type]
         )
@@ -641,4 +675,4 @@ class AISession:
         meta.description = replay_summary.description
         meta.tags = replay_summary.tags
         meta.replay_summary_conversation = self.conversation_id
-        replay_store.upsert(meta)
+        self.replay_store.upsert(meta)

@@ -41,6 +41,10 @@ def loserDoesGG(replay) -> bool:
 
 
 def player_worker_micro(replay) -> dict[int, tuple]:
+    """Calculate worker micro score for each player.
+    If player commands workers to minerals in the first 2 seconds, add to split score
+    If player commands workers to minerals after 2 seconds, add to micro score
+    """
 
     columns = [
         "time",

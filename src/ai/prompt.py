@@ -3,9 +3,9 @@ import logging
 from jinja2 import Environment, FileSystemLoader, Template
 from typing_extensions import Dict
 
-from config import config
+from log import DEFAULT_LOGGER_NAME
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 log.setLevel(logging.DEBUG)
 
 
@@ -37,7 +37,7 @@ class Jinja2Loader:
 
     def __init__(self):
         self.env = LoggingEnvironment(
-            loader=FileSystemLoader(searchpath="./src/ai/prompts/")
+            loader=FileSystemLoader(searchpath="./templates/prompts/")
         )
         self.new_game = self.env.get_template("new_game.jinja2")
         self.new_replay = self.env.get_template("new_replay.jinja2")

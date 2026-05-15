@@ -1,4 +1,3 @@
-import sys
 from datetime import datetime
 from enum import Enum
 from functools import cached_property
@@ -26,16 +25,15 @@ from pydantic_settings import (
     SettingsConfigDict,
     YamlConfigSettingsSource,
 )
-from rich import print
 
-from src.pricing import (
+from src.ai.pricing import (
     ModelPricing,
     ModelPricingOverride,
     get_default_model_pricing,
     normalize_model_name,
 )
+from src.runtime.audio_devices import select_preferred_microphone_index
 
-# https://github.com/pydantic/pydantic/pull/7116
 MongoSRVDsn = Annotated[
     MultiHostUrl, UrlConstraints(allowed_schemes=["mongodb+srv", "mongodb"])
 ]
@@ -48,12 +46,10 @@ def sort_config_files(files):
     return sorted(files, key=key_func)
 
 
-yaml_files = glob("config*.yml")
-yaml_files = sort_config_files(yaml_files)
-
-env_files = glob(".env*")
-env_files = sort_config_files(env_files)
-env_files.remove(".env.example")
+yaml_files = sort_config_files(glob("config*.yml"))
+env_files = sort_config_files(glob(".env*"))
+if ".env.example" in env_files:
+    env_files.remove(".env.example")
 
 
 class SC2Region(str, Enum):
@@ -117,6 +113,20 @@ class TTSConfig(BaseModel):
     speed: Optional[float] = 1.0
 
 
+class TwitchConfig(BaseModel):
+    client_id: str
+    client_secret: str
+    channel: str
+    mocked: bool = False
+    mocked_user_id: str | None = None
+
+    @model_validator(mode="after")
+    def validate_mocked_user_fields(self):
+        if self.mocked and self.mocked_user_id is None:
+            raise ValueError("mocked_user_id is required when twitch.mocked is enabled")
+        return self
+
+
 ReasoningEffort = Literal["none", "minimal", "low", "medium", "high", "xhigh"]
 
 
@@ -153,7 +163,7 @@ class Config(BaseSettings):
     deamon_polling_rate: int
 
     audiomode: AudioMode = AudioMode.full
-    microphone_index: int
+    microphone_index: int | None = None
     wakeword: WakeWordConfig
     speech_recognition_model: str
     transcriber_backend: TranscriberBackend = TranscriberBackend.whisper
@@ -190,6 +200,15 @@ class Config(BaseSettings):
             normalize_model_name(model_name) or model_name: override
             for model_name, override in value.items()
         }
+
+    @model_validator(mode="after")
+    def _resolve_microphone_index(self):
+        if self.microphone_index is None and self.audiomode in [
+            AudioMode.voice_in,
+            AudioMode.full,
+        ]:
+            self.microphone_index = select_preferred_microphone_index()
+        return self
 
     def get_model_pricing(self, model_name: str | None = None) -> ModelPricing:
         resolved_model = normalize_model_name(model_name or self.gpt_model)
@@ -255,11 +274,7 @@ class Config(BaseSettings):
     bnet_cache_dir: Optional[DirectoryPath] = None
     include_map_details: bool = True
 
-    twitch_client_id: Optional[str] = None
-    twitch_client_secret: Optional[str] = None
-    twitch_channel: Optional[str] = None
-    twitch_mocked: bool = False
-    twitch_mocked_user_id: Optional[str] = None
+    twitch: TwitchConfig | None = None
 
     rating_delta_max: int
     rating_delta_max_barcode: int
@@ -289,7 +304,7 @@ class Config(BaseSettings):
     mongo_dsn: MongoSRVDsn
 
     @classmethod
-    def settings_customise_sources(
+    def settings_customise_sources(  # type: ignore[override]
         cls,
         settings_cls: Type[BaseSettings],
         init_settings: PydanticBaseSettingsSource,
@@ -305,45 +320,28 @@ class Config(BaseSettings):
             YamlConfigSettingsSource(settings_cls),
         )
 
-    def is_initial(self) -> bool:
-        """Check if the environment is initialized
 
-        Right now this doesn't do anything pydantic doesn't do already.
-        But this can be extended in the future to check for example if mongodb views are created.
-        """
-        return not Path(self.obs_dir).exists()
-
-    @classmethod
-    def check_initial(cls):
-        try:
-            config: Config = cls()  # type: ignore
-        except ValidationError as e:
-            print(e)
-            sys.exit(1)
-        if config.is_initial():
-            from rich.prompt import Confirm
-
-            do_init = Confirm.ask("Can't find initialized environment. Initialize now?")
-            if do_init:
-                config.init()
-                print("Initialized environment :white_heavy_check_mark:")
-            else:
-                sys.exit(0)
-        return config
-
-    def init(self):
-        Path(join(self.obs_dir, "screenshots")).mkdir(parents=True, exist_ok=True)
-        Path(join(self.log_dir)).mkdir(parents=True, exist_ok=True)
-
-        if self.obs_integration:
-            if self.wakeword.engine == "openwakeword":
-                from openwakeword.utils import download_models
-
-            download_models()
-
-            from src.io.tts import init_tts
-
-            init_tts()
+class SettingsLoaderError(Exception):
+    pass
 
 
-config: Config = Config.check_initial()
+def load_current_settings(*, require_prepared_environment: bool = True) -> Config:
+    try:
+        settings = Config()  # type: ignore
+    except ValidationError as exc:
+        raise SettingsLoaderError("Failed to load runtime settings") from exc
+
+    if require_prepared_environment and not Path(settings.obs_dir).exists():
+        raise SettingsLoaderError("Runtime environment is not prepared")
+
+    return settings
+
+
+_config_cache: Config | None = None
+
+
+def get_config() -> Config:
+    global _config_cache
+    if _config_cache is None:
+        _config_cache = load_current_settings()
+    return _config_cache

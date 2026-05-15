@@ -2,14 +2,13 @@ import logging
 
 from pydantic import BaseModel, ConfigDict
 
-from config import config
 from src.lib.sc2client import GameInfo, SC2Client
 
 from .base import AIFunction
 
-log = logging.getLogger(f"{config.name}.{__name__}")
+from log import DEFAULT_LOGGER_NAME
 
-sc2client = SC2Client()
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 
 class GetCurrentGameInfoArgs(BaseModel):
@@ -30,7 +29,7 @@ def _get_current_game_info() -> str:
         race: str, the player's race (Terr, Prot, Zerg, or random)
         result: str, the player's result (Victory, Defeat, Undecided, or Tie)
     """
-    gameinfo: GameInfo = sc2client.get_gameinfo()
+    gameinfo: GameInfo = SC2Client().get_gameinfo()
 
     if gameinfo:
         return gameinfo.model_dump_json()

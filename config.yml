@@ -8,8 +8,9 @@ deamon_polling_rate: 1
 
 # Audiomode, one of "full", "text", "in", "out"
 audiomode: "text"
-# Index of the audio device as returned by pyaudio
-microphone_index: 2
+# Optional index of the audio device as returned by pyaudio.
+# Leave unset to auto-select NVIDIA Broadcast, then fall back to the system default input.
+# microphone_index: 2
 # Wake word configuration
 wakeword:
   engine: "openwakeword"
@@ -18,7 +19,7 @@ wakeword:
   # Sensitivity of the wake word
   sensitivity: 0.65
   # Path to porcupine model file (used when engine is "porcupine")
-  porcupine_model_path: "external/porcupine/hey-coach_en_windows_v3_0_0.ppn"
+  porcupine_model_path: "external/porcupine/Hey-coach_en_windows_v4_0_0.ppn"
 # which speech recognition model to use from huggingface speech-to-text
 speech_recognition_model: "openai/whisper-large-v3"
 # transcriber backend to use: "whisper", "canary_qwen", or "xai"
@@ -61,6 +62,14 @@ student:
 
 # Address of the SC2 game client server
 sc2_client_url: "http://127.0.0.1:6119"
+
+# Optional Twitch integration
+# twitch:
+#   client_id: "your-twitch-app-client-id"
+#   client_secret: "your-twitch-app-client-secret"
+#   channel: "your_channel_name"
+#   mocked: false
+#   mocked_user_id:
 
 # AI coach backend
 aibackend: "OpenAI"

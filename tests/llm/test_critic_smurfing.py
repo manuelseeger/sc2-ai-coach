@@ -37,11 +37,15 @@ def test_detects_smurfing(
     mocker.patch("coach.mic", MicMock())
     mocker.patch("coach.tts", TTSMock())
     mocker.patch("coach.transcriber", TranscriberMock(data=[]))
-    mocker.patch(
-        "coach.resolve_replays_from_current_opponent",
-        return_value=(playerinfo, past_replays),
+    mocker.patch.object(
+        session.player_resolver,
+        "resolve_player",
+        return_value=playerinfo,
     )
-    mocker.patch("coach.get_sc2pulse_match_history", return_value=match_history)
+    mocker.patch.object(
+        session.replay_store, "get_recent_for_player", return_value=past_replays
+    )
+    mocker.patch("src.session.get_sc2pulse_match_history", return_value=match_history)
 
     # act
     session.initiate_from_game_start(mapname, opponent, mmr)
