@@ -1,61 +1,69 @@
-from src.playeridentity import PlayerIdentityEnricher, PlayerIdentityEnrichmentError
+from src.playeridentity import PlayerIdentityEnricher
 from src.replays.types import Replay
 
 
-def test_player_identity_enricher_raises_typed_error_on_unacknowledged_save(
-    runtime_settings, mocker
+def _seeded_student_replay(seeded_replay_mongo_container) -> Replay:
+    runtime_settings = seeded_replay_mongo_container.settings
+    return next(
+        replay
+        for replay in seeded_replay_mongo_container.seeded_replays
+        if any(
+            player.name == runtime_settings.student.name for player in replay.players
+        )
+    )
+
+
+def test_player_identity_enricher_persists_player_info_in_seeded_store(
+    seeded_replay_mongo_container,
 ):
-    portrait_source = mocker.Mock()
-    portrait_source.get_matching_portrait_from_replay.return_value = None
-    portrait_source.portrait_construct_from_bnet.return_value = None
-    replay_store = mocker.Mock()
-    replay_store.find.return_value = None
-    replay_store.upsert.return_value = mocker.Mock(acknowledged=False)
+    runtime_settings = seeded_replay_mongo_container.settings.model_copy(deep=True)
+    replay_store = seeded_replay_mongo_container.replay_store
+    replay = _seeded_student_replay(seeded_replay_mongo_container)
+    opponent = replay.get_opponent_of(runtime_settings.student.name)
+
+    player_info = PlayerIdentityEnricher(
+        runtime_settings,
+        replay_store=replay_store,
+    ).save_from_replay(replay)
+    stored_player_info = replay_store.find(player_info)
+
+    assert stored_player_info is not None
+    assert player_info.toon_handle == opponent.toon_handle
+    assert stored_player_info.name == opponent.name
+    assert stored_player_info.toon_handle == opponent.toon_handle
+    assert stored_player_info.portrait is None
+    assert stored_player_info.portrait_constructed is None
+    assert any(alias.name == opponent.name for alias in stored_player_info.aliases)
+
+
+def test_player_identity_enricher_updates_aliases_for_existing_player_in_seeded_store(
+    seeded_replay_mongo_container,
+):
+    runtime_settings = seeded_replay_mongo_container.settings.model_copy(deep=True)
+    replay_store = seeded_replay_mongo_container.replay_store
+    replay = _seeded_student_replay(seeded_replay_mongo_container)
+    opponent = replay.get_opponent_of(runtime_settings.student.name)
+    aliased_replay = replay.model_copy(deep=True)
+    aliased_opponent = aliased_replay.get_opponent_of(runtime_settings.student.name)
+    aliased_name = f"{opponent.name}_alt"
+    aliased_opponent.name = aliased_name
 
     enricher = PlayerIdentityEnricher(
         runtime_settings,
         replay_store=replay_store,
-        portrait_source=portrait_source,
     )
 
-    replay = Replay.model_construct(id="a" * 64)
-    opponent = mocker.Mock(
-        name="KnownOpponent", toon_handle="2-S2-1-6861867", toon_id=1
+    original_player_info = enricher.save_from_replay(replay)
+    updated_player_info = enricher.save_from_replay(aliased_replay)
+    stored_player_info = replay_store.find(original_player_info)
+
+    assert updated_player_info.toon_handle == opponent.toon_handle
+    assert stored_player_info is not None
+    assert stored_player_info.name == aliased_name
+    assert {alias.name for alias in stored_player_info.aliases} >= {
+        opponent.name,
+        aliased_name,
+    }
+    assert (
+        replay_store.raw["players"].count_documents({"_id": opponent.toon_handle}) == 1
     )
-    replay.get_opponent_of.return_value = opponent
-
-    try:
-        enricher.save_from_replay(replay)
-        raise AssertionError("Expected PlayerIdentityEnrichmentError")
-    except PlayerIdentityEnrichmentError as exc:
-        assert exc.opponent_name == "KnownOpponent"
-        assert exc.toon_handle == "2-S2-1-6861867"
-
-
-def test_player_identity_enricher_allows_optional_portrait_misses(
-    runtime_settings, mocker
-):
-    portrait_source = mocker.Mock()
-    portrait_source.get_matching_portrait_from_replay.return_value = None
-    portrait_source.portrait_construct_from_bnet.return_value = None
-    replay_store = mocker.Mock()
-    replay_store.find.return_value = None
-    replay_store.upsert.return_value = mocker.Mock(acknowledged=True)
-
-    enricher = PlayerIdentityEnricher(
-        runtime_settings,
-        replay_store=replay_store,
-        portrait_source=portrait_source,
-    )
-
-    replay = Replay.model_construct(id="a" * 64)
-    opponent = mocker.Mock(
-        name="KnownOpponent", toon_handle="2-S2-1-6861867", toon_id=1
-    )
-    replay.get_opponent_of.return_value = opponent
-
-    player_info = enricher.save_from_replay(replay)
-
-    assert player_info.name == "KnownOpponent"
-    assert player_info.portrait is None
-    assert player_info.portrait_constructed is None

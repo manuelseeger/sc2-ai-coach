@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
     from speech_recognition.audio import AudioData
@@ -31,3 +31,11 @@ class TTSService(ABC):
     @abstractmethod
     def is_speaking(self) -> bool:
         pass
+
+
+class LiveEventListener(Protocol):
+    def start(self) -> None: ...
+
+    def stop(self) -> None: ...
+
+    def join(self) -> None: ...

@@ -1,4 +1,4 @@
-from src.pricing import ModelPricingOverride
+from src.ai.pricing import ModelPricingOverride
 from src.runtime.settings import Config
 
 

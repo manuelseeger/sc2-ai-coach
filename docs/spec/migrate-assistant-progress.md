@@ -172,7 +172,7 @@
 
 ## Chapter 11
 
-- Added a built-in model pricing registry in [src/pricing.py](c:/Users/seeg/dev/sc2-ai-coach/src/pricing.py), populated from the OpenAI pricing page for the main current models: `gpt-5.5`, `gpt-5.5-pro`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`, `gpt-5.4-pro`, `gpt-5.3-chat-latest`, `gpt-5.3-codex`, `gpt-realtime-1.5`, and `gpt-realtime-mini`.
+- Added a built-in model pricing registry in [src/ai/pricing.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/pricing.py), populated from the OpenAI pricing page for the main current models: `gpt-5.5`, `gpt-5.5-pro`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`, `gpt-5.4-pro`, `gpt-5.3-chat-latest`, `gpt-5.3-codex`, `gpt-realtime-1.5`, and `gpt-realtime-mini`.
 - Extended [config.py](c:/Users/seeg/dev/sc2-ai-coach/config.py) with `gpt_cached_prompt_pricing_per_million`, `model_pricing_per_million`, `reasoning_effort`, and `reasoning_continuity_enabled`, plus `Config.get_model_pricing(...)` so config can override built-in pricing defaults either per model or for the active `gpt_model`.
 - Updated [config.yml](c:/Users/seeg/dev/sc2-ai-coach/config.yml) so pricing defaults come from the built-in lookup table unless explicitly overridden in config.
 - Completed per-response pricing in [src/ai/state.py](c:/Users/seeg/dev/sc2-ai-coach/src/ai/state.py): `record_response(...)` now derives input, cached-input, output, and total cost from the response model pricing while preserving `response_id` deduplication.

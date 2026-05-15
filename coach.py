@@ -6,7 +6,12 @@ import click
 
 from log import configure_application_logging, log
 from shared import signal_queue
-from src.contracts import MicrophoneService, TranscriberService, TTSService
+from src.contracts import (
+    LiveEventListener,
+    MicrophoneService,
+    TranscriberService,
+    TTSService,
+)
 from src.events.events import ReplEvent
 from src.persistence.runtime import build_persistence_services
 from src.runtime.playeridentity import build_player_identity_services
@@ -181,7 +186,12 @@ def _build_live_event_listeners(
     replay_store,
     player_identity_enricher,
     repl: bool,
-) -> tuple[object | None, object | None, object | None, object | None]:
+) -> tuple[
+    LiveEventListener | None,
+    LiveEventListener | None,
+    LiveEventListener | None,
+    LiveEventListener | None,
+]:
     from src.runtime.settings import CoachEvent
 
     wake = None
