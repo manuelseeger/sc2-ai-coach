@@ -8,10 +8,15 @@ Backed with a replay database and integrated with the Starcraft 2 game client.
 
 Use: 
 - pydantic for models throughout
-- uv for package management
+- uv for package management and running python
 - pyodmmongo for DB. See `docs/references/pyodmongo.md`
 
-Working environment is project root. Business logic goes into src/. So make sure to import from "src.".
+**Always use uv to run Python or python tools**: 
+```sh
+uv run coach.py --repl
+uv run repcli.py --help
+uv run pytest tests/unit
+```
 
 ## Tools
 

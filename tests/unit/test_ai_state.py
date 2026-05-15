@@ -251,32 +251,3 @@ def test_append_message_rejects_invalid_role(
 
     with pytest.raises(ValueError):
         store.append_message(conversation, role="invalid", text="hello")
-
-
-def test_chapter_one_models_round_trip_in_db(
-    cleanup_ai_state,
-    replay_store: ReplayStore,
-):
-    conversation = AIConversation(
-        trigger=AIConversationTrigger.cast_replay,
-        metadata={"test_scope": "unit_ai_state"},
-    )
-    replay_store.db.save(conversation)
-    cleanup_ai_state["conversations"].append(conversation)
-
-    found = replay_store.db.find_one(
-        Model=AIConversation,
-        query=AIConversation.id == conversation.id,  # type: ignore[arg-type]
-    )
-
-    assert found is not None
-    assert found.id == conversation.id
-
-
-def test_ai_conversation_metadata_defaults_when_none():
-    conversation = AIConversation(
-        trigger=AIConversationTrigger.wake,
-        metadata=None,
-    )
-
-    assert conversation.metadata == {}

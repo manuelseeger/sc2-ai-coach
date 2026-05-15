@@ -1,6 +1,8 @@
+import re
+
 import pytest
 
-from src.ai.functions import AddMetadata, AIFunctions
+from src.ai.functions import AddMetadata, AIFunctions, responses_tools
 from src.ai.utils import force_valid_json_string, get_clean_tags
 
 
@@ -21,11 +23,21 @@ def test_force_valid_json_string(json_input, expected):
 
 
 @pytest.mark.parametrize(
-    ("f"),
-    AIFunctions,
+    ("tool", "payload"),
+    list(zip(AIFunctions, responses_tools(), strict=True)),
 )
-def test_max_docstring_length(f):
-    assert len(f.description) < 1024
+def test_responses_tool_payload_shape(tool, payload):
+    """Guard the tool payload shape we send to Responses API calls."""
+    assert payload["type"] == "function"
+    assert payload["name"] == tool.name
+    assert payload["name"]
+    assert len(payload["name"]) <= 64
+    assert re.fullmatch(r"[A-Za-z0-9_-]+", payload["name"])
+    assert payload["description"] == tool.description
+    assert payload["description"].strip()
+    assert payload["strict"] is True
+    assert payload["parameters"]["type"] == "object"
+    assert payload["parameters"]["additionalProperties"] is False
 
 
 def test_function_meta_wrong_input():
