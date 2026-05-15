@@ -91,6 +91,50 @@ export interface ResourceDiscoveryEntry {
   unavailable_reason: string | null
 }
 
+export interface SessionListItem {
+  id: string
+  detail_path: string
+  session_date: string
+  ai_backend: string
+  conversation_count: number
+  current_conversation_id: string | null
+  total_cost: number
+}
+
+export interface SessionListResponse {
+  items: SessionListItem[]
+  page: number
+  page_size: number
+  total: number
+  total_pages: number
+}
+
+export interface SessionDetailResponse {
+  id: string
+  detail_path: string
+  session_date: string
+  ai_backend: string
+  current_conversation_id: string | null
+  twitch_conversation_id: string | null
+  conversation_ids: string[]
+  total_input_tokens: number
+  total_cached_tokens: number
+  total_output_tokens: number
+  total_tokens: number
+  total_cost: number
+}
+
+export interface SessionSummaryResponse {
+  session_id: string
+  conversation_count: number
+  item_count: number
+  response_count: number
+  total_input_tokens: number
+  total_output_tokens: number
+  total_tokens: number
+  total_cost: number
+}
+
 export interface MapStatsDateRange {
   from_date: string | null
   to_date: string | null

@@ -13,6 +13,9 @@ import type {
   MapStatsQueryResponse,
   MapStatsRangesResponse,
   ResourceDiscoveryEntry,
+  SessionDetailResponse,
+  SessionListResponse,
+  SessionSummaryResponse,
 } from './types'
 
 export interface ListConversationsParams {
@@ -28,8 +31,20 @@ export interface ListMapStatsParams {
   toDate: string | null
 }
 
+export interface ListSessionsParams {
+  page: number
+  pageSize: number
+  aiBackend: string | null
+  fromDate: string | null
+  toDate: string | null
+}
+
 export interface AdminApiClient {
   listResources(): Promise<ResourceDiscoveryEntry[]>
+  listSessions(params: ListSessionsParams): Promise<SessionListResponse>
+  getSessionDetail(sessionId: string): Promise<SessionDetailResponse>
+  getSessionConversations(sessionId: string): Promise<ConversationListResponse>
+  getSessionSummary(sessionId: string): Promise<SessionSummaryResponse>
   listConversations(params: ListConversationsParams): Promise<ConversationListResponse>
   getConversationSummary(conversationId: string): Promise<ConversationSummary>
   getConversationDetail(conversationId: string): Promise<ConversationDetailResponse>
@@ -63,6 +78,38 @@ export function createAdminApiClient(fetchImpl: FetchLike = fetch): AdminApiClie
         '/api/resources',
       )
       return payload.resources
+    },
+
+    async listSessions(params) {
+      const search = new URLSearchParams({
+        page: String(params.page),
+        page_size: String(params.pageSize),
+      })
+      if (params.aiBackend !== null) {
+        search.set('ai_backend', params.aiBackend)
+      }
+      if (params.fromDate !== null) {
+        search.set('from_date', params.fromDate)
+      }
+      if (params.toDate !== null) {
+        search.set('to_date', params.toDate)
+      }
+      return requestJson<SessionListResponse>(fetchImpl, `/api/sessions?${search.toString()}`)
+    },
+
+    async getSessionDetail(sessionId) {
+      return requestJson<SessionDetailResponse>(fetchImpl, `/api/sessions/${sessionId}`)
+    },
+
+    async getSessionConversations(sessionId) {
+      return requestJson<ConversationListResponse>(
+        fetchImpl,
+        `/api/sessions/${sessionId}/conversations`,
+      )
+    },
+
+    async getSessionSummary(sessionId) {
+      return requestJson<SessionSummaryResponse>(fetchImpl, `/api/sessions/${sessionId}/summary`)
     },
 
     async listConversations(params) {

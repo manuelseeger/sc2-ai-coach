@@ -269,6 +269,8 @@ Loading, error, and refresh behavior:
 
 ### Session Detail
 
+The workspace enters the session workflow through a dedicated `/sessions` inbox route that lists recent sessions and links each row to its specialized detail page.
+
 Session detail should combine:
 
 - `GET /api/sessions/{session_id}`

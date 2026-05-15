@@ -33,6 +33,9 @@
         <p v-if="resource.available && resource.path === '/conversations'" class="resource-cta">
           Open conversation inbox
         </p>
+        <p v-else-if="resource.available && resource.path === '/sessions'" class="resource-cta">
+          Open session review
+        </p>
         <p v-else-if="resource.available && resource.path === '/map-stats'" class="resource-cta">
           Open map stats report
         </p>
@@ -66,7 +69,11 @@ onMounted(async () => {
 })
 
 function resourceRoute(resource: ResourceDiscoveryEntry): string | null {
-  if (resource.path === '/conversations' || resource.path === '/map-stats') {
+  if (
+    resource.path === '/sessions' ||
+    resource.path === '/conversations' ||
+    resource.path === '/map-stats'
+  ) {
     return resource.path
   }
   return null

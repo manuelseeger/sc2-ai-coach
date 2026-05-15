@@ -20,6 +20,10 @@ from src.api.contracts import (
     MapStatsNamedRange,
     MapStatsQueryRequest,
     ResourceDiscoveryEntry,
+    SessionDetailResponse,
+    SessionListItem,
+    SessionListResponse,
+    SessionSummaryResponse,
 )
 from src.api.conversation_types import AIConversationStatus, AIConversationTrigger
 from src.replays.types import AIConversationItemType, AIMessageRole
@@ -416,6 +420,154 @@ def test_default_conversation_queries_can_be_constructed_from_api_config():
     )
 
     assert hasattr(queries, "get_conversation_detail")
+
+
+def test_create_app_serves_session_review_routes(tmp_path: Path):
+    dist_dir = tmp_path / "dist"
+    dist_dir.mkdir()
+    (dist_dir / "index.html").write_text('<main id="app"></main>', encoding="utf-8")
+
+    calls: dict[str, object] = {}
+    session_seen_at = datetime(2026, 5, 15, 10, 0, tzinfo=UTC)
+    conversation_seen_at = datetime(2026, 5, 15, 10, 15, tzinfo=UTC)
+    session_id = "s" * 24
+
+    class StubSessionQueries:
+        def list_sessions(self, *, page, page_size, ai_backend, from_date, to_date):
+            calls["list"] = {
+                "page": page,
+                "page_size": page_size,
+                "ai_backend": ai_backend,
+                "from_date": from_date,
+                "to_date": to_date,
+            }
+            return SessionListResponse(
+                items=[
+                    SessionListItem(
+                        id=session_id,
+                        detail_path=f"/sessions/{session_id}",
+                        session_date=session_seen_at,
+                        ai_backend="OpenAI",
+                        conversation_count=2,
+                        current_conversation_id="c" * 24,
+                        total_cost=1.25,
+                    )
+                ],
+                page=1,
+                page_size=20,
+                total=1,
+                total_pages=1,
+            )
+
+        def get_session_detail(self, requested_session_id):
+            calls["detail"] = requested_session_id
+            return SessionDetailResponse(
+                id=requested_session_id,
+                detail_path=f"/sessions/{requested_session_id}",
+                session_date=session_seen_at,
+                ai_backend="OpenAI",
+                current_conversation_id="c" * 24,
+                twitch_conversation_id=None,
+                conversation_ids=["c" * 24, "d" * 24],
+                total_input_tokens=120,
+                total_cached_tokens=20,
+                total_output_tokens=55,
+                total_tokens=175,
+                total_cost=1.25,
+            )
+
+        def get_session_conversations(self, requested_session_id):
+            calls["conversations"] = requested_session_id
+            return ConversationListResponse(
+                items=[
+                    ConversationSummary(
+                        id="c" * 24,
+                        detail_path=f"/conversations/{'c' * 24}",
+                        trigger=AIConversationTrigger.repl,
+                        status=AIConversationStatus.closed,
+                        item_count=3,
+                        created_at=conversation_seen_at,
+                        activity_at=conversation_seen_at,
+                        last_item_at=conversation_seen_at,
+                        replay_id=None,
+                        session_id=requested_session_id,
+                    )
+                ],
+                page=1,
+                page_size=50,
+                total=1,
+                total_pages=1,
+                available_statuses=list(AIConversationStatus),
+                available_triggers=list(AIConversationTrigger),
+            )
+
+        def get_session_summary(self, requested_session_id):
+            calls["summary"] = requested_session_id
+            return SessionSummaryResponse(
+                session_id=requested_session_id,
+                conversation_count=2,
+                item_count=5,
+                response_count=2,
+                total_input_tokens=120,
+                total_output_tokens=55,
+                total_tokens=175,
+                total_cost=1.25,
+            )
+
+    app = create_app(
+        ApiConfig(
+            mongo_dsn="mongodb://localhost:27017",
+            db_name="SC2AICOACH_TEST",
+            web_dist_dir=dist_dir,
+        ),
+        health_check=lambda: ApiHealthResponse(
+            status="ok",
+            database="ok",
+            db_name="SC2AICOACH_TEST",
+        ),
+        session_queries=StubSessionQueries(),
+    )
+
+    client = TestClient(app)
+
+    list_response = client.get(
+        "/api/sessions",
+        params={
+            "page": "1",
+            "page_size": "20",
+            "ai_backend": "OpenAI",
+            "from_date": "2026-05-01T00:00:00Z",
+            "to_date": "2026-05-31T23:59:59Z",
+        },
+    )
+
+    assert list_response.status_code == 200
+    assert list_response.json()["items"][0]["detail_path"] == f"/sessions/{session_id}"
+    assert calls["list"] == {
+        "page": 1,
+        "page_size": 20,
+        "ai_backend": "OpenAI",
+        "from_date": datetime(2026, 5, 1, 0, 0, tzinfo=UTC),
+        "to_date": datetime(2026, 5, 31, 23, 59, 59, tzinfo=UTC),
+    }
+
+    detail_response = client.get(f"/api/sessions/{session_id}")
+
+    assert detail_response.status_code == 200
+    assert detail_response.json()["id"] == session_id
+    assert calls["detail"] == session_id
+
+    conversations_response = client.get(f"/api/sessions/{session_id}/conversations")
+
+    assert conversations_response.status_code == 200
+    assert conversations_response.json()["items"][0]["session_id"] == session_id
+    assert calls["conversations"] == session_id
+
+    summary_response = client.get(f"/api/sessions/{session_id}/summary")
+
+    assert summary_response.status_code == 200
+    assert summary_response.json()["response_count"] == 2
+    assert calls["summary"] == session_id
 
 
 def test_create_app_serves_map_stats_reporting_routes(tmp_path: Path):

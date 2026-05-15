@@ -70,6 +70,117 @@ describe('createAdminApiClient', () => {
     )
   })
 
+  it('loads session review routes with typed detail, summary, and related conversation requests', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            items: [],
+            page: 1,
+            page_size: 20,
+            total: 0,
+            total_pages: 0,
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: 's'.repeat(24),
+            detail_path: `/sessions/${'s'.repeat(24)}`,
+            session_date: '2026-05-15T10:00:00Z',
+            ai_backend: 'OpenAI',
+            current_conversation_id: 'c'.repeat(24),
+            twitch_conversation_id: null,
+            conversation_ids: ['c'.repeat(24)],
+            total_input_tokens: 120,
+            total_cached_tokens: 20,
+            total_output_tokens: 55,
+            total_tokens: 175,
+            total_cost: 1.25,
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            items: [],
+            page: 1,
+            page_size: 50,
+            total: 0,
+            total_pages: 0,
+            available_statuses: ['active', 'closed', 'archived', 'failed'],
+            available_triggers: ['repl', 'wake'],
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            session_id: 's'.repeat(24),
+            conversation_count: 1,
+            item_count: 3,
+            response_count: 2,
+            total_input_tokens: 120,
+            total_output_tokens: 55,
+            total_tokens: 175,
+            total_cost: 1.25,
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
+
+    const client = createAdminApiClient(fetchMock)
+
+    await client.listSessions({
+      page: 1,
+      pageSize: 20,
+      aiBackend: 'OpenAI',
+      fromDate: '2026-05-01T00:00:00Z',
+      toDate: '2026-05-31T23:59:59Z',
+    })
+    await client.getSessionDetail('s'.repeat(24))
+    await client.getSessionConversations('s'.repeat(24))
+    await client.getSessionSummary('s'.repeat(24))
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/sessions?page=1&page_size=20&ai_backend=OpenAI&from_date=2026-05-01T00%3A00%3A00Z&to_date=2026-05-31T23%3A59%3A59Z',
+      { headers: { Accept: 'application/json' } },
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      `/api/sessions/${'s'.repeat(24)}`,
+      { headers: { Accept: 'application/json' } },
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      `/api/sessions/${'s'.repeat(24)}/conversations`,
+      { headers: { Accept: 'application/json' } },
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      4,
+      `/api/sessions/${'s'.repeat(24)}/summary`,
+      { headers: { Accept: 'application/json' } },
+    )
+  })
+
   it('posts lifecycle actions for conversation workflow controls', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(

@@ -669,7 +669,22 @@ Creates a session.
 
 ### `GET /api/sessions/{session_id}`
 
-Returns a session document.
+Returns the specialized session detail payload used by the session review screen.
+
+Response fields:
+
+- `id`
+- `detail_path`
+- `session_date`
+- `ai_backend`
+- `current_conversation_id`
+- `twitch_conversation_id`
+- `conversation_ids`
+- `total_input_tokens`
+- `total_cached_tokens`
+- `total_output_tokens`
+- `total_tokens`
+- `total_cost`
 
 ### `PUT /api/sessions/{session_id}`
 
@@ -695,7 +710,7 @@ Returns a compact aggregate view of the session.
 
 Response fields:
 
-- `session`: session document.
+- `session_id`
 - `conversation_count`
 - `item_count`
 - `response_count`

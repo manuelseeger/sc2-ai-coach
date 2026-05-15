@@ -33,6 +33,50 @@ class ResourceDiscoveryResponse(BaseModel):
     resources: list[ResourceDiscoveryEntry]
 
 
+class SessionListItem(BaseModel):
+    id: str
+    detail_path: str
+    session_date: datetime
+    ai_backend: str
+    conversation_count: int
+    current_conversation_id: str | None = None
+    total_cost: float
+
+
+class SessionListResponse(BaseModel):
+    items: list[SessionListItem]
+    page: int
+    page_size: int
+    total: int
+    total_pages: int
+
+
+class SessionDetailResponse(BaseModel):
+    id: str
+    detail_path: str
+    session_date: datetime
+    ai_backend: str
+    current_conversation_id: str | None = None
+    twitch_conversation_id: str | None = None
+    conversation_ids: list[str]
+    total_input_tokens: int
+    total_cached_tokens: int
+    total_output_tokens: int
+    total_tokens: int
+    total_cost: float
+
+
+class SessionSummaryResponse(BaseModel):
+    session_id: str
+    conversation_count: int
+    item_count: int
+    response_count: int
+    total_input_tokens: int
+    total_output_tokens: int
+    total_tokens: int
+    total_cost: float
+
+
 class MapStatsDateRange(BaseModel):
     from_date: datetime | None = None
     to_date: datetime | None = None

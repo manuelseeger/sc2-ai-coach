@@ -29,6 +29,9 @@ from src.api.contracts import (
     MapStatsSummary,
     ResourceDiscoveryEntry,
     ResourceDiscoveryResponse,
+    SessionDetailResponse,
+    SessionListResponse,
+    SessionSummaryResponse,
 )
 from src.api.conversation_types import AIConversationStatus, AIConversationTrigger
 from src.api.map_stats import (
@@ -37,6 +40,7 @@ from src.api.map_stats import (
     MapStatsUnavailableError,
 )
 from src.api.resources import discover_resources
+from src.api.sessions import SessionQueryService
 
 HealthCheck = Callable[[], ApiHealthResponse]
 ResourceDiscovery = Callable[[], list[ResourceDiscoveryEntry]]
@@ -116,6 +120,26 @@ class MapStatsQueries(Protocol):
     def query_map_stats(self, request: MapStatsQueryRequest) -> MapStatsQueryResponse: ...
 
 
+class SessionQueries(Protocol):
+    def list_sessions(
+        self,
+        *,
+        page: int,
+        page_size: int,
+        ai_backend: str | None,
+        from_date: datetime | None,
+        to_date: datetime | None,
+    ) -> SessionListResponse: ...
+
+    def get_session_detail(self, session_id: str) -> SessionDetailResponse | None: ...
+
+    def get_session_conversations(
+        self, session_id: str
+    ) -> ConversationListResponse | None: ...
+
+    def get_session_summary(self, session_id: str) -> SessionSummaryResponse | None: ...
+
+
 def _not_found_error(resource: str, identifier_field: str, identifier: str) -> dict[str, object]:
     return {
         "error": {
@@ -150,6 +174,10 @@ def _default_conversation_queries(config: ApiConfig) -> ConversationQueries:
 
 def _default_map_stats_queries(config: ApiConfig) -> MapStatsQueries:
     return MapStatsQueryService.from_api_config(config)
+
+
+def _default_session_queries(config: ApiConfig) -> SessionQueries:
+    return SessionQueryService(config)
 
 
 def _build_health_check(config: ApiConfig) -> HealthCheck:
@@ -235,6 +263,7 @@ def create_app(
     resource_discovery: ResourceDiscovery | None = None,
     conversation_queries: ConversationQueries | None = None,
     map_stats_queries: MapStatsQueries | None = None,
+    session_queries: SessionQueries | None = None,
 ) -> FastAPI:
     resolved_config = config or ApiConfig()
     resolved_health_check = health_check or _build_health_check(resolved_config)
@@ -242,6 +271,9 @@ def create_app(
         resolved_config
     )
     resolved_map_stats_queries = map_stats_queries or _default_map_stats_queries(
+        resolved_config
+    )
+    resolved_session_queries = session_queries or _default_session_queries(
         resolved_config
     )
     resolved_resource_discovery = resource_discovery or (
@@ -267,6 +299,58 @@ def create_app(
     @app.get("/api/resources", response_model=ResourceDiscoveryResponse)
     def get_resources() -> ResourceDiscoveryResponse:
         return ResourceDiscoveryResponse(resources=resolved_resource_discovery())
+
+    @app.get("/api/sessions", response_model=SessionListResponse)
+    def get_sessions(
+        page: int = Query(default=1, ge=1),
+        page_size: int = Query(default=20, ge=1, le=100),
+        ai_backend: str | None = Query(default=None),
+        from_date: datetime | None = Query(default=None),
+        to_date: datetime | None = Query(default=None),
+    ) -> SessionListResponse:
+        return resolved_session_queries.list_sessions(
+            page=page,
+            page_size=page_size,
+            ai_backend=ai_backend,
+            from_date=from_date,
+            to_date=to_date,
+        )
+
+    @app.get("/api/sessions/{session_id}", response_model=SessionDetailResponse)
+    def get_session_detail(session_id: str) -> SessionDetailResponse:
+        detail = resolved_session_queries.get_session_detail(session_id)
+        if detail is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error("session", "session_id", session_id),
+            )
+        return detail
+
+    @app.get(
+        "/api/sessions/{session_id}/conversations",
+        response_model=ConversationListResponse,
+    )
+    def get_session_conversations(session_id: str) -> ConversationListResponse:
+        conversations = resolved_session_queries.get_session_conversations(session_id)
+        if conversations is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error("session", "session_id", session_id),
+            )
+        return conversations
+
+    @app.get(
+        "/api/sessions/{session_id}/summary",
+        response_model=SessionSummaryResponse,
+    )
+    def get_session_summary(session_id: str) -> SessionSummaryResponse:
+        summary = resolved_session_queries.get_session_summary(session_id)
+        if summary is None:
+            raise HTTPException(
+                status_code=404,
+                detail=_not_found_error("session", "session_id", session_id),
+            )
+        return summary
 
     @app.get("/api/map-stats", response_model=MapStatsListResponse)
     def get_map_stats_list(
