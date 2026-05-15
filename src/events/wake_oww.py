@@ -16,6 +16,7 @@ from src.runtime.settings import Config, load_current_settings
 onnxruntime.set_default_logger_severity(3)
 
 from log import DEFAULT_LOGGER_NAME
+
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 FORMAT = pyaudio.paInt16

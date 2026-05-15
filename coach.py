@@ -162,11 +162,7 @@ def _build_io_services(
             recognizer_config=settings.recognizer,
         )
         transcriber = _build_transcriber(settings)
-
-        if "nvidia broadcast" not in mic.name.lower():
-            logging.getLogger(__name__).warning(
-                "Using a non-NVIDIA Broadcast microphone"
-            )
+        logging.getLogger(__name__).info(f"Using microphone: {mic.name}")
 
     if settings.audiomode in [AudioMode.voice_out, AudioMode.full]:
         from src.io.tts import make_tts_stream

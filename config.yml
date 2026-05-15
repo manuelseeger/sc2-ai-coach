@@ -8,8 +8,9 @@ deamon_polling_rate: 1
 
 # Audiomode, one of "full", "text", "in", "out"
 audiomode: "text"
-# Index of the audio device as returned by pyaudio
-microphone_index: 2
+# Optional index of the audio device as returned by pyaudio.
+# Leave unset to auto-select NVIDIA Broadcast, then fall back to the system default input.
+# microphone_index: 2
 # Wake word configuration
 wakeword:
   engine: "openwakeword"

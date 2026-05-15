@@ -2,27 +2,29 @@ import logging
 from time import time
 from typing import TYPE_CHECKING
 
-import pyaudio
 import speech_recognition as sr
 from speech_recognition.audio import AudioData
 
 from src.contracts import MicrophoneService
+from src.runtime.audio_devices import get_microphone_name
 
 if TYPE_CHECKING:
     from src.runtime.settings import RecognizerConfig
 
 from log import DEFAULT_LOGGER_NAME
+
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
-
-
-def _get_audio() -> pyaudio.PyAudio:
-    return pyaudio.PyAudio()
 
 
 class Microphone(MicrophoneService):
     name: str
 
-    def __init__(self, *, device_index: int, recognizer_config: "RecognizerConfig"):
+    def __init__(
+        self,
+        *,
+        device_index: int | None,
+        recognizer_config: "RecognizerConfig",
+    ):
         self.device_index = device_index
 
         self.recognizer = sr.Recognizer()
@@ -36,12 +38,13 @@ class Microphone(MicrophoneService):
         self.recognizer.dynamic_energy_adjustment_damping = 0.15
         self.recognizer.dynamic_energy_ratio = 1.5
 
-        # log the selected audio device:
-        audio = _get_audio()
-        dev = audio.get_device_info_by_index(self.device_index)
-        log.debug(f"Using microphone: {dev['name']}")
+        microphone_name = get_microphone_name(self.device_index)
+        if microphone_name is None:
+            microphone_name = "system default input"
 
-        self.name = str(dev["name"])
+        log.debug(f"Using microphone: {microphone_name}")
+
+        self.name = microphone_name
 
         self.microphone = sr.Microphone(device_index=self.device_index)
 

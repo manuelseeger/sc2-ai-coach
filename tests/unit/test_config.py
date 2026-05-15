@@ -1,5 +1,5 @@
 from src.ai.pricing import ModelPricingOverride
-from src.runtime.settings import Config
+from src.runtime.settings import AudioMode, Config
 
 
 def test_model_pricing_defaults_to_builtin_lookup():
@@ -54,3 +54,42 @@ def test_unknown_model_pricing_falls_back_to_configured_model():
     assert pricing.prompt_per_million == 2.5
     assert pricing.cached_prompt_per_million == 0.25
     assert pricing.completion_per_million == 15.0
+
+
+def test_microphone_autoselection_skips_text_mode(monkeypatch):
+    calls: list[str] = []
+
+    def fake_select_preferred_microphone_index():
+        calls.append("selected")
+        return 9
+
+    monkeypatch.setattr(
+        "src.runtime.settings.select_preferred_microphone_index",
+        fake_select_preferred_microphone_index,
+    )
+
+    config = Config.model_construct(
+        audiomode=AudioMode.text,
+        microphone_index=None,
+    )
+
+    config._resolve_microphone_index()
+
+    assert config.microphone_index is None
+    assert calls == []
+
+
+def test_microphone_autoselection_runs_for_full_mode(monkeypatch):
+    monkeypatch.setattr(
+        "src.runtime.settings.select_preferred_microphone_index",
+        lambda: 9,
+    )
+
+    config = Config.model_construct(
+        audiomode=AudioMode.full,
+        microphone_index=None,
+    )
+
+    config._resolve_microphone_index()
+
+    assert config.microphone_index == 9

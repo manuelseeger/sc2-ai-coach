@@ -32,6 +32,7 @@ from src.ai.pricing import (
     get_default_model_pricing,
     normalize_model_name,
 )
+from src.runtime.audio_devices import select_preferred_microphone_index
 
 MongoSRVDsn = Annotated[
     MultiHostUrl, UrlConstraints(allowed_schemes=["mongodb+srv", "mongodb"])
@@ -162,7 +163,7 @@ class Config(BaseSettings):
     deamon_polling_rate: int
 
     audiomode: AudioMode = AudioMode.full
-    microphone_index: int
+    microphone_index: int | None = None
     wakeword: WakeWordConfig
     speech_recognition_model: str
     transcriber_backend: TranscriberBackend = TranscriberBackend.whisper
@@ -199,6 +200,15 @@ class Config(BaseSettings):
             normalize_model_name(model_name) or model_name: override
             for model_name, override in value.items()
         }
+
+    @model_validator(mode="after")
+    def _resolve_microphone_index(self):
+        if self.microphone_index is None and self.audiomode in [
+            AudioMode.voice_in,
+            AudioMode.full,
+        ]:
+            self.microphone_index = select_preferred_microphone_index()
+        return self
 
     def get_model_pricing(self, model_name: str | None = None) -> ModelPricing:
         resolved_model = normalize_model_name(model_name or self.gpt_model)

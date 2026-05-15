@@ -8,11 +8,11 @@ import numpy as np
 import pvporcupine
 import pyaudio
 
+from log import DEFAULT_LOGGER_NAME
 from shared import signal_queue
 from src.events import WakeEvent
 from src.runtime.settings import Config, load_current_settings
 
-from log import DEFAULT_LOGGER_NAME
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 FORMAT = pyaudio.paInt16
