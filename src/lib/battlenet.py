@@ -10,7 +10,8 @@ from shared import REGION_MAP
 from src.replays.types import ToonHandle
 from src.runtime.settings import Config, load_current_settings
 
-log = logging.getLogger(__name__)
+from log import DEFAULT_LOGGER_NAME
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 
 def toon_handle_from_id(toon_id: str, region: str) -> ToonHandle:

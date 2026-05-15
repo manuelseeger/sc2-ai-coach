@@ -18,7 +18,8 @@ from .plugins.ReplayStats import ReplayStats
 from .plugins.SpawningTool import SpawningTool
 from .types import Replay
 
-log = logging.getLogger(__name__)
+from log import DEFAULT_LOGGER_NAME
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 
 sc2reader.engine.register_plugin(EventSecondCorrector())  # type: ignore

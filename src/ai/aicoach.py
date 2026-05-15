@@ -18,7 +18,8 @@ from .functions.base import strict_json_schema
 from .openai_provider import get_openai_client
 from .prompt import Templates
 
-log = logging.getLogger(__name__)
+from log import DEFAULT_LOGGER_NAME
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 T = TypeVar("T", bound=BaseModel)
 

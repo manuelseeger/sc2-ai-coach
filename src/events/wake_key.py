@@ -7,7 +7,8 @@ from shared import signal_queue
 from src.events import WakeEvent
 from src.runtime.settings import Config, load_current_settings
 
-log = logging.getLogger(__name__)
+from log import DEFAULT_LOGGER_NAME
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 
 class WakeKeyListener(threading.Thread):

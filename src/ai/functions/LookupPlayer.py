@@ -5,7 +5,8 @@ import httpx
 
 from .base import AIFunction
 
-log = logging.getLogger(__name__)
+from log import DEFAULT_LOGGER_NAME
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 PROFILE_BASE = "https://starcraft2.com/en-us/profile/"
 API_BASE = "https://starcraft2.blizzard.com/en-us/api/sc2/profile/"

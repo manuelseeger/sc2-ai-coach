@@ -11,7 +11,8 @@ from src.runtime.settings import load_current_settings
 from ..utils import force_valid_json_string
 from .base import AIFunction
 
-log = logging.getLogger(__name__)
+from log import DEFAULT_LOGGER_NAME
+log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
 example = """
 {

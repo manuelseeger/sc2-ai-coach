@@ -6,6 +6,17 @@ from pathlib import Path
 
 from rich.traceback import install
 
+# All application output (rich console spinner/status, file logs) is routed through
+# the "AICoach" logger. Rich console output is enabled by attaching RichConsoleLogHandler
+# to this logger in coach.py via _install_rich_log_handler().
+#
+# IMPORTANT: Any module that needs to appear on the rich console MUST use a logger that
+# is a child of DEFAULT_LOGGER_NAME, e.g.:
+#   log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
+# Using plain logging.getLogger(__name__) routes records into the "src.*" hierarchy,
+# which never reaches this logger and silently drops rich output.
+# propagate = False (set in configure_application_logging) stops records here so they
+# don't also go to the root logger.
 DEFAULT_LOGGER_NAME = "AICoach"
 _OWNED_HANDLER_MARKER = "_sc2_ai_coach_owned_handler"
 
@@ -36,7 +47,9 @@ def configure_application_logging(
 
     target = logger or log
     target.setLevel(level)
-    target.propagate = False
+    target.propagate = (
+        False  # keeps records in the AICoach hierarchy; root logger has no handlers
+    )
 
     for handler in target.handlers.copy():
         if not getattr(handler, _OWNED_HANDLER_MARKER, False):
