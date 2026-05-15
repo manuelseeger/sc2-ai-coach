@@ -41,3 +41,9 @@ This repo uses the default triage label vocabulary: `needs-triage`, `needs-info`
 ### Domain docs
 
 This repo uses a single-context domain-doc layout rooted at `CONTEXT.md` with ADRs under `docs/adr/`. See `docs/agents/domain.md`.
+
+### Browser and Frontend testing
+
+Use the playwright skill to access api / frontend during testing. 
+
+Make sure to run playwright with the  --headed flag during tests. 
