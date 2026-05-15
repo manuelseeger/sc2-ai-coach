@@ -86,7 +86,9 @@ def main(debug, repl, trace):
     log.info(f"OBS integration: {str(settings.obs_integration)}")
     log.info(f"AI Backend: {str(settings.aibackend)} {settings.gpt_model}")
     if settings.audiomode in [AudioMode.voice_in, AudioMode.full]:
+        log.info(f"Microphone: {mic.name if mic is not None else 'none'}")
         log.info(f"Transcriber: {settings.transcriber_backend}")
+
     log.info(f"Coach events enabled: {', '.join(settings.coach_events)}")
 
     log.info(f"Starting {'non-' * (not settings.interactive)}interactive session")

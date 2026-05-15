@@ -14,6 +14,8 @@ The target architecture must work against a completely stateless Responses API c
 
 This is a major refactor. No backwards compatibility is required; the app may be broken between chapters on the feature branch. Each chapter has a focused verification step so regressions are easy to localize.
 
+Progress: [./migrate-assistant-progress.md](./migrate-assistant-progress.md)
+
 ## Docs
 
 https://developers.openai.com/api/docs/assistants/migration

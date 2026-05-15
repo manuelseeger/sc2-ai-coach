@@ -44,7 +44,6 @@ def select_preferred_microphone_index() -> int | None:
         for index, device in _iter_input_devices(audio):
             name = str(device.get("name", ""))
             if PREFERRED_MICROPHONE_NAME in name.lower():
-                # log.info(f"Auto-selected microphone: {name}")
                 return index
     except OSError:
         log.warning(

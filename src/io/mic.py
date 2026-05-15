@@ -57,6 +57,6 @@ class Microphone(MicrophoneService):
                     return audio
                 except sr.WaitTimeoutError:
                     continue
-
-            if time() - start_time > 60:
-                return None
+                finally:
+                    if time() - start_time > 60:
+                        return None

@@ -35,6 +35,8 @@ from src.util import secs2time
 
 
 class DummyMicrophoneService(MicrophoneService):
+    name = "dummy"
+
     def listen(self) -> None:
         return None
 

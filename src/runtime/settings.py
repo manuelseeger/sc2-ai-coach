@@ -304,7 +304,7 @@ class Config(BaseSettings):
     mongo_dsn: MongoSRVDsn
 
     @classmethod
-    def settings_customise_sources(
+    def settings_customise_sources(  # type: ignore[override]
         cls,
         settings_cls: Type[BaseSettings],
         init_settings: PydanticBaseSettingsSource,
