@@ -82,7 +82,6 @@ class AIConversationTrigger(str, Enum):
 class AIConversationStatus(str, Enum):
     active = "active"
     closed = "closed"
-    archived = "archived"
     failed = "failed"
 
 
