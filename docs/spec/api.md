@@ -94,6 +94,19 @@ class ApiConfig(BaseModel):
 
 The API does not call the default runtime settings loader unchanged if that loader enforces microphone discovery, OBS path validation, or other coach-runtime requirements. If the existing settings construction path is not API-safe, it must be extended with an API mode or equivalent API-safe loader while keeping the same source-of-truth settings model.
 
+### Lifespan-Based Initialization
+
+Application initialization uses FastAPI's `lifespan` hook with an async context manager, not scattered `startup` handlers or import-time side effects.
+
+Within that lifespan block, the API:
+
+- loads config through the API-safe settings path
+- creates app-scoped dependencies such as the database client, database handle, and stores
+- attaches those dependencies to `app.state` or equivalent app-scoped dependency wiring
+- disposes of clients and other owned resources during shutdown in the same lifespan flow
+
+Initialization must be deterministic and happen once per app instance. Route handlers read already-constructed dependencies and must not perform first-use config loading, first-use database connection, or other lazy process-global initialization.
+
 Environment variables:
 
 - `AICOACH_MONGO_DSN`
