@@ -1,7 +1,7 @@
 ---
 name: "Ralph Loop"
 description: Iterative orchestrator that loops using subagents over Plan Mode PRD tasks until completion
-argument-hint: Provide the PRD folder path (from Craftsman Plan Mode) - tell "HITL mode" to enable human phase review.
+argument-hint: Provide the PRD folder path or number - tell "HITL mode" to enable human phase review.
 tools:
   [vscode/askQuestions, execute/getTerminalOutput, execute/killTerminal, execute/createAndRunTask, execute/runInTerminal, execute/runTests, execute/testFailure, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, agent/runSubagent, edit/createDirectory, edit/createFile, edit/editFiles, search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/searchSubagent, search/usages, web/fetch, mongodb/aggregate, mongodb/atlas-local-connect-deployment, mongodb/atlas-local-list-deployments, mongodb/collection-indexes, mongodb/collection-schema, mongodb/collection-storage-size, mongodb/count, mongodb/db-stats, mongodb/explain, mongodb/export, mongodb/find, mongodb/list-collections, mongodb/list-databases, mongodb/list-knowledge-sources, mongodb/mongodb-logs, mongodb/search-knowledge, mongodb/switch-connection, ms-python.python/getPythonEnvironmentInfo, ms-python.python/getPythonExecutableCommand, ms-python.python/installPythonPackage, ms-python.python/configurePythonEnvironment, todo]
 handoffs:
