@@ -73,6 +73,44 @@ export interface MetadataRecord {
   updated_at: string;
 }
 
+export interface ReplayListPlayer {
+  name: string;
+  toon_handle: string;
+  play_race: string;
+  result: string;
+}
+
+export interface PlayerInfoRecord {
+  id: string;
+  toon_handle: string;
+  name: string;
+  aliases: Array<{
+    name: string;
+    seen_on?: string | null;
+  }>;
+  tags: string[] | null;
+}
+
+export interface ReplayRecord {
+  id: string;
+  map_name: string;
+  date: string;
+  filename: string;
+  region: string;
+  real_length: number;
+  game_type: string;
+  real_type: string;
+  speed: string;
+  is_ladder: boolean;
+  players: ReplayListPlayer[];
+  [key: string]: unknown;
+}
+
+export interface ReplayPlayerRelationship {
+  replay_player: ReplayListPlayer;
+  player_info: PlayerInfoRecord | null;
+}
+
 export interface ApiErrorEnvelope {
   error: {
     code: string;
@@ -106,4 +144,6 @@ export interface ApiClient {
   createConversationItem<T>(conversationId: string, body: unknown): Promise<T>;
   getConversationResponses<T>(conversationId: string): Promise<T>;
   getSessionConversations<T>(sessionId: string): Promise<T>;
+  getReplayMetadata<T>(replayId: string): Promise<T>;
+  getReplayPlayers<T>(replayId: string): Promise<T>;
 }

@@ -33,6 +33,8 @@ Out of scope:
 
 The webapp should be domain-shaped in the same way as the API.
 
+Frontend routes and API paths should stay tied to the domain model names. Use domain-shaped paths such as `/replays/{id}` and `/sessions/{id}`, not generic indirection like `/resources/replays/{id}` or `/resources/sessions/{id}`.
+
 The styling work may use `playground/example_styles.css` as a visual reference for palette, typography, density, and general admin-facing tone. That file comes from a different project and must not be copied over verbatim or treated as the webapp's design system. It is a foundation for mood and direction, to be adapted selectively to this app's own information architecture, component needs, and domain-specific workflows.
 
 There are two example screnshots from another project that give an idea about the visual language we are going for. Use them as rough guidelines, but don't try to recreate one-to-one: 
@@ -206,6 +208,8 @@ The client should normalize API failures to the backend error envelope:
 The app uses an explicit frontend route table for the supported admin areas.
 
 That route table is backed by the documented API contract, not by a runtime discovery endpoint. The client should navigate only to screens with a defined backend surface and should treat unsupported areas as ordinary missing routes or feature gaps, not as dynamically discovered resources.
+
+Frontend route segments should mirror the domain route families directly. Prefer routes like `/replays`, `/replays/:id`, `/sessions`, and `/sessions/:id`; do not introduce a generic `/resources/:resource/...` route layer.
 
 ## Views
 

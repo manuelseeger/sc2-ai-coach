@@ -121,6 +121,14 @@ export function createApiClient(baseUrl = "/api"): ApiClient {
     return request<T>(`/sessions/${encodeURIComponent(sessionId)}/conversations`);
   }
 
+  function getReplayMetadata<T>(replayId: string): Promise<T> {
+    return request<T>(`/replays/${encodeURIComponent(replayId)}/metadata`);
+  }
+
+  function getReplayPlayers<T>(replayId: string): Promise<T> {
+    return request<T>(`/replays/${encodeURIComponent(replayId)}/players`);
+  }
+
   return {
     getHealth,
     listResource,
@@ -134,5 +142,7 @@ export function createApiClient(baseUrl = "/api"): ApiClient {
     createConversationItem,
     getConversationResponses,
     getSessionConversations,
+    getReplayMetadata,
+    getReplayPlayers,
   };
 }

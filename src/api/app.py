@@ -17,8 +17,9 @@ from src.persistence.conversation_store import (
     AIConversationItem,
     AIResponseRecord,
 )
-from src.persistence.replay_store import Metadata
+from src.persistence.replay_store import Metadata, PlayerInfo
 from src.persistence.runtime import PersistenceServices, build_persistence_services
+from src.replays.types import Player, Replay
 from src.runtime.settings import AIBackend, Config, load_api_settings
 
 
@@ -44,6 +45,11 @@ class QueryRequest(BaseModel):
     current_page: int = 1
     docs_per_page: int = 50
     projection: str | None = None
+
+
+class ReplayPlayerRelationship(BaseModel):
+    replay_player: Player
+    player_info: PlayerInfo | None
 
 
 FORBIDDEN_QUERY_OPERATORS = {
@@ -141,6 +147,26 @@ def _metadata_not_found(metadata_id: str) -> None:
     )
 
 
+def _replay_not_found(replay_id: str) -> None:
+    _raise_api_error(
+        status_code=404,
+        code="not_found",
+        message="Document not found",
+        details={"resource": "replays", "id": replay_id},
+    )
+
+
+def _replay_metadata_not_found(
+    replay_id: str,
+    *,
+    persistence: PersistenceServices,
+) -> None:
+    replay = persistence.replay_store.get_replay(replay_id)
+    if replay is None:
+        _replay_not_found(replay_id)
+    _metadata_not_found(replay_id)
+
+
 def _parse_sort(sort_value: str | None) -> dict[str, int] | None:
     if sort_value is None or sort_value == "":
         return None
@@ -170,8 +196,12 @@ def _parse_sort(sort_value: str | None) -> dict[str, int] | None:
     return raw_sort
 
 
-def _validate_projection(projection: str | None) -> None:
-    if projection in {None, "detail"}:
+def _validate_projection(
+    projection: str | None,
+    *,
+    allowed: set[str | None] | None = None,
+) -> None:
+    if projection in (allowed or {None, "detail"}):
         return
 
     _raise_api_error(
@@ -297,6 +327,163 @@ def _build_sessions_router() -> APIRouter:
     return router
 
 
+def _build_replays_router() -> APIRouter:
+    router = APIRouter(prefix="/api/replays", tags=["replays"])
+
+    @router.get("")
+    def list_replays(
+        request: Request,
+        current_page: int = 1,
+        docs_per_page: int = 50,
+        sort: str | None = None,
+        projection: str | None = "table",
+        player: str | None = None,
+        map: str | None = None,
+        race: str | None = None,
+        result: str | None = None,
+        from_date: datetime | None = None,
+        to_date: datetime | None = None,
+    ):
+        persistence: PersistenceServices = request.app.state.persistence
+        _validate_projection(projection, allowed={None, "detail", "table"})
+        return persistence.replay_store.list_replays(
+            current_page=current_page,
+            docs_per_page=docs_per_page,
+            player=player,
+            map_name=map,
+            race=race,
+            result=result,
+            from_date=from_date,
+            to_date=to_date,
+            raw_sort=_parse_sort(sort),
+        )
+
+    @router.post("/query")
+    def query_replays(query: QueryRequest, request: Request):
+        persistence: PersistenceServices = request.app.state.persistence
+        _validate_projection(query.projection, allowed={None, "detail", "table"})
+        _validate_query_filter(query.filter)
+        return persistence.replay_store.list_replays(
+            current_page=query.current_page,
+            docs_per_page=query.docs_per_page,
+            raw_query=query.filter,
+            raw_sort=dict(query.sort) or None,
+        )
+
+    @router.post("", response_model=Replay)
+    def create_replay(replay: Replay, request: Request) -> Replay:
+        persistence: PersistenceServices = request.app.state.persistence
+        return persistence.replay_store.create_replay(replay)
+
+    @router.get("/{replay_id}", response_model=Replay)
+    def get_replay(replay_id: str, request: Request) -> Replay:
+        persistence: PersistenceServices = request.app.state.persistence
+        replay = persistence.replay_store.get_replay(replay_id)
+        if replay is None:
+            _replay_not_found(replay_id)
+        assert replay is not None
+        return replay
+
+    @router.put("/{replay_id}", response_model=Replay)
+    def replace_replay(replay_id: str, replay: Replay, request: Request) -> Replay:
+        persistence: PersistenceServices = request.app.state.persistence
+        if str(replay.id) != replay_id:
+            _raise_api_error(
+                status_code=409,
+                code="conflict",
+                message="Path id and body id must match.",
+                details={"resource": "replays", "path_id": replay_id},
+            )
+        return persistence.replay_store.replace_replay(replay_id, replay)
+
+    @router.patch("/{replay_id}", response_model=Replay)
+    def patch_replay(replay_id: str, patch: dict[str, Any], request: Request) -> Replay:
+        persistence: PersistenceServices = request.app.state.persistence
+        _validate_patch_document(patch)
+        if "id" in patch and str(patch["id"]) != replay_id:
+            _raise_api_error(
+                status_code=409,
+                code="conflict",
+                message="Path id and body id must match.",
+                details={"resource": "replays", "path_id": replay_id},
+            )
+        replay = persistence.replay_store.patch_replay(replay_id, patch)
+        if replay is None:
+            _replay_not_found(replay_id)
+        assert replay is not None
+        return replay
+
+    @router.delete("/{replay_id}", status_code=204)
+    def delete_replay(replay_id: str, request: Request) -> Response:
+        persistence: PersistenceServices = request.app.state.persistence
+        deleted = persistence.replay_store.delete_replay(replay_id)
+        if not deleted:
+            _replay_not_found(replay_id)
+        return Response(status_code=204)
+
+    @router.get("/{replay_id}/metadata", response_model=Metadata)
+    def get_replay_metadata(replay_id: str, request: Request) -> Metadata:
+        persistence: PersistenceServices = request.app.state.persistence
+        metadata = persistence.replay_store.get_metadata_by_replay_id(replay_id)
+        if metadata is None:
+            _replay_metadata_not_found(replay_id, persistence=persistence)
+        assert metadata is not None
+        return metadata
+
+    @router.put("/{replay_id}/metadata", response_model=Metadata)
+    def replace_replay_metadata(
+        replay_id: str, metadata: Metadata, request: Request
+    ) -> Metadata:
+        persistence: PersistenceServices = request.app.state.persistence
+        if str(metadata.replay) != replay_id:
+            _raise_api_error(
+                status_code=409,
+                code="conflict",
+                message="Path replay id and body replay id must match.",
+                details={"resource": "metadata", "path_id": replay_id},
+            )
+        return persistence.replay_store.replace_metadata_for_replay(replay_id, metadata)
+
+    @router.patch("/{replay_id}/metadata", response_model=Metadata)
+    def patch_replay_metadata(
+        replay_id: str,
+        patch: dict[str, Any],
+        request: Request,
+    ) -> Metadata:
+        persistence: PersistenceServices = request.app.state.persistence
+        _validate_patch_document(patch)
+        if "replay" in patch and str(patch["replay"]) != replay_id:
+            _raise_api_error(
+                status_code=409,
+                code="conflict",
+                message="Path replay id and body replay id must match.",
+                details={"resource": "metadata", "path_id": replay_id},
+            )
+        metadata = persistence.replay_store.patch_metadata_for_replay(replay_id, patch)
+        if metadata is None:
+            _replay_metadata_not_found(replay_id, persistence=persistence)
+        assert metadata is not None
+        return metadata
+
+    @router.get("/{replay_id}/players", response_model=list[ReplayPlayerRelationship])
+    def get_replay_players(
+        replay_id: str, request: Request
+    ) -> list[ReplayPlayerRelationship]:
+        persistence: PersistenceServices = request.app.state.persistence
+        pairs = persistence.replay_store.get_replay_players(replay_id)
+        if pairs is None:
+            _replay_not_found(replay_id)
+        assert pairs is not None
+        return [
+            ReplayPlayerRelationship(
+                replay_player=replay_player, player_info=player_info
+            )
+            for replay_player, player_info in pairs
+        ]
+
+    return router
+
+
 def _build_conversations_router() -> APIRouter:
     router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 
@@ -381,7 +568,9 @@ def _build_metadata_router() -> APIRouter:
         return metadata
 
     @router.put("/{metadata_id}", response_model=Metadata)
-    def replace_metadata(metadata_id: str, metadata: Metadata, request: Request) -> Metadata:
+    def replace_metadata(
+        metadata_id: str, metadata: Metadata, request: Request
+    ) -> Metadata:
         persistence: PersistenceServices = request.app.state.persistence
         if metadata.id is not None and str(metadata.id) != metadata_id:
             _raise_api_error(
@@ -393,7 +582,9 @@ def _build_metadata_router() -> APIRouter:
         return persistence.replay_store.replace_metadata(metadata_id, metadata)
 
     @router.patch("/{metadata_id}", response_model=Metadata)
-    def patch_metadata(metadata_id: str, patch: dict[str, Any], request: Request) -> Metadata:
+    def patch_metadata(
+        metadata_id: str, patch: dict[str, Any], request: Request
+    ) -> Metadata:
         persistence: PersistenceServices = request.app.state.persistence
         _validate_patch_document(patch)
         if "id" in patch and str(patch["id"]) != metadata_id:
@@ -487,6 +678,7 @@ def create_app(
 
     app.include_router(_build_health_router())
     app.include_router(_build_sessions_router())
+    app.include_router(_build_replays_router())
     app.include_router(_build_conversations_router())
     app.include_router(_build_metadata_router())
     app.include_router(_build_webapp_router())
