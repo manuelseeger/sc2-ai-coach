@@ -1041,7 +1041,7 @@ As an agent, follow these instructions for performing end user testing:
 
 - Build the frontend.
 - Run the FastAPI development server.
-- Use Playwright to test the frontend in the browser.
+- Use Playwright to test the frontend in the browser. Make sure to run playwright with --headed
 - Make sure to clean up after: shutdown any servers after performing your tests. 
 
 ## API Policies

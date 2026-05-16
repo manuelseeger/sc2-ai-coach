@@ -38,7 +38,7 @@ The styling work may use `playground/example_styles.css` as a visual reference f
 It is not a uniform CRUD shell over arbitrary collections. Generic resource views are useful, but the UI should prefer dedicated flows where the backend defines a meaningful relationship surface:
 
 - Conversations are read through a complete ordered conversation-item flow, with response records available separately for specialized or generic admin workflows.
-- Sessions are read together with conversations and summary totals.
+- Sessions are read together with their linked conversations from the existing session relationship route.
 - Replays are read together with metadata and known players.
 - Players are read together with portrait assets, aliases, and related replays.
 - Map stats are read as an aggregation-backed reporting surface, not as editable documents.
@@ -54,6 +54,8 @@ The frontend may implement a generic maintenance layer, but only over the explic
 - `responses`
 
 That generic layer is registry-backed in the client. It is not driven by runtime collection discovery and it does not imply that every route family has the same filters, relationships, or writable behavior.
+
+The registry includes both writable and read-only route families. Create, patch, replace, and delete actions are exposed only for route families where the API supports them: `replays`, `metadata`, `players`, and `conversations`. `sessions`, `conversation-items`, and `responses` support generic list/detail/query reads only, with conversation-item creation exposed separately through the conversation-scoped append route.
 
 Conversation-view principles:
 
@@ -124,7 +126,7 @@ The frontend should use a typed fetch wrapper for the API.
 
 The client should model the explicit backend route families rather than inventing a discovery-based abstraction. A small generic layer is still acceptable for the registry-backed resource families, provided the client respects per-resource read-only versus writable behavior.
 
-Core API methods:
+Core resource methods, used only where the target route family supports them:
 
 - `getHealth()`
 - `listResource(resource, params)`
@@ -144,9 +146,10 @@ Relationship and resource-specific methods:
 - `getReplayMetadata(replayId)`
 - `getReplayPlayers(replayId)`
 - `getPlayerReplays(toonHandle, params)`
-- `getPlayerAliases(toonHandle, params)`
+- `getPlayerAliases(toonHandle)`
 - `getPlayerPortraitMetadata(toonHandle)`
 - `getPlayersPortraitMetadata(toonHandles)`
+- `getResponseByResponseId(responseId)`
 - `getMapStats(params)`
 - `getMapStatsByName(mapName, params)`
 
@@ -256,7 +259,7 @@ Conversation-list behavior:
 - Keep rows compact and avoid transcript previews.
 - Show trigger, item count, and last-item timestamp in each row.
 - Show lightweight replay/session presence indicators.
-- Support typed trigger and status filters with operator-friendly labels, defaulting to all triggers and the active/closed inbox pair.
+- Support typed trigger and status filters with operator-friendly labels, defaulting to all triggers and all statuses.
 - Keep trigger filter state stable during normal SPA navigation and restored list context, while resetting it on full page refresh.
 - Use paged results with a fixed page size.
 - Preserve restored list context, current-row highlight, and scroll position when possible.
@@ -377,6 +380,8 @@ Manual verification covers:
 - Player detail uses the portrait metadata helper to resolve available player and alias portraits, then displays portrait images from media endpoints.
 - Map stats screens respect the supported `map` and inclusive `min_date` filters.
 - Read-only resources do not expose write actions.
+- `sessions`, `conversation-items`, and `responses` expose generic list/detail/query reads without generic create, patch, replace, or delete actions.
+- Conversation-item creation, when exposed, uses only `POST /api/conversations/{conversation_id}/items`.
 - Generic maintenance entry points are limited to the fixed frontend registry for supported API route families, with write actions exposed only where the backend allows them.
 - The built frontend is served by the backend at `/`.
 
