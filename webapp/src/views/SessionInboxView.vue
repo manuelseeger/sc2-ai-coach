@@ -16,6 +16,7 @@ function formatDate(value: string): string {
   return new Date(value).toLocaleString(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
+    hour12: false,
   });
 }
 
@@ -71,7 +72,7 @@ onMounted(async () => {
           <div class="session-row__main">
             <div class="session-row__head">
               <strong class="session-row__date">{{ formatDate(session.session_date) }}</strong>
-              <span class="tag">{{ session.ai_backend }}</span>
+              <span class="tag tag--accent">{{ session.ai_backend }}</span>
             </div>
             <p class="session-row__id mono-copy">{{ session.id }}</p>
           </div>
@@ -87,7 +88,7 @@ onMounted(async () => {
             </div>
             <div class="stat-item">
               <span class="stat-item__label">Cost</span>
-              <span class="stat-item__value">{{ formatCost(session.total_cost) }}</span>
+              <span class="stat-item__value stat-item__value--cost">{{ formatCost(session.total_cost) }}</span>
             </div>
           </div>
         </li>
@@ -173,6 +174,10 @@ onMounted(async () => {
   font-family: var(--display);
   font-size: 0.95rem;
   letter-spacing: 0.04em;
+}
+
+.stat-item__value--cost {
+  color: var(--green-strong);
 }
 
 @media (max-width: 700px) {

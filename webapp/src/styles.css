@@ -133,9 +133,9 @@
 html {
   min-height: 100%;
   background:
-    radial-gradient(circle at top left, rgba(83, 191, 255, 0.11), transparent 20%),
-    radial-gradient(circle at top center, rgba(153, 97, 255, 0.08), transparent 28%),
-    linear-gradient(180deg, #070c14 0%, #090f18 48%, #060a12 100%);
+    radial-gradient(circle at top left, rgba(86, 194, 255, 0.11), transparent 20%),
+    radial-gradient(circle at top center, rgba(167, 139, 250, 0.08), transparent 28%),
+    linear-gradient(180deg, #0a0d14 0%, #0c1020 48%, #080b12 100%);
 }
 
 body {
@@ -145,9 +145,9 @@ body {
   font-family: var(--ui);
   background:
     linear-gradient(var(--bg-overlay), var(--bg-overlay)),
-    linear-gradient(90deg, rgba(119, 148, 190, 0.035) 1px, transparent 1px),
-    linear-gradient(rgba(119, 148, 190, 0.025) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(83, 191, 255, 0.025), transparent 12%);
+    linear-gradient(90deg, rgba(86, 194, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(rgba(86, 194, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(86, 194, 255, 0.03), transparent 12%);
   background-size: auto, 32px 32px, 32px 32px, auto;
 }
 
@@ -180,8 +180,8 @@ select {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at top left, rgba(83, 191, 255, 0.035), transparent 24%),
-    radial-gradient(circle at bottom right, rgba(217, 171, 55, 0.03), transparent 20%);
+    radial-gradient(circle at top left, rgba(86, 194, 255, 0.04), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(251, 191, 36, 0.025), transparent 20%);
 }
 
 .sidebar {
@@ -510,8 +510,8 @@ select {
   min-height: 24px;
   padding: 0 9px;
   border-radius: 999px;
-  background: rgba(83, 191, 255, 0.08);
-  border: 1px solid rgba(83, 191, 255, 0.16);
+  background: rgba(86, 194, 255, 0.08);
+  border: 1px solid rgba(86, 194, 255, 0.16);
   color: var(--text-dim);
   font-size: 0.68rem;
   font-family: var(--display);
@@ -520,16 +520,63 @@ select {
 }
 
 .tag--ok {
-  background: rgba(103, 215, 159, 0.12);
-  border-color: rgba(103, 215, 159, 0.22);
+  background: rgba(74, 222, 128, 0.1);
+  border-color: rgba(74, 222, 128, 0.22);
   color: var(--green-strong);
 }
 
 .tag--warn {
-  background: rgba(245, 201, 109, 0.12);
-  border-color: rgba(245, 201, 109, 0.22);
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.22);
   color: var(--amber-strong);
 }
+
+.tag--accent {
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+  color: var(--accent-strong);
+}
+
+.tag--purple {
+  background: var(--purple-wash);
+  border-color: rgba(167, 139, 250, 0.22);
+  color: var(--purple-strong);
+}
+
+.tag--race-t {
+  background: rgba(86, 194, 255, 0.1);
+  border-color: rgba(86, 194, 255, 0.24);
+  color: var(--race-t);
+}
+
+.tag--race-p {
+  background: rgba(247, 201, 72, 0.1);
+  border-color: rgba(247, 201, 72, 0.24);
+  color: var(--race-p);
+}
+
+.tag--race-z {
+  background: rgba(167, 139, 250, 0.1);
+  border-color: rgba(167, 139, 250, 0.24);
+  color: var(--race-z);
+}
+
+.tag--race-r {
+  background: rgba(192, 202, 240, 0.07);
+  border-color: rgba(192, 202, 240, 0.18);
+  color: var(--race-r);
+}
+
+.race--t { color: var(--race-t); }
+.race--p { color: var(--race-p); }
+.race--z { color: var(--race-z); }
+.race--r { color: var(--race-r); }
+
+.player--p1 { color: var(--p1); }
+.player--p2 { color: var(--p2); }
+
+.list-row--p1 { border-left: 2px solid var(--p1); }
+.list-row--p2 { border-left: 2px solid var(--p2); }
 
 .panel-stack {
   display: grid;

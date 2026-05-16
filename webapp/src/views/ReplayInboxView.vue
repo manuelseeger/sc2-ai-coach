@@ -23,6 +23,7 @@ function formatDate(value: string): string {
   return new Date(value).toLocaleString(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
+    hour12: false,
   });
 }
 
@@ -32,8 +33,19 @@ function formatLength(seconds: number): string {
   return `${m}:${s}`;
 }
 
-function matchupLabel(replay: ReplayRecord): string {
-  return replay.players.map((p) => `${p.name} (${p.play_race})`).join(" vs ");
+function raceClass(race: string): string {
+  const map: Record<string, string> = {
+    Terran: "race--t",
+    Protoss: "race--p",
+    Zerg: "race--z",
+    Random: "race--r",
+  };
+  return map[race] ?? "race--r";
+}
+
+function raceAbbr(race: string): string {
+  const map: Record<string, string> = { Terran: "T", Protoss: "P", Zerg: "Z", Random: "R" };
+  return map[race] ?? race[0] ?? "?";
 }
 
 async function refreshInbox(): Promise<void> {
@@ -128,7 +140,13 @@ onMounted(async () => {
 
           <div class="replay-row__main">
             <strong class="replay-row__map">{{ replay.map_name }}</strong>
-            <p class="replay-row__matchup">{{ matchupLabel(replay) }}</p>
+            <p class="replay-row__matchup">
+              <template v-for="(player, idx) in replay.players" :key="player.toon_handle">
+                <span v-if="idx > 0" class="replay-row__vs"> vs </span>
+                <span class="replay-row__player-name" :class="`player--p${idx + 1}`">{{ player.name }}</span>
+                <span class="replay-row__race" :class="raceClass(player.play_race)">{{ raceAbbr(player.play_race) }}</span>
+              </template>
+            </p>
             <p class="replay-row__id mono-copy">{{ replay.id }}</p>
           </div>
 
@@ -231,6 +249,28 @@ onMounted(async () => {
   margin: 0;
   color: var(--text-dim);
   font-size: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.replay-row__vs {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  padding: 0 2px;
+}
+
+.replay-row__player-name {
+  color: var(--text-dim);
+}
+
+.replay-row__race {
+  font-size: 0.7rem;
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0 3px;
 }
 
 .replay-row__id {

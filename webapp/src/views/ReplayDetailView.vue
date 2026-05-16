@@ -29,6 +29,7 @@ const replayItems = computed(() => {
       value: new Date(replay.value.date).toLocaleString(undefined, {
         dateStyle: "medium",
         timeStyle: "short",
+        hour12: false,
       }),
     },
     { label: "Map", value: replay.value.map_name },
@@ -49,6 +50,16 @@ function resultClass(result: string): string {
   if (result === "Win") return "tag--ok";
   if (result === "Loss") return "tag--warn";
   return "";
+}
+
+function raceTagClass(race: string): string {
+  const map: Record<string, string> = {
+    Terran: "tag--race-t",
+    Protoss: "tag--race-p",
+    Zerg: "tag--race-z",
+    Random: "tag--race-r",
+  };
+  return map[race] ?? "";
 }
 
 watch(
@@ -100,14 +111,10 @@ watch(
           <PanelHeading eyebrow="Replay facts" :title="replay.map_name">
             <template #aside>
               <div class="tag-row">
-                <span
-                  v-for="p in replay.players"
-                  :key="p.toon_handle"
-                  class="tag"
-                  :class="resultClass(p.result)"
-                >
-                  {{ p.name }} · {{ p.play_race }}
-                </span>
+                <template v-for="(p, idx) in replay.players" :key="p.toon_handle">
+                  <span class="tag" :class="[resultClass(p.result), `player--p${idx + 1}`]">{{ p.name }}</span>
+                  <span class="tag" :class="raceTagClass(p.play_race)">{{ p.play_race }}</span>
+                </template>
               </div>
             </template>
           </PanelHeading>
@@ -146,20 +153,23 @@ watch(
 
         <ul class="list list-block-spacing">
           <li
-            v-for="relation in players"
+            v-for="(relation, idx) in players"
             :key="relation.replay_player.toon_handle"
             class="list-row player-row"
+            :class="`list-row--p${idx + 1}`"
           >
             <div class="player-row__head">
               <div>
-                <strong class="player-row__name">{{ relation.replay_player.name }}</strong>
+                <strong class="player-row__name" :class="`player--p${idx + 1}`">{{ relation.replay_player.name }}</strong>
                 <p class="player-row__toon mono-copy">{{ relation.replay_player.toon_handle }}</p>
               </div>
               <div class="tag-row">
                 <span class="tag" :class="resultClass(relation.replay_player.result)">
                   {{ relation.replay_player.result }}
                 </span>
-                <span class="tag">{{ relation.replay_player.play_race }}</span>
+                <span class="tag" :class="raceTagClass(relation.replay_player.play_race)">
+                  {{ relation.replay_player.play_race }}
+                </span>
               </div>
             </div>
 

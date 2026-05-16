@@ -35,7 +35,7 @@ const sessionMetricItems = computed(() => {
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
-  return new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  return new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", hour12: false });
 }
 
 watch(
@@ -69,7 +69,7 @@ watch(
         <h2 v-if="session" class="page-title">{{ formatDate(session.session_date) }}</h2>
         <h2 v-else class="page-title">Session detail</h2>
       </div>
-      <span v-if="session" class="tag">{{ session.ai_backend }}</span>
+      <span v-if="session" class="tag tag--accent">{{ session.ai_backend }}</span>
     </header>
 
     <p v-if="loading" class="muted-copy">Loading…</p>

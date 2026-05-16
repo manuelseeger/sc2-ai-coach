@@ -94,7 +94,8 @@ const quickLinks = [
   gap: 32px;
   min-height: 160px;
   background:
-    radial-gradient(ellipse at 80% 50%, rgba(83, 191, 255, 0.07), transparent 60%),
+    radial-gradient(ellipse at 80% 50%, rgba(86, 194, 255, 0.07), transparent 60%),
+    radial-gradient(ellipse at 20% 80%, rgba(167, 139, 250, 0.04), transparent 50%),
     linear-gradient(180deg, rgba(15, 22, 34, 0.96), rgba(9, 14, 22, 0.99)),
     var(--panel-stripe);
 }
@@ -155,14 +156,14 @@ const quickLinks = [
 .quicklink-card:hover {
   border-color: var(--border-strong);
   background:
-    radial-gradient(ellipse at top right, rgba(83, 191, 255, 0.06), transparent 50%),
+    radial-gradient(ellipse at top right, rgba(86, 194, 255, 0.06), transparent 50%),
     linear-gradient(180deg, rgba(18, 27, 42, 0.97), rgba(10, 16, 26, 1)),
     var(--panel-stripe);
   transform: translateY(-2px);
 }
 
 .quicklink-card--accent {
-  border-color: rgba(83, 191, 255, 0.2);
+  border-color: rgba(86, 194, 255, 0.2);
 }
 
 .quicklink-card__eyebrow {

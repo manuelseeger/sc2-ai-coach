@@ -35,7 +35,7 @@ const queryText = ref(`{
 }`);
 
 function formatDate(value: string): string {
-  return new Date(value).toLocaleString();
+  return new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", hour12: false });
 }
 
 function listParams(): ListParams {

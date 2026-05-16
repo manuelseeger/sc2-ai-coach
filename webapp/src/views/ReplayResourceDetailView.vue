@@ -35,7 +35,7 @@ const replayItems = computed(() => {
     { label: "Replay ID", value: record.value.id, valueClass: "kv-grid__mono" },
     { label: "Map", value: record.value.map_name },
     { label: "Filename", value: record.value.filename },
-    { label: "Date", value: new Date(record.value.date).toLocaleString() },
+    { label: "Date", value: new Date(record.value.date).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", hour12: false }) },
     { label: "Region", value: record.value.region },
     { label: "Type", value: record.value.real_type },
   ];

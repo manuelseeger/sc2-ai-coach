@@ -41,8 +41,8 @@ const metadataItems = computed(() => {
       value: record.value.replay_summary_conversation ?? "None",
       valueClass: record.value.replay_summary_conversation ? "kv-grid__mono" : undefined,
     },
-    { label: "Created", value: new Date(record.value.created_at).toLocaleString() },
-    { label: "Updated", value: new Date(record.value.updated_at).toLocaleString() },
+    { label: "Created", value: new Date(record.value.created_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", hour12: false }) },
+    { label: "Updated", value: new Date(record.value.updated_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", hour12: false }) },
   ];
 });
 
