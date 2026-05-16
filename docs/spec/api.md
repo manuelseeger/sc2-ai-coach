@@ -10,6 +10,8 @@ The API lives in `src/api/` and reuses the overall solutions data access layer a
 
 The API uses dedicated resource paths for its CRUD surface. The API is intentionally simple, and offers a REST interface to the models of the solution. 
 
+Those paths are domain-model-shaped. Route families are named directly after the underlying domain resources, for example `/api/replays/{id}` and `/api/sessions/{id}`. The API does not introduce a generic prefix layer such as `/api/resources/replays/{id}` or `/api/resources/sessions/{id}`.
+
 Apps build on top of the API will have to orchestrate fetching required data on the REST API. The API and apps build on top are expected to run locally, so inefficient fetching is fine. 
 
 The API will make use of FastAPI and Pydantic throughout.
@@ -161,6 +163,8 @@ Resource route families:
 - `/api/responses`
 - `/api/map-stats`
 - `/api/health`
+
+These route families are the canonical public path shape. The API must not wrap them in an additional generic collection namespace such as `/api/resources/{resource_name}/...`.
 
 Specific relationship and alternate-key routes are registered before broad `/{id}` routes. Examples:
 

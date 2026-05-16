@@ -33,6 +33,8 @@ Out of scope:
 
 The webapp should be domain-shaped in the same way as the API.
 
+Frontend routes and API paths should stay tied to the domain model names. Use domain-shaped paths such as `/replays/{id}` and `/sessions/{id}`, not generic indirection like `/resources/replays/{id}` or `/resources/sessions/{id}`.
+
 The styling work may use `playground/example_styles.css` as a visual reference for palette, typography, density, and general admin-facing tone. That file comes from a different project and must not be copied over verbatim or treated as the webapp's design system. It is a foundation for mood and direction, to be adapted selectively to this app's own information architecture, component needs, and domain-specific workflows.
 
 There are two example screnshots from another project that give an idea about the visual language we are going for. Use them as rough guidelines, but don't try to recreate one-to-one: 
@@ -201,11 +203,15 @@ The client should normalize API failures to the backend error envelope:
 }
 ```
 
+For writable resources, frontend JSON editing is an operator convenience, not a schema-less API mode. The request body sent to the backend must still satisfy the API's declared domain model for that route. In practice this means the webapp may present a JSON editor for replay or metadata documents, but `POST` and `PUT` requests are still validated by FastAPI/Pydantic against the corresponding domain model before persistence.
+
 ## Navigation Model
 
 The app uses an explicit frontend route table for the supported admin areas.
 
 That route table is backed by the documented API contract, not by a runtime discovery endpoint. The client should navigate only to screens with a defined backend surface and should treat unsupported areas as ordinary missing routes or feature gaps, not as dynamically discovered resources.
+
+Frontend route segments should mirror the domain route families directly. Prefer routes like `/replays`, `/replays/:id`, `/sessions`, and `/sessions/:id`; do not introduce a generic `/resources/:resource/...` route layer.
 
 ## Views
 
@@ -239,6 +245,8 @@ Generic detail views should support:
 The generic maintenance UI is only for the registry-backed resource families documented by the API. It does not apply to relationship-first specialized screens such as map stats, replay players, portrait media endpoints, or the ordered conversation-item append flow.
 
 FastAPI's generated OpenAPI document at `GET /api/openapi.json` may inform labels and field hints where practical, but raw JSON editing remains the primary fallback for complex persisted models. The webapp should not depend on a per-resource schema endpoint because the API does not define one.
+
+That JSON editing fallback does not weaken the backend contract. The editor may surface the raw shape of a document for operator repair, but write requests still target the route's declared domain model and are rejected when the payload does not validate as that model.
 
 Any generic maintenance entry points are constrained to the frontend's fixed resource registry for the documented API route families, with write actions shown only for resources that are actually writable. For `conversation-items`, the generic route is read-only and append behavior lives on the conversation-specific item route.
 
@@ -333,6 +341,8 @@ The first replay-review slice should:
 - Provide visible in-screen navigation from replay facts into those player records.
 
 Generic replay maintenance remains separate from this specialized review flow and is treated as an expert or repair workflow rather than the default replay-review path.
+
+Even in that expert workflow, replay writes still go through the `Replay` API model. The maintenance surface may expose a JSON editor, but the backend only accepts payloads that validate as a replay domain object.
 
 ### Player Detail
 

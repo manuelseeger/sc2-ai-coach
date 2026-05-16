@@ -3,9 +3,14 @@ import { describe, expect, it } from "vitest";
 import { routes } from "./routes";
 
 describe("router", () => {
-  it("registers dedicated session and metadata workflow routes", () => {
+  it("registers dedicated session, replay, and metadata workflow routes", () => {
     expect(routes.map((route) => route.path)).toContain("/sessions");
     expect(routes.map((route) => route.path)).toContain("/sessions/:sessionId");
+    expect(routes.map((route) => route.path)).toContain("/replays");
+    expect(routes.map((route) => route.path)).toContain("/replays/:replayId");
+    expect(routes.map((route) => route.path)).toContain("/resources/replays");
+    expect(routes.map((route) => route.path)).toContain("/resources/replays/new");
+    expect(routes.map((route) => route.path)).toContain("/resources/replays/:replayId");
     expect(routes.map((route) => route.path)).toContain("/resources/metadata");
     expect(routes.map((route) => route.path)).toContain("/resources/metadata/new");
     expect(routes.map((route) => route.path)).toContain("/resources/metadata/:metadataId");

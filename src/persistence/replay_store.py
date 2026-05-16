@@ -1,12 +1,11 @@
 from __future__ import annotations
 
+import re
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, ClassVar, List, Optional, TypeVar
+from typing import Any, ClassVar, List, Optional, TypeVar, cast
 
-from pydantic import Field
-from pydantic_core import ValidationError
-from pymongo.collection import Collection
+from pydantic import Field, ValidationError
 from pyodmongo import DbModel, Id, MainBaseModel, ResponsePaginate
 from pyodmongo.models.responses import DbResponse
 from pyodmongo.queries import eq, sort
@@ -14,6 +13,7 @@ from pyodmongo.queries import eq, sort
 from src.persistence.database import MongoDatabase, get_database
 from src.replays.types import (
     BsonBinary,
+    Player,
     Replay,
     ReplayId,
     ToonHandle,
@@ -128,17 +128,114 @@ class ReplayStore:
     def db(self):
         return self.database.engine
 
-    @property
-    def raw(self):
-        return self.database.raw
+    def list_replays(
+        self,
+        *,
+        current_page: int = 1,
+        docs_per_page: int = 50,
+        player: str | None = None,
+        map_name: str | None = None,
+        race: str | None = None,
+        result: str | None = None,
+        from_date: datetime | None = None,
+        to_date: datetime | None = None,
+        raw_query: dict[str, Any] | None = None,
+        raw_sort: dict[str, int] | None = None,
+    ) -> ResponsePaginate:
+        query = dict(raw_query or {})
 
-    @property
-    def replays(self) -> Collection:
-        return self.raw["replays"]
+        if player:
+            query["players.name"] = {
+                "$regex": re.escape(player),
+                "$options": "i",
+            }
 
-    @property
-    def meta(self) -> Collection:
-        return self.raw["replays.meta"]
+        if map_name:
+            query["map_name"] = {
+                "$regex": re.escape(map_name),
+                "$options": "i",
+            }
+
+        if race is not None:
+            query["players.play_race"] = race
+
+        if result is not None:
+            query["players.result"] = result
+
+        if from_date is not None or to_date is not None:
+            date_query: dict[str, datetime] = {}
+            if from_date is not None:
+                date_query["$gte"] = from_date
+            if to_date is not None:
+                date_query["$lte"] = to_date
+            query["date"] = date_query
+
+        return cast(
+            ResponsePaginate,
+            self.db.find_many(
+                Model=Replay,
+                paginate=True,
+                current_page=current_page,
+                docs_per_page=docs_per_page,
+                raw_query=query,
+                raw_sort=raw_sort or {"date": -1},
+            ),
+        )
+
+    def get_replay(self, replay_or_id: Replay | ReplayId | str) -> Replay | None:
+        replay_id = self._replay_id(replay_or_id)
+        return self.db.find_one(
+            Model=Replay,
+            query=eq(Replay.id, replay_id),  # type: ignore[arg-type]
+        )
+
+    def create_replay(self, replay: Replay) -> Replay:
+        self.upsert(replay)
+        return replay
+
+    def replace_replay(
+        self,
+        replay_id: ReplayId | str,
+        replay: Replay,
+    ) -> Replay:
+        replay.id = str(replay_id)
+        self.db.save(
+            replay,
+            query=eq(Replay.id, replay.id),  # type: ignore[arg-type]
+        )
+        return replay
+
+    def patch_replay(
+        self,
+        replay_id: ReplayId | str,
+        patch: dict[str, Any],
+    ) -> Replay | None:
+        existing = self.get_replay(replay_id)
+        if existing is None:
+            return None
+
+        merged = self._merge_dict(existing.model_dump(), patch)
+        merged["id"] = str(existing.id)
+        patched = Replay.model_validate(merged)
+        return self.replace_replay(existing.id, patched)
+
+    def delete_replay(self, replay_id: ReplayId | str) -> bool:
+        existing = self.get_replay(replay_id)
+        if existing is None:
+            return False
+
+        metadata = self.get_metadata_by_replay_id(str(existing.id))
+        if metadata is not None:
+            self.db.delete(
+                Metadata,
+                query=eq(Metadata.id, metadata.id),  # type: ignore[arg-type]
+            )
+
+        self.db.delete(
+            Replay,
+            query=eq(Replay.id, existing.id),  # type: ignore[arg-type]
+        )
+        return True
 
     def upsert(self, model: ReplayStoreUpsertModel) -> DbResponse:
         model_class = model.__class__
@@ -207,6 +304,12 @@ class ReplayStore:
             query=eq(Metadata.id, metadata_id),  # type: ignore[arg-type]
         )
 
+    def get_metadata_by_replay_id(self, replay_id: ReplayId | str) -> Metadata | None:
+        return self.db.find_one(
+            Model=Metadata,
+            raw_query={"replay": str(replay_id)},
+        )
+
     def list_metadata(
         self,
         *,
@@ -228,18 +331,67 @@ class ReplayStore:
         elif has_summary is False:
             query["replay_summary_conversation"] = None
 
-        return self.db.find_many(
-            Model=Metadata,
-            paginate=True,
-            current_page=current_page,
-            docs_per_page=docs_per_page,
-            raw_query=query,
-            raw_sort=raw_sort or {"updated_at": -1},
+        return cast(
+            ResponsePaginate,
+            self.db.find_many(
+                Model=Metadata,
+                paginate=True,
+                current_page=current_page,
+                docs_per_page=docs_per_page,
+                raw_query=query,
+                raw_sort=raw_sort or {"updated_at": -1},
+            ),
         )
 
     def create_metadata(self, metadata: Metadata) -> Metadata:
         self.db.save(metadata)
         return metadata
+
+    def replace_metadata_for_replay(
+        self,
+        replay_id: ReplayId | str,
+        metadata: Metadata,
+    ) -> Metadata:
+        existing = self.get_metadata_by_replay_id(replay_id)
+        metadata.replay = str(replay_id)
+        if existing is not None:
+            assert existing.id is not None
+            return self.replace_metadata(existing.id, metadata)
+        return self.create_metadata(metadata)
+
+    def patch_metadata_for_replay(
+        self,
+        replay_id: ReplayId | str,
+        patch: dict[str, Any],
+    ) -> Metadata | None:
+        existing = self.get_metadata_by_replay_id(replay_id)
+        if existing is None:
+            return None
+
+        merged = self._merge_dict(existing.model_dump(), patch)
+        merged["id"] = str(existing.id)
+        merged["replay"] = str(replay_id)
+        patched = Metadata.model_validate(merged)
+        return self.replace_metadata_for_replay(replay_id, patched)
+
+    def get_player_info(self, toon_handle: ToonHandle | str) -> PlayerInfo | None:
+        return self.db.find_one(
+            Model=PlayerInfo,
+            query=eq(PlayerInfo.id, ToonHandle(str(toon_handle))),  # type: ignore[arg-type]
+        )
+
+    def get_replay_players(
+        self,
+        replay_id: ReplayId | str,
+    ) -> list[tuple[Player, PlayerInfo | None]] | None:
+        replay = self.get_replay(replay_id)
+        if replay is None:
+            return None
+
+        return [
+            (replay_player, self.get_player_info(replay_player.toon_handle))
+            for replay_player in replay.players
+        ]
 
     def replace_metadata(self, metadata_id: Id | str, metadata: Metadata) -> Metadata:
         metadata.id = self._id(metadata_id)
@@ -261,6 +413,7 @@ class ReplayStore:
         merged = self._merge_dict(existing.model_dump(), patch)
         merged["id"] = str(existing.id)
         patched = Metadata.model_validate(merged)
+        assert existing.id is not None
         return self.replace_metadata(existing.id, patched)
 
     def delete_metadata(self, metadata_id: Id | str) -> bool:
@@ -282,7 +435,17 @@ class ReplayStore:
             raise ValueError("Metadata must be saved before use")
         return Id(model_id)
 
-    def _merge_dict(self, current: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
+    def _replay_id(self, value: Replay | ReplayId | str) -> str:
+        if isinstance(value, str):
+            return value
+        model_id = getattr(value, "id", value)
+        if model_id is None:
+            raise ValueError("Replay must be saved before use")
+        return str(model_id)
+
+    def _merge_dict(
+        self, current: dict[str, Any], patch: dict[str, Any]
+    ) -> dict[str, Any]:
         merged = deepcopy(current)
         for key, value in patch.items():
             if isinstance(value, dict) and isinstance(merged.get(key), dict):

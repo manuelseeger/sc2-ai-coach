@@ -3,12 +3,19 @@ import MetadataCreateView from "./views/MetadataCreateView.vue";
 import MetadataDetailView from "./views/MetadataDetailView.vue";
 import MetadataInboxView from "./views/MetadataInboxView.vue";
 import HealthView from "./views/HealthView.vue";
+import ReplayCreateView from "./views/ReplayCreateView.vue";
+import ReplayDetailView from "./views/ReplayDetailView.vue";
+import ReplayInboxView from "./views/ReplayInboxView.vue";
+import ReplayResourceDetailView from "./views/ReplayResourceDetailView.vue";
+import ReplayResourceInboxView from "./views/ReplayResourceInboxView.vue";
 import ResourcePlaceholderView from "./views/ResourcePlaceholderView.vue";
 import SessionDetailView from "./views/SessionDetailView.vue";
 import SessionInboxView from "./views/SessionInboxView.vue";
 import WorkspaceView from "./views/WorkspaceView.vue";
 
-const placeholderResources = resourceRegistry.filter((resource) => resource.name !== "metadata");
+const placeholderResources = resourceRegistry.filter(
+  (resource) => !["metadata", "replays"].includes(resource.name),
+);
 
 export const routes = [
   {
@@ -30,6 +37,33 @@ export const routes = [
     path: "/sessions/:sessionId",
     name: "session-detail",
     component: SessionDetailView,
+    props: true,
+  },
+  {
+    path: "/replays",
+    name: "replays-inbox",
+    component: ReplayInboxView,
+  },
+  {
+    path: "/replays/:replayId",
+    name: "replay-detail",
+    component: ReplayDetailView,
+    props: true,
+  },
+  {
+    path: "/resources/replays",
+    name: "replay-resource-inbox",
+    component: ReplayResourceInboxView,
+  },
+  {
+    path: "/resources/replays/new",
+    name: "replay-resource-create",
+    component: ReplayCreateView,
+  },
+  {
+    path: "/resources/replays/:replayId",
+    name: "replay-resource-detail",
+    component: ReplayResourceDetailView,
     props: true,
   },
   {

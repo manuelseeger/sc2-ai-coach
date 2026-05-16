@@ -28,3 +28,4 @@ rep.json
 .claude/
 .playwright/
 .playwright-cli/
+test-results/

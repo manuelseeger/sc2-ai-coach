@@ -124,7 +124,7 @@ Inputs:
 You must:
 1. List all remaining Open issues and pick ONE you think is the most important next step. 
    (**DO NOT pick and issue that is blocked by another, open or incomplete issue**)
-2. If there is an item in status `incomplete` pick that as priority. 
+2. If there is an item in status `incomplete` pick that as priority. Otherwise, prioritize Bugs over Features. 
 3. Read the issues description, acceptance criteria, comments, and any relevant context from the parent PRD issue.
 4. Add the label `in-progress` to the issue you picked to indicate it's being worked on.
 5. Implement the selected task end-to-end, using /tdd TDD
