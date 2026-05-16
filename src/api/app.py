@@ -11,7 +11,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
-
 from src.api.config import ApiConfig
 from src.api.contracts import (
     ApiHealthResponse,
@@ -21,6 +20,7 @@ from src.api.contracts import (
     ResourceDiscoveryResponse,
 )
 from src.api.conversation_types import AIConversationStatus, AIConversationTrigger
+
 from src.api.resources import discover_resources
 
 HealthCheck = Callable[[], ApiHealthResponse]
@@ -113,7 +113,12 @@ def _render_workspace_index(
     requested_path: str,
 ) -> str:
     cards = "".join(_workspace_card(resource) for resource in resources)
-    bootstrap = json.dumps({"path": f"/{requested_path}" if requested_path else "/"})
+    bootstrap = json.dumps(
+        {
+            "path": f"/{requested_path}" if requested_path else "/",
+            "resources": [resource.model_dump(mode="json") for resource in resources],
+        }
+    )
     return index_html.replace("__RESOURCE_DISCOVERY__", cards).replace(
         "__APP_BOOTSTRAP__", bootstrap
     )

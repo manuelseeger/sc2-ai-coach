@@ -23,9 +23,14 @@ def discover_resources() -> list[ResourceDiscoveryEntry]:
             title="Sessions",
             id_field="id",
             read_only=False,
-            capabilities=["list", "detail"],
+            capabilities=[],
             relationships=["conversations"],
-            schema_url="/api/schema/sessions",
+            schema_url=None,
+            available=False,
+            unavailable_reason=(
+                "Session review remains outside the standalone workspace slice "
+                "until the dedicated session API routes are delivered."
+            ),
         ),
         ResourceDiscoveryEntry(
             name="replays",
