@@ -86,11 +86,10 @@ class ApiConfig(BaseModel):
     host: str = "127.0.0.1"
     port: int = 8765
     web_dist_dir: Path = Path("webapp/dist")
-    cors_origins: list[str] = ["http://localhost:5173"]
     mongo_connect_timeout_ms: int = 1000
 ```
 
-`ApiConfig` is a distinct nested settings object under `Config.api`. Shared database settings such as `mongo_dsn` and `db_name` remain on the main `Config`, while API-specific settings such as `host`, `port`, `web_dist_dir`, `cors_origins`, and `mongo_connect_timeout_ms` live on `ApiConfig`.
+`ApiConfig` is a distinct nested settings object under `Config.api`. Shared database settings such as `mongo_dsn` and `db_name` remain on the main `Config`, while API-specific settings such as `host`, `port`, `web_dist_dir`, and `mongo_connect_timeout_ms` live on `ApiConfig`.
 
 The API does not call the default runtime settings loader unchanged if that loader enforces microphone discovery, OBS path validation, or other coach-runtime requirements. If the existing settings construction path is not API-safe, it must be extended with an API mode or equivalent API-safe loader while keeping the same source-of-truth settings model.
 
@@ -114,7 +113,6 @@ Environment variables:
 - `AICOACH_API__HOST`
 - `AICOACH_API__PORT`
 - `AICOACH_API__WEB_DIST_DIR`
-- `AICOACH_API__CORS_ORIGINS`
 - `AICOACH_API__MONGO_CONNECT_TIMEOUT_M
 
 ## Import-Safe Model Imports
@@ -999,6 +997,8 @@ FastAPI route order:
 
 The static app serves `webapp/dist/index.html` for Vue history routes and serves static assets from `/assets/*`.
 
+In development mode, the static frontend endpoint serves all frontend content with caching disabled so browser-based testing always exercises the latest built assets rather than stale cached files.
+
 When the dist folder does not exist:
 
 - `/api` remains available.
@@ -1034,6 +1034,15 @@ Minimum coverage:
 - Invalid model payloads return `422`.
 - Path id/body id mismatches return `409`.
 - Importing `src.api.app` does not construct global coach config.
+
+### End User Testing
+
+As an agent, follow these instructions for performing end user testing: 
+
+- Build the frontend.
+- Run the FastAPI development server.
+- Use Playwright to test the frontend in the browser.
+- Make sure to clean up after: shutdown any servers after performing your tests. 
 
 ## API Policies
 
