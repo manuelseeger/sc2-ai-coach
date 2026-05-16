@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { adminAreas, resourceRegistry } from "../route-registry";
+
+const primaryAreas = adminAreas.filter(
+  (area) => !resourceRegistry.some((resource) => area.id === resource.name),
+);
 </script>
 
 <template>
@@ -41,7 +45,7 @@ import { adminAreas, resourceRegistry } from "../route-registry";
         </div>
 
         <ul class="list workspace-list">
-          <li v-for="area in adminAreas.slice(0, 2)" :key="area.id" class="list-row">
+          <li v-for="area in primaryAreas" :key="area.id" class="list-row">
             <strong>{{ area.label }}</strong>
             <p>{{ area.description }}</p>
           </li>

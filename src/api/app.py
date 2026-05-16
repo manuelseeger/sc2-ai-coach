@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
@@ -14,7 +15,7 @@ from src.persistence.conversation_store import (
     AIResponseRecord,
 )
 from src.persistence.runtime import PersistenceServices, build_persistence_services
-from src.runtime.settings import Config, load_api_settings
+from src.runtime.settings import AIBackend, Config, load_api_settings
 
 
 class HealthResponse(BaseModel):
@@ -89,6 +90,32 @@ def _build_health_router() -> APIRouter:
 
 def _build_sessions_router() -> APIRouter:
     router = APIRouter(prefix="/api/sessions", tags=["sessions"])
+
+    @router.get("")
+    def list_sessions(
+        request: Request,
+        current_page: int = 1,
+        docs_per_page: int = 50,
+        from_date: datetime | None = None,
+        to_date: datetime | None = None,
+        ai_backend: AIBackend | None = None,
+    ):
+        persistence: PersistenceServices = request.app.state.persistence
+        return persistence.session_store.list(
+            current_page=current_page,
+            docs_per_page=docs_per_page,
+            from_date=from_date,
+            to_date=to_date,
+            ai_backend=ai_backend,
+        )
+
+    @router.get("/{session_id}")
+    def get_session(session_id: str, request: Request):
+        persistence: PersistenceServices = request.app.state.persistence
+        session = persistence.session_store.get(session_id)
+        if session is None:
+            raise HTTPException(status_code=404, detail="Session not found")
+        return session
 
     @router.get("/{session_id}/conversations", response_model=list[AIConversation])
     def get_session_conversations(

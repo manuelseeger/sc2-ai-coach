@@ -27,6 +27,42 @@ export interface HealthResponse {
   db_name: string;
 }
 
+export interface PaginatedResponse<T> {
+  current_page: number;
+  page_quantity: number;
+  docs_quantity: number;
+  docs: T[];
+}
+
+export interface SessionRecord {
+  id: string;
+  conversations: string[];
+  current_conversation: string | null;
+  twitch_conversation: string | null;
+  ai_backend: string;
+  session_date: string;
+  completion_pricing: number;
+  prompt_pricing: number;
+  cached_prompt_pricing: number;
+  total_input_tokens: number;
+  total_cached_tokens: number;
+  total_output_tokens: number;
+  total_tokens: number;
+  total_cost: number;
+}
+
+export interface ConversationRecord {
+  id: string;
+  session: string | null;
+  trigger: string;
+  status: string;
+  created_at: string;
+  title: string | null;
+  item_count: number;
+  last_item_at: string | null;
+  metadata: Record<string, unknown>;
+}
+
 export interface ApiErrorEnvelope {
   error: {
     code: string;

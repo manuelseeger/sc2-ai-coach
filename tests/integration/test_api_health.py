@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -42,3 +43,27 @@ def test_importing_api_app_does_not_construct_runtime_config(
     monkeypatch.setattr(runtime_settings_module, "get_config", fail_get_config)
     importlib.invalidate_caches()
     importlib.import_module("src.api.app")
+
+
+def test_module_entry_point_reads_api_settings_and_starts_uvicorn(
+    monkeypatch: pytest.MonkeyPatch,
+    runtime_settings: Config,
+) -> None:
+    api_main = importlib.import_module("src.api.__main__")
+    calls: list[SimpleNamespace] = []
+
+    monkeypatch.setattr(api_main, "load_api_settings", lambda: runtime_settings)
+    monkeypatch.setattr(
+        api_main.uvicorn,
+        "run",
+        lambda app, host, port: calls.append(
+            SimpleNamespace(app=app, host=host, port=port)
+        ),
+    )
+
+    api_main.main()
+
+    assert len(calls) == 1
+    assert calls[0].app is api_main.app
+    assert calls[0].host == runtime_settings.api.host
+    assert calls[0].port == runtime_settings.api.port

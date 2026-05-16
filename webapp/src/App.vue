@@ -4,6 +4,14 @@ import { RouterLink, RouterView, useRoute } from "vue-router";
 import { adminAreas } from "./route-registry";
 
 const route = useRoute();
+
+function isAreaActive(path: string): boolean {
+  if (path === "/") {
+    return route.path === "/";
+  }
+
+  return route.path === path || route.path.startsWith(`${path}/`);
+}
 </script>
 
 <template>
@@ -29,7 +37,7 @@ const route = useRoute();
           :key="area.id"
           :to="area.path"
           class="nav-link"
-          :class="{ active: route.path === area.path }"
+          :class="{ active: isAreaActive(area.path) }"
         >
           <span>{{ area.label }}</span>
           <small>{{ area.description }}</small>

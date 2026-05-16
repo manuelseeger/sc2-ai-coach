@@ -4,8 +4,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING, ClassVar
 
 from pydantic import Field
-from pyodmongo import DbModel, Id
-from pyodmongo.queries import eq
+from pyodmongo import DbModel, Id, ResponsePaginate
+from pyodmongo.queries import eq, sort
 
 from src.persistence.database import MongoDatabase, get_database
 from src.runtime.settings import AIBackend
@@ -69,6 +69,36 @@ class SessionStore:
         return self.db.find_one(
             Model=Session,
             query=eq(Session.id, session_id),  # type: ignore[arg-type]
+        )
+
+    def list(
+        self,
+        *,
+        current_page: int = 1,
+        docs_per_page: int = 50,
+        from_date: datetime | None = None,
+        to_date: datetime | None = None,
+        ai_backend: AIBackend | None = None,
+    ) -> ResponsePaginate:
+        raw_query: dict[str, object] = {}
+        if from_date is not None or to_date is not None:
+            session_date_query: dict[str, datetime] = {}
+            if from_date is not None:
+                session_date_query["$gte"] = from_date
+            if to_date is not None:
+                session_date_query["$lte"] = to_date
+            raw_query["session_date"] = session_date_query
+
+        if ai_backend is not None:
+            raw_query["ai_backend"] = ai_backend.value
+
+        return self.db.find_many(
+            Model=Session,
+            paginate=True,
+            current_page=current_page,
+            docs_per_page=docs_per_page,
+            raw_query=raw_query,
+            sort=sort((Session.session_date, -1)),  # type: ignore[arg-type]
         )
 
     def set_current_conversation(

@@ -53,6 +53,12 @@ export const adminAreas: AdminArea[] = [
     path: "/",
   },
   {
+    id: "sessions-review",
+    label: "Sessions",
+    description: "Recent coaching sessions with a dedicated read-only inbox and detail flow.",
+    path: "/sessions",
+  },
+  {
     id: "health",
     label: "Health",
     description: "Inspect backend readiness via the admin API.",
