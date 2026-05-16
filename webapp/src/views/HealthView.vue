@@ -36,7 +36,7 @@ onMounted(async () => {
 
 <template>
   <section class="page">
-    <article class="panel health-panel">
+    <article class="panel panel-stack">
       <PanelHeading eyebrow="Health" title="Backend readiness" level="h2">
         <template #aside>
           <span class="pill" :class="health ? 'pill--accent' : 'pill--amber'">
@@ -56,18 +56,3 @@ onMounted(async () => {
     </article>
   </section>
 </template>
-
-<style scoped>
-.health-panel {
-  display: grid;
-  gap: 18px;
-}
-
-.feedback {
-  margin: 0;
-}
-
-.error-copy {
-  color: #ffb0b0;
-}
-</style>

@@ -21,14 +21,3 @@ withDefaults(
     <slot name="aside" />
   </div>
 </template>
-
-<style scoped>
-.panel-heading__title {
-  margin: 6px 0 0;
-  font-family: var(--font-display);
-  font-size: clamp(1.8rem, 3vw, 2.8rem);
-  line-height: 0.94;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-</style>

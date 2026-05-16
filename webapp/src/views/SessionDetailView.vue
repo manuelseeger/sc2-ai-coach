@@ -69,10 +69,10 @@ watch(
 
 <template>
   <section class="page session-detail-page">
-    <header class="panel detail-hero">
+    <header class="panel page-hero">
       <div>
         <p class="eyebrow">Session detail</p>
-        <h2>Persisted session review</h2>
+        <h2 class="page-hero__title">Persisted session review</h2>
         <p class="panel-intro">
           Read-only session data with linked conversations loaded from the backend relationship
           route.
@@ -94,7 +94,7 @@ watch(
             </template>
           </PanelHeading>
 
-          <KeyValueGrid class="session-metrics" :items="sessionMetricItems" />
+          <KeyValueGrid class="list-block-spacing" :items="sessionMetricItems" />
         </article>
 
         <article class="panel">
@@ -107,9 +107,9 @@ watch(
             </template>
           </PanelHeading>
 
-          <ul v-if="conversations.length > 0" class="list conversation-list">
+          <ul v-if="conversations.length > 0" class="list list-block-spacing">
             <li v-for="conversation in conversations" :key="conversation.id" class="list-row">
-              <div class="conversation-topline">
+              <div class="split-topline">
                 <strong>{{ conversation.title || conversation.id }}</strong>
                 <span class="tag">{{ conversation.status }}</span>
               </div>
@@ -130,52 +130,3 @@ watch(
     </template>
   </section>
 </template>
-
-<style scoped>
-.detail-hero {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.detail-hero h2 {
-  margin: 8px 0 12px;
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 3vw, 3.2rem);
-  line-height: 0.94;
-  text-transform: uppercase;
-}
-
-.detail-grid {
-  display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 20px;
-}
-
-.session-metrics {
-  margin-top: 18px;
-}
-
-.conversation-list {
-  margin-top: 18px;
-}
-
-.conversation-topline {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-@media (max-width: 900px) {
-  .detail-hero,
-  .conversation-topline {
-    flex-direction: column;
-  }
-
-  .detail-grid {
-    grid-template-columns: 1fr;
-  }
-}
-</style>

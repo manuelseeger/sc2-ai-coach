@@ -22,7 +22,9 @@ const workspaceMetricItems = [
     <header class="panel hero-panel">
       <div class="hero-copy">
         <p class="eyebrow">Admin workspace</p>
-        <h2>Operate from stable routes, not from generic collection chrome.</h2>
+        <h2 class="page-hero__title page-hero__title--xl">
+          Operate from stable routes, not from generic collection chrome.
+        </h2>
         <p class="panel-intro">
           This entry screen is an operator map for the backend's documented surfaces. Curated
           review flows stay primary, while generic maintenance remains clearly secondary.
@@ -91,30 +93,21 @@ Generic maintenance exists, but it should feel like an expert fallback instead o
 <style scoped>
 .hero-panel {
   display: grid;
-  gap: 24px;
+  gap: var(--panel-padding);
 }
 
 .hero-copy {
   max-width: 72ch;
 }
 
-.hero-panel h2 {
-  margin: 8px 0 12px;
-  font-family: var(--font-display);
-  font-size: clamp(2.2rem, 4vw, 4rem);
-  line-height: 0.9;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
 .workspace-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
+  gap: var(--gap-grid);
 }
 
 .workspace-list {
-  margin-top: 18px;
+  margin-top: var(--space-block-md);
 }
 
 .list-topline {
@@ -129,7 +122,7 @@ Generic maintenance exists, but it should feel like an expert fallback instead o
 }
 
 .brief-tags {
-  margin: 18px 0;
+  margin: var(--space-block-md) 0;
 }
 
 .hero-metrics {

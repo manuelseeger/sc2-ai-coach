@@ -30,10 +30,10 @@ onMounted(async () => {
 
 <template>
   <section class="page sessions-page">
-    <header class="panel sessions-hero">
+    <header class="panel page-hero">
       <div>
         <p class="eyebrow">Session review</p>
-        <h2>Recent coaching sessions</h2>
+        <h2 class="page-hero__title">Recent coaching sessions</h2>
         <p class="panel-intro">
           Read-only session inbox backed directly by the standalone admin API. Open a row to
           inspect persisted fields and linked conversations.
@@ -61,9 +61,9 @@ onMounted(async () => {
         No sessions available.
       </p>
 
-      <ul v-else class="list session-list">
+      <ul v-else class="list list-block-spacing">
         <li v-for="session in inbox.docs" :key="session.id" class="list-row session-row">
-          <div class="session-row__topline">
+          <div class="split-topline">
             <div>
               <strong>{{ formatDate(session.session_date) }}</strong>
               <p>Session ID: {{ session.id }}</p>
@@ -87,34 +87,8 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.sessions-hero {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.sessions-hero h2 {
-  margin: 8px 0 12px;
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 3vw, 3.2rem);
-  line-height: 0.94;
-  text-transform: uppercase;
-}
-
-.session-list {
-  margin-top: 18px;
-}
-
 .session-row {
   gap: 14px;
-}
-
-.session-row__topline {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 16px;
 }
 
 .session-row__link {
@@ -122,12 +96,5 @@ onMounted(async () => {
   font-family: var(--font-display);
   letter-spacing: 0.05em;
   text-transform: uppercase;
-}
-
-@media (max-width: 720px) {
-  .sessions-hero,
-  .session-row__topline {
-    flex-direction: column;
-  }
 }
 </style>

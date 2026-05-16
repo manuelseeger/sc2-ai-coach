@@ -21,7 +21,7 @@ const resourceItems = computed(() => [
 
 <template>
   <section class="page">
-    <article class="panel resource-panel">
+    <article class="panel panel-stack">
       <PanelHeading eyebrow="Registry-backed route" :title="resource.label" level="h2">
         <template #aside>
           <span class="pill" :class="resource.writable ? 'pill--accent' : 'pill--amber'">
@@ -45,11 +45,6 @@ const resourceItems = computed(() => [
 </template>
 
 <style scoped>
-.resource-panel {
-  display: grid;
-  gap: 18px;
-}
-
 .state-block {
   margin-top: 4px;
 }

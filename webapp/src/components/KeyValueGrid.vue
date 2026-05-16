@@ -18,11 +18,3 @@ defineProps<{
     </div>
   </dl>
 </template>
-
-<style scoped>
-.kv-grid__mono {
-  font-size: 1rem;
-  font-family: var(--font-mono);
-  overflow-wrap: anywhere;
-}
-</style>

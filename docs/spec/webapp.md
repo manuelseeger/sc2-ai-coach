@@ -35,6 +35,9 @@ The webapp should be domain-shaped in the same way as the API.
 
 The styling work may use `playground/example_styles.css` as a visual reference for palette, typography, density, and general admin-facing tone. That file comes from a different project and must not be copied over verbatim or treated as the webapp's design system. It is a foundation for mood and direction, to be adapted selectively to this app's own information architecture, component needs, and domain-specific workflows.
 
+There are two example screnshots from another project that give an idea about the visual language we are going for. Use them as rough guidelines, but don't try to recreate one-to-one: 
+`playground/example-screenshot1.png` and `playground/example-screenshot2.png`
+
 It is not a uniform CRUD shell over arbitrary collections. Generic resource views are useful, but the UI should prefer dedicated flows where the backend defines a meaningful relationship surface:
 
 - Conversations are read through a complete ordered conversation-item flow, with response records available separately for specialized or generic admin workflows.
@@ -70,6 +73,19 @@ That library is incremental rather than speculative:
 - Avoid abstraction for one-off markup that has not yet demonstrated reuse pressure.
 
 This keeps delivery item-oriented while still compounding reuse over time. New work should look for existing components first, and only introduce new shared components when the current item reveals a clear reusable seam.
+
+## Styling Source
+
+The webapp should keep its shared styling in a central source so the overall look and feel can be adjusted quickly during implementation.
+
+The default styling rule is:
+
+- Put shared visual tokens, typography, spacing, layout primitives, and reusable state styling in `webapp/src/styles.css`.
+- Prefer global classes and CSS variables for recurring presentation patterns instead of redefining them inside individual views or components.
+- Use component-scoped or view-scoped CSS only for truly local exceptions that do not express reusable application styling.
+- When a local style starts repeating across screens, promote it into the global stylesheet and replace hard-coded values with named CSS variables where that improves future tuning.
+
+This central stylesheet is the primary styling control surface for the app. It should hold the palette, spacing rhythm, elevation, type treatment, common panel/list layouts, and other reusable UI primitives so later implementation work can reshape the app coherently rather than screen by screen.
 
 Conversation-view principles:
 
