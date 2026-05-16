@@ -278,3 +278,46 @@ def test_patch_replace_delete_metadata_and_missing_document_errors_use_error_env
             "details": {"resource": "metadata", "id": created["id"]},
         }
     }
+
+
+@pytest.mark.mongo
+def test_replace_metadata_with_invalid_body_id_returns_validation_error_envelope(
+    mongo_database: MongoDatabase,
+    runtime_settings: Config,
+    replay_store: ReplayStore,
+    conversation_store: ConversationStore,
+    session_store: SessionStore,
+) -> None:
+    app = _create_app(
+        mongo_database=mongo_database,
+        runtime_settings=runtime_settings,
+        replay_store=replay_store,
+        conversation_store=conversation_store,
+        session_store=session_store,
+    )
+
+    with TestClient(app) as client:
+        created = _create_metadata(
+            client,
+            replay="9" * 64,
+            description="Original metadata",
+            tags=["initial"],
+        )
+
+        response = client.put(
+            f"/api/metadata/{created['id']}",
+            json={
+                "id": "new",
+                "replay": "9" * 64,
+                "description": "Replacement payload",
+                "tags": ["replacement"],
+                "replay_summary_conversation": None,
+            },
+        )
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["error"]["code"] == "validation_error"
+    assert body["error"]["message"] == "Request validation failed."
+    assert isinstance(body["error"]["details"]["errors"], list)
+    assert any(error["loc"] == ["body", "id"] for error in body["error"]["details"]["errors"])

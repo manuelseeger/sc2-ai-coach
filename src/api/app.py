@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Callable, Literal
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field
@@ -99,7 +100,10 @@ def _json_error(
             details=details or {},
         )
     )
-    return JSONResponse(status_code=status_code, content=payload.model_dump())
+    return JSONResponse(
+        status_code=status_code,
+        content=jsonable_encoder(payload.model_dump(), custom_encoder={Exception: str}),
+    )
 
 
 def _raise_api_error(
