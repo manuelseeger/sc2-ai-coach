@@ -14,11 +14,11 @@ Apps build on top of the API will have to orchestrate fetching required data on 
 
 The API will make use of FastAPI and Pydantic throughout.
 - The solution's DbModel and MainBaseModel are Pydantic-models and can be used with FastAPI. See [../references/pyodmongo.md](../references/pyodmongo.md)
-- Expectation is that the API does not define new models
+- Expectation is that the API does not (re)define new models for domain / DB data
 - If an endpoint needs a new response model, this needs to be called out during implementation
 - The API reuses the existing DB stores. If the DB store surface is insufficient, this needs to be called out during implementation and a decision made where the store should be extended. 
 - The API MUST NOT access the DB directly, nor create it's own store/query abstractions
-
+- Api may define models that are API-only, like error shapes, metadata, or health responses, but not redefine domain models. 
 
 ## Scope
 
@@ -145,7 +145,6 @@ Specific relationship and alternate-key routes are registered before broad `/{id
 
 - `/api/responses/by-response-id/{response_id}` is registered before `/api/responses/{record_id}`.
 - `/api/replays/{replay_id}/metadata` is registered as a replay relationship route, not as a metadata document-id lookup.
-- `/api/conversations/{conversation_id}/detail` is registered before generic nested routes that could otherwise capture `detail`.
 
 ### IDs
 
@@ -165,22 +164,25 @@ Endpoints that accept both document id and domain id use explicit paths, for exa
 
 ### Pagination
 
-Paginated list responses use this shape:
+Paginated list responses should reuse PyODMongo's built-in pagination support rather than defining an API-local wrapper model.
+
+When the API uses `find_many(..., paginate=True)`, responses use PyODMongo's `ResponsePaginate` shape:
 
 ```json
 {
-    "page": 1,
-    "page_size": 50,
-    "total": 123,
-    "pages": 3,
-    "items": []
+    "current_page": 1,
+    "page_quantity": 3,
+    "docs_quantity": 123,
+    "docs": []
 }
 ```
 
+This chapter intentionally follows PyODMongo terminology and fields.
+
 Query parameters:
 
-- `page`: 1-based page number, default `1`.
-- `page_size`: default `50`, max `200`.
+- `current_page`: 1-based page number, default `1`.
+- `docs_per_page`: documents per page, default `50`.
 
 ### Sorting
 
@@ -212,11 +214,13 @@ Advanced filtering is read-only and uses explicit query endpoints with JSON requ
 {
     "filter": {"players.name": "Serral"},
     "sort": {"date": -1},
-    "page": 1,
-    "page_size": 50,
+    "current_page": 1,
+    "docs_per_page": 50,
     "projection": "table"
 }
 ```
+
+Support for these advanced filters is part of the API contract. Where the current underlying store surface does not already expose the required read-only query capability, the store must be extended to support it. The API should continue to call into the store layer and must not bypass the stores or introduce a separate API-owned query abstraction.
 
 Advanced filter bodies are raw MongoDB filters with guardrails:
 
@@ -224,8 +228,6 @@ Advanced filter bodies are raw MongoDB filters with guardrails:
 - JavaScript execution operators are rejected.
 - The target collection is fixed by the route.
 - The response is paginated.
-
-Aggregation-backed resources may combine guarded raw filters with structured aggregation options. The server builds the MongoDB aggregation pipeline from the declared query shape instead of accepting arbitrary write-capable database commands.
 
 ### Projections
 
@@ -252,15 +254,17 @@ Binary fields are omitted from table projections.
 
 The API has a central serializer for project-specific types.
 
+API-only helper models are acceptable in this chapter for dedicated media endpoints and binary/metadata helper responses. These helper contracts are allowed as API-facing transport shapes and do not count as redefining the underlying domain models.
+
 Required behavior:
 
 - `ObjectId` and PyODMongo `Id`: string values in JSON responses.
 - `datetime`: ISO 8601 strings.
-- `bson.Binary`: metadata objects in detail views rather than raw bytes in tables.
+- `bson.Binary`: omitted from domain-model JSON responses by default.
 - Enums: serialized values.
 - Pydantic validation errors: FastAPI `422`.
 
-Binary field response shape:
+Binary helper response shape:
 
 ```json
 {
@@ -270,7 +274,11 @@ Binary field response shape:
 }
 ```
 
-Image binary fields also have dedicated media endpoints. These endpoints return image bytes with an image `Content-Type` when bytes are present, and return `404` when the requested image field is empty. JSON document endpoints continue to use metadata objects instead of embedding large image payloads by default.
+Dedicated media endpoints return image bytes with an image `Content-Type` when bytes are present, and return `404` when the requested image field is empty.
+
+For domain-model JSON responses, the default rule is omission rather than replacement: binary fields are omitted so the API can return the existing domain model shape without embedding large payloads or redefining the model around binary metadata wrappers.
+
+The helper shape above is only for explicit API-only binary helper responses when such a helper endpoint is intentionally added.
 
 Image response headers:
 
@@ -344,8 +352,8 @@ Lists replay documents.
 
 Query parameters:
 
-- `page`
-- `page_size`
+- `current_page`
+- `docs_per_page`
 - `sort`
 - `projection`: `table` or `detail`, default `table`.
 - `player`: player name substring or exact match, implementation-defined but documented in OpenAPI.
@@ -473,7 +481,7 @@ Common filters:
 
 Table projection omits `portrait`, `portrait_constructed`, and `aliases.portraits`.
 
-Detail responses represent portrait fields as binary metadata objects. Image bytes are retrieved through the dedicated portrait endpoints.
+Player JSON responses also omit `portrait`, `portrait_constructed`, and `aliases.portraits` by default. Portrait image bytes are retrieved only through the dedicated portrait endpoints.
 
 ### `POST /api/players/query`
 
@@ -487,9 +495,7 @@ Creates a player document.
 
 Returns a player document.
 
-Optional query parameters:
-
-- `include_binary`: default `false`. When `true`, binary fields use the central binary serializer with base64 payloads. When `false`, binary fields use metadata and portrait endpoint URLs.
+The response reuses the existing `PlayerInfo` domain model while omitting binary fields from JSON serialization so the API does not redefine the model around binary helper payloads. In practice, `portrait`, `portrait_constructed`, and `aliases.portraits` are omitted from the JSON response.
 
 ### `PUT /api/players/{toon_handle}`
 
@@ -513,11 +519,7 @@ Query parameters match `GET /api/replays` where applicable.
 
 Returns the player aliases without large portrait payloads by default.
 
-Optional query parameter:
-
-- `include_portraits`: default `false`.
-
-When `include_portraits=false`, each alias portrait is represented with metadata and a URL to the dedicated alias portrait endpoint.
+Alias portrait binaries are omitted from the JSON response. Clients use the dedicated alias portrait media endpoint when they need the image bytes for a specific alias portrait.
 
 ### `GET /api/players/{toon_handle}/portrait`
 
@@ -550,7 +552,9 @@ Responses:
 
 ### `GET /api/players/{toon_handle}/portrait-metadata`
 
-Returns a compact JSON index of available player and alias portrait images.
+Returns portrait availability metadata for one player without returning image bytes.
+
+This is an API-only helper response that exists so clients can discover which portrait media endpoints are worth calling while the main player JSON response continues to omit binary fields.
 
 Response shape:
 
@@ -559,14 +563,10 @@ Response shape:
     "toon_handle": "1-S2-1-123456",
     "portrait": {
         "available": true,
-        "length": 12345,
-        "content_type": "image/png",
         "url": "/api/players/1-S2-1-123456/portrait"
     },
     "portrait_constructed": {
         "available": true,
-        "length": 23456,
-        "content_type": "image/png",
         "url": "/api/players/1-S2-1-123456/portrait/constructed"
     },
     "aliases": [
@@ -576,11 +576,57 @@ Response shape:
             "portraits": [
                 {
                     "index": 0,
-                    "length": 12345,
-                    "content_type": "image/png",
+                    "available": true,
                     "url": "/api/players/1-S2-1-123456/aliases/0/portraits/0"
                 }
             ]
+        }
+    ]
+}
+```
+
+### `POST /api/players/portrait-metadata`
+
+Returns portrait availability metadata for a collection of players in one request.
+
+This endpoint is intended for player lists and other collection views where the client needs portrait availability for multiple players without issuing one helper request per player.
+
+Request shape:
+
+```json
+{
+    "toon_handles": ["1-S2-1-123456", "2-S2-1-654321"]
+}
+```
+
+Response shape:
+
+```json
+{
+    "items": [
+        {
+            "toon_handle": "1-S2-1-123456",
+            "portrait": {
+                "available": true,
+                "url": "/api/players/1-S2-1-123456/portrait"
+            },
+            "portrait_constructed": {
+                "available": true,
+                "url": "/api/players/1-S2-1-123456/portrait/constructed"
+            },
+            "aliases": []
+        },
+        {
+            "toon_handle": "2-S2-1-654321",
+            "portrait": {
+                "available": false,
+                "url": "/api/players/2-S2-1-654321/portrait"
+            },
+            "portrait_constructed": {
+                "available": false,
+                "url": "/api/players/2-S2-1-654321/portrait/constructed"
+            },
+            "aliases": []
         }
     ]
 }
@@ -724,28 +770,7 @@ Lists response records linked to the conversation.
 
 Default sort: `created_at` ascending.
 
-This endpoint exists for direct admin inspection and specialized workflows. It is not part of the primary conversation detail contract.
-
-### `GET /api/conversations/{conversation_id}/detail`
-
-Returns an aggregate conversation view for custom UI screens.
-
-Response fields:
-
-- `conversation`: `AIConversation`.
-- `session`: linked `Session | null`.
-- `items`: ordered `AIConversationItem` list.
-- `metadata`: replay metadata when `conversation.replay_id` is present and metadata exists.
-- `replay`: compact replay table projection when `conversation.replay_id` exists and replay exists.
-
-Detail contract rules:
-
-- `items` contains the complete persisted conversation item sequence in backend order, not only the subset previously included in model context.
-- Tool calls and tool results remain ordinary items in that authoritative sequence.
-- Related `session`, `replay`, and `metadata` values provide compact secondary context when available.
-- Response records are intentionally excluded from this primary detail payload and remain available through `/api/conversations/{conversation_id}/responses` and the generic response resource.
-
-This endpoint is the primary backend support for the readable conversation review surface.
+This endpoint exists for direct admin inspection and specialized workflows. It is not required by the primary read-oriented conversation screen.
 
 ### `POST /api/conversations/{conversation_id}/close`
 
@@ -761,7 +786,7 @@ Model: `src.persistence.conversation_store.AIConversationItem`
 
 Collection: `ai_conversation_items`
 
-These endpoints support direct maintenance of items. Conversation-focused clients use `/api/conversations/{conversation_id}/items` and `/api/conversations/{conversation_id}/detail`.
+These endpoints support direct maintenance of items. Conversation-focused clients use `/api/conversations/{conversation_id}/items` together with the conversation resource and other relationship endpoints as needed.
 
 ### `GET /api/conversation-items`
 
@@ -936,7 +961,6 @@ Minimum coverage:
 - CRUD round trip for `AIConversation` and `AIConversationItem`.
 - `GET /api/conversations/{conversation_id}/items` returns ordered items.
 - `GET /api/conversations/{conversation_id}/responses` returns response records in ascending creation order.
-- `GET /api/conversations/{conversation_id}/detail` returns conversation, optional session/replay context, and the complete ordered item flow without response records.
 - `GET /api/sessions/{session_id}/conversations` returns linked conversations.
 - `GET /api/replays/{replay_id}/metadata` returns linked metadata.
 - `GET /api/map-stats` returns `MatchupsByMap` results using the existing aggregation model with optional `map` and `min_date` replay filters.
@@ -944,7 +968,8 @@ Minimum coverage:
 - `GET /api/players/{toon_handle}/portrait` returns image bytes for a player portrait.
 - `GET /api/players/{toon_handle}/portrait/constructed` returns image bytes for a constructed player portrait.
 - `GET /api/players/{toon_handle}/aliases/{alias_index}/portraits/{portrait_index}` returns image bytes for an alias portrait.
-- `GET /api/players/{toon_handle}/portrait-metadata` returns portrait URLs and metadata.
+- `GET /api/players/{toon_handle}/portrait-metadata` returns portrait availability metadata for one player.
+- `POST /api/players/portrait-metadata` returns portrait availability metadata for a collection of players.
 - List pagination works.
 - Unknown resources return `404`.
 - Read-only resource writes return `405`.
@@ -958,5 +983,5 @@ Minimum coverage:
 - Delete endpoints perform hard deletes for the addressed document.
 - Relationship deletes do not cascade unless an explicit cascade endpoint is added to the API surface.
 - Map stats are exposed as a read-only resource when their aggregation model is available.
-- Large binary fields are omitted from table projections and represented through the central binary serializer in detail responses.
+- Large binary fields are omitted from domain-model JSON responses, with dedicated media endpoints used when clients need the underlying bytes.
 - Player and alias portrait binaries are image resources with dedicated media endpoints for UI display.

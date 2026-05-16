@@ -12,11 +12,11 @@ The API is the source of truth for resource shape, capabilities, relationship ro
 In scope:
 
 - A standalone SPA in a root-level `webapp/` folder.
-- Resource navigation driven by explicit frontend routes and supported API endpoints.
-- Generic list, detail, create, edit, replace, and delete workflows for writable resources.
-- Specialized views for relationship-heavy resources where the API exposes aggregate endpoints.
+- Resource navigation driven by explicit frontend routes and the documented API route families.
+- Generic list, detail, create, edit, replace, and delete workflows for CRUD-backed resource families exposed by the API.
+- Specialized views for relationship-heavy resources where the API exposes dedicated relationship or aggregate endpoints.
 - Read-only query workflows for guarded `/query` endpoints.
-- Rendering of binary metadata and image endpoints for player portraits.
+- Rendering of portrait media and portrait-availability metadata for player records.
 - Read-only visualization of aggregation-backed map stats endpoints.
 - Static build output served by the backend API at `/`.
 
@@ -33,6 +33,8 @@ Out of scope:
 
 The webapp should be domain-shaped in the same way as the API.
 
+The styling work may use `playground/example_styles.css` as a visual reference for palette, typography, density, and general admin-facing tone. That file comes from a different project and must not be copied over verbatim or treated as the webapp's design system. It is a foundation for mood and direction, to be adapted selectively to this app's own information architecture, component needs, and domain-specific workflows.
+
 It is not a uniform CRUD shell over arbitrary collections. Generic resource views are useful, but the UI should prefer dedicated flows where the backend defines a meaningful relationship surface:
 
 - Conversations are read through a complete ordered conversation-item flow, with response records available separately for specialized or generic admin workflows.
@@ -40,6 +42,18 @@ It is not a uniform CRUD shell over arbitrary collections. Generic resource view
 - Replays are read together with metadata and known players.
 - Players are read together with portrait assets, aliases, and related replays.
 - Map stats are read as an aggregation-backed reporting surface, not as editable documents.
+
+The frontend may implement a generic maintenance layer, but only over the explicit route families documented by the API:
+
+- `replays`
+- `metadata`
+- `players`
+- `sessions`
+- `conversations`
+- `conversation-items`
+- `responses`
+
+That generic layer is registry-backed in the client. It is not driven by runtime collection discovery and it does not imply that every route family has the same filters, relationships, or writable behavior.
 
 Conversation-view principles:
 
@@ -108,10 +122,11 @@ The backend API serves the built frontend from `webapp/dist` at `/`. If `webapp/
 
 The frontend should use a typed fetch wrapper for the API.
 
-Core resource methods:
+The client should model the explicit backend route families rather than inventing a discovery-based abstraction. A small generic layer is still acceptable for the CRUD-backed route families, provided it is backed by a fixed frontend resource registry.
+
+Core API methods:
 
 - `getHealth()`
-- `getSchema(resource)`
 - `listResource(resource, params)`
 - `queryResource(resource, body)`
 - `getResource(resource, id)`
@@ -125,7 +140,6 @@ Relationship and resource-specific methods:
 - `getConversationItems(conversationId, params)`
 - `createConversationItem(conversationId, body)`
 - `getConversationResponses(conversationId)`
-- `getConversationDetail(conversationId)`
 - `closeConversation(conversationId)`
 - `getSessionConversations(sessionId)`
 - `getSessionSummary(sessionId)`
@@ -134,8 +148,13 @@ Relationship and resource-specific methods:
 - `getPlayerReplays(toonHandle, params)`
 - `getPlayerAliases(toonHandle, params)`
 - `getPlayerPortraitMetadata(toonHandle)`
+- `getPlayersPortraitMetadata(toonHandles)`
 - `getMapStats(params)`
 - `getMapStatsByName(mapName, params)`
+
+Optional helper methods are acceptable where they reduce UI complexity for known routes, for example `getOpenApiDocument()` when the frontend wants to inspect FastAPI's generated contract at `GET /api/openapi.json`.
+
+The generic helpers apply only to the documented CRUD-backed route families. They do not apply to relationship endpoints, portrait media endpoints, or read-only map-stats endpoints.
 
 Image endpoints do not need to be rewrapped as JSON helpers. The UI can use the portrait URLs returned by the API directly in image elements and related media previews.
 
@@ -165,62 +184,53 @@ The first screen is the admin workspace, not a marketing landing page.
 
 It should show the supported admin areas and make it easy to jump into:
 
-- Generic resource lists.
+- Generic resource lists for the CRUD-backed API route families.
 - Specialized conversation, session, replay, player, and map-stat views.
-- Health and schema inspection where useful for admin/debug workflows.
+- Health inspection and optional OpenAPI inspection where useful for admin/debug workflows.
 
 When a resource has a curated screen and is also writable, the workspace may expose both:
 
 - the curated route as the primary operator path
 - a generic maintenance route as the fallback document editor
 
-### Generic Resource List
-
-Generic list views should support:
-
-- Pagination using the backend page shape.
-- Sort strings compatible with the API `sort` query parameter.
-- First-class resource filters where the API exposes them.
-- Projection selection where the resource supports `table` versus `detail`.
-- Row navigation to detail views.
-- Raw JSON query submission for guarded `/query` endpoints.
-
-The generic maintenance route is `/resources/:resourceName`.
-
-List views should default to compact table-style display and avoid rendering large nested structures inline.
 
 ### Generic Detail and Edit
 
 Generic detail views should support:
 
-- Read-only rendering for any resource.
+- Read-only rendering for CRUD-backed resources.
 - JSON editing fallback for nested documents.
 - `PATCH` for partial edits.
 - `PUT` for full replacement.
 - `DELETE` for writable resources.
 - Disabled or hidden write actions for read-only resources.
 
-Schema metadata from FastAPI's generated OpenAPI document at `GET /api/openapi.json` informs forms where practical, but raw JSON editing remains a first-class fallback for complex persisted models.
+The generic maintenance UI is only for the CRUD-backed resource families documented by the API. It does not apply to relationship-first specialized screens such as map stats, replay players, session summaries, or portrait media endpoints.
 
-The generic maintenance detail routes are:
+FastAPI's generated OpenAPI document at `GET /api/openapi.json` may inform labels and field hints where practical, but raw JSON editing remains the primary fallback for complex persisted models. The webapp should not depend on a per-resource schema endpoint because the API does not define one.
 
-- `/resources/:resourceName/new`
-- `/resources/:resourceName/:documentId`
+Any generic maintenance entry points are constrained to the frontend's fixed resource registry for the CRUD-backed API route families.
 
 ### Conversation Detail
 
 Conversation detail is a required specialized view.
 
-The conversation screen should use `GET /api/conversations/{conversation_id}/detail` as its primary load and treat additional endpoints as secondary admin tools.
+The conversation screen should be composed from the existing domain-model and relationship endpoints rather than a dedicated aggregate detail endpoint.
 
 Primary conversation-review contract:
 
-- `GET /api/conversations/{conversation_id}/detail`
+- `GET /api/conversations/{conversation_id}`
+- `GET /api/conversations/{conversation_id}/items`
+
+Secondary context may be loaded with existing related-resource endpoints when the conversation document references them, for example:
+
+- `GET /api/sessions/{session_id}`
+- `GET /api/replays/{replay_id}`
+- `GET /api/replays/{replay_id}/metadata`
 
 The screen should present:
 
-- A compact conversation summary header with trigger, status, created time, total item count, and replay/session links when present.
-- Workflow actions for closing only when the current conversation state supports them.
+- A compact conversation summary header with trigger, status, created time, and replay/session links when present.
 - The complete ordered conversation item flow from the backend, including messages, tool calls, and tool results.
 - Inline item timestamps.
 - Visible item-kind treatment so messages, tool calls, and tool results are immediately distinguishable.
@@ -228,7 +238,7 @@ The screen should present:
 - Visible tool names on tool call and tool result items.
 - Raw tool arguments and raw tool results collapsed by default with explicit expansion.
 - Preserved message formatting with plain-text-oriented rendering and lightweight code styling for obviously code-like content.
-- Linked replay and session context as compact secondary context blocks when present in the detail payload.
+- Linked replay and session context as compact secondary context blocks when those linked resources are available.
 
 The conversation screen should not include:
 
@@ -239,11 +249,7 @@ The conversation screen should not include:
 
 The conversation screen is the primary readable transcript-style admin view.
 
-Conversation workflow action behavior:
-
-- Closing is available only while the conversation is active.
-- Successful actions update the visible conversation status from the action response without a full page reload.
-- Action failures should use the shared backend error envelope and be surfaced inline on the detail screen.
+If the UI exposes close behavior from `POST /api/conversations/{conversation_id}/close`, it should do so as a secondary workflow action rather than as a requirement of the curated read surface.
 
 Conversation-list behavior:
 
@@ -277,6 +283,8 @@ Session detail should combine:
 
 The summary section should emphasize computed totals such as conversation count, response count, token totals, and cost.
 
+The session detail view should treat the summary endpoint as authoritative for derived totals rather than recomputing them in the browser.
+
 ### Replay Detail
 
 Replay detail should combine:
@@ -294,6 +302,8 @@ The first replay-review slice should:
 - Show participating player records as a dedicated section on the replay screen instead of reconstructing joins in the client.
 - Provide visible in-screen navigation from replay facts into those player records.
 
+Generic replay maintenance remains separate from this specialized review flow.
+
 ### Player Detail
 
 Player detail should be treated as a specialized view because of portrait media and alias structure.
@@ -307,10 +317,12 @@ It should use:
 
 The UI should:
 
-- Render portrait metadata and load portrait images from the dedicated media endpoints.
+- Use the portrait metadata helper to determine available portraits, then load portrait images from the dedicated media endpoints.
 - Show alias entries without forcing large binary payloads into the main JSON view.
 - Link to related replays for the selected player.
 - Route the discovered Players workspace card into a player-review entry list, then allow replay-to-player and player-to-replay navigation within the specialized review flow.
+
+Player list and collection-oriented views may use `POST /api/players/portrait-metadata` to resolve portrait availability for multiple players in one request.
 
 ### Map Stats View
 
@@ -328,13 +340,14 @@ The view should support:
 - Read-only display of the existing `MatchupsByMap` model returned by the backend.
 
 The UI must not imply that map stats are editable documents.
+The UI must not imply support for arbitrary groupings, upper-bound date filters, or named comparison ranges because the API does not define them.
 
 ## Binary and Media Handling
 
 The API distinguishes between JSON document responses and image/media endpoints. The frontend should preserve that distinction.
 
-- Table views should not inline large binary payloads.
-- Detail views should render binary metadata objects returned by the API.
+- Table and JSON detail views should not expect embedded binary payloads in domain-model responses.
+- Player and alias portrait availability should come from the portrait-metadata helper endpoints.
 - Portrait image rendering should use the dedicated image endpoints.
 - Missing portraits should be treated as absent assets, not as client errors.
 
@@ -352,19 +365,20 @@ The API distinguishes between JSON document responses and image/media endpoints.
 Manual verification covers:
 
 - The app loads without requiring a discovery-style bootstrap API call.
-- Generic list views respect pagination, sorting, and first-class filters.
-- Guarded `/query` flows work for writable resources that expose advanced read-only querying.
+- Generic list views for CRUD-backed route families respect pagination, sorting, and first-class filters where the API defines them.
+- Guarded `/query` flows work for route families that expose advanced read-only querying.
 - The conversation list shows all statuses by default, defaults to recent-first ordering, and supports the typed trigger filter.
 - Trigger-filtered empty states explain the active trigger when no rows match.
-- Conversation detail loads the primary aggregate conversation data and renders the complete ordered conversation item flow without response metadata.
-- Conversation detail shows compact replay/session context when present and keeps lifecycle actions out of the curated conversation screen.
+- Conversation detail composes the screen from the conversation resource and ordered conversation items without depending on an aggregate detail endpoint.
+- Conversation detail shows compact replay/session context when linked resources are available and does not depend on response-record data for the primary screen.
 - Browser refresh preserves list/detail browsing position when possible and remains the refresh path for the conversation list and conversation detail screen.
 - Session detail loads linked conversations and summary totals.
 - Replay detail loads linked metadata and players.
 - Replay detail lets the operator jump from replay facts into the participating player-record section.
-- Player detail renders portrait metadata and displays portrait images from media endpoints.
-- Map stats screens respect inclusive date filters and named range queries.
+- Player detail uses the portrait metadata helper to resolve available player and alias portraits, then displays portrait images from media endpoints.
+- Map stats screens respect the supported `map` and inclusive `min_date` filters.
 - Read-only resources do not expose write actions.
+- Generic maintenance entry points are limited to the fixed frontend registry for supported CRUD-backed route families.
 - The built frontend is served by the backend at `/`.
 
 Automated frontend tests are optional, but the frontend keeps API interactions structured enough that component and client tests fit naturally.
