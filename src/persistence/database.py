@@ -42,6 +42,15 @@ class MongoDatabase:
     def raw(self) -> Any:
         return self.engine._db
 
+    def close(self) -> None:
+        if self._engine is None:
+            return
+
+        client = getattr(self._engine, "_client", None)
+        if client is not None:
+            client.close()
+        self._engine = None
+
 
 _database: MongoDatabase | None = None
 

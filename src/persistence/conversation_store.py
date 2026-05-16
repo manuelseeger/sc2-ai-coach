@@ -321,12 +321,16 @@ class ConversationStore:
         )
 
     def list_items(
-        self, conversation: AIConversation | Id | str, included_only: bool = True
+        self,
+        conversation: AIConversation | Id | str,
+        included_only: bool | None = True,
     ) -> list[AIConversationItem]:
         conversation_id = self._id(conversation)
         query = eq(AIConversationItem.conversation, conversation_id)  # type: ignore[arg-type]
-        if included_only:
+        if included_only is True:
             query = query & eq(AIConversationItem.included_in_context, True)  # type: ignore[arg-type]
+        elif included_only is False:
+            query = query & eq(AIConversationItem.included_in_context, False)  # type: ignore[arg-type]
 
         return cast(
             list[AIConversationItem],
@@ -334,6 +338,39 @@ class ConversationStore:
                 Model=AIConversationItem,
                 query=query,
                 sort=sort((AIConversationItem.order, 1)),  # type: ignore[arg-type]
+            ),
+        )
+
+    def list_response_records(
+        self,
+        conversation: AIConversation | Id | str,
+    ) -> list[AIResponseRecord]:
+        conversation_id = self._id(conversation)
+        query = eq(AIResponseRecord.conversation, conversation_id)  # type: ignore[arg-type]
+        return cast(
+            list[AIResponseRecord],
+            self.db.find_many(
+                Model=AIResponseRecord,
+                query=query,
+                sort=sort((AIResponseRecord.created_at, 1)),  # type: ignore[arg-type]
+            ),
+        )
+
+    def list_conversations(
+        self,
+        *,
+        session: Id | str | None = None,
+    ) -> list[AIConversation]:
+        query = {}
+        if session is not None:
+            query = eq(AIConversation.session, self._id(session))  # type: ignore[arg-type]
+
+        return cast(
+            list[AIConversation],
+            self.db.find_many(
+                Model=AIConversation,
+                query=query,
+                sort=sort((AIConversation.created_at, -1)),  # type: ignore[arg-type]
             ),
         )
 

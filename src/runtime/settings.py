@@ -32,6 +32,7 @@ from src.ai.pricing import (
     get_default_model_pricing,
     normalize_model_name,
 )
+from src.api.config import ApiConfig
 from src.runtime.audio_devices import select_preferred_microphone_index
 
 MongoSRVDsn = Annotated[
@@ -302,6 +303,7 @@ class Config(BaseSettings):
 
     db_name: str
     mongo_dsn: MongoSRVDsn
+    api: ApiConfig = Field(default_factory=ApiConfig)
 
     @classmethod
     def settings_customise_sources(  # type: ignore[override]
@@ -335,6 +337,10 @@ def load_current_settings(*, require_prepared_environment: bool = True) -> Confi
         raise SettingsLoaderError("Runtime environment is not prepared")
 
     return settings
+
+
+def load_api_settings() -> Config:
+    return load_current_settings(require_prepared_environment=False)
 
 
 _config_cache: Config | None = None
