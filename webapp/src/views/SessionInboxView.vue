@@ -107,7 +107,7 @@ onMounted(async () => {
 
 .page-title {
   margin: 4px 0 0;
-  font-family: var(--font-display);
+  font-family: var(--display);
   font-size: clamp(1.8rem, 3vw, 2.6rem);
   line-height: 0.93;
   letter-spacing: 0.05em;
@@ -135,7 +135,7 @@ onMounted(async () => {
 
 .session-row__date {
   font-size: 1rem;
-  font-family: var(--font-display);
+  font-family: var(--display);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -163,14 +163,14 @@ onMounted(async () => {
 .stat-item__label {
   color: var(--text-muted);
   font-size: 0.68rem;
-  font-family: var(--font-display);
+  font-family: var(--display);
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .stat-item__value {
   color: var(--text);
-  font-family: var(--font-display);
+  font-family: var(--display);
   font-size: 0.95rem;
   letter-spacing: 0.04em;
 }

@@ -199,7 +199,7 @@ watch(
 .breadcrumb-link {
   color: var(--accent);
   font-size: 0.78rem;
-  font-family: var(--font-display);
+  font-family: var(--display);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   transition: color 150ms ease;
@@ -211,7 +211,7 @@ watch(
 
 .page-title {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--display);
   font-size: clamp(1.5rem, 2.5vw, 2.2rem);
   line-height: 0.95;
   letter-spacing: 0.05em;
@@ -238,7 +238,7 @@ watch(
 }
 
 .player-row__name {
-  font-family: var(--font-display);
+  font-family: var(--display);
   font-size: 1rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;

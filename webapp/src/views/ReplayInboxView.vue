@@ -172,7 +172,7 @@ onMounted(async () => {
 
 .page-title {
   margin: 4px 0 0;
-  font-family: var(--font-display);
+  font-family: var(--display);
   font-size: clamp(1.8rem, 3vw, 2.6rem);
   line-height: 0.93;
   letter-spacing: 0.05em;
@@ -220,7 +220,7 @@ onMounted(async () => {
 }
 
 .replay-row__map {
-  font-family: var(--font-display);
+  font-family: var(--display);
   font-size: 1rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -260,7 +260,7 @@ onMounted(async () => {
 
 .pagination-label {
   color: var(--text-muted);
-  font-family: var(--font-display);
+  font-family: var(--display);
   font-size: 0.8rem;
   letter-spacing: 0.08em;
 }

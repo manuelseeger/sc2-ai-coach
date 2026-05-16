@@ -1,34 +1,97 @@
 :root {
   color-scheme: dark;
-  --bg: #070c14;
-  --bg-elevated: #0b111b;
-  --bg-rail: rgba(10, 15, 24, 0.94);
-  --bg-overlay: rgba(6, 10, 17, 0.86);
-  --panel: rgba(13, 19, 30, 0.94);
-  --panel-strong: rgba(16, 24, 37, 0.98);
-  --panel-soft: rgba(10, 15, 24, 0.78);
-  --panel-alt: rgba(19, 27, 40, 0.92);
-  --border: rgba(114, 154, 204, 0.18);
-  --border-strong: rgba(93, 193, 255, 0.34);
-  --border-muted: rgba(255, 255, 255, 0.06);
-  --text: #f1f5ff;
-  --text-dim: #a1afc7;
-  --text-muted: #65738d;
-  --accent: #53bfff;
+
+  /* Surfaces / backgrounds */
+  --bg: #0a0d14;
+  --bg-elev: #0f131c;
+  --surface: #141821;
+  --surface-alt: #1c212c;
+  --surface-hi: #242b38;
+
+  /* Borders */
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  /* Text */
+  --text: #e6e9ef;
+  --text-dim: #aab3c2;
+  --text-muted: #6e7687;
+
+  /* Accent + semantic */
+  --accent: #56c2ff;
+  --accent-dim: rgba(86, 194, 255, 0.14);
+  --purple: #a78bfa;
+  --green: #4ade80;
+  --amber: #fbbf24;
+  --red: #f87171;
+
+  /* Player colors */
+  --p1: #ef5a6f;
+  --p2: #4b9eff;
+
+  /* Race colors */
+  --race-t: #56c2ff;
+  --race-p: #f7c948;
+  --race-z: #a78bfa;
+  --race-r: #c0caf0;
+
+  /* Grade colors */
+  --grade-s: #a78bfa;
+  --grade-a: #56c2ff;
+  --grade-b: #4ade80;
+  --grade-c: #fbbf24;
+  --grade-d: #f87171;
+
+  /* League colors */
+  --league-gm: #ffd562;
+  --league-master: #c0caf0;
+  --league-diamond: #56c2ff;
+  --league-platinum: #4ade80;
+
+  /* Fonts */
+  --display: 'Rajdhani', system-ui, sans-serif;
+  --ui: 'Inter', 'Noto Sans SC', 'Noto Sans KR', 'Segoe UI', Tahoma, sans-serif;
+  --mono: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+
+  /* Shadows */
+  --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.6);
+  --shadow-small: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-medium: 0 4px 15px rgba(86, 194, 255, 0.3);
+  --shadow-large: 0 8px 25px rgba(86, 194, 255, 0.3);
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+  --transition-slow: 0.3s ease;
+
+  /* Legacy aliases */
+  --primary-color: var(--accent);
+  --accent-color: var(--purple);
+  --success-color: var(--green);
+  --warning-color: var(--amber);
+  --error-color: var(--red);
+  --card-bg: var(--surface);
+  --card-bg-hover: var(--surface-alt);
+  --card-bg-active: var(--surface-hi);
+  --border-color: var(--border);
+  --border-color-strong: var(--border-strong);
+
+  /* Webapp structural extensions */
   --accent-strong: #79d2ff;
-  --accent-wash: rgba(83, 191, 255, 0.14);
-  --accent-border: rgba(83, 191, 255, 0.38);
-  --amber: #d9ab37;
-  --amber-wash: rgba(217, 171, 55, 0.12);
+  --accent-wash: var(--accent-dim);
+  --accent-border: rgba(86, 194, 255, 0.38);
   --amber-strong: #f4cc63;
-  --purple: #9961ff;
-  --purple-wash: rgba(153, 97, 255, 0.12);
+  --amber-wash: rgba(251, 191, 36, 0.12);
   --purple-strong: #c59cff;
-  --green: #55c692;
-  --green-strong: #8ee3bd;
-  --red: #ff7a7a;
+  --purple-wash: rgba(167, 139, 250, 0.12);
+  --green-strong: #86efac;
   --danger-soft: #ffb0b0;
-  --shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+  --bg-rail: var(--bg-elev);
+  --bg-overlay: rgba(10, 13, 20, 0.86);
+  --border-muted: rgba(255, 255, 255, 0.06);
+  --shadow: var(--shadow-lg);
+
+  /* Layout */
   --radius-lg: 18px;
   --radius-md: 12px;
   --radius-sm: 8px;
@@ -51,7 +114,9 @@
   --hero-title-size-xl: clamp(2.2rem, 4vw, 4rem);
   --title-line-tight: 0.94;
   --title-line-display: 0.9;
-  --section-rule: linear-gradient(90deg, rgba(83, 191, 255, 0.34), rgba(83, 191, 255, 0.03) 38%, transparent 70%);
+
+  /* Decorative gradients */
+  --section-rule: linear-gradient(90deg, rgba(86, 194, 255, 0.34), rgba(86, 194, 255, 0.03) 38%, transparent 70%);
   --panel-stripe: repeating-linear-gradient(
     135deg,
     rgba(255, 255, 255, 0.018) 0,
@@ -59,9 +124,6 @@
     transparent 1px,
     transparent 14px
   );
-  --font-display: "Bahnschrift", "Arial Narrow", "Segoe UI", sans-serif;
-  --font-ui: "Aptos", "Segoe UI", sans-serif;
-  --font-mono: "Cascadia Mono", "Consolas", monospace;
 }
 
 * {
@@ -80,7 +142,7 @@ body {
   min-height: 100%;
   margin: 0;
   color: var(--text);
-  font-family: var(--font-ui);
+  font-family: var(--ui);
   background:
     linear-gradient(var(--bg-overlay), var(--bg-overlay)),
     linear-gradient(90deg, rgba(119, 148, 190, 0.035) 1px, transparent 1px),
@@ -147,14 +209,14 @@ select {
   margin: 0;
   color: var(--accent);
   font-size: 0.68rem;
-  font-family: var(--font-display);
+  font-family: var(--display);
   letter-spacing: 0.22em;
   text-transform: uppercase;
 }
 
 .brand-title {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--display);
   font-size: clamp(1.4rem, 2.5vw, 1.9rem);
   line-height: 0.95;
   letter-spacing: 0.06em;
@@ -185,7 +247,7 @@ select {
   background: rgba(83, 191, 255, 0.06);
   color: var(--text-dim);
   font-size: 0.72rem;
-  font-family: var(--font-display);
+  font-family: var(--display);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -231,7 +293,7 @@ select {
 }
 
 .nav-link span {
-  font-family: var(--font-display);
+  font-family: var(--display);
   font-size: 0.95rem;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -249,7 +311,7 @@ select {
   padding: 0 18px;
   color: var(--text-muted);
   font-size: 0.65rem;
-  font-family: var(--font-display);
+  font-family: var(--display);
   letter-spacing: 0.2em;
   text-transform: uppercase;
 }
@@ -271,7 +333,7 @@ select {
   display: block;
   margin-bottom: 6px;
   font-size: 0.76rem;
-  font-family: var(--font-display);
+  font-family: var(--display);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--accent-strong);
@@ -366,7 +428,7 @@ select {
   margin: 0 0 8px;
   color: var(--text-muted);
   font-size: 0.7rem;
-  font-family: var(--font-display);
+  font-family: var(--display);
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
@@ -375,7 +437,7 @@ select {
   margin: 0;
   color: var(--text);
   font-size: 1.05rem;
-  font-family: var(--font-display);
+  font-family: var(--display);
   letter-spacing: 0.03em;
 }
 
@@ -400,7 +462,7 @@ select {
 
 .list-row strong {
   font-size: 1rem;
-  font-family: var(--font-display);
+  font-family: var(--display);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -452,7 +514,7 @@ select {
   border: 1px solid rgba(83, 191, 255, 0.16);
   color: var(--text-dim);
   font-size: 0.68rem;
-  font-family: var(--font-display);
+  font-family: var(--display);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -476,7 +538,7 @@ select {
 
 .panel-heading__title {
   margin: 6px 0 0;
-  font-family: var(--font-display);
+  font-family: var(--display);
   font-size: var(--display-title-size);
   line-height: var(--title-line-tight);
   letter-spacing: 0.05em;
@@ -492,7 +554,7 @@ select {
 
 .page-hero__title {
   margin: 8px 0 12px;
-  font-family: var(--font-display);
+  font-family: var(--display);
   font-size: var(--hero-title-size);
   line-height: var(--title-line-tight);
   letter-spacing: 0.05em;
@@ -523,7 +585,7 @@ select {
 
 .kv-grid__mono {
   font-size: 1rem;
-  font-family: var(--font-mono);
+  font-family: var(--mono);
   overflow-wrap: anywhere;
 }
 
@@ -552,7 +614,7 @@ select {
   background: rgba(83, 191, 255, 0.08);
   color: var(--text);
   cursor: pointer;
-  font-family: var(--font-display);
+  font-family: var(--display);
   font-size: 0.78rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -602,7 +664,7 @@ select {
 .form-label {
   color: var(--text-dim);
   font-size: 0.72rem;
-  font-family: var(--font-display);
+  font-family: var(--display);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -621,12 +683,12 @@ select {
 .text-area {
   min-height: 220px;
   resize: vertical;
-  font-family: var(--font-mono);
+  font-family: var(--mono);
   line-height: 1.55;
 }
 
 .mono-copy {
-  font-family: var(--font-mono);
+  font-family: var(--mono);
   overflow-wrap: anywhere;
 }
 
@@ -638,7 +700,7 @@ select {
 
 .list-link {
   color: var(--accent-strong);
-  font-family: var(--font-display);
+  font-family: var(--display);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -649,7 +711,7 @@ select {
   border: 1px solid rgba(114, 154, 204, 0.12);
   background: rgba(7, 12, 19, 0.96);
   color: var(--accent-strong);
-  font-family: var(--font-mono);
+  font-family: var(--mono);
   line-height: 1.6;
   overflow-x: auto;
 }

@@ -85,7 +85,7 @@ function isAreaActive(path: string): boolean {
 .nav-link__badge {
   color: var(--text-muted);
   font-size: 0.65rem;
-  font-family: var(--font-display);
+  font-family: var(--display);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }

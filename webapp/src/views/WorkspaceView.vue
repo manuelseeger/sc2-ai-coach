@@ -105,7 +105,7 @@ const quickLinks = [
 
 .workspace-hero__title {
   margin: 8px 0 14px;
-  font-family: var(--font-display);
+  font-family: var(--display);
   font-size: clamp(2rem, 3.5vw, 3rem);
   line-height: 0.92;
   letter-spacing: 0.04em;
@@ -128,7 +128,7 @@ const quickLinks = [
   margin: 0;
   color: var(--text-muted);
   font-size: 0.7rem;
-  font-family: var(--font-display);
+  font-family: var(--display);
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
@@ -169,13 +169,13 @@ const quickLinks = [
   margin: 0;
   color: var(--accent);
   font-size: 0.68rem;
-  font-family: var(--font-display);
+  font-family: var(--display);
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
 .quicklink-card__label {
-  font-family: var(--font-display);
+  font-family: var(--display);
   font-size: 1.25rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -230,7 +230,7 @@ const quickLinks = [
 }
 
 .resource-row__name {
-  font-family: var(--font-display);
+  font-family: var(--display);
   font-size: 0.92rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -244,7 +244,7 @@ const quickLinks = [
 
 .resource-row__path {
   color: var(--text-muted);
-  font-family: var(--font-mono);
+  font-family: var(--mono);
   font-size: 0.78rem;
   text-align: right;
 }
