@@ -493,6 +493,114 @@ select {
   color: var(--danger-soft);
 }
 
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(83, 191, 255, 0.08);
+  color: var(--text);
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.button:hover {
+  border-color: var(--border-strong);
+  background: rgba(83, 191, 255, 0.14);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.button--accent {
+  border-color: var(--accent-border);
+  background: var(--accent-wash);
+  color: var(--accent-strong);
+}
+
+.button--danger {
+  border-color: rgba(255, 122, 122, 0.35);
+  background: rgba(255, 122, 122, 0.1);
+  color: var(--danger-soft);
+}
+
+.button--ghost {
+  background: transparent;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.form-field {
+  display: grid;
+  gap: 8px;
+}
+
+.form-field--wide {
+  grid-column: 1 / -1;
+}
+
+.form-label {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  font-family: var(--font-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.text-input,
+.text-area,
+.select-input {
+  width: 100%;
+  border: 1px solid rgba(114, 154, 204, 0.16);
+  border-radius: var(--radius-md);
+  background: rgba(8, 12, 20, 0.94);
+  color: var(--text);
+  padding: 12px 14px;
+}
+
+.text-area {
+  min-height: 220px;
+  resize: vertical;
+  font-family: var(--font-mono);
+  line-height: 1.55;
+}
+
+.mono-copy {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: var(--gap-grid);
+}
+
+.list-link {
+  color: var(--accent-strong);
+  font-family: var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 .code-block {
   padding: 16px;
   border-radius: var(--radius-md);
@@ -522,6 +630,11 @@ select {
   }
 
   .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .results-grid,
+  .form-grid {
     grid-template-columns: 1fr;
   }
 }

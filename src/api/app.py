@@ -3,17 +3,20 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable, Literal
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from src.persistence.conversation_store import (
     AIConversation,
     AIConversationItem,
     AIResponseRecord,
 )
+from src.persistence.replay_store import Metadata
 from src.persistence.runtime import PersistenceServices, build_persistence_services
 from src.runtime.settings import AIBackend, Config, load_api_settings
 
@@ -27,11 +30,44 @@ class HealthResponse(BaseModel):
 class ErrorBody(BaseModel):
     code: str
     message: str
-    details: dict[str, str]
+    details: dict[str, object]
 
 
 class ErrorResponse(BaseModel):
     error: ErrorBody
+
+
+class QueryRequest(BaseModel):
+    filter: dict[str, Any] = Field(default_factory=dict)
+    sort: dict[str, Literal[1, -1]] = Field(default_factory=dict)
+    current_page: int = 1
+    docs_per_page: int = 50
+    projection: str | None = None
+
+
+FORBIDDEN_QUERY_OPERATORS = {
+    "$set",
+    "$unset",
+    "$inc",
+    "$mul",
+    "$min",
+    "$max",
+    "$rename",
+    "$currentDate",
+    "$setOnInsert",
+    "$push",
+    "$pull",
+    "$pullAll",
+    "$addToSet",
+    "$pop",
+    "$bit",
+}
+
+FORBIDDEN_JS_OPERATORS = {
+    "$where",
+    "$function",
+    "$accumulator",
+}
 
 
 def _get_webapp_dist_dir(request: Request) -> Path:
@@ -47,6 +83,135 @@ def _build_missing_webapp_response(dist_dir: Path) -> JSONResponse:
         )
     )
     return JSONResponse(status_code=503, content=payload.model_dump())
+
+
+def _json_error(
+    *,
+    status_code: int,
+    code: str,
+    message: str,
+    details: dict[str, object] | None = None,
+) -> JSONResponse:
+    payload = ErrorResponse(
+        error=ErrorBody(
+            code=code,
+            message=message,
+            details=details or {},
+        )
+    )
+    return JSONResponse(status_code=status_code, content=payload.model_dump())
+
+
+def _raise_api_error(
+    *,
+    status_code: int,
+    code: str,
+    message: str,
+    details: dict[str, object] | None = None,
+) -> None:
+    raise HTTPException(
+        status_code=status_code,
+        detail=ErrorResponse(
+            error=ErrorBody(code=code, message=message, details=details or {})
+        ).model_dump(),
+    )
+
+
+def _default_error_code(status_code: int) -> str:
+    return {
+        400: "bad_request",
+        404: "not_found",
+        405: "method_not_allowed",
+        409: "conflict",
+        422: "validation_error",
+        503: "service_unavailable",
+    }.get(status_code, "error")
+
+
+def _metadata_not_found(metadata_id: str) -> None:
+    _raise_api_error(
+        status_code=404,
+        code="not_found",
+        message="Document not found",
+        details={"resource": "metadata", "id": metadata_id},
+    )
+
+
+def _parse_sort(sort_value: str | None) -> dict[str, int] | None:
+    if sort_value is None or sort_value == "":
+        return None
+
+    raw_sort: dict[str, int] = {}
+    for field in sort_value.split(","):
+        field = field.strip()
+        if not field:
+            _raise_api_error(
+                status_code=400,
+                code="invalid_sort",
+                message="Sort fields must not be empty.",
+            )
+
+        direction = -1 if field.startswith("-") else 1
+        normalized = field[1:] if field.startswith("-") else field
+        if normalized.startswith("+"):
+            normalized = normalized[1:]
+        if not normalized:
+            _raise_api_error(
+                status_code=400,
+                code="invalid_sort",
+                message="Sort fields must not be empty.",
+            )
+        raw_sort[normalized] = direction
+
+    return raw_sort
+
+
+def _validate_projection(projection: str | None) -> None:
+    if projection in {None, "detail"}:
+        return
+
+    _raise_api_error(
+        status_code=400,
+        code="invalid_projection",
+        message="Unsupported projection name.",
+        details={"projection": projection},
+    )
+
+
+def _validate_query_filter(filter_document: Any) -> None:
+    if isinstance(filter_document, dict):
+        for key, value in filter_document.items():
+            if key in FORBIDDEN_QUERY_OPERATORS:
+                _raise_api_error(
+                    status_code=400,
+                    code="malformed_filter",
+                    message="MongoDB write operators are not allowed in query filters.",
+                    details={"operator": key},
+                )
+            if key in FORBIDDEN_JS_OPERATORS:
+                _raise_api_error(
+                    status_code=400,
+                    code="malformed_filter",
+                    message="MongoDB JavaScript execution operators are not allowed in query filters.",
+                    details={"operator": key},
+                )
+            _validate_query_filter(value)
+        return
+
+    if isinstance(filter_document, list):
+        for item in filter_document:
+            _validate_query_filter(item)
+
+
+def _validate_patch_document(patch: dict[str, Any]) -> None:
+    for key in patch:
+        if key.startswith("$"):
+            _raise_api_error(
+                status_code=400,
+                code="invalid_patch",
+                message="Patch bodies cannot use MongoDB update operators.",
+                details={"operator": key},
+            )
 
 
 def _serve_webapp_path(request: Request, path: str = "") -> Response:
@@ -162,6 +327,95 @@ def _build_conversations_router() -> APIRouter:
     return router
 
 
+def _build_metadata_router() -> APIRouter:
+    router = APIRouter(prefix="/api/metadata", tags=["metadata"])
+
+    @router.get("")
+    def list_metadata(
+        request: Request,
+        current_page: int = 1,
+        docs_per_page: int = 50,
+        sort: str | None = None,
+        replay: str | None = None,
+        tag: str | None = None,
+        has_summary: bool | None = None,
+    ):
+        persistence: PersistenceServices = request.app.state.persistence
+        return persistence.replay_store.list_metadata(
+            current_page=current_page,
+            docs_per_page=docs_per_page,
+            replay=replay,
+            tag=tag,
+            has_summary=has_summary,
+            raw_sort=_parse_sort(sort),
+        )
+
+    @router.post("/query")
+    def query_metadata(query: QueryRequest, request: Request):
+        persistence: PersistenceServices = request.app.state.persistence
+        _validate_projection(query.projection)
+        _validate_query_filter(query.filter)
+        return persistence.replay_store.list_metadata(
+            current_page=query.current_page,
+            docs_per_page=query.docs_per_page,
+            raw_query=query.filter,
+            raw_sort=dict(query.sort) or None,
+        )
+
+    @router.post("", response_model=Metadata)
+    def create_metadata(metadata: Metadata, request: Request) -> Metadata:
+        persistence: PersistenceServices = request.app.state.persistence
+        return persistence.replay_store.create_metadata(metadata)
+
+    @router.get("/{metadata_id}", response_model=Metadata)
+    def get_metadata(metadata_id: str, request: Request) -> Metadata:
+        persistence: PersistenceServices = request.app.state.persistence
+        metadata = persistence.replay_store.get_metadata(metadata_id)
+        if metadata is None:
+            _metadata_not_found(metadata_id)
+        assert metadata is not None
+        return metadata
+
+    @router.put("/{metadata_id}", response_model=Metadata)
+    def replace_metadata(metadata_id: str, metadata: Metadata, request: Request) -> Metadata:
+        persistence: PersistenceServices = request.app.state.persistence
+        if metadata.id is not None and str(metadata.id) != metadata_id:
+            _raise_api_error(
+                status_code=409,
+                code="conflict",
+                message="Path id and body id must match.",
+                details={"resource": "metadata", "path_id": metadata_id},
+            )
+        return persistence.replay_store.replace_metadata(metadata_id, metadata)
+
+    @router.patch("/{metadata_id}", response_model=Metadata)
+    def patch_metadata(metadata_id: str, patch: dict[str, Any], request: Request) -> Metadata:
+        persistence: PersistenceServices = request.app.state.persistence
+        _validate_patch_document(patch)
+        if "id" in patch and str(patch["id"]) != metadata_id:
+            _raise_api_error(
+                status_code=409,
+                code="conflict",
+                message="Path id and body id must match.",
+                details={"resource": "metadata", "path_id": metadata_id},
+            )
+        metadata = persistence.replay_store.patch_metadata(metadata_id, patch)
+        if metadata is None:
+            _metadata_not_found(metadata_id)
+        assert metadata is not None
+        return metadata
+
+    @router.delete("/{metadata_id}", status_code=204)
+    def delete_metadata(metadata_id: str, request: Request) -> Response:
+        persistence: PersistenceServices = request.app.state.persistence
+        deleted = persistence.replay_store.delete_metadata(metadata_id)
+        if not deleted:
+            _metadata_not_found(metadata_id)
+        return Response(status_code=204)
+
+    return router
+
+
 def _build_webapp_router() -> APIRouter:
     router = APIRouter(include_in_schema=False)
 
@@ -200,9 +454,37 @@ def create_app(
         redoc_url="/api/redoc",
         lifespan=lifespan,
     )
+
+    @app.exception_handler(StarletteHTTPException)
+    async def handle_http_exception(
+        _request: Request,
+        exc: StarletteHTTPException,
+    ) -> JSONResponse:
+        if isinstance(exc.detail, dict) and "error" in exc.detail:
+            return JSONResponse(status_code=exc.status_code, content=exc.detail)
+
+        return _json_error(
+            status_code=exc.status_code,
+            code=_default_error_code(exc.status_code),
+            message=str(exc.detail),
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def handle_validation_error(
+        _request: Request,
+        exc: RequestValidationError,
+    ) -> JSONResponse:
+        return _json_error(
+            status_code=422,
+            code="validation_error",
+            message="Request validation failed.",
+            details={"errors": exc.errors()},
+        )
+
     app.include_router(_build_health_router())
     app.include_router(_build_sessions_router())
     app.include_router(_build_conversations_router())
+    app.include_router(_build_metadata_router())
     app.include_router(_build_webapp_router())
     return app
 

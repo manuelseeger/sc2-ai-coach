@@ -63,6 +63,16 @@ export interface ConversationRecord {
   metadata: Record<string, unknown>;
 }
 
+export interface MetadataRecord {
+  id: string;
+  replay: string;
+  description: string | null;
+  tags: string[];
+  replay_summary_conversation: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ApiErrorEnvelope {
   error: {
     code: string;

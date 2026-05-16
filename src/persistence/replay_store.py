@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import datetime
-from typing import ClassVar, List, Optional, TypeVar
+from typing import Any, ClassVar, List, Optional, TypeVar
 
 from pydantic import Field
 from pydantic_core import ValidationError
 from pymongo.collection import Collection
-from pyodmongo import DbModel, MainBaseModel, ResponsePaginate
+from pyodmongo import DbModel, Id, MainBaseModel, ResponsePaginate
 from pyodmongo.models.responses import DbResponse
 from pyodmongo.queries import eq, sort
 
@@ -198,6 +199,97 @@ class ReplayStore:
             if current_page >= response.page_quantity:
                 break
             current_page += 1
+
+    def get_metadata(self, metadata_or_id: Metadata | Id | str) -> Metadata | None:
+        metadata_id = self._id(metadata_or_id)
+        return self.db.find_one(
+            Model=Metadata,
+            query=eq(Metadata.id, metadata_id),  # type: ignore[arg-type]
+        )
+
+    def list_metadata(
+        self,
+        *,
+        current_page: int = 1,
+        docs_per_page: int = 50,
+        replay: ReplayId | str | None = None,
+        tag: str | None = None,
+        has_summary: bool | None = None,
+        raw_query: dict[str, Any] | None = None,
+        raw_sort: dict[str, int] | None = None,
+    ) -> ResponsePaginate:
+        query = dict(raw_query or {})
+        if replay is not None:
+            query["replay"] = str(replay)
+        if tag is not None:
+            query["tags"] = tag
+        if has_summary is True:
+            query["replay_summary_conversation"] = {"$ne": None}
+        elif has_summary is False:
+            query["replay_summary_conversation"] = None
+
+        return self.db.find_many(
+            Model=Metadata,
+            paginate=True,
+            current_page=current_page,
+            docs_per_page=docs_per_page,
+            raw_query=query,
+            raw_sort=raw_sort or {"updated_at": -1},
+        )
+
+    def create_metadata(self, metadata: Metadata) -> Metadata:
+        self.db.save(metadata)
+        return metadata
+
+    def replace_metadata(self, metadata_id: Id | str, metadata: Metadata) -> Metadata:
+        metadata.id = self._id(metadata_id)
+        self.db.save(
+            metadata,
+            query=eq(Metadata.id, metadata.id),  # type: ignore[arg-type]
+        )
+        return metadata
+
+    def patch_metadata(
+        self,
+        metadata_id: Id | str,
+        patch: dict[str, Any],
+    ) -> Metadata | None:
+        existing = self.get_metadata(metadata_id)
+        if existing is None:
+            return None
+
+        merged = self._merge_dict(existing.model_dump(), patch)
+        merged["id"] = str(existing.id)
+        patched = Metadata.model_validate(merged)
+        return self.replace_metadata(existing.id, patched)
+
+    def delete_metadata(self, metadata_id: Id | str) -> bool:
+        existing = self.get_metadata(metadata_id)
+        if existing is None:
+            return False
+
+        self.db.delete(
+            Metadata,
+            query=eq(Metadata.id, existing.id),  # type: ignore[arg-type]
+        )
+        return True
+
+    def _id(self, value: Metadata | Id | str) -> Id:
+        if isinstance(value, str):
+            return Id(value)
+        model_id = getattr(value, "id", value)
+        if model_id is None:
+            raise ValueError("Metadata must be saved before use")
+        return Id(model_id)
+
+    def _merge_dict(self, current: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
+        merged = deepcopy(current)
+        for key, value in patch.items():
+            if isinstance(value, dict) and isinstance(merged.get(key), dict):
+                merged[key] = self._merge_dict(merged[key], value)
+            else:
+                merged[key] = value
+        return merged
 
 
 _replay_store: ReplayStore | None = None
