@@ -122,7 +122,7 @@ The backend API serves the built frontend from `webapp/dist` at `/`. If `webapp/
 
 The frontend should use a typed fetch wrapper for the API.
 
-The client should model the explicit backend route families rather than inventing a discovery-based abstraction. A small generic layer is still acceptable for the CRUD-backed route families, provided it is backed by a fixed frontend resource registry.
+The client should model the explicit backend route families rather than inventing a discovery-based abstraction. A small generic layer is still acceptable for the registry-backed resource families, provided the client respects per-resource read-only versus writable behavior.
 
 Core API methods:
 
@@ -140,9 +140,7 @@ Relationship and resource-specific methods:
 - `getConversationItems(conversationId, params)`
 - `createConversationItem(conversationId, body)`
 - `getConversationResponses(conversationId)`
-- `closeConversation(conversationId)`
 - `getSessionConversations(sessionId)`
-- `getSessionSummary(sessionId)`
 - `getReplayMetadata(replayId)`
 - `getReplayPlayers(replayId)`
 - `getPlayerReplays(toonHandle, params)`
@@ -154,7 +152,7 @@ Relationship and resource-specific methods:
 
 Optional helper methods are acceptable where they reduce UI complexity for known routes, for example `getOpenApiDocument()` when the frontend wants to inspect FastAPI's generated contract at `GET /api/openapi.json`.
 
-The generic helpers apply only to the documented CRUD-backed route families. They do not apply to relationship endpoints, portrait media endpoints, or read-only map-stats endpoints.
+The generic helpers apply only to the documented registry-backed resource families. They do not apply to relationship endpoints, portrait media endpoints, read-only map-stats endpoints, or the conversation-specific item-append flow.
 
 Image endpoints do not need to be rewrapped as JSON helpers. The UI can use the portrait URLs returned by the API directly in image elements and related media previews.
 
@@ -184,7 +182,7 @@ The first screen is the admin workspace, not a marketing landing page.
 
 It should show the supported admin areas and make it easy to jump into:
 
-- Generic resource lists for the CRUD-backed API route families.
+- Generic resource lists for the registry-backed API route families.
 - Specialized conversation, session, replay, player, and map-stat views.
 - Health inspection and optional OpenAPI inspection where useful for admin/debug workflows.
 
@@ -198,18 +196,18 @@ When a resource has a curated screen and is also writable, the workspace may exp
 
 Generic detail views should support:
 
-- Read-only rendering for CRUD-backed resources.
+- Read-only rendering for registry-backed resources.
 - JSON editing fallback for nested documents.
 - `PATCH` for partial edits.
 - `PUT` for full replacement.
 - `DELETE` for writable resources.
 - Disabled or hidden write actions for read-only resources.
 
-The generic maintenance UI is only for the CRUD-backed resource families documented by the API. It does not apply to relationship-first specialized screens such as map stats, replay players, session summaries, or portrait media endpoints.
+The generic maintenance UI is only for the registry-backed resource families documented by the API. It does not apply to relationship-first specialized screens such as map stats, replay players, portrait media endpoints, or the ordered conversation-item append flow.
 
 FastAPI's generated OpenAPI document at `GET /api/openapi.json` may inform labels and field hints where practical, but raw JSON editing remains the primary fallback for complex persisted models. The webapp should not depend on a per-resource schema endpoint because the API does not define one.
 
-Any generic maintenance entry points are constrained to the frontend's fixed resource registry for the CRUD-backed API route families.
+Any generic maintenance entry points are constrained to the frontend's fixed resource registry for the documented API route families, with write actions shown only for resources that are actually writable. For `conversation-items`, the generic route is read-only and append behavior lives on the conversation-specific item route.
 
 ### Conversation Detail
 
@@ -247,9 +245,9 @@ The conversation screen should not include:
 - Embedded raw JSON/document tabs.
 - Next/previous conversation stepping from detail.
 
-The conversation screen is the primary readable transcript-style admin view.
+Conversation-item creation, when exposed at all, is an append-only secondary workflow through the conversation-specific item route rather than generic item maintenance.
 
-If the UI exposes close behavior from `POST /api/conversations/{conversation_id}/close`, it should do so as a secondary workflow action rather than as a requirement of the curated read surface.
+The conversation screen is the primary readable transcript-style admin view.
 
 Conversation-list behavior:
 
@@ -279,11 +277,10 @@ Session detail should combine:
 
 - `GET /api/sessions/{session_id}`
 - `GET /api/sessions/{session_id}/conversations`
-- `GET /api/sessions/{session_id}/summary`
 
-The summary section should emphasize computed totals such as conversation count, response count, token totals, and cost.
+Session detail should show persisted session fields together with the linked conversation list. The frontend does not invent a client-side replacement for the removed session-summary endpoint.
 
-The session detail view should treat the summary endpoint as authoritative for derived totals rather than recomputing them in the browser.
+The session workflow is read-only in the admin UI.
 
 ### Replay Detail
 
@@ -302,7 +299,7 @@ The first replay-review slice should:
 - Show participating player records as a dedicated section on the replay screen instead of reconstructing joins in the client.
 - Provide visible in-screen navigation from replay facts into those player records.
 
-Generic replay maintenance remains separate from this specialized review flow.
+Generic replay maintenance remains separate from this specialized review flow and is treated as an expert or repair workflow rather than the default replay-review path.
 
 ### Player Detail
 
@@ -323,6 +320,8 @@ The UI should:
 - Route the discovered Players workspace card into a player-review entry list, then allow replay-to-player and player-to-replay navigation within the specialized review flow.
 
 Player list and collection-oriented views may use `POST /api/players/portrait-metadata` to resolve portrait availability for multiple players in one request.
+
+Generic player maintenance remains separate from this specialized review flow and is treated as an expert or repair workflow rather than the default player-review path.
 
 ### Map Stats View
 
@@ -372,13 +371,13 @@ Manual verification covers:
 - Conversation detail composes the screen from the conversation resource and ordered conversation items without depending on an aggregate detail endpoint.
 - Conversation detail shows compact replay/session context when linked resources are available and does not depend on response-record data for the primary screen.
 - Browser refresh preserves list/detail browsing position when possible and remains the refresh path for the conversation list and conversation detail screen.
-- Session detail loads linked conversations and summary totals.
+- Session detail loads the session document and linked conversations.
 - Replay detail loads linked metadata and players.
 - Replay detail lets the operator jump from replay facts into the participating player-record section.
 - Player detail uses the portrait metadata helper to resolve available player and alias portraits, then displays portrait images from media endpoints.
 - Map stats screens respect the supported `map` and inclusive `min_date` filters.
 - Read-only resources do not expose write actions.
-- Generic maintenance entry points are limited to the fixed frontend registry for supported CRUD-backed route families.
+- Generic maintenance entry points are limited to the fixed frontend registry for supported API route families, with write actions exposed only where the backend allows them.
 - The built frontend is served by the backend at `/`.
 
 Automated frontend tests are optional, but the frontend keeps API interactions structured enough that component and client tests fit naturally.
