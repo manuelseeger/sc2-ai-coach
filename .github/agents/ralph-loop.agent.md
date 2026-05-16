@@ -129,7 +129,7 @@ You must:
 4. Add the label `in-progress` to the issue you picked to indicate it's being worked on.
 5. Implement the selected task end-to-end, using /tdd TDD
 6. Review and make sure the issue's acceptance criteria are fully met, and all necessary code, tests, and documentation are complete.
-7. Remove the `in-progress` label. 
+7. Remove the `in-progress` label and add a comment explaining what you have done.
 8. Add the `to-be-verified` label to indicate completion.
 9. Once you have finished one task, STOP and return control to the orchestrator.
     You shall NOT attempt implementing multiple tasks in one call.
