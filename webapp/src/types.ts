@@ -106,6 +106,8 @@ export interface ReplayRecord {
   [key: string]: unknown;
 }
 
+export type ReplayWritePayload = Record<string, unknown>;
+
 export interface ReplayPlayerRelationship {
   replay_player: ReplayListPlayer;
   player_info: PlayerInfoRecord | null;

@@ -385,7 +385,11 @@ def _build_replays_router() -> APIRouter:
         return replay
 
     @router.put("/{replay_id}", response_model=Replay)
-    def replace_replay(replay_id: str, replay: Replay, request: Request) -> Replay:
+    def replace_replay(
+        replay_id: str,
+        replay: Replay,
+        request: Request,
+    ) -> Replay:
         persistence: PersistenceServices = request.app.state.persistence
         if str(replay.id) != replay_id:
             _raise_api_error(

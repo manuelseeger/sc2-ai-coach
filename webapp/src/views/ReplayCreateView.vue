@@ -67,7 +67,8 @@ async function submit(): Promise<void> {
         <h2 class="page-hero__title">Open a new replay document through the generic editor</h2>
         <p class="panel-intro">
           Replay creation stays in the generic maintenance surface, separate from the curated
-          replay-review route.
+          replay-review route. Raw JSON is allowed here, but the server only stores payloads that
+          validate as a Replay.
         </p>
       </div>
 
@@ -76,6 +77,11 @@ async function submit(): Promise<void> {
 
     <article class="panel panel-stack">
       <PanelHeading eyebrow="Create body" title="Replay JSON" />
+
+      <p class="muted-copy">
+        Send a full replay document. Invalid fields or missing required Replay fields will be
+        rejected.
+      </p>
 
       <label class="form-field form-field--wide">
         <span class="form-label">Request JSON</span>

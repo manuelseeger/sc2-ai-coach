@@ -80,8 +80,9 @@ onMounted(async () => {
         <p class="eyebrow">Replay maintenance</p>
         <h2 class="page-hero__title">Generic replay CRUD stays separate from curated review</h2>
         <p class="panel-intro">
-          Use this expert fallback to create, query, patch, replace, or delete raw replay
-          documents without collapsing the operator replay-review path into a generic editor.
+          Use this expert maintenance surface to create, query, patch, replace, or delete replay
+          documents without collapsing the operator replay-review path into a generic editor. Raw
+          JSON requests are allowed, but replay writes must still validate as a Replay.
         </p>
       </div>
 

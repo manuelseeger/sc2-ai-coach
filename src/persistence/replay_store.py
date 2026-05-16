@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-from copy import deepcopy
-from datetime import datetime, timezone
 import re
-from typing import Any, ClassVar, List, Optional, TypeVar
+from copy import deepcopy
+from datetime import datetime
+from typing import Any, ClassVar, List, Optional, TypeVar, cast
 
-from bson import ObjectId
-from pydantic import Field
-from pydantic_core import ValidationError
-from pymongo.collection import Collection
+from pydantic import Field, ValidationError
 from pyodmongo import DbModel, Id, MainBaseModel, ResponsePaginate
 from pyodmongo.models.responses import DbResponse
 from pyodmongo.queries import eq, sort
@@ -131,18 +128,6 @@ class ReplayStore:
     def db(self):
         return self.database.engine
 
-    @property
-    def raw(self):
-        return self.database.raw
-
-    @property
-    def replays(self) -> Collection:
-        return self.raw["replays"]
-
-    @property
-    def meta(self) -> Collection:
-        return self.raw["replays.meta"]
-
     def list_replays(
         self,
         *,
@@ -185,39 +170,34 @@ class ReplayStore:
                 date_query["$lte"] = to_date
             query["date"] = date_query
 
-        sort_spec = list((raw_sort or {"date": -1}).items())
-        skip = max(current_page - 1, 0) * docs_per_page
-        cursor = self.replays.find(query).sort(sort_spec).skip(skip).limit(docs_per_page)
-        docs_quantity = self.replays.count_documents(query)
-
-        return {
-            "current_page": current_page,
-            "page_quantity": max(1, (docs_quantity + docs_per_page - 1) // docs_per_page),
-            "docs_quantity": docs_quantity,
-            "docs": [self._serialize_replay_list_document(doc) for doc in cursor],
-        }
+        return cast(
+            ResponsePaginate,
+            self.db.find_many(
+                Model=Replay,
+                paginate=True,
+                current_page=current_page,
+                docs_per_page=docs_per_page,
+                raw_query=query,
+                raw_sort=raw_sort or {"date": -1},
+            ),
+        )
 
     def get_replay(self, replay_or_id: Replay | ReplayId | str) -> Replay | None:
         replay_id = self._replay_id(replay_or_id)
-        replay = self.db.find_one(
+        return self.db.find_one(
             Model=Replay,
             query=eq(Replay.id, replay_id),  # type: ignore[arg-type]
         )
-        if replay is not None:
-            return replay
-
-        raw_replay = self._find_raw_replay_document(replay_id)
-        if raw_replay is None:
-            return None
-
-        normalized = self._normalize_replay_document(raw_replay)
-        return self._materialize_replay_document(normalized)
 
     def create_replay(self, replay: Replay) -> Replay:
         self.upsert(replay)
         return replay
 
-    def replace_replay(self, replay_id: ReplayId | str, replay: Replay) -> Replay:
+    def replace_replay(
+        self,
+        replay_id: ReplayId | str,
+        replay: Replay,
+    ) -> Replay:
         replay.id = str(replay_id)
         self.db.save(
             replay,
@@ -351,13 +331,16 @@ class ReplayStore:
         elif has_summary is False:
             query["replay_summary_conversation"] = None
 
-        return self.db.find_many(
-            Model=Metadata,
-            paginate=True,
-            current_page=current_page,
-            docs_per_page=docs_per_page,
-            raw_query=query,
-            raw_sort=raw_sort or {"updated_at": -1},
+        return cast(
+            ResponsePaginate,
+            self.db.find_many(
+                Model=Metadata,
+                paginate=True,
+                current_page=current_page,
+                docs_per_page=docs_per_page,
+                raw_query=query,
+                raw_sort=raw_sort or {"updated_at": -1},
+            ),
         )
 
     def create_metadata(self, metadata: Metadata) -> Metadata:
@@ -372,6 +355,7 @@ class ReplayStore:
         existing = self.get_metadata_by_replay_id(replay_id)
         metadata.replay = str(replay_id)
         if existing is not None:
+            assert existing.id is not None
             return self.replace_metadata(existing.id, metadata)
         return self.create_metadata(metadata)
 
@@ -429,6 +413,7 @@ class ReplayStore:
         merged = self._merge_dict(existing.model_dump(), patch)
         merged["id"] = str(existing.id)
         patched = Metadata.model_validate(merged)
+        assert existing.id is not None
         return self.replace_metadata(existing.id, patched)
 
     def delete_metadata(self, metadata_id: Id | str) -> bool:
@@ -458,7 +443,9 @@ class ReplayStore:
             raise ValueError("Replay must be saved before use")
         return str(model_id)
 
-    def _merge_dict(self, current: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
+    def _merge_dict(
+        self, current: dict[str, Any], patch: dict[str, Any]
+    ) -> dict[str, Any]:
         merged = deepcopy(current)
         for key, value in patch.items():
             if isinstance(value, dict) and isinstance(merged.get(key), dict):
@@ -466,198 +453,6 @@ class ReplayStore:
             else:
                 merged[key] = value
         return merged
-
-    def _find_raw_replay_document(self, replay_id: str) -> dict[str, Any] | None:
-        raw_query: dict[str, Any] = {"$or": [{"id": replay_id}, {"_id": replay_id}]}
-        if ObjectId.is_valid(replay_id):
-            raw_query["$or"].append({"_id": ObjectId(replay_id)})
-        return self.replays.find_one(raw_query)
-
-    def _serialize_replay_list_document(self, document: dict[str, Any]) -> dict[str, Any]:
-        normalized = self._normalize_replay_document(document)
-        materialized = self._materialize_replay_document(normalized)
-        if materialized is not None:
-            return materialized.model_dump(mode="json")
-        return self._build_replay_list_fallback(normalized)
-
-    def _materialize_replay_document(
-        self, document: dict[str, Any]
-    ) -> Replay | None:
-        try:
-            return Replay.model_validate(document)
-        except ValidationError:
-            return None
-
-    def _normalize_replay_document(self, document: dict[str, Any]) -> dict[str, Any]:
-        normalized = deepcopy(document)
-        mongo_id = normalized.pop("_id", None)
-        replay_id = normalized.get("id") or mongo_id or normalized.get("filehash")
-        if replay_id is not None:
-            normalized["id"] = str(replay_id)
-
-        unix_timestamp = normalized.get("unix_timestamp")
-        date = normalized.get("date")
-        if date is None:
-            normalized["date"] = datetime.fromtimestamp(
-                int(unix_timestamp or 0),
-                tz=timezone.utc,
-            )
-
-        normalized.setdefault("build", 0)
-        normalized.setdefault("category", "")
-        normalized.setdefault("expansion", "")
-        normalized.setdefault("filehash", str(normalized.get("id") or ""))
-        normalized.setdefault("filename", "")
-        normalized.setdefault("frames", 0)
-        normalized.setdefault("game_fps", 0)
-        normalized.setdefault("game_length", normalized.get("real_length") or 0)
-        normalized.setdefault("game_type", normalized.get("real_type") or "")
-        normalized.setdefault("is_ladder", False)
-        normalized.setdefault("is_private", False)
-        normalized.setdefault("map_name", "")
-        normalized.setdefault("map_size", (0, 0))
-        normalized.setdefault("observers", [])
-        normalized.setdefault("region", "")
-        normalized.setdefault("release", "")
-        normalized.setdefault("real_length", normalized.get("game_length") or 0)
-        normalized.setdefault("real_type", normalized.get("game_type") or "")
-        normalized.setdefault("release_string", normalized.get("release") or "")
-        normalized.setdefault("speed", "")
-        normalized["stats"] = self._merge_dict(
-            {"loserDoesGG": False},
-            dict(normalized.get("stats") or {}),
-        )
-        normalized.setdefault("time_zone", 0.0)
-        normalized.setdefault("type", normalized.get("real_type") or normalized.get("game_type") or "")
-        normalized.setdefault("unix_timestamp", int(unix_timestamp or 0))
-        normalized.setdefault("versions", [])
-        normalized["players"] = [
-            self._normalize_replay_player(player, index)
-            for index, player in enumerate(normalized.get("players") or [])
-        ]
-        return normalized
-
-    def _normalize_replay_player(
-        self,
-        player: dict[str, Any],
-        index: int,
-    ) -> dict[str, Any]:
-        normalized = deepcopy(player)
-        normalized.setdefault("abilities_used", [])
-        normalized.setdefault("avg_apm", 0.0)
-        normalized.setdefault("avg_sq", 0.0)
-        normalized["build_order"] = [
-            self._normalize_build_order(step)
-            for step in normalized.get("build_order") or []
-        ]
-        normalized.setdefault("clan_tag", "")
-        normalized.setdefault("clock_position", None)
-        normalized["color"] = self._merge_dict(
-            {"a": 255, "b": 0, "g": 0, "r": 0, "name": ""},
-            dict(normalized.get("color") or {}),
-        )
-        normalized.setdefault("creep_spread_by_minute", None)
-        normalized.setdefault("highest_league", 0)
-        normalized.setdefault("name", "")
-        normalized.setdefault("max_creep_spread", None)
-        normalized.setdefault("messages", [])
-        normalized.setdefault("official_apm", None)
-        normalized.setdefault("pick_race", normalized.get("play_race") or "")
-        normalized.setdefault("pid", index + 1)
-        normalized.setdefault("play_race", "")
-        normalized.setdefault("result", "")
-        normalized.setdefault("scaled_rating", 0)
-        normalized["stats"] = self._merge_dict(
-            self._default_player_stats(),
-            dict(normalized.get("stats") or {}),
-        )
-        normalized.setdefault("supply", [])
-        normalized.setdefault("toon_handle", "0-S2-0-0000")
-        normalized.setdefault("toon_id", 0)
-        normalized.setdefault("uid", 0)
-        normalized.setdefault("units_lost", [])
-        normalized.setdefault("url", "")
-        normalized["worker_stats"] = self._merge_dict(
-            self._default_worker_stats(),
-            dict(normalized.get("worker_stats") or {}),
-        )
-        return normalized
-
-    def _normalize_build_order(self, step: dict[str, Any]) -> dict[str, Any]:
-        normalized = deepcopy(step)
-        normalized.setdefault("frame", 0)
-        normalized.setdefault("time", "0:00")
-        normalized.setdefault("name", "")
-        normalized.setdefault("supply", 0)
-        normalized.setdefault("clock_position", None)
-        normalized.setdefault("is_chronoboosted", None)
-        normalized.setdefault("is_worker", False)
-        return normalized
-
-    def _build_replay_list_fallback(self, document: dict[str, Any]) -> dict[str, Any]:
-        return {
-            "id": str(document.get("id") or ""),
-            "map_name": document.get("map_name") or "",
-            "date": document.get("date"),
-            "filename": document.get("filename") or "",
-            "region": document.get("region") or "",
-            "real_length": int(document.get("real_length") or 0),
-            "game_type": document.get("game_type") or "",
-            "real_type": document.get("real_type") or document.get("game_type") or "",
-            "speed": document.get("speed") or "",
-            "is_ladder": bool(document.get("is_ladder", False)),
-            "players": [
-                {
-                    "name": player.get("name") or "",
-                    "toon_handle": str(player.get("toon_handle") or "0-S2-0-0000"),
-                    "play_race": player.get("play_race") or "",
-                    "result": player.get("result") or "",
-                }
-                for player in document.get("players") or []
-            ],
-        }
-
-    def _default_player_stats(self) -> dict[str, Any]:
-        return {
-            "worker_active": {},
-            "income_minerals": {},
-            "income_vespene": {},
-            "income_resources": {},
-            "unspent_minerals": {},
-            "unspent_vespene": {},
-            "unspent_resources": {},
-            "minerals_used_active_forces": {},
-            "vespene_used_active_forces": {},
-            "resources_used_active_forces": {},
-            "minerals_used_technology": {},
-            "vespene_used_technology": {},
-            "resources_used_technology": {},
-            "minerals_lost": {},
-            "vespene_lost": {},
-            "resources_lost": {},
-            "avg_income_minerals": 0.0,
-            "avg_income_vespene": 0.0,
-            "avg_income_resources": 0.0,
-            "avg_unspent_minerals": 0.0,
-            "avg_unspent_vespene": 0.0,
-            "avg_unspent_resources": 0.0,
-            "minerals_lost_total": 0,
-            "vespene_lost_total": 0,
-            "resources_lost_total": 0,
-        }
-
-    def _default_worker_stats(self) -> dict[str, Any]:
-        return {
-            "worker_micro": 0,
-            "worker_split": 0,
-            "worker_count": {},
-            "worker_trained": {},
-            "worker_killed": {},
-            "worker_lost": {},
-            "worker_trained_total": 0,
-            "worker_killed_total": 0,
-            "worker_lost_total": 0,
-        }
 
 
 _replay_store: ReplayStore | None = None

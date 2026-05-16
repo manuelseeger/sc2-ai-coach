@@ -136,7 +136,8 @@ watch(
         <p class="eyebrow">Replay document</p>
         <h2 class="page-hero__title">Patch, replace, or delete one replay record</h2>
         <p class="panel-intro">
-          This JSON-first maintenance view is the fallback editor for writable replay documents.
+          This JSON-first maintenance view accepts raw JSON, but replay writes are only persisted
+          when the payload still validates as a Replay.
         </p>
       </div>
 
@@ -170,6 +171,11 @@ watch(
 
         <article class="panel panel-stack">
           <PanelHeading eyebrow="Write actions" title="Patch, replace, or delete" />
+
+          <p class="muted-copy">
+            Patch and replace requests are validated server-side against the Replay model before
+            they are written.
+          </p>
 
           <p v-if="feedbackMessage" class="feedback">{{ feedbackMessage }}</p>
           <p v-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>

@@ -3,7 +3,6 @@ from __future__ import annotations
 import importlib
 
 import pytest
-from bson import ObjectId
 from fastapi.testclient import TestClient
 
 from src.persistence.conversation_store import ConversationStore
@@ -53,54 +52,6 @@ def test_list_and_get_replays_use_replay_ids(
     assert fetched.status_code == 200
     assert fetched.json()["id"] == expected[0].id
     assert fetched.json()["map_name"] == expected[0].map_name
-
-
-@pytest.mark.mongo
-def test_list_replays_accepts_legacy_summary_documents_without_replay_id(
-    seeded_replay_mongo_container,
-) -> None:
-    app = _create_app(seeded_replay_mongo_container)
-    legacy_id = ObjectId()
-    seeded_replay_mongo_container.database.raw["replays"].insert_one(
-        {
-            "_id": legacy_id,
-            "date": seeded_replay_mongo_container.seeded_replays[0].date,
-            "filename": "legacy-summary-only.SC2Replay",
-            "game_type": "1v1",
-            "is_ladder": True,
-            "map_name": "Legacy Summary LE",
-            "players": [
-                {
-                    "name": "zatic",
-                    "play_race": "Zerg",
-                    "result": "Win",
-                },
-                {
-                    "name": "legacy-opponent",
-                    "play_race": "Terran",
-                    "result": "Loss",
-                },
-            ],
-            "real_length": 642,
-            "real_type": "1v1",
-            "region": "eu",
-            "speed": "Faster",
-        }
-    )
-
-    with TestClient(app) as client:
-        response = client.get(
-            "/api/replays",
-            params={"docs_per_page": 5, "map": "Legacy Summary"},
-        )
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["docs_quantity"] == 1
-    legacy = next(doc for doc in body["docs"] if doc["map_name"] == "Legacy Summary LE")
-    assert legacy["id"] == str(legacy_id)
-    assert legacy["players"][0]["name"] == "zatic"
-    assert legacy["real_type"] == "1v1"
 
 
 @pytest.mark.mongo
@@ -169,6 +120,30 @@ def test_replay_crud_and_query_cover_documented_replay_routes(
             "details": {"resource": "replays", "id": create_payload["id"]},
         }
     }
+
+
+@pytest.mark.mongo
+def test_replay_create_and_replace_reject_invalid_raw_json(
+    seeded_replay_mongo_container,
+) -> None:
+    app = _create_app(seeded_replay_mongo_container)
+    seed = seeded_replay_mongo_container.seeded_replays[0]
+    create_payload = seed.model_dump(mode="json")
+    create_payload["id"] = "1" * 64
+    create_payload.pop("filename")
+
+    replace_payload = seed.model_dump(mode="json")
+    replace_payload["filename"] = 42
+
+    with TestClient(app) as client:
+        invalid_create = client.post("/api/replays", json=create_payload)
+        invalid_replace = client.put(f"/api/replays/{seed.id}", json=replace_payload)
+
+    assert invalid_create.status_code == 422
+    assert invalid_create.json()["error"]["code"] == "validation_error"
+
+    assert invalid_replace.status_code == 422
+    assert invalid_replace.json()["error"]["code"] == "validation_error"
 
 
 @pytest.mark.mongo

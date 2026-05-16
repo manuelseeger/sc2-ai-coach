@@ -7,6 +7,7 @@ import type {
   QueryBody,
   ReplayPlayerRelationship,
   ReplayRecord,
+  ReplayWritePayload,
 } from "./types";
 
 export function loadReplayInbox(
@@ -52,14 +53,17 @@ export async function loadReplayDetail(apiClient: ApiClient, replayId: string): 
   };
 }
 
-export function createReplayRecord(apiClient: ApiClient, body: unknown): Promise<ReplayRecord> {
+export function createReplayRecord(
+  apiClient: ApiClient,
+  body: ReplayWritePayload,
+): Promise<ReplayRecord> {
   return apiClient.createResource<ReplayRecord>("replays", body);
 }
 
 export function patchReplayRecord(
   apiClient: ApiClient,
   replayId: string,
-  patch: unknown,
+  patch: ReplayWritePayload,
 ): Promise<ReplayRecord> {
   return apiClient.patchResource<ReplayRecord>("replays", replayId, patch);
 }
@@ -67,7 +71,7 @@ export function patchReplayRecord(
 export function replaceReplayRecord(
   apiClient: ApiClient,
   replayId: string,
-  body: unknown,
+  body: ReplayWritePayload,
 ): Promise<ReplayRecord> {
   return apiClient.replaceResource<ReplayRecord>("replays", replayId, body);
 }

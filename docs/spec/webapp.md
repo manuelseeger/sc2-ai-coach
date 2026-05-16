@@ -203,6 +203,8 @@ The client should normalize API failures to the backend error envelope:
 }
 ```
 
+For writable resources, frontend JSON editing is an operator convenience, not a schema-less API mode. The request body sent to the backend must still satisfy the API's declared domain model for that route. In practice this means the webapp may present a JSON editor for replay or metadata documents, but `POST` and `PUT` requests are still validated by FastAPI/Pydantic against the corresponding domain model before persistence.
+
 ## Navigation Model
 
 The app uses an explicit frontend route table for the supported admin areas.
@@ -243,6 +245,8 @@ Generic detail views should support:
 The generic maintenance UI is only for the registry-backed resource families documented by the API. It does not apply to relationship-first specialized screens such as map stats, replay players, portrait media endpoints, or the ordered conversation-item append flow.
 
 FastAPI's generated OpenAPI document at `GET /api/openapi.json` may inform labels and field hints where practical, but raw JSON editing remains the primary fallback for complex persisted models. The webapp should not depend on a per-resource schema endpoint because the API does not define one.
+
+That JSON editing fallback does not weaken the backend contract. The editor may surface the raw shape of a document for operator repair, but write requests still target the route's declared domain model and are rejected when the payload does not validate as that model.
 
 Any generic maintenance entry points are constrained to the frontend's fixed resource registry for the documented API route families, with write actions shown only for resources that are actually writable. For `conversation-items`, the generic route is read-only and append behavior lives on the conversation-specific item route.
 
@@ -337,6 +341,8 @@ The first replay-review slice should:
 - Provide visible in-screen navigation from replay facts into those player records.
 
 Generic replay maintenance remains separate from this specialized review flow and is treated as an expert or repair workflow rather than the default replay-review path.
+
+Even in that expert workflow, replay writes still go through the `Replay` API model. The maintenance surface may expose a JSON editor, but the backend only accepts payloads that validate as a replay domain object.
 
 ### Player Detail
 
