@@ -12,7 +12,7 @@ The API is the source of truth for resource shape, capabilities, relationship ro
 In scope:
 
 - A standalone SPA in a root-level `webapp/` folder.
-- Resource navigation driven by `GET /api/resources`.
+- Resource navigation driven by explicit frontend routes and supported API endpoints.
 - Generic list, detail, create, edit, replace, and delete workflows for writable resources.
 - Specialized views for relationship-heavy resources where the API exposes aggregate endpoints.
 - Read-only query workflows for guarded `/query` endpoints.
@@ -111,7 +111,6 @@ The frontend should use a typed fetch wrapper for the API.
 Core resource methods:
 
 - `getHealth()`
-- `listResources()`
 - `getSchema(resource)`
 - `listResource(resource, params)`
 - `queryResource(resource, body)`
@@ -128,7 +127,6 @@ Relationship and resource-specific methods:
 - `getConversationResponses(conversationId)`
 - `getConversationDetail(conversationId)`
 - `closeConversation(conversationId)`
-- `archiveConversation(conversationId)`
 - `getSessionConversations(sessionId)`
 - `getSessionSummary(sessionId)`
 - `getReplayMetadata(replayId)`
@@ -137,9 +135,7 @@ Relationship and resource-specific methods:
 - `getPlayerAliases(toonHandle, params)`
 - `getPlayerPortraitMetadata(toonHandle)`
 - `getMapStats(params)`
-- `queryMapStats(body)`
 - `getMapStatsByName(mapName, params)`
-- `getMapStatsRanges(mapName, ranges)`
 
 Image endpoints do not need to be rewrapped as JSON helpers. The UI can use the portrait URLs returned by the API directly in image elements and related media previews.
 
@@ -155,20 +151,11 @@ The client should normalize API failures to the backend error envelope:
 }
 ```
 
-## Resource Discovery
+## Navigation Model
 
-The app should load `GET /api/resources` on startup and treat that response as the authoritative navigation model.
+The app uses an explicit frontend route table for the supported admin areas.
 
-Each resource entry should drive:
-
-- Title and path label.
-- Read-only state.
-- Supported capabilities.
-- Relationship affordances.
-- Schema link or schema availability.
-- Availability state for resources such as map stats when a deployment omits them.
-
-If a resource is reported as unavailable, the UI should surface that state clearly instead of assuming every documented resource exists in every deployment.
+That route table is backed by the documented API contract, not by a runtime discovery endpoint. The client should navigate only to screens with a defined backend surface and should treat unsupported areas as ordinary missing routes or feature gaps, not as dynamically discovered resources.
 
 ## Views
 
@@ -176,7 +163,7 @@ If a resource is reported as unavailable, the UI should surface that state clear
 
 The first screen is the admin workspace, not a marketing landing page.
 
-It should show the discovered resources and make it easy to jump into:
+It should show the supported admin areas and make it easy to jump into:
 
 - Generic resource lists.
 - Specialized conversation, session, replay, player, and map-stat views.
@@ -213,7 +200,7 @@ Generic detail views should support:
 - `DELETE` for writable resources.
 - Disabled or hidden write actions for read-only resources.
 
-Schema metadata from `GET /api/schema/{resource}` informs forms where practical, but raw JSON editing remains a first-class fallback for complex persisted models.
+Schema metadata from FastAPI's generated OpenAPI document at `GET /api/openapi.json` informs forms where practical, but raw JSON editing remains a first-class fallback for complex persisted models.
 
 The generic maintenance detail routes are:
 
@@ -233,7 +220,7 @@ Primary conversation-review contract:
 The screen should present:
 
 - A compact conversation summary header with trigger, status, created time, total item count, and replay/session links when present.
-- Workflow actions for closing and archiving only when the current conversation state supports them.
+- Workflow actions for closing only when the current conversation state supports them.
 - The complete ordered conversation item flow from the backend, including messages, tool calls, and tool results.
 - Inline item timestamps.
 - Visible item-kind treatment so messages, tool calls, and tool results are immediately distinguishable.
@@ -255,7 +242,6 @@ The conversation screen is the primary readable transcript-style admin view.
 Conversation workflow action behavior:
 
 - Closing is available only while the conversation is active.
-- Archiving is available while the conversation is active or closed.
 - Successful actions update the visible conversation status from the action response without a full page reload.
 - Action failures should use the shared backend error envelope and be surfaced inline on the detail screen.
 
@@ -334,15 +320,12 @@ It should use:
 
 - `GET /api/map-stats`
 - `GET /api/map-stats/{map_name}`
-- `GET /api/map-stats/{map_name}/ranges`
-- `POST /api/map-stats/query`
 
 The view should support:
 
 - Map selection.
-- Inclusive date filtering.
-- Named range comparisons.
-- Read-only grouped results from the guarded aggregation query surface.
+- Lower-bound date filtering through `min_date`.
+- Read-only display of the existing `MatchupsByMap` model returned by the backend.
 
 The UI must not imply that map stats are editable documents.
 
@@ -368,8 +351,7 @@ The API distinguishes between JSON document responses and image/media endpoints.
 
 Manual verification covers:
 
-- The app loads resource discovery from `GET /api/resources`.
-- Unavailable resources are shown as unavailable instead of failing navigation.
+- The app loads without requiring a discovery-style bootstrap API call.
 - Generic list views respect pagination, sorting, and first-class filters.
 - Guarded `/query` flows work for writable resources that expose advanced read-only querying.
 - The conversation list shows all statuses by default, defaults to recent-first ordering, and supports the typed trigger filter.

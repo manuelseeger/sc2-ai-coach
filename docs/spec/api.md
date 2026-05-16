@@ -2,29 +2,23 @@
 
 ## Purpose
 
-The backend API provides a standalone FastAPI service for reviewing and editing the MongoDB-backed SC2 AI Coach data. It is the backend for an admin webapp, but it is not just a raw database browser. The API exposes the persisted models through domain-oriented resources and includes relationship endpoints for workflows that only make sense across multiple collections.
+The backend API provides a standalone FastAPI service for reviewing and editing the MongoDB-backed SC2 AI Coach data. It is the backend for an admin webapp, but it is not just a raw database browser. The API exposes the solution's persisted models.
 
-The API lives in `src/api/` and runs without the coach runtime, replay watcher, voice stack, OBS integration, or OpenAI request loop.
+The API lives in `src/api/` and reuses the overall solutions data access layer and models, but runs without the coach runtime, replay watcher, voice stack, OBS integration, or OpenAI request loop.
 
 ## Design Direction
 
-The API uses dedicated resource paths instead of a generic `/models/{resource}` CRUD surface.
+The API uses dedicated resource paths for its CRUD surface. The API is intentionally simple, and offers a REST interface to the models of the solution. 
 
-Dedicated paths make the API useful beyond raw collection editing:
+Apps build on top of the API will have to orchestrate fetching required data on the REST API. The API and apps build on top are expected to run locally, so inefficient fetching is fine. 
 
-- Conversations expose their ordered conversation items as the primary curated review surface. Response records remain separately addressable admin data.
-- Sessions expose their conversations.
-- Replays expose their metadata and participating players.
-- Players expose related replays.
+The API will make use of FastAPI and Pydantic throughout.
+- The solution's DbModel and MainBaseModel are Pydantic-models and can be used with FastAPI. See [../references/pyodmongo.md](../references/pyodmongo.md)
+- Expectation is that the API does not define new models
+- If an endpoint needs a new response model, this needs to be called out during implementation
+- The API reuses the existing DB stores. If the DB store surface is insufficient, this needs to be called out during implementation and a decision made where the store should be extended. 
+- The API MUST NOT access the DB directly, nor create it's own store/query abstractions
 
-The implementation may share generic CRUD helpers internally. The public API is domain-shaped because the admin UI includes custom views rather than a uniform raw collection editor.
-
-The conversation contract follows two rules:
-
-- `GET /api/conversations/{conversation_id}/detail` is the primary backend-owned read model for conversation review.
-- The primary conversation detail contract centers on the complete ordered conversation item flow and compact related context, not on response-accounting data or lifecycle actions.
-
-Separate response-record and workflow-action endpoints remain part of the API for direct admin inspection, generic admin workflows, and other specialized screens.
 
 ## Scope
 
@@ -32,10 +26,9 @@ In scope:
 
 - Standalone FastAPI application in `src/api/`.
 - CRUD endpoints for persisted PyODMongo models.
-- Relationship endpoints that aggregate linked documents into useful admin views.
 - Pydantic/PyODMongo model validation for request and response payloads.
 - Read-only raw query helpers for advanced admin filtering.
-- Health, metadata, and schema endpoints for the webapp.
+- Health endpoints for the webapp.
 - Static serving support for the built webapp at `/`.
 
 Out of scope:
@@ -46,7 +39,6 @@ Out of scope:
 - Replay ingestion.
 - OpenAI calls.
 - OBS, microphone, TTS, STT, or wake-word integration.
-- Schema migrations.
 - Arbitrary MongoDB write commands.
 
 ## Dependencies
@@ -56,87 +48,62 @@ Python runtime dependencies:
 - `fastapi`
 - `uvicorn[standard]`
 
-Test dependencies include `pytest`, `pytest-mock`, and the MongoDB test service helpers.
+- `min_date`: inclusive ISO datetime lower bound for replay `date`.
 
-## File Layout
 
-```text
+## File structure 
+
+```
 src/
     api/
-        __init__.py
-        __main__.py
-        app.py
-        config.py
-        database.py
-        errors.py
-        schemas.py
-        serialization.py
-        static.py
-        resources/
-            __init__.py
-            common.py
-            conversations.py
-            health.py
-            map_stats.py
-            metadata.py
-            players.py
-            replays.py
-            responses.py
-            sessions.py
+       ....
 ```
-
-`src/api/resources/common.py` contains shared pagination, sorting, filtering, id parsing, and CRUD helper code. Resource modules own public route definitions and domain-shaped response models.
 
 ## Runtime Configuration
 
-The API has its own settings model in `src/api/config.py`.
+
+The API has its own settings model in `src/api/config.py`, and the main application settings model in `src.runtime.settings` exposes it as a nested child object.
 
 ```python
-class ApiConfig(BaseSettings):
-    mongo_dsn: str = "mongodb://localhost:27017"
+from pydantic import BaseModel, Field
+
+from src.api.config import ApiConfig
+
+
+class Config(BaseSettings):
+    ...
+    mongo_dsn: MongoSRVDsn = "mongodb://localhost:27017"
     db_name: str = "SC2AICOACH"
+    api: ApiConfig = Field(default_factory=ApiConfig)
+
+
+class ApiConfig(BaseModel):
     host: str = "127.0.0.1"
     port: int = 8765
     web_dist_dir: Path = Path("webapp/dist")
     cors_origins: list[str] = ["http://localhost:5173"]
+    mongo_connect_timeout_ms: int = 1000
 ```
 
-The API does not import a global project config module during app startup. Runtime settings load explicitly from `src.runtime.settings`, and API startup must not prompt, exit, or initialize voice/OBS-related paths.
-
-`ApiConfig` does not import `MongoSRVDsn` from root `config.py`; API configuration is self-contained. When DSN validation is needed, `src/api/config.py` defines its own local annotated type.
+`ApiConfig` is a distinct nested settings object under `Config.api`. Shared database settings such as `mongo_dsn` and `db_name` remain on the main `Config`, while API-specific settings such as `host`, `port`, `web_dist_dir`, `cors_origins`, and `mongo_connect_timeout_ms` live on `ApiConfig`.
 
 Environment variables:
 
 - `AICOACH_MONGO_DSN`
 - `AICOACH_DB_NAME`
-- `AICOACH_API_HOST`
-- `AICOACH_API_PORT`
-- `AICOACH_API_WEB_DIST_DIR`
-- `AICOACH_API_CORS_ORIGINS`
-
-The API uses `MongoDatabase` and `MongoDatabaseConfig` with values from `ApiConfig`; it does not rely on the global project config object.
+- `AICOACH_API__HOST`
+- `AICOACH_API__PORT`
+- `AICOACH_API__WEB_DIST_DIR`
+- `AICOACH_API__CORS_ORIGINS`
+- `AICOACH_API__MONGO_CONNECT_TIMEOUT_M
 
 ## Import-Safe Model Imports
 
-The API is standalone only when registered model modules import without constructing the full coach config.
+The API is standalone only when registered model modules import without constructing the full coach.
 
 Import safety requirements:
 
-- `src.replays.types` has no module-import dependency on the global `config.config` object. Config access is localized to methods that need it, such as `ToonHandle.from_id()` and `Replay.default_projection()`.
-- `src.persistence.conversation_store` has no module-import dependency on the global `config.config` object. Pricing config access is localized to `AIResponseRecord.from_response()`.
-- `src.persistence.session_store` does not import `AIBackend` from a root config module. Shared enums needed by DB models live in an import-safe module under `src.runtime.settings`.
-- `src.mapstats` has no API-startup dependency on global config. Map stats are available when their aggregation model is import-safe.
-
-There is no root `config.py` module constructing global settings during module import. DB model modules use explicit settings loading or targeted lazy imports where needed so FastAPI can import models safely.
-
-Import-safety test:
-
-```python
-def test_api_model_imports_do_not_construct_global_config():
-    import src.api.app
-```
-
-This test passes without prompting, exiting, initializing directories, or importing voice/OBS dependencies.
+- If coach application code is being run on import, this needs to be called out during API develepment
 
 ## Runnable Entry Points
 
@@ -172,7 +139,6 @@ Resource route families:
 - `/api/conversation-items`
 - `/api/responses`
 - `/api/map-stats`
-- `/api/schema`
 - `/api/health`
 
 Specific relationship and alternate-key routes are registered before broad `/{id}` routes. Examples:
@@ -353,39 +319,18 @@ Response:
 
 MongoDB connectivity failures return `503`.
 
-### `GET /api/resources`
+### `GET /api/openapi.json`
 
-Returns the public API resources and UI metadata.
+Returns the FastAPI-generated OpenAPI document for the API.
 
-Response fields per resource:
+The response is generated from FastAPI route metadata and Pydantic models.
 
-- `name`
-- `path`
-- `collection`
-- `title`
-- `id_field`
-- `read_only`
-- `capabilities`
-- `relationships`
-- `schema_url`
-- `available`
-- `unavailable_reason`
+Required behavior:
 
-### `GET /api/schema/{resource}`
-
-Returns the Pydantic JSON schema for a resource model plus API metadata.
-
-The response is based on `Model.model_json_schema()`.
-
-Supported resources:
-
-- `replays`
-- `metadata`
-- `players`
-- `sessions`
-- `conversations`
-- `conversation-items`
-- `responses`
+- Keep this on FastAPI's built-in OpenAPI machinery rather than maintaining a custom schema endpoint.
+- Resource request and response models appear in `components.schemas` when referenced by registered routes.
+- Query parameter and response envelope shapes are documented through the same generated OpenAPI document.
+- Optional developer docs UIs such as Swagger UI or ReDoc may be exposed through FastAPI's built-in `docs_url` and `redoc_url`, but the stable machine-readable contract is the OpenAPI JSON document.
 
 ## Replay Endpoints
 
@@ -810,12 +755,6 @@ The endpoint sets `status=closed` and `closed_at` using the model's close behavi
 
 This endpoint is part of the broader admin API but is not required by the primary read-oriented conversation screen.
 
-### `POST /api/conversations/{conversation_id}/archive`
-
-Archives a conversation by setting `status=archived`. It returns the updated conversation.
-
-This endpoint is part of the broader admin API but is not required by the primary read-oriented conversation screen.
-
 ## Conversation Item Endpoints
 
 Model: `src.persistence.conversation_store.AIConversationItem`
@@ -834,7 +773,6 @@ Common filters:
 - `session`
 - `type`
 - `role`
-- `included_in_context`
 
 ### `POST /api/conversation-items/query`
 
@@ -877,7 +815,6 @@ Common filters:
 - `response_id`
 - `model`
 - `status`
-- `streamed`
 
 Default sort: `-created_at`.
 
@@ -924,83 +861,38 @@ Lists map matchup stats.
 Query parameters:
 
 - `map`: optional map name filter.
-- `min_date`: inclusive ISO datetime lower bound for replay `date`; alias of `from_date`.
-- `from_date`: inclusive ISO datetime lower bound for replay `date`.
-- `to_date`: inclusive ISO datetime upper bound for replay `date`.
+- `min_date`: inclusive ISO datetime lower bound for replay `date`.
 
-Date filtering is applied before the matchup aggregation. A request with only `min_date` or `from_date` matches replays where `Replay.date >= value`. A request with both `from_date` and `to_date` matches the closed date range. If both `min_date` and `from_date` are supplied, they must represent the same instant or the API returns `400`.
+This endpoint should reuse the existing `src.mapstats.MatchupsByMap` model and the same query pattern already used by the coach application. The server configures the existing aggregation pipeline and reads `MatchupsByMap` documents from the `replays` collection with an additional replay filter.
+
+Supported filtering is intentionally limited to what that existing concept already supports:
+
+- optional `Replay.map_name == map`
+- optional `Replay.date >= min_date`
+
+If `min_date` is omitted, the API uses the same default as the existing coach code: `settings.season_start`.
+
+The API does not add a separate map-stats-specific query language, arbitrary grouping options, named range comparisons, or upper-bound date filters that the existing model does not support.
 
 Examples:
 
 - `GET /api/map-stats?map=Site%20Delta%20LE&min_date=2026-05-01T00:00:00Z`
-- `GET /api/map-stats?from_date=2026-05-01T00:00:00Z&to_date=2026-05-07T23:59:59Z`
+- `GET /api/map-stats?min_date=2026-05-01T00:00:00Z`
 
-### `POST /api/map-stats/query`
-
-Runs a read-only advanced map stats query.
-
-The request body combines the standard replay filter surface with structured aggregation options:
+Response items use the existing `MatchupsByMap` shape:
 
 ```json
 {
-    "filter": {
-        "map_name": {"$in": ["Site Delta LE", "Amphion LE"]},
-        "date": {"$gte": "2026-04-01T00:00:00Z"}
-    },
-    "date_range": {
-        "from_date": "2026-04-01T00:00:00Z",
-        "to_date": "2026-05-07T23:59:59Z"
-    },
-    "ranges": [
-        {"name": "season", "from_date": "2026-04-01T00:00:00Z", "to_date": null},
-        {"name": "today", "from_date": "2026-05-07T00:00:00Z", "to_date": null}
-    ],
-    "group_by": ["map", "matchup"],
-    "metrics": ["games", "wins", "losses", "winrate"],
-    "sort": {"games": -1},
-    "limit": 100,
-    "include_pipeline": false
-}
-```
-
-Fields:
-
-- `filter`: guarded raw MongoDB filter applied to the `replays` collection before aggregation.
-- `date_range`: convenience date filter using the same inclusive semantics as `GET /api/map-stats`.
-- `ranges`: optional named date ranges, each aggregated independently after applying the base filter.
-- `group_by`: ordered list of supported grouping dimensions. Supported values are `map`, `matchup`, `player_race`, `opponent_race`, `result`, `date_day`, `date_week`, and `date_month`.
-- `metrics`: requested metric fields. Supported values are `games`, `wins`, `losses`, and `winrate`.
-- `sort`: sort over returned group fields or metric fields.
-- `limit`: maximum number of groups returned.
-- `include_pipeline`: when true, includes the effective read-only aggregation pipeline in the response for admin inspection.
-
-The endpoint does not accept arbitrary aggregation pipelines. It uses a fixed server-side aggregation builder so the API can validate grouping dimensions, metric names, result shape, and allowed filter operators.
-
-Response shape:
-
-```json
-{
-    "filter": {},
-    "date_range": {
-        "from_date": "2026-04-01T00:00:00Z",
-        "to_date": "2026-05-07T23:59:59Z"
-    },
-    "group_by": ["map", "matchup"],
-    "metrics": ["games", "wins", "losses", "winrate"],
-    "groups": [
+    "map": "Site Delta LE",
+    "matchups": [
         {
-            "key": {"map": "Site Delta LE", "matchup": "ZvT"},
-            "games": 12,
+            "matchup": "ZvT",
+            "totalGames": 12,
             "wins": 7,
             "losses": 5,
-            "winrate": 58.3333333333,
-            "ranges": {
-                "season": {"games": 12, "wins": 7, "losses": 5, "winrate": 58.3333333333},
-                "today": {"games": 2, "wins": 1, "losses": 1, "winrate": 50.0}
-            }
+            "winrate": 0.5833333333
         }
-    ],
-    "pipeline": null
+    ]
 }
 ```
 
@@ -1010,47 +902,11 @@ Returns stats for one map.
 
 Query parameters:
 
-- `min_date`: inclusive ISO datetime lower bound for replay `date`; alias of `from_date`.
-- `from_date`: inclusive ISO datetime lower bound for replay `date`.
-- `to_date`: inclusive ISO datetime upper bound for replay `date`.
+- `min_date`: inclusive ISO datetime lower bound for replay `date`.
 
-This endpoint is equivalent to `GET /api/map-stats?map={map_name}` and serves clients that address a known map directly.
+This endpoint is equivalent to calling the existing `get_map_stats(map_name, min_date=...)` helper from `src.mapstats` and returning its `MatchupsByMap` result.
 
-### `GET /api/map-stats/{map_name}/ranges`
-
-Returns map stats for multiple named date ranges in one response.
-
-Query parameters:
-
-- `range`: repeated range expression in the form `name:from_date:to_date`, where `to_date` may be empty for an open-ended range.
-
-Example:
-
-- `GET /api/map-stats/Site%20Delta%20LE/ranges?range=season:2026-04-01T00:00:00Z:&range=today:2026-05-07T00:00:00Z:`
-
-Response shape:
-
-```json
-{
-    "map": "Site Delta LE",
-    "ranges": [
-        {
-            "name": "season",
-            "from_date": "2026-04-01T00:00:00Z",
-            "to_date": null,
-            "stats": {}
-        },
-        {
-            "name": "today",
-            "from_date": "2026-05-07T00:00:00Z",
-            "to_date": null,
-            "stats": {}
-        }
-    ]
-}
-```
-
-If map stats are not available in a deployment, `/api/resources` reports the resource as unavailable and includes the reason.
+If no grouped result exists for the requested map after applying the supported filter, the API returns `404`.
 
 ## Static Webapp Serving
 
@@ -1075,8 +931,7 @@ API tests use FastAPI `TestClient` and the project MongoDB test service pattern.
 Minimum coverage:
 
 - `GET /api/health` returns ok with a reachable test database.
-- `GET /api/resources` lists available and unavailable resource families.
-- `GET /api/schema/{resource}` returns valid JSON schema.
+- `GET /api/openapi.json` returns a valid OpenAPI document.
 - CRUD round trip for `Metadata`.
 - CRUD round trip for `AIConversation` and `AIConversationItem`.
 - `GET /api/conversations/{conversation_id}/items` returns ordered items.
@@ -1084,9 +939,8 @@ Minimum coverage:
 - `GET /api/conversations/{conversation_id}/detail` returns conversation, optional session/replay context, and the complete ordered item flow without response records.
 - `GET /api/sessions/{session_id}/conversations` returns linked conversations.
 - `GET /api/replays/{replay_id}/metadata` returns linked metadata.
-- `GET /api/map-stats/{map_name}` applies inclusive date filters before aggregation.
-- `GET /api/map-stats/{map_name}/ranges` returns separate stats for named date ranges.
-- `POST /api/map-stats/query` returns grouped read-only aggregation results and rejects unsupported grouping dimensions, metric names, write operators, and JavaScript execution operators.
+- `GET /api/map-stats` returns `MatchupsByMap` results using the existing aggregation model with optional `map` and `min_date` replay filters.
+- `GET /api/map-stats/{map_name}` returns one `MatchupsByMap` result using the same existing aggregation model and `min_date` filter behavior as the coach code.
 - `GET /api/players/{toon_handle}/portrait` returns image bytes for a player portrait.
 - `GET /api/players/{toon_handle}/portrait/constructed` returns image bytes for a constructed player portrait.
 - `GET /api/players/{toon_handle}/aliases/{alias_index}/portraits/{portrait_index}` returns image bytes for an alias portrait.
