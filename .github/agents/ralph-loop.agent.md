@@ -149,9 +149,11 @@ You must:
 4. Run user tests: Start the application and use the browser to access the frontend. Go through the user stories related to the issue you are verifying. Ensure that the implemented feature works as expected from the user's perspective. Be careful to not fail the test on yet unimplemented features that are not part of the current task.
 5. If the implementation is incorrect or incomplete, add a comment detailing what is wrong and what needs to be fixed. Remove the `to-be-verified` label and add the `incomplete` label. Return control to the orchestrator.
 6. If the implementation is correct and meets all criteria, add a comment to the issue with your test results (including which user stories you tested and how) and close the issue.
-6b. Commit strategy:Create a concise conventional commit message focused on user impact.
-6c. Commit and push all changes. 
-6d. Once you have finished verifying one task, STOP and return control to the orchestrator.
+
+On success:
+Success 1. Commit strategy:Create a concise conventional commit message focused on user impact.
+Success 2. Commit and push all changes. 
+Success 3. Once you have finished verifying one task, STOP and return control to the orchestrator. Do not return if work has not been committed. 
 
 In all cases, shutdown all running instances of the application and kill any related terminal processes before returning control to the orchestrator.
 
