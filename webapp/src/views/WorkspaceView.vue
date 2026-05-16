@@ -1,9 +1,20 @@
 <script setup lang="ts">
+import KeyValueGrid from "../components/KeyValueGrid.vue";
+import PanelHeading from "../components/PanelHeading.vue";
 import { adminAreas, resourceRegistry } from "../route-registry";
 
 const primaryAreas = adminAreas.filter(
   (area) => !resourceRegistry.some((resource) => area.id === resource.name),
 );
+
+const workspaceMetricItems = [
+  { label: "Admin areas", value: adminAreas.length },
+  { label: "Registry resources", value: resourceRegistry.length },
+  {
+    label: "Write-enabled families",
+    value: resourceRegistry.filter((resource) => resource.writable).length,
+  },
+];
 </script>
 
 <template>
@@ -18,31 +29,16 @@ const primaryAreas = adminAreas.filter(
         </p>
       </div>
 
-      <dl class="data-grid hero-metrics">
-        <div class="data-card">
-          <dt>Admin areas</dt>
-          <dd>{{ adminAreas.length }}</dd>
-        </div>
-        <div class="data-card">
-          <dt>Registry resources</dt>
-          <dd>{{ resourceRegistry.length }}</dd>
-        </div>
-        <div class="data-card">
-          <dt>Write-enabled families</dt>
-          <dd>{{ resourceRegistry.filter((resource) => resource.writable).length }}</dd>
-        </div>
-      </dl>
+      <KeyValueGrid class="hero-metrics" :items="workspaceMetricItems" />
     </header>
 
     <section class="workspace-grid">
       <article class="panel">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Primary routes</p>
-            <h3>Workspace areas</h3>
-          </div>
-          <span class="pill">Fixed route table</span>
-        </div>
+        <PanelHeading eyebrow="Primary routes" title="Workspace areas">
+          <template #aside>
+            <span class="pill">Fixed route table</span>
+          </template>
+        </PanelHeading>
 
         <ul class="list workspace-list">
           <li v-for="area in primaryAreas" :key="area.id" class="list-row">
@@ -53,13 +49,11 @@ const primaryAreas = adminAreas.filter(
       </article>
 
       <article class="panel">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Resource families</p>
-            <h3>Registry-backed maintenance</h3>
-          </div>
-          <span class="pill pill--amber">CRUD where supported</span>
-        </div>
+        <PanelHeading eyebrow="Resource families" title="Registry-backed maintenance">
+          <template #aside>
+            <span class="pill pill--amber">CRUD where supported</span>
+          </template>
+        </PanelHeading>
 
         <ul class="list workspace-list">
           <li v-for="resource in resourceRegistry" :key="resource.name" class="list-row">
@@ -79,12 +73,7 @@ const primaryAreas = adminAreas.filter(
       </article>
 
       <article class="panel briefing-panel">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Design direction</p>
-            <h3>What this shell should signal</h3>
-          </div>
-        </div>
+        <PanelHeading eyebrow="Design direction" title="What this shell should signal" />
 
         <div class="tag-row brief-tags">
           <span class="pill pill--accent">Dense desktop-first workflow</span>

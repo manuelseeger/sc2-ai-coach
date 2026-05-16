@@ -57,6 +57,20 @@ That generic layer is registry-backed in the client. It is not driven by runtime
 
 The registry includes both writable and read-only route families. Create, patch, replace, and delete actions are exposed only for route families where the API supports them: `replays`, `metadata`, `players`, and `conversations`. `sessions`, `conversation-items`, and `responses` support generic list/detail/query reads only, with conversation-item creation exposed separately through the conversation-scoped append route.
 
+## Component Library
+
+The webapp should build up a local component library during implementation.
+
+That library is incremental rather than speculative:
+
+- Do not build a broad component kit up front.
+- Implement the first concrete product slice directly where it is needed.
+- Once a view exposes a reusable UI pattern during item development, extract that pattern into a reusable component under `webapp/src/components/` before continuing to the next item.
+- Prefer extraction for proven, repeated operator-facing patterns such as metric grids, panel headers, status pills, empty states, and relationship list rows.
+- Avoid abstraction for one-off markup that has not yet demonstrated reuse pressure.
+
+This keeps delivery item-oriented while still compounding reuse over time. New work should look for existing components first, and only introduce new shared components when the current item reveals a clear reusable seam.
+
 Conversation-view principles:
 
 - The curated conversation screen is a read-oriented review surface, not a transcript authoring or lifecycle-action surface.

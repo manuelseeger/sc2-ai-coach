@@ -1,40 +1,38 @@
 <script setup lang="ts">
+import { computed } from "vue";
+
+import KeyValueGrid from "../components/KeyValueGrid.vue";
+import PanelHeading from "../components/PanelHeading.vue";
 import type { ResourceDefinition } from "../types";
 
-defineProps<{
+const props = defineProps<{
   resource: ResourceDefinition;
 }>();
+
+const resourceItems = computed(() => [
+  { label: "Route family", value: `/api/${props.resource.name}`, valueClass: "kv-grid__mono" },
+  {
+    label: "Default stance",
+    value: props.resource.writable ? "Operator maintenance" : "Inspection only",
+  },
+  { label: "Current slice", value: "Scaffold placeholder" },
+]);
 </script>
 
 <template>
   <section class="page">
     <article class="panel resource-panel">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Registry-backed route</p>
-          <h2>{{ resource.label }}</h2>
-        </div>
-        <span class="pill" :class="resource.writable ? 'pill--accent' : 'pill--amber'">
-          {{ resource.writable ? "Write-enabled" : "Read only" }}
-        </span>
-      </div>
+      <PanelHeading eyebrow="Registry-backed route" :title="resource.label" level="h2">
+        <template #aside>
+          <span class="pill" :class="resource.writable ? 'pill--accent' : 'pill--amber'">
+            {{ resource.writable ? "Write-enabled" : "Read only" }}
+          </span>
+        </template>
+      </PanelHeading>
 
       <p class="panel-intro">{{ resource.description }}</p>
 
-      <div class="data-grid resource-grid">
-        <div class="data-card">
-          <dt>Route family</dt>
-          <dd>/api/{{ resource.name }}</dd>
-        </div>
-        <div class="data-card">
-          <dt>Default stance</dt>
-          <dd>{{ resource.writable ? "Operator maintenance" : "Inspection only" }}</dd>
-        </div>
-        <div class="data-card">
-          <dt>Current slice</dt>
-          <dd>Scaffold placeholder</dd>
-        </div>
-      </div>
+      <KeyValueGrid :items="resourceItems" />
 
       <div class="list-row state-block">
         <strong>Implementation note</strong>
@@ -50,21 +48,6 @@ defineProps<{
 .resource-panel {
   display: grid;
   gap: 18px;
-}
-
-h2 {
-  margin: 6px 0 0;
-  font-family: var(--font-display);
-  font-size: clamp(1.8rem, 3vw, 2.8rem);
-  line-height: 0.94;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
-.resource-grid dd {
-  font-size: 1rem;
-  font-family: var(--font-mono);
-  overflow-wrap: anywhere;
 }
 
 .state-block {

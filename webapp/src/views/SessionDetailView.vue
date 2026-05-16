@@ -3,6 +3,8 @@ import { computed, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
+import KeyValueGrid from "../components/KeyValueGrid.vue";
+import PanelHeading from "../components/PanelHeading.vue";
 import { loadSessionDetail } from "../sessions";
 import type { ConversationRecord, SessionRecord } from "../types";
 
@@ -15,6 +17,24 @@ const session = ref<SessionRecord | null>(null);
 const conversations = ref<ConversationRecord[]>([]);
 
 const sessionId = computed(() => String(route.params.sessionId ?? ""));
+
+const sessionMetricItems = computed(() => {
+  if (!session.value) {
+    return [];
+  }
+
+  return [
+    { label: "Session ID", value: session.value.id },
+    { label: "Current conversation", value: session.value.current_conversation ?? "None" },
+    { label: "Twitch conversation", value: session.value.twitch_conversation ?? "None" },
+    { label: "Total tokens", value: session.value.total_tokens },
+    { label: "Total input tokens", value: session.value.total_input_tokens },
+    { label: "Total output tokens", value: session.value.total_output_tokens },
+    { label: "Prompt pricing", value: `$${session.value.prompt_pricing.toFixed(2)}` },
+    { label: "Completion pricing", value: `$${session.value.completion_pricing.toFixed(2)}` },
+    { label: "Total cost", value: `$${session.value.total_cost.toFixed(2)}` },
+  ];
+});
 
 function formatDate(value: string | null): string {
   if (!value) {
@@ -68,62 +88,24 @@ watch(
     <template v-else-if="session">
       <section class="detail-grid">
         <article class="panel">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Overview</p>
-              <h3>{{ formatDate(session.session_date) }}</h3>
-            </div>
-            <span class="tag">{{ session.ai_backend }}</span>
-          </div>
+          <PanelHeading eyebrow="Overview" :title="formatDate(session.session_date)">
+            <template #aside>
+              <span class="tag">{{ session.ai_backend }}</span>
+            </template>
+          </PanelHeading>
 
-          <dl class="data-grid session-metrics">
-            <div class="data-card">
-              <dt>Session ID</dt>
-              <dd>{{ session.id }}</dd>
-            </div>
-            <div class="data-card">
-              <dt>Current conversation</dt>
-              <dd>{{ session.current_conversation ?? "None" }}</dd>
-            </div>
-            <div class="data-card">
-              <dt>Twitch conversation</dt>
-              <dd>{{ session.twitch_conversation ?? "None" }}</dd>
-            </div>
-            <div class="data-card">
-              <dt>Total tokens</dt>
-              <dd>{{ session.total_tokens }}</dd>
-            </div>
-            <div class="data-card">
-              <dt>Total input tokens</dt>
-              <dd>{{ session.total_input_tokens }}</dd>
-            </div>
-            <div class="data-card">
-              <dt>Total output tokens</dt>
-              <dd>{{ session.total_output_tokens }}</dd>
-            </div>
-            <div class="data-card">
-              <dt>Prompt pricing</dt>
-              <dd>${{ session.prompt_pricing.toFixed(2) }}</dd>
-            </div>
-            <div class="data-card">
-              <dt>Completion pricing</dt>
-              <dd>${{ session.completion_pricing.toFixed(2) }}</dd>
-            </div>
-            <div class="data-card">
-              <dt>Total cost</dt>
-              <dd>${{ session.total_cost.toFixed(2) }}</dd>
-            </div>
-          </dl>
+          <KeyValueGrid class="session-metrics" :items="sessionMetricItems" />
         </article>
 
         <article class="panel">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Linked conversations</p>
-              <h3>{{ conversations.length }} persisted records</h3>
-            </div>
-            <span class="pill pill--amber">Read only</span>
-          </div>
+          <PanelHeading
+            eyebrow="Linked conversations"
+            :title="`${conversations.length} persisted records`"
+          >
+            <template #aside>
+              <span class="pill pill--amber">Read only</span>
+            </template>
+          </PanelHeading>
 
           <ul v-if="conversations.length > 0" class="list conversation-list">
             <li v-for="conversation in conversations" :key="conversation.id" class="list-row">
