@@ -44,6 +44,7 @@ def configure_application_logging(
 ) -> logging.Logger:
     warnings.filterwarnings("ignore")
     logging.getLogger("phonemizer").propagate = False
+    logging.getLogger("sc2reader").propagate = False
     install(show_locals=True)
 
     target = logger or log

@@ -6,11 +6,10 @@ import httpx
 from blizzardapi2 import BlizzardApi
 from pydantic import BaseModel, HttpUrl
 
+from log import DEFAULT_LOGGER_NAME
 from shared import REGION_MAP
 from src.replays.types import ToonHandle
 from src.runtime.settings import Config, get_config
-
-from log import DEFAULT_LOGGER_NAME
 
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
@@ -96,7 +95,7 @@ class BattleNet:
     def get_profile(self, profile_id: int) -> BattlenetProfile | None:
         try:
             p = self.api_client.starcraft2.community.get_profile(
-                region=self.settings.blizzard_region,
+                region=str(self.settings.blizzard_region),
                 region_id=self.region_id,
                 realm_id=self.realm_id,
                 profile_id=profile_id,
