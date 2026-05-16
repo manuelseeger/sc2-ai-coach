@@ -7,42 +7,67 @@ defineProps<{
 </script>
 
 <template>
-  <section class="panel">
-    <p class="kicker">Registry-backed route</p>
-    <h2>{{ resource.label }}</h2>
-    <p>{{ resource.description }}</p>
-    <p class="state">
-      {{ resource.writable ? "Writable resource flow arrives in a later slice." : "Read-only resource flow arrives in a later slice." }}
-    </p>
+  <section class="page">
+    <article class="panel resource-panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Registry-backed route</p>
+          <h2>{{ resource.label }}</h2>
+        </div>
+        <span class="pill" :class="resource.writable ? 'pill--accent' : 'pill--amber'">
+          {{ resource.writable ? "Write-enabled" : "Read only" }}
+        </span>
+      </div>
+
+      <p class="panel-intro">{{ resource.description }}</p>
+
+      <div class="data-grid resource-grid">
+        <div class="data-card">
+          <dt>Route family</dt>
+          <dd>/api/{{ resource.name }}</dd>
+        </div>
+        <div class="data-card">
+          <dt>Default stance</dt>
+          <dd>{{ resource.writable ? "Operator maintenance" : "Inspection only" }}</dd>
+        </div>
+        <div class="data-card">
+          <dt>Current slice</dt>
+          <dd>Scaffold placeholder</dd>
+        </div>
+      </div>
+
+      <div class="list-row state-block">
+        <strong>Implementation note</strong>
+        <p>
+          {{ resource.writable ? "Create, patch, replace, and delete affordances belong here only when the API exposes them." : "List, detail, and query reads stay available here without generic write actions." }}
+        </p>
+      </div>
+    </article>
   </section>
 </template>
 
 <style scoped>
-.panel {
-  padding: 24px;
-  border-radius: 24px;
-  background: rgba(255, 252, 246, 0.86);
-  border: 1px solid rgba(28, 40, 50, 0.12);
-  box-shadow: 0 12px 30px rgba(28, 40, 50, 0.08);
-}
-
-.kicker {
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: #8f5f2a;
-  font-size: 0.8rem;
+.resource-panel {
+  display: grid;
+  gap: 18px;
 }
 
 h2 {
-  margin: 8px 0 12px;
+  margin: 6px 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  line-height: 0.94;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
-p {
-  line-height: 1.6;
+.resource-grid dd {
+  font-size: 1rem;
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
 }
 
-.state {
-  color: #62717a;
+.state-block {
+  margin-top: 4px;
 }
 </style>
