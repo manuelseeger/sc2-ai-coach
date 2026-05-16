@@ -32,7 +32,7 @@
   --radius-lg: 18px;
   --radius-md: 12px;
   --radius-sm: 8px;
-  --sidebar-width: 292px;
+  --sidebar-width: 240px;
   --page-max-width: 1420px;
   --content-padding: 32px;
   --content-padding-compact: 18px;
@@ -138,15 +138,15 @@ select {
 
 .brand-block {
   display: grid;
-  gap: 12px;
-  padding-bottom: 18px;
+  gap: 4px;
+  padding-bottom: 16px;
   border-bottom: 1px solid var(--border-muted);
 }
 
 .eyebrow {
   margin: 0;
   color: var(--accent);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-family: var(--font-display);
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -155,9 +155,9 @@ select {
 .brand-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(1.8rem, 3vw, 2.45rem);
-  line-height: 0.9;
-  letter-spacing: 0.05em;
+  font-size: clamp(1.4rem, 2.5vw, 1.9rem);
+  line-height: 0.95;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -232,14 +232,32 @@ select {
 
 .nav-link span {
   font-family: var(--font-display);
-  font-size: 0.98rem;
+  font-size: 0.95rem;
   letter-spacing: 0.09em;
   text-transform: uppercase;
+  color: var(--text);
 }
 
 .nav-link small {
   color: var(--text-muted);
+  font-size: 0.78rem;
   line-height: 1.35;
+}
+
+.nav-section-label {
+  margin: 0 0 4px;
+  padding: 0 18px;
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  font-family: var(--font-display);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.nav-divider {
+  height: 1px;
+  background: var(--border-muted);
+  margin: 6px 0;
 }
 
 .rail-footer {
@@ -392,6 +410,30 @@ select {
   margin: 0;
   color: var(--text-dim);
   line-height: 1.55;
+}
+
+.list-row--linked {
+  position: relative;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.list-row--linked:hover {
+  border-color: var(--border-strong);
+  background:
+    linear-gradient(180deg, rgba(16, 24, 38, 0.88), rgba(10, 16, 28, 0.96)),
+    var(--panel-stripe);
+}
+
+.list-row__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.list-row--linked .row-action {
+  position: relative;
+  z-index: 3;
 }
 
 .tag-row {

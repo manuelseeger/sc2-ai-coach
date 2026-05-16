@@ -30,7 +30,9 @@ export async function loadReplayDetail(apiClient: ApiClient, replayId: string): 
   players: ReplayPlayerRelationship[];
 }> {
   const replayPromise = apiClient.getResource<ReplayRecord>("replays", replayId);
-  const playersPromise = apiClient.getReplayPlayers<ReplayPlayerRelationship[]>(replayId);
+  const playersPromise = apiClient
+    .getReplayPlayers<ReplayPlayerRelationship[]>(replayId)
+    .catch(() => [] as ReplayPlayerRelationship[]);
   const metadataPromise = apiClient
     .getReplayMetadata<MetadataRecord>(replayId)
     .catch((error: unknown) => {

@@ -1,15 +1,21 @@
 <script setup lang="ts">
 import { RouterLink, RouterView, useRoute } from "vue-router";
 
-import { adminAreas } from "./route-registry";
+import { resourceRegistry } from "./route-registry";
 
 const route = useRoute();
+
+const primaryNav = [
+  { id: "workspace", label: "Home", path: "/", description: "Admin workspace" },
+  { id: "sessions", label: "Sessions", path: "/sessions", description: "Coaching sessions" },
+  { id: "replays", label: "Replays", path: "/replays", description: "Replay review" },
+  { id: "health", label: "Health", path: "/health", description: "Backend status" },
+];
 
 function isAreaActive(path: string): boolean {
   if (path === "/") {
     return route.path === "/";
   }
-
   return route.path === path || route.path.startsWith(`${path}/`);
 }
 </script>
@@ -18,38 +24,38 @@ function isAreaActive(path: string): boolean {
   <div class="shell">
     <aside class="sidebar">
       <div class="brand-block">
-        <p class="eyebrow">SC2 AI Coach</p>
-        <h1 class="brand-title">Operator Console</h1>
-        <p class="brand-summary">
-          Fixed admin routes over the documented API surface. No runtime discovery, no direct
-          database browsing.
-        </p>
-
-        <div class="status-strip">
-          <span class="pill pill--accent">Domain-shaped routes</span>
-          <span class="pill pill--amber">Registry-backed CRUD</span>
-        </div>
+        <RouterLink to="/" class="brand-link">
+          <p class="eyebrow">SC2 AI Coach</p>
+          <h1 class="brand-title">Admin</h1>
+        </RouterLink>
       </div>
 
       <nav class="nav">
+        <p class="nav-section-label">Workspace</p>
         <RouterLink
-          v-for="area in adminAreas"
+          v-for="area in primaryNav"
           :key="area.id"
           :to="area.path"
           class="nav-link"
           :class="{ active: isAreaActive(area.path) }"
         >
           <span>{{ area.label }}</span>
-          <small>{{ area.description }}</small>
+        </RouterLink>
+
+        <div class="nav-divider" />
+        <p class="nav-section-label">Resources</p>
+
+        <RouterLink
+          v-for="resource in resourceRegistry"
+          :key="resource.name"
+          :to="`/resources/${resource.name}`"
+          class="nav-link nav-link--resource"
+          :class="{ active: isAreaActive(`/resources/${resource.name}`) }"
+        >
+          <span>{{ resource.label }}</span>
+          <small v-if="!resource.writable" class="nav-link__badge">read only</small>
         </RouterLink>
       </nav>
-
-      <section class="rail-footer">
-        <strong>Current stance</strong>
-        <p>
-          Curated resource workflows stay primary. Generic maintenance remains a fallback surface.
-        </p>
-      </section>
     </aside>
 
     <main class="content">
@@ -57,3 +63,30 @@ function isAreaActive(path: string): boolean {
     </main>
   </div>
 </template>
+
+<style>
+.brand-link {
+  display: block;
+  text-decoration: none;
+}
+
+.nav-link--resource {
+  padding: 9px 14px 9px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nav-link--resource span {
+  font-size: 0.87rem;
+}
+
+.nav-link__badge {
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  font-family: var(--font-display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+</style>

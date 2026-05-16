@@ -19,29 +19,23 @@ const conversations = ref<ConversationRecord[]>([]);
 const sessionId = computed(() => String(route.params.sessionId ?? ""));
 
 const sessionMetricItems = computed(() => {
-  if (!session.value) {
-    return [];
-  }
+  if (!session.value) return [];
 
   return [
-    { label: "Session ID", value: session.value.id },
-    { label: "Current conversation", value: session.value.current_conversation ?? "None" },
-    { label: "Twitch conversation", value: session.value.twitch_conversation ?? "None" },
-    { label: "Total tokens", value: session.value.total_tokens },
-    { label: "Total input tokens", value: session.value.total_input_tokens },
-    { label: "Total output tokens", value: session.value.total_output_tokens },
-    { label: "Prompt pricing", value: `$${session.value.prompt_pricing.toFixed(2)}` },
-    { label: "Completion pricing", value: `$${session.value.completion_pricing.toFixed(2)}` },
-    { label: "Total cost", value: `$${session.value.total_cost.toFixed(2)}` },
+    { label: "Session ID", value: session.value.id, valueClass: "kv-grid__mono" },
+    { label: "AI backend", value: session.value.ai_backend },
+    { label: "Total tokens", value: session.value.total_tokens.toLocaleString() },
+    { label: "Input tokens", value: session.value.total_input_tokens.toLocaleString() },
+    { label: "Output tokens", value: session.value.total_output_tokens.toLocaleString() },
+    { label: "Prompt cost", value: `$${session.value.prompt_pricing.toFixed(4)}` },
+    { label: "Completion cost", value: `$${session.value.completion_pricing.toFixed(4)}` },
+    { label: "Total cost", value: `$${session.value.total_cost.toFixed(4)}` },
   ];
 });
 
 function formatDate(value: string | null): string {
-  if (!value) {
-    return "Not recorded";
-  }
-
-  return new Date(value).toLocaleString();
+  if (!value) return "—";
+  return new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
 watch(
@@ -69,64 +63,119 @@ watch(
 
 <template>
   <section class="page session-detail-page">
-    <header class="panel page-hero">
-      <div>
-        <p class="eyebrow">Session detail</p>
-        <h2 class="page-hero__title">Persisted session review</h2>
-        <p class="panel-intro">
-          Read-only session data with linked conversations loaded from the backend relationship
-          route.
-        </p>
+    <header class="page-header">
+      <div class="page-header__breadcrumb">
+        <RouterLink to="/sessions" class="breadcrumb-link">← Sessions</RouterLink>
+        <h2 v-if="session" class="page-title">{{ formatDate(session.session_date) }}</h2>
+        <h2 v-else class="page-title">Session detail</h2>
       </div>
-
-      <RouterLink to="/sessions" class="pill pill--accent">Back to inbox</RouterLink>
+      <span v-if="session" class="tag">{{ session.ai_backend }}</span>
     </header>
 
-    <p v-if="loading" class="muted-copy">Loading session detail...</p>
-    <p v-else-if="errorMessage" class="muted-copy">{{ errorMessage }}</p>
+    <p v-if="loading" class="muted-copy">Loading…</p>
+    <p v-else-if="errorMessage" class="muted-copy error-copy">{{ errorMessage }}</p>
 
     <template v-else-if="session">
       <section class="detail-grid">
         <article class="panel">
-          <PanelHeading eyebrow="Overview" :title="formatDate(session.session_date)">
+          <PanelHeading eyebrow="Session overview" title="Metrics">
             <template #aside>
-              <span class="tag">{{ session.ai_backend }}</span>
+              <span class="pill pill--amber">Read only</span>
             </template>
           </PanelHeading>
-
           <KeyValueGrid class="list-block-spacing" :items="sessionMetricItems" />
         </article>
 
         <article class="panel">
           <PanelHeading
-            eyebrow="Linked conversations"
-            :title="`${conversations.length} persisted records`"
-          >
-            <template #aside>
-              <span class="pill pill--amber">Read only</span>
-            </template>
-          </PanelHeading>
+            eyebrow="Conversations"
+            :title="`${conversations.length} records`"
+          />
 
-          <ul v-if="conversations.length > 0" class="list list-block-spacing">
-            <li v-for="conversation in conversations" :key="conversation.id" class="list-row">
-              <div class="split-topline">
-                <strong>{{ conversation.title || conversation.id }}</strong>
-                <span class="tag">{{ conversation.status }}</span>
+          <p v-if="conversations.length === 0" class="muted-copy list-block-spacing">
+            No conversations recorded for this session.
+          </p>
+
+          <ul v-else class="list list-block-spacing">
+            <li
+              v-for="conversation in conversations"
+              :key="conversation.id"
+              class="list-row conversation-row"
+            >
+              <div class="conversation-row__head">
+                <span class="tag" :class="conversation.status === 'closed' ? '' : 'tag--ok'">
+                  {{ conversation.status }}
+                </span>
+                <span class="tag">{{ conversation.trigger }}</span>
               </div>
-              <p>
-                Trigger {{ conversation.trigger }}. Created
-                {{ formatDate(conversation.created_at) }}.
-              </p>
-              <div class="tag-row">
+              <p class="conversation-row__time">{{ formatDate(conversation.created_at) }}</p>
+              <div class="conversation-row__stats">
                 <span class="tag">{{ conversation.item_count }} items</span>
-                <span class="tag">Last item {{ formatDate(conversation.last_item_at) }}</span>
               </div>
             </li>
           </ul>
-
-          <p v-else class="muted-copy">No linked conversations were recorded for this session.</p>
         </article>
       </section>
     </template>
   </section>
 </template>
+
+<style scoped>
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 8px;
+}
+
+.page-header__breadcrumb {
+  display: grid;
+  gap: 4px;
+}
+
+.breadcrumb-link {
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-family: var(--font-display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: color 150ms ease;
+}
+
+.breadcrumb-link:hover {
+  color: var(--accent-strong);
+}
+
+.page-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 2.5vw, 2.2rem);
+  line-height: 0.95;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.conversation-row {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+}
+
+.conversation-row__head {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.conversation-row__time {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.conversation-row__stats {
+  display: flex;
+  gap: 6px;
+}
+</style>
