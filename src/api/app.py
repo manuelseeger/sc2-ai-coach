@@ -10,11 +10,13 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from src.api.errors import default_error_code, json_error
 from src.api.routers import (
+    build_conversation_items_router,
     build_conversations_router,
     build_health_router,
     build_metadata_router,
     build_players_router,
     build_replays_router,
+    build_responses_router,
     build_sessions_router,
 )
 from src.api.webapp import build_webapp_router
@@ -76,9 +78,11 @@ def create_app(
     app.include_router(build_health_router())
     app.include_router(build_sessions_router())
     app.include_router(build_replays_router())
+    app.include_router(build_conversation_items_router())
     app.include_router(build_conversations_router())
     app.include_router(build_metadata_router())
     app.include_router(build_players_router())
+    app.include_router(build_responses_router())
     app.include_router(build_webapp_router())
     return app
 

@@ -80,6 +80,24 @@ def player_not_found(toon_handle: str) -> None:
     )
 
 
+def response_not_found(identifier: str, *, key: str = "id") -> None:
+    raise_api_error(
+        status_code=404,
+        code="not_found",
+        message="Document not found",
+        details={"resource": "responses", key: identifier},
+    )
+
+
+def conversation_item_not_found(identifier: str) -> None:
+    raise_api_error(
+        status_code=404,
+        code="not_found",
+        message="Document not found",
+        details={"resource": "conversation-items", "id": identifier},
+    )
+
+
 def replay_metadata_not_found(
     replay_id: str,
     *,

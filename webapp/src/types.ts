@@ -96,6 +96,27 @@ export interface ConversationItemRecord {
   metadata: Record<string, unknown> | null;
 }
 
+export interface ResponseRecord {
+  id: string;
+  conversation: string;
+  session: string | null;
+  response_id: string | null;
+  model: string | null;
+  status: string | null;
+  streamed: boolean;
+  created_at: string;
+  input_tokens: number;
+  cached_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  input_cost: number;
+  cached_input_cost: number;
+  output_cost: number;
+  total_cost: number;
+  raw_usage: Record<string, unknown> | null;
+  metadata: Record<string, unknown> | null;
+}
+
 export interface ConversationInboxState {
   params: ListParams;
   selectedConversationId: string | null;
@@ -213,6 +234,7 @@ export interface ApiClient {
   getConversationItems<T>(conversationId: string, params?: ListParams): Promise<T>;
   createConversationItem<T>(conversationId: string, body: unknown): Promise<T>;
   getConversationResponses<T>(conversationId: string): Promise<T>;
+  getResponseByResponseId<T>(responseId: string): Promise<T>;
   getSessionConversations<T>(sessionId: string): Promise<T>;
   getReplayMetadata<T>(replayId: string): Promise<T>;
   getReplayPlayers<T>(replayId: string): Promise<T>;

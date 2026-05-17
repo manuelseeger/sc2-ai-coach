@@ -18,13 +18,22 @@ import ReplayDetailView from "./views/ReplayDetailView.vue";
 import ReplayInboxView from "./views/ReplayInboxView.vue";
 import ReplayResourceDetailView from "./views/ReplayResourceDetailView.vue";
 import ReplayResourceInboxView from "./views/ReplayResourceInboxView.vue";
+import ReadOnlyResourceDetailView from "./views/ReadOnlyResourceDetailView.vue";
+import ReadOnlyResourceInboxView from "./views/ReadOnlyResourceInboxView.vue";
 import ResourcePlaceholderView from "./views/ResourcePlaceholderView.vue";
 import SessionDetailView from "./views/SessionDetailView.vue";
 import SessionInboxView from "./views/SessionInboxView.vue";
 import WorkspaceView from "./views/WorkspaceView.vue";
 
+const implementedReadOnlyResources = resourceRegistry.filter((resource) =>
+  ["conversation-items", "responses"].includes(resource.name),
+);
+
 const placeholderResources = resourceRegistry.filter(
-  (resource) => !["conversations", "metadata", "players", "replays"].includes(resource.name),
+  (resource) =>
+    !["conversations", "metadata", "players", "replays", "conversation-items", "responses"].includes(
+      resource.name,
+    ),
 );
 
 export const routes = [
@@ -146,6 +155,24 @@ export const routes = [
     component: PlayerResourceDetailView,
     props: true,
   },
+  ...implementedReadOnlyResources.flatMap((resource) => [
+    {
+      path: `/resources/${resource.name}`,
+      name: `${resource.name}-inbox`,
+      component: ReadOnlyResourceInboxView,
+      props: {
+        resource,
+      },
+    },
+    {
+      path: `/resources/${resource.name}/:recordId`,
+      name: `${resource.name}-detail`,
+      component: ReadOnlyResourceDetailView,
+      props: {
+        resource,
+      },
+    },
+  ]),
   ...placeholderResources.map((resource) => ({
     path: `/resources/${resource.name}`,
     name: resource.name,

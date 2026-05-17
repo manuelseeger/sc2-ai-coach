@@ -399,6 +399,49 @@ class ConversationStore:
             ),
         )
 
+    def get_item(
+        self,
+        item_id: AIConversationItem | Id | str,
+    ) -> AIConversationItem | None:
+        return self.db.find_one(
+            Model=AIConversationItem,
+            query=eq(AIConversationItem.id, self._id(item_id)),  # type: ignore[arg-type]
+        )
+
+    def list_item_resources(
+        self,
+        *,
+        current_page: int = 1,
+        docs_per_page: int = 50,
+        conversation: Id | str | None = None,
+        session: Id | str | None = None,
+        type: AIConversationItemType | str | None = None,
+        role: AIMessageRole | str | None = None,
+        raw_query: dict[str, Any] | None = None,
+        raw_sort: dict[str, int] | None = None,
+    ) -> ResponsePaginate:
+        query = dict(raw_query or {})
+        if conversation is not None:
+            query["conversation"] = ObjectId(str(self._id(conversation)))
+        if session is not None:
+            query["session"] = ObjectId(str(self._id(session)))
+        if type is not None:
+            query["type"] = AIConversationItemType(type).value
+        if role is not None:
+            query["role"] = AIMessageRole(role).value
+
+        return cast(
+            ResponsePaginate,
+            self.db.find_many(
+                Model=AIConversationItem,
+                paginate=True,
+                current_page=current_page,
+                docs_per_page=docs_per_page,
+                raw_query=query,
+                raw_sort=raw_sort or {"created_at": -1},
+            ),
+        )
+
     def list_response_records(
         self,
         conversation: AIConversation | Id | str,
@@ -411,6 +454,61 @@ class ConversationStore:
                 Model=AIResponseRecord,
                 query=query,
                 sort=sort((AIResponseRecord.created_at, 1)),  # type: ignore[arg-type]
+            ),
+        )
+
+    def get_response_record_by_response_id(
+        self,
+        response_id: str,
+    ) -> AIResponseRecord | None:
+        return self.db.find_one(
+            Model=AIResponseRecord,
+            query=eq(AIResponseRecord.response_id, response_id),  # type: ignore[arg-type]
+        )
+
+    def get_response_record(
+        self,
+        record_id: AIResponseRecord | Id | str,
+    ) -> AIResponseRecord | None:
+        return self.db.find_one(
+            Model=AIResponseRecord,
+            query=eq(AIResponseRecord.id, self._id(record_id)),  # type: ignore[arg-type]
+        )
+
+    def list_response_record_resources(
+        self,
+        *,
+        current_page: int = 1,
+        docs_per_page: int = 50,
+        conversation: Id | str | None = None,
+        session: Id | str | None = None,
+        response_id: str | None = None,
+        model: str | None = None,
+        status: str | None = None,
+        raw_query: dict[str, Any] | None = None,
+        raw_sort: dict[str, int] | None = None,
+    ) -> ResponsePaginate:
+        query = dict(raw_query or {})
+        if conversation is not None:
+            query["conversation"] = ObjectId(str(self._id(conversation)))
+        if session is not None:
+            query["session"] = ObjectId(str(self._id(session)))
+        if response_id is not None:
+            query["response_id"] = response_id
+        if model is not None:
+            query["model"] = model
+        if status is not None:
+            query["status"] = status
+
+        return cast(
+            ResponsePaginate,
+            self.db.find_many(
+                Model=AIResponseRecord,
+                paginate=True,
+                current_page=current_page,
+                docs_per_page=docs_per_page,
+                raw_query=query,
+                raw_sort=raw_sort or {"created_at": -1},
             ),
         )
 

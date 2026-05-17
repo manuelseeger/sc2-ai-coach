@@ -117,6 +117,10 @@ export function createApiClient(baseUrl = "/api"): ApiClient {
     return request<T>(`/conversations/${encodeURIComponent(conversationId)}/responses`);
   }
 
+  function getResponseByResponseId<T>(responseId: string): Promise<T> {
+    return request<T>(`/responses/by-response-id/${encodeURIComponent(responseId)}`);
+  }
+
   function getSessionConversations<T>(sessionId: string): Promise<T> {
     return request<T>(`/sessions/${encodeURIComponent(sessionId)}/conversations`);
   }
@@ -162,6 +166,7 @@ export function createApiClient(baseUrl = "/api"): ApiClient {
     getConversationItems,
     createConversationItem,
     getConversationResponses,
+    getResponseByResponseId,
     getSessionConversations,
     getReplayMetadata,
     getReplayPlayers,

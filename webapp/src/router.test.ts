@@ -24,5 +24,9 @@ describe("router", () => {
     expect(routes.map((route) => route.path)).toContain("/resources/players");
     expect(routes.map((route) => route.path)).toContain("/resources/players/new");
     expect(routes.map((route) => route.path)).toContain("/resources/players/:toonHandle");
+    expect(routes.map((route) => route.path)).toContain("/resources/conversation-items");
+    expect(routes.map((route) => route.path)).toContain("/resources/conversation-items/:recordId");
+    expect(routes.map((route) => route.path)).toContain("/resources/responses");
+    expect(routes.map((route) => route.path)).toContain("/resources/responses/:recordId");
   });
 });
