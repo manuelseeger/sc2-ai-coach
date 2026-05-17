@@ -35,7 +35,8 @@ def test_add_metadata(replay_file):
     meta.description = "This is a test description 3"
     conversation = AIConversation(trigger=AIConversationTrigger.replay_summary)
     replay_store.db.save(conversation)
-    meta.replay_summary_conversation = conversation
+    assert conversation.id is not None
+    meta.replay_summary_conversation = str(conversation.id)
 
     meta.tags = ["test", "zvz", "muta"]
 
@@ -105,6 +106,38 @@ def test_upsert_new_replay():
 
     assert del_result.deleted_count == 1
     assert del_result.acknowledged
+
+
+def test_upsert_new_metadata_keeps_distinct_docs():
+    replay_id_1 = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    replay_id_2 = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+
+    for replay_id in (replay_id_1, replay_id_2):
+        existing = replay_store.get_metadata_by_replay_id(replay_id)
+        if existing is not None:
+            replay_store.delete_metadata(existing.id)
+
+    meta_1 = Metadata(replay=replay_id_1, description="first")
+    meta_2 = Metadata(replay=replay_id_2, description="second")
+
+    result_1 = replay_store.upsert(meta_1)
+    result_2 = replay_store.upsert(meta_2)
+
+    saved_1 = replay_store.get_metadata_by_replay_id(replay_id_1)
+    saved_2 = replay_store.get_metadata_by_replay_id(replay_id_2)
+
+    assert result_1.acknowledged
+    assert result_2.acknowledged
+    assert saved_1 is not None
+    assert saved_2 is not None
+    assert saved_1.description == "first"
+    assert saved_2.description == "second"
+    assert saved_1.id is not None
+    assert saved_2.id is not None
+    assert saved_1.id != saved_2.id
+
+    assert replay_store.delete_metadata(saved_1.id)
+    assert replay_store.delete_metadata(saved_2.id)
 
 
 def test_get_most_recent():

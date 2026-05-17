@@ -238,6 +238,12 @@ class ReplayStore:
         return True
 
     def upsert(self, model: ReplayStoreUpsertModel) -> DbResponse:
+        if isinstance(model, Metadata):
+            existing = self.get_metadata_by_replay_id(model.replay)
+            if existing is not None:
+                model.id = existing.id
+            return self.db.save(model)
+
         model_class = model.__class__
         try:
             return self.db.save(model, query=eq(model_class.id, model.id))  # type: ignore[arg-type]
