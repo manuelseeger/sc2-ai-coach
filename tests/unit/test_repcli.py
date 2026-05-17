@@ -3,6 +3,8 @@ import logging
 import sys
 import types
 
+from click.testing import CliRunner
+
 
 def test_importing_repcli_does_not_require_ambient_config(monkeypatch):
     for module_name in ["repcli", "config", "src.playerresolver", "src.replays.reader"]:
@@ -132,3 +134,110 @@ def test_build_runtime_constructs_persistence_explicitly(monkeypatch):
     ]
     assert runtime.replay_store is fake_replay_store
     assert runtime.player_identity_enricher is fake_player_identity_enricher
+
+
+def test_add_student_flag_persists_student_player_record(monkeypatch):
+    sys.modules.pop("repcli", None)
+    repcli = importlib.import_module("repcli")
+
+    student_name = "Student"
+    student_toon = "2-S2-1-111"
+    opponent_name = "Opponent"
+    opponent_toon = "2-S2-1-222"
+
+    class FakePlayerInfo:
+        def __init__(self, id, name, toon_handle):
+            self.id = id
+            self.name = name
+            self.toon_handle = toon_handle
+            self.aliases = []
+            self.portrait = None
+            self.portrait_constructed = None
+
+        def update_aliases(self, seen_on=None):
+            self.aliases.append(types.SimpleNamespace(name=self.name, seen_on=seen_on))
+
+    class FakeReplayStore:
+        def __init__(self):
+            self.find_calls = []
+            self.upserted = []
+
+        def find(self, model):
+            self.find_calls.append(model.toon_handle)
+            return None
+
+        def upsert(self, model):
+            self.upserted.append(model)
+            return types.SimpleNamespace(acknowledged=True)
+
+    fake_replay_store = FakeReplayStore()
+
+    class FakeReplay:
+        def __init__(self):
+            self.date = object()
+            self.student = types.SimpleNamespace(
+                name=student_name,
+                toon_handle=student_toon,
+            )
+            self.opponent = types.SimpleNamespace(
+                name=opponent_name,
+                toon_handle=opponent_toon,
+            )
+
+        def get_player(self, name, opponent=False):
+            assert name == student_name
+            return self.opponent if opponent else self.student
+
+        def get_opponent_of(self, name):
+            assert name == student_name
+            return self.opponent
+
+        def __str__(self):
+            return "fake-replay"
+
+    fake_replay = FakeReplay()
+
+    class FakeReplayReader:
+        def __init__(self, settings=None):
+            self.settings = settings
+
+        def load_replay_raw(self, file_path):
+            return file_path
+
+        def apply_filters(self, replay_raw):
+            return True
+
+        def to_typed_replay(self, replay_raw):
+            return fake_replay
+
+    fake_runtime = repcli.RepCliRuntime(
+        settings=types.SimpleNamespace(
+            replay_folder=".",
+            student=types.SimpleNamespace(name=student_name),
+        ),
+        reader=FakeReplayReader(),
+        replay_store=fake_replay_store,
+        replay_model=object,
+        player_info_model=FakePlayerInfo,
+        player_identity_enricher=types.SimpleNamespace(
+            save_from_replay=lambda replay: FakePlayerInfo(
+                opponent_toon,
+                opponent_name,
+                opponent_toon,
+            )
+        ),
+    )
+
+    monkeypatch.setattr(repcli, "_get_runtime", lambda ctx: fake_runtime)
+    monkeypatch.setattr(repcli, "syncreplay", lambda ctx, replay, summary, runtime: None)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        repcli.cli,
+        ["add", "--add-student", "missing.SC2Replay"],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    assert fake_replay_store.find_calls == [student_toon]
+    assert [player.toon_handle for player in fake_replay_store.upserted] == [student_toon]
