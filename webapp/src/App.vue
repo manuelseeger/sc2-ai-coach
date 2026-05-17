@@ -1,18 +1,11 @@
 <script setup lang="ts">
 import { RouterLink, RouterView, useRoute } from "vue-router";
 
-import { resourceRegistry } from "./route-registry";
+import { adminAreas, resourceRegistry } from "./route-registry";
 
 const route = useRoute();
 
-const primaryNav = [
-  { id: "workspace", label: "Home", path: "/", description: "Admin workspace" },
-  { id: "sessions", label: "Sessions", path: "/sessions", description: "Coaching sessions" },
-  { id: "conversations", label: "Conversations", path: "/conversations", description: "Conversation review" },
-  { id: "replays", label: "Replays", path: "/replays", description: "Replay review" },
-  { id: "players", label: "Players", path: "/players", description: "Player review" },
-  { id: "health", label: "Health", path: "/health", description: "Backend status" },
-];
+const primaryNav = adminAreas.filter((area) => !area.path.startsWith("/resources/"));
 
 function isAreaActive(path: string): boolean {
   if (path === "/") {

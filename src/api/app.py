@@ -13,6 +13,7 @@ from src.api.routers import (
     build_conversation_items_router,
     build_conversations_router,
     build_health_router,
+    build_map_stats_router,
     build_metadata_router,
     build_players_router,
     build_replays_router,
@@ -78,6 +79,7 @@ def create_app(
     app.include_router(build_health_router())
     app.include_router(build_sessions_router())
     app.include_router(build_replays_router())
+    app.include_router(build_map_stats_router())
     app.include_router(build_conversation_items_router())
     app.include_router(build_conversations_router())
     app.include_router(build_metadata_router())

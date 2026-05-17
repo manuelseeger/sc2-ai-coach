@@ -77,6 +77,12 @@ export const adminAreas: AdminArea[] = [
     path: "/players",
   },
   {
+    id: "map-stats-review",
+    label: "Map Stats",
+    description: "Read-only matchup reporting with supported map and lower-bound date filters.",
+    path: "/map-stats",
+  },
+  {
     id: "health",
     label: "Health",
     description: "Inspect backend readiness via the admin API.",
