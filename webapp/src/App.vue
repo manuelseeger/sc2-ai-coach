@@ -8,6 +8,7 @@ const route = useRoute();
 const primaryNav = [
   { id: "workspace", label: "Home", path: "/", description: "Admin workspace" },
   { id: "sessions", label: "Sessions", path: "/sessions", description: "Coaching sessions" },
+  { id: "conversations", label: "Conversations", path: "/conversations", description: "Conversation review" },
   { id: "replays", label: "Replays", path: "/replays", description: "Replay review" },
   { id: "health", label: "Health", path: "/health", description: "Backend status" },
 ];

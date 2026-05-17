@@ -56,11 +56,49 @@ export interface ConversationRecord {
   session: string | null;
   trigger: string;
   status: string;
+  closed_at?: string | null;
   created_at: string;
+  replay_id?: string | null;
+  map_name?: string | null;
+  opponent?: string | null;
+  twitch_user?: string | null;
+  handler_context?: string | null;
   title: string | null;
   item_count: number;
   last_item_at: string | null;
   metadata: Record<string, unknown>;
+}
+
+export interface ConversationContentPartRecord {
+  text: string;
+  type?: string;
+}
+
+export interface ConversationItemRecord {
+  id: string;
+  conversation: string;
+  session: string | null;
+  type: string;
+  order: number;
+  created_at: string;
+  role: string | null;
+  content: ConversationContentPartRecord[];
+  call_id: string | null;
+  name: string | null;
+  arguments: Record<string, unknown> | null;
+  output: string | null;
+  response_id: string | null;
+  response_model: string | null;
+  status: string | null;
+  raw_item: Record<string, unknown> | null;
+  source: string | null;
+  included_in_context: boolean;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface ConversationInboxState {
+  params: ListParams;
+  selectedConversationId: string | null;
 }
 
 export interface MetadataRecord {

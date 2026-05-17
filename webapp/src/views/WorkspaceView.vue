@@ -11,6 +11,13 @@ const quickLinks = [
     accent: "accent",
   },
   {
+    label: "Conversations",
+    description: "Transcript-focused conversation review with typed filters",
+    path: "/conversations",
+    eyebrow: "Curated review",
+    accent: "accent",
+  },
+  {
     label: "Replays",
     description: "Replay inbox with metadata and player relationships",
     path: "/replays",
@@ -136,7 +143,7 @@ const quickLinks = [
 
 .workspace-quicklinks {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
 }
 

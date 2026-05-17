@@ -59,6 +59,12 @@ export const adminAreas: AdminArea[] = [
     path: "/sessions",
   },
   {
+    id: "conversations-review",
+    label: "Conversations",
+    description: "Transcript-style review for persisted coaching exchanges with typed filters.",
+    path: "/conversations",
+  },
+  {
     id: "replays-review",
     label: "Replays",
     description: "Curated replay review with linked metadata and participating player records.",

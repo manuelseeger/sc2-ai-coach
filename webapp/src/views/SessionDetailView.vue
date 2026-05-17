@@ -100,8 +100,13 @@ watch(
             <li
               v-for="conversation in conversations"
               :key="conversation.id"
-              class="list-row conversation-row"
+              class="list-row list-row--linked conversation-row"
             >
+              <RouterLink
+                :to="`/conversations/${conversation.id}`"
+                class="list-row__overlay"
+                aria-label="Open conversation"
+              />
               <div class="conversation-row__head">
                 <span class="tag" :class="conversation.status === 'closed' ? '' : 'tag--ok'">
                   {{ conversation.status }}

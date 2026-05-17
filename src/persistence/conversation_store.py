@@ -3,9 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, ClassVar, TypeVar, cast
 
+from bson import ObjectId
 from pydantic import Field, field_validator
 from pymongo import ASCENDING, IndexModel
-from pyodmongo import DbModel, Id
+from pyodmongo import DbModel, Id, ResponsePaginate
 from pyodmongo.queries import eq, sort
 
 from src.persistence.database import MongoDatabase, get_database
@@ -251,6 +252,10 @@ class ConversationStore:
 
         return conversation
 
+    def create(self, conversation: AIConversation) -> AIConversation:
+        normalized = self._normalize_lifecycle_state(conversation)
+        return self.save(normalized)
+
     def get_conversation(
         self, conversation: AIConversation | Id | str
     ) -> AIConversation | None:
@@ -258,6 +263,59 @@ class ConversationStore:
             Model=AIConversation,
             query=eq(AIConversation.id, self._id(conversation)),  # type: ignore[arg-type]
         )
+
+    def replace_conversation(
+        self,
+        conversation_id: AIConversation | Id | str,
+        conversation: AIConversation,
+    ) -> AIConversation:
+        conversation.id = self._id(conversation_id)
+        normalized = self._normalize_lifecycle_state(conversation)
+        self.db.save(
+            normalized,
+            query=eq(AIConversation.id, normalized.id),  # type: ignore[arg-type]
+        )
+        return normalized
+
+    def patch_conversation(
+        self,
+        conversation_id: AIConversation | Id | str,
+        patch: dict[str, Any],
+    ) -> AIConversation | None:
+        existing = self.get_conversation(conversation_id)
+        if existing is None:
+            return None
+
+        merged = self._merge_dict(existing.model_dump(mode="python"), patch)
+        merged["id"] = str(existing.id)
+        patched = AIConversation.model_validate(merged)
+        assert existing.id is not None
+        return self.replace_conversation(existing.id, patched)
+
+    def delete_conversation(self, conversation_id: AIConversation | Id | str) -> bool:
+        existing = self.get_conversation(conversation_id)
+        if existing is None:
+            return False
+
+        self.db.delete(
+            AIConversation,
+            query=eq(AIConversation.id, existing.id),  # type: ignore[arg-type]
+        )
+        return True
+
+    def append_item(self, item: AIConversationItem) -> AIConversationItem:
+        fields = item.model_dump(
+            mode="python",
+            exclude={
+                "id",
+                "conversation",
+                "order",
+                "session",
+                "created_at",
+                "updated_at",
+            },
+        )
+        return self._append_item(item.conversation, **fields)
 
     def append_message(
         self,
@@ -359,18 +417,63 @@ class ConversationStore:
     def list_conversations(
         self,
         *,
+        current_page: int = 1,
+        docs_per_page: int = 50,
         session: Id | str | None = None,
-    ) -> list[AIConversation]:
-        query = {}
+        trigger: AIConversationTrigger | str | None = None,
+        status: AIConversationStatus | str | None = None,
+        replay_id: str | None = None,
+        map_name: str | None = None,
+        opponent: str | None = None,
+        twitch_user: str | None = None,
+        from_date: datetime | None = None,
+        to_date: datetime | None = None,
+        raw_query: dict[str, Any] | None = None,
+        raw_sort: dict[str, int] | None = None,
+        paginate: bool = False,
+    ) -> list[AIConversation] | ResponsePaginate:
+        query = dict(raw_query or {})
         if session is not None:
-            query = eq(AIConversation.session, self._id(session))  # type: ignore[arg-type]
+            query["session"] = ObjectId(str(self._id(session)))
+        if trigger is not None:
+            query["trigger"] = AIConversationTrigger(trigger).value
+        if status is not None:
+            query["status"] = AIConversationStatus(status).value
+        if replay_id is not None:
+            query["replay_id"] = replay_id
+        if map_name is not None:
+            query["map_name"] = map_name
+        if opponent is not None:
+            query["opponent"] = opponent
+        if twitch_user is not None:
+            query["twitch_user"] = twitch_user
+        if from_date is not None or to_date is not None:
+            created_at_query: dict[str, datetime] = {}
+            if from_date is not None:
+                created_at_query["$gte"] = from_date
+            if to_date is not None:
+                created_at_query["$lte"] = to_date
+            query["created_at"] = created_at_query
+
+        if paginate:
+            return cast(
+                ResponsePaginate,
+                self.db.find_many(
+                    Model=AIConversation,
+                    paginate=True,
+                    current_page=current_page,
+                    docs_per_page=docs_per_page,
+                    raw_query=query,
+                    raw_sort=raw_sort or {"created_at": -1},
+                ),
+            )
 
         return cast(
             list[AIConversation],
             self.db.find_many(
                 Model=AIConversation,
-                query=query,
-                sort=sort((AIConversation.created_at, -1)),  # type: ignore[arg-type]
+                raw_query=query,
+                raw_sort=raw_sort or {"created_at": -1},
             ),
         )
 
@@ -462,6 +565,17 @@ class ConversationStore:
             raise ValueError(f"Conversation {self._id(conversation)} not found")
         return found
 
+    def _normalize_lifecycle_state(
+        self, conversation: AIConversation
+    ) -> AIConversation:
+        if conversation.status == AIConversationStatus.closed:
+            if conversation.closed_at is None:
+                conversation.closed_at = datetime.now()
+            return conversation
+
+        conversation.closed_at = None
+        return conversation
+
     def _session(self, session: Id | str | None):
         if session is None:
             return None
@@ -486,6 +600,17 @@ class ConversationStore:
         if isinstance(message, tuple):
             return AIMessageRole(message[0]), message[1]
         return AIMessageRole.user, message
+
+    def _merge_dict(
+        self, current: dict[str, Any], patch: dict[str, Any]
+    ) -> dict[str, Any]:
+        merged = dict(current)
+        for key, value in patch.items():
+            if isinstance(value, dict) and isinstance(merged.get(key), dict):
+                merged[key] = self._merge_dict(merged[key], value)
+            else:
+                merged[key] = value
+        return merged
 
 
 _conversation_store: ConversationStore | None = None

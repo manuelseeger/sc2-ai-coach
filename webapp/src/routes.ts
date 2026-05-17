@@ -1,3 +1,8 @@
+import ConversationCreateView from "./views/ConversationCreateView.vue";
+import ConversationDetailView from "./views/ConversationDetailView.vue";
+import ConversationInboxView from "./views/ConversationInboxView.vue";
+import ConversationResourceDetailView from "./views/ConversationResourceDetailView.vue";
+import ConversationResourceInboxView from "./views/ConversationResourceInboxView.vue";
 import { resourceRegistry } from "./route-registry";
 import MetadataCreateView from "./views/MetadataCreateView.vue";
 import MetadataDetailView from "./views/MetadataDetailView.vue";
@@ -14,7 +19,7 @@ import SessionInboxView from "./views/SessionInboxView.vue";
 import WorkspaceView from "./views/WorkspaceView.vue";
 
 const placeholderResources = resourceRegistry.filter(
-  (resource) => !["metadata", "replays"].includes(resource.name),
+  (resource) => !["conversations", "metadata", "replays"].includes(resource.name),
 );
 
 export const routes = [
@@ -37,6 +42,17 @@ export const routes = [
     path: "/sessions/:sessionId",
     name: "session-detail",
     component: SessionDetailView,
+    props: true,
+  },
+  {
+    path: "/conversations",
+    name: "conversations-inbox",
+    component: ConversationInboxView,
+  },
+  {
+    path: "/conversations/:conversationId",
+    name: "conversation-detail",
+    component: ConversationDetailView,
     props: true,
   },
   {
@@ -64,6 +80,22 @@ export const routes = [
     path: "/resources/replays/:replayId",
     name: "replay-resource-detail",
     component: ReplayResourceDetailView,
+    props: true,
+  },
+  {
+    path: "/resources/conversations",
+    name: "conversation-resource-inbox",
+    component: ConversationResourceInboxView,
+  },
+  {
+    path: "/resources/conversations/new",
+    name: "conversation-resource-create",
+    component: ConversationCreateView,
+  },
+  {
+    path: "/resources/conversations/:conversationId",
+    name: "conversation-resource-detail",
+    component: ConversationResourceDetailView,
     props: true,
   },
   {
