@@ -7,7 +7,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
 from src.api.errors import raise_api_error, replay_metadata_not_found, replay_not_found
-from src.api.models import QueryRequest, ReplayPlayerRelationship
+from src.api.models import PlayerInfoResponse, QueryRequest, ReplayPlayerRelationship
 from src.api.state import get_persistence
 from src.api.validation import (
     parse_sort,
@@ -180,7 +180,12 @@ def build_replays_router() -> APIRouter:
         assert pairs is not None
         return [
             ReplayPlayerRelationship(
-                replay_player=replay_player, player_info=player_info
+                replay_player=replay_player,
+                player_info=(
+                    None
+                    if player_info is None
+                    else PlayerInfoResponse.from_player_info(player_info)
+                ),
             )
             for replay_player, player_info in pairs
         ]

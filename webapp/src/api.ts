@@ -129,6 +129,27 @@ export function createApiClient(baseUrl = "/api"): ApiClient {
     return request<T>(`/replays/${encodeURIComponent(replayId)}/players`);
   }
 
+  function getPlayerAliases<T>(toonHandle: string): Promise<T> {
+    return request<T>(`/players/${encodeURIComponent(toonHandle)}/aliases`);
+  }
+
+  function getPlayerPortraitMetadata<T>(toonHandle: string): Promise<T> {
+    return request<T>(`/players/${encodeURIComponent(toonHandle)}/portrait-metadata`);
+  }
+
+  function getPlayersPortraitMetadata<T>(toonHandles: string[]): Promise<T> {
+    return request<T>("/players/portrait-metadata", {
+      method: "POST",
+      body: JSON.stringify({ toon_handles: toonHandles }),
+    });
+  }
+
+  function getPlayerReplays<T>(toonHandle: string, params?: ListParams): Promise<T> {
+    return request<T>(
+      `/players/${encodeURIComponent(toonHandle)}/replays${buildQuery(params)}`,
+    );
+  }
+
   return {
     getHealth,
     listResource,
@@ -144,5 +165,9 @@ export function createApiClient(baseUrl = "/api"): ApiClient {
     getSessionConversations,
     getReplayMetadata,
     getReplayPlayers,
+    getPlayerAliases,
+    getPlayerPortraitMetadata,
+    getPlayersPortraitMetadata,
+    getPlayerReplays,
   };
 }

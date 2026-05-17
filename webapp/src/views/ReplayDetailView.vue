@@ -177,7 +177,7 @@ watch(
               <template v-if="relation.player_info">
                 <span class="tag tag--ok">Player record found</span>
                 <RouterLink
-                  :to="`/resources/players?toon_handle=${relation.replay_player.toon_handle}`"
+                  :to="`/players/${relation.replay_player.toon_handle}`"
                   class="button button--ghost"
                 >
                   View player

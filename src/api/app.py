@@ -13,6 +13,7 @@ from src.api.routers import (
     build_conversations_router,
     build_health_router,
     build_metadata_router,
+    build_players_router,
     build_replays_router,
     build_sessions_router,
 )
@@ -77,6 +78,7 @@ def create_app(
     app.include_router(build_replays_router())
     app.include_router(build_conversations_router())
     app.include_router(build_metadata_router())
+    app.include_router(build_players_router())
     app.include_router(build_webapp_router())
     return app
 

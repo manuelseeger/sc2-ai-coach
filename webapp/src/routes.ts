@@ -7,6 +7,11 @@ import { resourceRegistry } from "./route-registry";
 import MetadataCreateView from "./views/MetadataCreateView.vue";
 import MetadataDetailView from "./views/MetadataDetailView.vue";
 import MetadataInboxView from "./views/MetadataInboxView.vue";
+import PlayerCreateView from "./views/PlayerCreateView.vue";
+import PlayerDetailView from "./views/PlayerDetailView.vue";
+import PlayerInboxView from "./views/PlayerInboxView.vue";
+import PlayerResourceDetailView from "./views/PlayerResourceDetailView.vue";
+import PlayerResourceInboxView from "./views/PlayerResourceInboxView.vue";
 import HealthView from "./views/HealthView.vue";
 import ReplayCreateView from "./views/ReplayCreateView.vue";
 import ReplayDetailView from "./views/ReplayDetailView.vue";
@@ -19,7 +24,7 @@ import SessionInboxView from "./views/SessionInboxView.vue";
 import WorkspaceView from "./views/WorkspaceView.vue";
 
 const placeholderResources = resourceRegistry.filter(
-  (resource) => !["conversations", "metadata", "replays"].includes(resource.name),
+  (resource) => !["conversations", "metadata", "players", "replays"].includes(resource.name),
 );
 
 export const routes = [
@@ -64,6 +69,17 @@ export const routes = [
     path: "/replays/:replayId",
     name: "replay-detail",
     component: ReplayDetailView,
+    props: true,
+  },
+  {
+    path: "/players",
+    name: "players-inbox",
+    component: PlayerInboxView,
+  },
+  {
+    path: "/players/:toonHandle",
+    name: "player-detail",
+    component: PlayerDetailView,
     props: true,
   },
   {
@@ -112,6 +128,22 @@ export const routes = [
     path: "/resources/metadata/:metadataId",
     name: "metadata-detail",
     component: MetadataDetailView,
+    props: true,
+  },
+  {
+    path: "/resources/players",
+    name: "player-resource-inbox",
+    component: PlayerResourceInboxView,
+  },
+  {
+    path: "/resources/players/new",
+    name: "player-resource-create",
+    component: PlayerCreateView,
+  },
+  {
+    path: "/resources/players/:toonHandle",
+    name: "player-resource-detail",
+    component: PlayerResourceDetailView,
     props: true,
   },
   ...placeholderResources.map((resource) => ({

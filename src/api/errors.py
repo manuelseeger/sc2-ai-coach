@@ -71,6 +71,15 @@ def replay_not_found(replay_id: str) -> None:
     )
 
 
+def player_not_found(toon_handle: str) -> None:
+    raise_api_error(
+        status_code=404,
+        code="not_found",
+        message="Document not found",
+        details={"resource": "players", "id": toon_handle},
+    )
+
+
 def replay_metadata_not_found(
     replay_id: str,
     *,

@@ -374,11 +374,102 @@ class ReplayStore:
         patched = Metadata.model_validate(merged)
         return self.replace_metadata_for_replay(replay_id, patched)
 
+    def list_players(
+        self,
+        *,
+        current_page: int = 1,
+        docs_per_page: int = 50,
+        q: str | None = None,
+        tag: str | None = None,
+        raw_query: dict[str, Any] | None = None,
+        raw_sort: dict[str, int] | None = None,
+    ) -> ResponsePaginate:
+        filters: list[dict[str, Any]] = []
+        if raw_query:
+            filters.append(dict(raw_query))
+        if tag is not None:
+            filters.append({"tags": tag})
+        if q:
+            regex = {"$regex": re.escape(q), "$options": "i"}
+            filters.append(
+                {
+                    "$or": [
+                        {"name": regex},
+                        {"aliases.name": regex},
+                        {"toon_handle": regex},
+                    ]
+                }
+            )
+
+        if not filters:
+            query: dict[str, Any] = {}
+        elif len(filters) == 1:
+            query = filters[0]
+        else:
+            query = {"$and": filters}
+
+        return cast(
+            ResponsePaginate,
+            self.db.find_many(
+                Model=PlayerInfo,
+                paginate=True,
+                current_page=current_page,
+                docs_per_page=docs_per_page,
+                raw_query=query,
+                raw_sort=raw_sort or {"name": 1},
+            ),
+        )
+
+    def create_player(self, player: PlayerInfo) -> PlayerInfo:
+        self.upsert(player)
+        return player
+
     def get_player_info(self, toon_handle: ToonHandle | str) -> PlayerInfo | None:
         return self.db.find_one(
             Model=PlayerInfo,
             query=eq(PlayerInfo.id, ToonHandle(str(toon_handle))),  # type: ignore[arg-type]
         )
+
+    def replace_player(
+        self,
+        toon_handle: ToonHandle | str,
+        player: PlayerInfo,
+    ) -> PlayerInfo:
+        normalized = ToonHandle(str(toon_handle))
+        player.id = normalized
+        player.toon_handle = normalized
+        self.db.save(
+            player,
+            query=eq(PlayerInfo.id, normalized),  # type: ignore[arg-type]
+        )
+        return player
+
+    def patch_player(
+        self,
+        toon_handle: ToonHandle | str,
+        patch: dict[str, Any],
+    ) -> PlayerInfo | None:
+        existing = self.get_player_info(toon_handle)
+        if existing is None:
+            return None
+
+        merged = self._merge_dict(existing.model_dump(), patch)
+        normalized = str(existing.toon_handle)
+        merged["id"] = normalized
+        merged["toon_handle"] = normalized
+        patched = PlayerInfo.model_validate(merged)
+        return self.replace_player(existing.toon_handle, patched)
+
+    def delete_player(self, toon_handle: ToonHandle | str) -> bool:
+        existing = self.get_player_info(toon_handle)
+        if existing is None:
+            return False
+
+        self.db.delete(
+            PlayerInfo,
+            query=eq(PlayerInfo.id, existing.id),  # type: ignore[arg-type]
+        )
+        return True
 
     def get_replay_players(
         self,

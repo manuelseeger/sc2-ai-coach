@@ -25,6 +25,13 @@ const quickLinks = [
     accent: "accent",
   },
   {
+    label: "Players",
+    description: "Portrait-aware player review with alias history and replay links",
+    path: "/players",
+    eyebrow: "Curated review",
+    accent: "accent",
+  },
+  {
     label: "Map Stats",
     description: "Aggregated matchup win-rate data by map",
     path: "/map-stats",

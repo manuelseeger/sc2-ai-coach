@@ -10,6 +10,7 @@ const primaryNav = [
   { id: "sessions", label: "Sessions", path: "/sessions", description: "Coaching sessions" },
   { id: "conversations", label: "Conversations", path: "/conversations", description: "Conversation review" },
   { id: "replays", label: "Replays", path: "/replays", description: "Replay review" },
+  { id: "players", label: "Players", path: "/players", description: "Player review" },
   { id: "health", label: "Health", path: "/health", description: "Backend status" },
 ];
 

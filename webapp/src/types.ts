@@ -122,11 +122,41 @@ export interface PlayerInfoRecord {
   id: string;
   toon_handle: string;
   name: string;
-  aliases: Array<{
-    name: string;
-    seen_on?: string | null;
-  }>;
+  aliases: PlayerAliasRecord[];
   tags: string[] | null;
+}
+
+export interface PlayerAliasRecord {
+  name: string;
+  seen_on?: string | null;
+}
+
+export interface PlayerPortraitAssetRecord {
+  available: boolean;
+  url: string;
+}
+
+export interface PlayerAliasPortraitRecord {
+  index: number;
+  available: boolean;
+  url: string;
+}
+
+export interface PlayerAliasPortraitGroupRecord {
+  index: number;
+  name: string;
+  portraits: PlayerAliasPortraitRecord[];
+}
+
+export interface PlayerPortraitMetadataRecord {
+  toon_handle: string;
+  portrait: PlayerPortraitAssetRecord;
+  portrait_constructed: PlayerPortraitAssetRecord;
+  aliases: PlayerAliasPortraitGroupRecord[];
+}
+
+export interface BulkPlayerPortraitMetadataRecord {
+  items: PlayerPortraitMetadataRecord[];
 }
 
 export interface ReplayRecord {
@@ -186,4 +216,8 @@ export interface ApiClient {
   getSessionConversations<T>(sessionId: string): Promise<T>;
   getReplayMetadata<T>(replayId: string): Promise<T>;
   getReplayPlayers<T>(replayId: string): Promise<T>;
+  getPlayerAliases<T>(toonHandle: string): Promise<T>;
+  getPlayerPortraitMetadata<T>(toonHandle: string): Promise<T>;
+  getPlayersPortraitMetadata<T>(toonHandles: string[]): Promise<T>;
+  getPlayerReplays<T>(toonHandle: string, params?: ListParams): Promise<T>;
 }

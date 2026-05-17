@@ -17,6 +17,7 @@ describe("webapp bootstrap", () => {
 
     expect(adminAreas.map((area) => area.id)).toContain("workspace");
     expect(adminAreas.map((area) => area.id)).toContain("health");
+    expect(adminAreas.map((area) => area.id)).toContain("players-review");
 
     const client = createApiClient();
 
@@ -26,6 +27,9 @@ describe("webapp bootstrap", () => {
       getResource: expect.any(Function),
       getSessionConversations: expect.any(Function),
       getConversationItems: expect.any(Function),
+      getPlayerAliases: expect.any(Function),
+      getPlayerPortraitMetadata: expect.any(Function),
+      getPlayerReplays: expect.any(Function),
     });
   });
 });
