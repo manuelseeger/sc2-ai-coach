@@ -25,10 +25,10 @@ const tokenStats = computed(() => {
   const output = responses.value.reduce((s, r) => s + r.output_tokens, 0);
   const cost = responses.value.reduce((s, r) => s + r.total_cost, 0);
   return [
-    { label: "Input tokens", value: input.toLocaleString() },
-    { label: "Cached tokens", value: cached.toLocaleString() },
-    { label: "Output tokens", value: output.toLocaleString() },
-    { label: "Total cost", value: `$${cost.toFixed(4)}` },
+    { label: "Input tokens", value: input.toLocaleString(), valueClass: "kv-value--token-input" },
+    { label: "Cached tokens", value: cached.toLocaleString(), valueClass: "kv-value--token-cached" },
+    { label: "Output tokens", value: output.toLocaleString(), valueClass: "kv-value--token-output" },
+    { label: "Total cost", value: `$${cost.toFixed(4)}`, valueClass: "kv-value--cost" },
   ];
 });
 
@@ -114,8 +114,8 @@ watch(conversationId, async (value) => {
     <header class="page-header">
       <div class="page-header__breadcrumb">
         <RouterLink to="/conversations" class="breadcrumb-link">← Back to conversations</RouterLink>
-        <p class="eyebrow">Conversation transcript</p>
-        <h2 class="page-title">{{ conversation?.title || "Persisted coaching exchange" }}</h2>
+        <p class="eyebrow">Conversation</p>
+        <h2 class="page-title">{{ conversation ? triggerLabel(conversation.trigger) : "Conversation" }}</h2>
       </div>
       <RouterLink v-if="conversation" :to="`/resources/conversations/${conversation.id}`" class="button button--ghost">
         Maintenance
@@ -129,7 +129,7 @@ watch(conversationId, async (value) => {
     <template v-else-if="conversation">
       <section class="detail-grid">
         <article class="panel panel-stack">
-          <PanelHeading eyebrow="Conversation header" :title="triggerLabel(conversation.trigger)">
+          <PanelHeading :title="triggerLabel(conversation.trigger)">
             <template #aside>
               <span class="pill" :class="conversation.status === 'active' ? 'pill--accent' : 'pill--amber'">
                 {{ conversation.status }}

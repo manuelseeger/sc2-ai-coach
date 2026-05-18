@@ -66,21 +66,19 @@ onMounted(async () => {
     <header class="panel page-hero">
       <div>
         <p class="eyebrow">Player review</p>
-        <h2 class="page-hero__title">Portrait-aware player inspection</h2>
+        <h2 class="page-hero__title">Players</h2>
         <p class="panel-intro">
-          Start from the curated player inbox when you want portrait availability, alias history,
-          and direct replay navigation without dropping into the generic maintenance editor.
+          Browse known players with portrait history, aliases, and linked replays.
         </p>
       </div>
 
       <div class="button-row">
-        <span class="pill">Uses portrait metadata helper</span>
         <RouterLink to="/resources/players" class="button button--ghost">Maintenance</RouterLink>
       </div>
     </header>
 
     <section class="panel panel-stack">
-      <PanelHeading eyebrow="Filters" title="Player review inbox" />
+      <PanelHeading eyebrow="Filters" title="Search" />
 
       <div class="form-grid">
         <label class="form-field">

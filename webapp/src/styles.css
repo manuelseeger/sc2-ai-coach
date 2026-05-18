@@ -636,6 +636,22 @@ select {
   overflow-wrap: anywhere;
 }
 
+dd.kv-value--cost {
+  color: var(--green-strong);
+}
+
+dd.kv-value--token-input {
+  color: var(--accent-strong);
+}
+
+dd.kv-value--token-cached {
+  color: var(--green-strong);
+}
+
+dd.kv-value--token-output {
+  color: var(--purple-strong);
+}
+
 .feedback {
   margin: 0;
 }

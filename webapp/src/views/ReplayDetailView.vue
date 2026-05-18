@@ -135,7 +135,7 @@ watch(
     <template v-else-if="replay">
       <section class="detail-grid">
         <article class="panel panel-stack">
-          <PanelHeading eyebrow="Replay facts" :title="replay.map_name">
+          <PanelHeading eyebrow="Match" :title="replay.map_name">
             <template #aside>
               <div class="tag-row">
                 <template v-for="(p, idx) in replay.players" :key="p.toon_handle">
@@ -150,11 +150,7 @@ watch(
         </article>
 
         <article class="panel panel-stack">
-          <PanelHeading eyebrow="Metadata" title="Replay annotation">
-            <template #aside>
-              <span class="pill pill--amber">Relationship route</span>
-            </template>
-          </PanelHeading>
+          <PanelHeading eyebrow="Notes" title="Game Summary" />
 
           <template v-if="metadata">
             <p v-if="metadata.description" class="metadata-desc">{{ metadata.description }}</p>
@@ -176,7 +172,7 @@ watch(
       </section>
 
       <article class="panel panel-stack">
-        <PanelHeading eyebrow="Players" title="Participants and known identities" />
+        <PanelHeading eyebrow="Players" title="Players in this match" />
 
         <ul class="list list-block-spacing">
           <li
@@ -220,8 +216,8 @@ watch(
               </div>
 
               <div class="player-row__record">
-                <span v-if="relation.player_info" class="tag tag--ok">Player record found</span>
-                <span v-else class="tag tag--warn">No player record</span>
+                <span v-if="relation.player_info" class="tag tag--ok">Known player</span>
+                <span v-else class="tag tag--warn">Unknown player</span>
               </div>
             </div>
           </li>

@@ -165,10 +165,8 @@ onMounted(async () => {
     <section class="panel">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">Transcript inbox</p>
           <h3>{{ inbox ? `${inbox.docs_quantity} conversations` : "Conversations" }}</h3>
         </div>
-        <span class="pill pill--amber">Read oriented</span>
       </div>
 
       <p v-if="loading" class="muted-copy list-block-spacing">Loading…</p>
@@ -198,7 +196,6 @@ onMounted(async () => {
               </span>
               <span class="tag" :class="triggerClass(conversation.trigger)">{{ triggerOptions.find((option) => option.value === conversation.trigger)?.label ?? conversation.trigger }}</span>
             </div>
-            <strong class="conversation-row__title">{{ conversation.title || "Untitled conversation" }}</strong>
             <p class="conversation-row__meta">
               Started {{ formatDate(conversation.created_at) }}
               <span v-if="conversation.last_item_at"> · Last item {{ formatDate(conversation.last_item_at) }}</span>

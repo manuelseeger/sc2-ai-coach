@@ -24,12 +24,12 @@ const sessionMetricItems = computed(() => {
   return [
     { label: "AI backend", value: session.value.ai_backend },
     { label: "Total tokens", value: session.value.total_tokens.toLocaleString() },
-    { label: "Input tokens", value: session.value.total_input_tokens.toLocaleString() },
-    { label: "Cached tokens", value: session.value.total_cached_tokens.toLocaleString() },
-    { label: "Output tokens", value: session.value.total_output_tokens.toLocaleString() },
-    { label: "Prompt cost", value: `$${session.value.prompt_pricing.toFixed(4)}` },
-    { label: "Completion cost", value: `$${session.value.completion_pricing.toFixed(4)}` },
-    { label: "Total cost", value: `$${session.value.total_cost.toFixed(4)}` },
+    { label: "Input tokens", value: session.value.total_input_tokens.toLocaleString(), valueClass: "kv-value--token-input" },
+    { label: "Cached tokens", value: session.value.total_cached_tokens.toLocaleString(), valueClass: "kv-value--token-cached" },
+    { label: "Output tokens", value: session.value.total_output_tokens.toLocaleString(), valueClass: "kv-value--token-output" },
+    { label: "Prompt cost", value: `$${session.value.prompt_pricing.toFixed(4)}`, valueClass: "kv-value--cost" },
+    { label: "Completion cost", value: `$${session.value.completion_pricing.toFixed(4)}`, valueClass: "kv-value--cost" },
+    { label: "Total cost", value: `$${session.value.total_cost.toFixed(4)}`, valueClass: "kv-value--cost" },
   ];
 });
 

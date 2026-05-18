@@ -90,7 +90,7 @@ watch(
     <template v-else-if="player && portraitMetadata && replays">
       <section class="detail-grid">
         <article class="panel panel-stack">
-          <PanelHeading eyebrow="Player facts" :title="player.name">
+          <PanelHeading :title="player.name">
             <template #aside>
               <span class="pill">{{ aliases.length }} aliases</span>
             </template>
@@ -100,11 +100,7 @@ watch(
         </article>
 
         <article class="panel panel-stack">
-          <PanelHeading eyebrow="Portraits" title="Discovered media endpoints">
-            <template #aside>
-              <span class="pill pill--amber">Helper-driven</span>
-            </template>
-          </PanelHeading>
+          <PanelHeading eyebrow="Portraits" title="Player Portraits" />
 
           <div class="portrait-grid">
             <div class="portrait-card">
@@ -133,7 +129,7 @@ watch(
       </section>
 
       <article class="panel panel-stack">
-        <PanelHeading eyebrow="Aliases" title="Known names and alias portraits" />
+        <PanelHeading eyebrow="Aliases" title="Names & Portraits" />
 
         <ul class="list list-block-spacing">
           <li v-for="(alias, index) in aliases" :key="`${alias.name}-${index}`" class="list-row alias-row">
@@ -160,7 +156,7 @@ watch(
       </article>
 
       <article class="panel panel-stack">
-        <PanelHeading eyebrow="Related replays" title="Replay navigation from player review">
+        <PanelHeading eyebrow="Related replays" title="Recent Replays">
           <template #aside>
             <span class="pill">{{ replays.docs_quantity }} replays</span>
           </template>
