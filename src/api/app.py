@@ -19,6 +19,7 @@ from src.api.routers import (
     build_replays_router,
     build_responses_router,
     build_sessions_router,
+    build_tools_router,
 )
 from src.api.webapp import build_webapp_router
 from src.persistence.runtime import PersistenceServices, build_persistence_services
@@ -85,6 +86,7 @@ def create_app(
     app.include_router(build_metadata_router())
     app.include_router(build_players_router())
     app.include_router(build_responses_router())
+    app.include_router(build_tools_router())
     app.include_router(build_webapp_router())
     return app
 

@@ -37,6 +37,7 @@ describe("webapp bootstrap", () => {
       getPlayerAliases: expect.any(Function),
       getPlayerPortraitMetadata: expect.any(Function),
       getPlayerReplays: expect.any(Function),
+      getTools: expect.any(Function),
     });
   });
 });

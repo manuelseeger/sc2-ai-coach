@@ -7,6 +7,7 @@ import type {
   PaginatedResponse,
   QueryBody,
   ResponseRecord,
+  ToolDefinition,
 } from "./types";
 
 const defaultInboxState: ConversationInboxState = {
@@ -44,17 +45,20 @@ export async function loadConversationDetail(
   conversation: ConversationRecord;
   items: ConversationItemRecord[];
   responses: ResponseRecord[];
+  tools: ToolDefinition[];
 }> {
-  const [conversation, items, responses] = await Promise.all([
+  const [conversation, items, responses, tools] = await Promise.all([
     apiClient.getResource<ConversationRecord>("conversations", conversationId),
     apiClient.getConversationItems<ConversationItemRecord[]>(conversationId),
     apiClient.getConversationResponses<ResponseRecord[]>(conversationId).catch(() => [] as ResponseRecord[]),
+    apiClient.getTools(),
   ]);
 
   return {
     conversation,
     items,
     responses,
+    tools,
   };
 }
 

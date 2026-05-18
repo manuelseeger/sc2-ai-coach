@@ -136,7 +136,7 @@ def _query_replay_db(
     projection: Annotated[
         str,
         'A MongoDB projection document to specifiy which fields of the document to return. Example projection to get only the map name for returned replays: {"map_name": 1}. This is optional and defaults to returning all fields.',
-    ] = dumps(get_config().default_projection),
+    ] = None,
     sort: Annotated[
         str,
         'A MongoDB sort document to specify how to sort the returned documents. Example to sort by game length: {"game_length": -1}. This is optional and defaults to sorting by unix_timestamp, descending.',
@@ -164,6 +164,8 @@ def _query_replay_db(
     """
     # Force the arguments to be valid JSON
     settings = get_config()
+    if projection is None:
+        projection = dumps(settings.default_projection)
     if filter is None or filter == "{{}}":
         filter = f'{{"player.name": "{settings.student.name}"}}'
     filter = force_valid_json_string(filter)

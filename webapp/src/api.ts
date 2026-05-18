@@ -5,6 +5,7 @@ import type {
   ListParams,
   QueryBody,
   ResourceName,
+  ToolDefinition,
 } from "./types";
 
 export class ApiError extends Error {
@@ -162,6 +163,10 @@ export function createApiClient(baseUrl = "/api"): ApiClient {
     );
   }
 
+  function getTools(): Promise<ToolDefinition[]> {
+    return request<ToolDefinition[]>("/tools");
+  }
+
   return {
     getHealth,
     getMapStats,
@@ -184,5 +189,6 @@ export function createApiClient(baseUrl = "/api"): ApiClient {
     getPlayerPortraitMetadata,
     getPlayersPortraitMetadata,
     getPlayerReplays,
+    getTools,
   };
 }

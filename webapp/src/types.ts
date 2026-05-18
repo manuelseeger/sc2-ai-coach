@@ -234,6 +234,14 @@ export interface QueryBody {
   projection?: string;
 }
 
+export interface ToolDefinition {
+  type: string;
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+  strict: boolean;
+}
+
 export interface ApiClient {
   getHealth(): Promise<HealthResponse>;
   getMapStats<T>(params?: ListParams): Promise<T>;
@@ -256,4 +264,5 @@ export interface ApiClient {
   getPlayerPortraitMetadata<T>(toonHandle: string): Promise<T>;
   getPlayersPortraitMetadata<T>(toonHandles: string[]): Promise<T>;
   getPlayerReplays<T>(toonHandle: string, params?: ListParams): Promise<T>;
+  getTools(): Promise<ToolDefinition[]>;
 }

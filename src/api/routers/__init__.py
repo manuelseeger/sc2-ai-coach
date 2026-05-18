@@ -7,6 +7,7 @@ from src.api.routers.players import build_players_router
 from src.api.routers.replays import build_replays_router
 from src.api.routers.responses import build_responses_router
 from src.api.routers.sessions import build_sessions_router
+from src.api.routers.tools import build_tools_router
 
 __all__ = [
     "build_conversation_items_router",
@@ -18,4 +19,5 @@ __all__ = [
     "build_replays_router",
     "build_responses_router",
     "build_sessions_router",
+    "build_tools_router",
 ]

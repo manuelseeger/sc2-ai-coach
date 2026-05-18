@@ -53,10 +53,13 @@ For each approved slice, publish a new issue to the issue tracker. Use the issue
 
 Publish issues in dependency order (blockers first) so you can reference real issue identifiers in the "Blocked by" field.
 
+After each issue is published, re-read it from the tracker to confirm it was created correctly and to avoid creating duplictes. 
+After all issues are published, re-read them one more time to make sure you did not create any duplicates. Remove duplicates, if any. 
+
 <issue-template>
 ## Parent
 
-A reference to the parent issue on the issue tracker (if the source was an existing issue, otherwise omit this section). Create the new issues as children of the parent issue if the tracker supports issue hierarchies.
+A reference to the parent issue on the issue tracker (if the source was an existing issue, otherwise omit this section). Important: Create the new issues as children of the parent issue if the tracker supports issue hierarchies.
 
 ## What to build
 

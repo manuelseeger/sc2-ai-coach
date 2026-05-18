@@ -18,6 +18,7 @@ import type {
   ConversationItemRecord,
   ConversationRecord,
   PaginatedResponse,
+  ToolDefinition,
 } from "./types";
 
 describe("conversation workflows", () => {
@@ -66,6 +67,7 @@ describe("conversation workflows", () => {
       getResource: vi.fn().mockResolvedValue(conversation),
       getConversationItems: vi.fn().mockResolvedValue(items),
       getConversationResponses: vi.fn().mockResolvedValue([]),
+      getTools: vi.fn().mockResolvedValue([] as ToolDefinition[]),
     } as unknown as ApiClient;
 
     const loadedInbox = await loadConversationInbox(apiClient, {
@@ -81,8 +83,10 @@ describe("conversation workflows", () => {
     expect(apiClient.getResource).toHaveBeenCalledWith("conversations", conversation.id);
     expect(apiClient.getConversationItems).toHaveBeenCalledWith(conversation.id);
     expect(apiClient.getConversationResponses).toHaveBeenCalledWith(conversation.id);
+    expect(apiClient.getTools).toHaveBeenCalled();
     expect(loadedInbox.docs[0]?.id).toBe(conversation.id);
     expect(detail.items[0]?.id).toBe("item-1");
+    expect(detail.tools).toEqual([]);
   });
 
   it("creates, queries, patches, replaces, deletes, and appends through the typed client", async () => {

@@ -24,3 +24,26 @@ _Avoid_: Thread, chat session
 A persisted coaching exchange tied to a trigger and optionally linked to a **Session** and a **Replay**.
 _Avoid_: Thread, transcript
 
+**Tool Definition**:
+A registered coaching capability schema that describes how the assistant may request work.
+_Avoid_: Tool metadata, function schema
+
+**Tool Call**:
+A request from the assistant to run a registered coaching capability during a **Conversation**.
+_Avoid_: Function call, raw call
+
+**Tool Result**:
+The persisted output produced by a **Tool Call** during a **Conversation**.
+_Avoid_: Function output, raw result
+
+## Relationships
+
+- A **Conversation** contains zero or more **Tool Calls**
+- A **Tool Call** conforms to exactly one **Tool Definition**
+- A **Tool Call** may produce exactly one **Tool Result**
+
+## Example dialogue
+
+> **Dev:** "When the assistant asks to inspect replay history, is that a **Tool Definition** or a **Tool Call**?"
+> **Domain expert:** "The registered replay query capability is the **Tool Definition**; the assistant's request inside a **Conversation** is the **Tool Call**, and the returned replay data is the **Tool Result**."
+
