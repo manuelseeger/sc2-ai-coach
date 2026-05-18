@@ -97,7 +97,10 @@ function itemKindLabel(item: ConversationItemRecord): string {
   if (item.type === "function_call_output") {
     return "Tool result";
   }
-  return item.role ? `${item.role} message` : item.type;
+  if (item.role === "assistant") {
+    return "Coach";
+  }
+  return item.role ?? item.type;
 }
 
 const connectors = computed(() => computeConnectors(items.value));
@@ -157,13 +160,11 @@ watch(conversationId, async (value) => {
     <template v-else-if="conversation">
       <section class="conversation-detail-layout">
         <article class="panel panel-stack conversation-summary-panel">
-          <PanelHeading :title="triggerLabel(conversation.trigger)">
-            <template #aside>
-              <span class="pill" :class="conversation.status === 'active' ? 'pill--accent' : 'pill--amber'">
-                {{ conversation.status }}
-              </span>
-            </template>
-          </PanelHeading>
+          <div class="summary-topline">
+            <span class="pill" :class="conversation.status === 'active' ? 'pill--accent' : 'pill--amber'">
+              {{ conversation.status }}
+            </span>
+          </div>
 
           <div class="header-tags">
             <span class="tag">Created {{ formatDate(conversation.created_at) }}</span>
@@ -189,7 +190,7 @@ watch(conversationId, async (value) => {
         </article>
 
         <article class="panel panel-stack transcript-panel">
-          <PanelHeading eyebrow="Transcript" :title="`${items.length} persisted items`" />
+          <PanelHeading eyebrow="Transcript" :title="`${items.length} items`" />
 
           <p v-if="items.length === 0" class="muted-copy">No conversation items were persisted for this exchange.</p>
 
@@ -279,6 +280,11 @@ watch(conversationId, async (value) => {
   width: 100%;
 }
 
+.summary-topline {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .header-tags {
   display: flex;
   flex-wrap: wrap;
@@ -355,6 +361,11 @@ watch(conversationId, async (value) => {
   border-radius: var(--radius-md);
   background: linear-gradient(180deg, rgba(14, 21, 33, 0.96), rgba(9, 14, 22, 0.99));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.transcript-item--message.role--assistant,
+.transcript-item--function_call {
+  margin-left: clamp(18px, 5vw, 72px);
 }
 
 .transcript-item--message.role--user {
@@ -442,6 +453,11 @@ watch(conversationId, async (value) => {
 
   .transcript-item__time {
     margin-left: 0;
+  }
+
+  .transcript-item--message.role--assistant,
+  .transcript-item--function_call {
+    margin-left: 10px;
   }
 }
 </style>

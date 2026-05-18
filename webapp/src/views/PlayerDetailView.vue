@@ -90,11 +90,9 @@ watch(
     <template v-else-if="player && portraitMetadata && replays">
       <section class="detail-grid">
         <article class="panel panel-stack">
-          <PanelHeading :title="player.name">
-            <template #aside>
-              <span class="pill">{{ aliases.length }} aliases</span>
-            </template>
-          </PanelHeading>
+          <div class="summary-topline">
+            <span class="pill">{{ aliases.length }} aliases</span>
+          </div>
 
           <KeyValueGrid :items="playerItems" />
         </article>
@@ -212,6 +210,11 @@ watch(
   line-height: 0.94;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.summary-topline {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .portrait-grid {

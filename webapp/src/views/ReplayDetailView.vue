@@ -26,6 +26,11 @@ const replayItems = computed(() => {
 
   return [
     {
+      label: "Winner",
+      value: winner.value?.name ?? "Unknown",
+      valueClass: winnerIdx.value >= 0 ? `player--p${winnerIdx.value + 1}` : undefined,
+    },
+    {
       label: "Date",
       value: new Date(replay.value.date).toLocaleString(undefined, {
         dateStyle: "medium",
@@ -46,12 +51,31 @@ const replayItems = computed(() => {
 
 const winner = computed(() => {
   if (!replay.value) return null;
-  return replay.value.players.find(p => p.result === "Win") ?? null;
+  return replay.value.players.find((player) => player.result === "Win") ?? null;
 });
 
 const winnerIdx = computed(() => {
   if (!replay.value || !winner.value) return -1;
   return replay.value.players.indexOf(winner.value);
+});
+
+const playerPanels = computed(() => {
+  if (!replay.value) return [];
+
+  const relationsByToonHandle = new Map(
+    players.value.map((relation) => [relation.replay_player.toon_handle, relation]),
+  );
+
+  return replay.value.players.map((replayPlayer, idx) => {
+    const relation = relationsByToonHandle.get(replayPlayer.toon_handle) ?? null;
+
+    return {
+      idx,
+      replayPlayer,
+      playerInfo: relation?.player_info ?? null,
+      portraitUrl: primaryPortraitUrl(replayPlayer.toon_handle),
+    };
+  });
 });
 
 function primaryPortraitUrl(toonHandle: string): string | null {
@@ -92,7 +116,7 @@ watch(
       try {
         portraits.value = await loadPlayerPortraitMetadataMap(
           apiClient,
-          detail.players.map(p => p.replay_player.toon_handle),
+          detail.players.map((player) => player.replay_player.toon_handle),
         );
       } catch {
         portraits.value = {};
@@ -118,14 +142,13 @@ watch(
         <RouterLink to="/replays" class="breadcrumb-link">← Replays</RouterLink>
         <h2 v-if="replay" class="page-title">{{ replay.map_name }}</h2>
         <h2 v-else class="page-title">Replay detail</h2>
-        <p v-if="winner" class="replay-winner">
-          Winner: <span :class="`player--p${winnerIdx + 1}`">{{ winner.name }}</span>
-        </p>
       </div>
-      <div v-if="replay" class="button-row">
-        <RouterLink :to="`/resources/replays/${replay.id}`" class="button button--ghost">
-          Maintenance
-        </RouterLink>
+      <div v-if="replay" class="page-header__actions">
+        <div class="button-row">
+          <RouterLink :to="`/resources/replays/${replay.id}`" class="button button--ghost">
+            Maintenance
+          </RouterLink>
+        </div>
       </div>
     </header>
 
@@ -134,94 +157,99 @@ watch(
 
     <template v-else-if="replay">
       <section class="detail-grid">
-        <article class="panel panel-stack">
-          <PanelHeading eyebrow="Match" :title="replay.map_name">
-            <template #aside>
-              <div class="tag-row">
-                <template v-for="(p, idx) in replay.players" :key="p.toon_handle">
-                  <span class="tag" :class="[resultClass(p.result), `player--p${idx + 1}`]">{{ p.name }}</span>
-                  <span class="tag" :class="raceTagClass(p.play_race)">{{ p.play_race }}</span>
-                </template>
-              </div>
-            </template>
-          </PanelHeading>
-
-          <KeyValueGrid :items="replayItems" />
+        <article class="panel">
+          <PanelHeading eyebrow="Replay overview" title="Metrics" />
+          <KeyValueGrid class="list-block-spacing" :items="replayItems" />
         </article>
 
         <article class="panel panel-stack">
-          <PanelHeading eyebrow="Notes" title="Game Summary" />
-
-          <template v-if="metadata">
-            <p v-if="metadata.description" class="metadata-desc">{{ metadata.description }}</p>
-            <p v-else class="muted-copy">No description recorded.</p>
-
-            <div v-if="metadata.tags && metadata.tags.length" class="tag-row list-block-spacing">
-              <span v-for="tag in metadata.tags" :key="tag" class="tag">{{ tag }}</span>
+          <div class="map-preview-card">
+            <div class="map-preview-card__art">
+              <span class="map-preview-card__eyebrow">Image coming later</span>
+              <strong class="map-preview-card__title">{{ replay.map_name }}</strong>
             </div>
-
-            <RouterLink v-if="metadata.replay_summary_conversation" :to="`/conversations/${metadata.replay_summary_conversation}`" class="button button--ghost">
-              View summary conversation →
-            </RouterLink>
-          </template>
-
-          <p v-else class="muted-copy">
-            No metadata exists for this replay.
-          </p>
+            <p class="muted-copy">Placeholder artwork panel for future map images.</p>
+          </div>
         </article>
       </section>
 
       <article class="panel panel-stack">
-        <PanelHeading eyebrow="Players" title="Players in this match" />
+        <PanelHeading eyebrow="Notes" title="Game Summary" />
 
-        <ul class="list list-block-spacing">
-          <li
-            v-for="(relation, idx) in players"
-            :key="relation.replay_player.toon_handle"
-            class="list-row player-row"
-            :class="[`list-row--p${idx + 1}`, { 'list-row--linked': relation.player_info }]"
+        <template v-if="metadata">
+          <div
+            v-if="metadata.description || (metadata.tags && metadata.tags.length)"
+            class="replay-summary-content"
+          >
+            <p v-if="metadata.description" class="metadata-desc">{{ metadata.description }}</p>
+
+            <div v-if="metadata.tags && metadata.tags.length" class="tag-row replay-summary-tags">
+              <span v-for="tag in metadata.tags" :key="tag" class="tag">{{ tag }}</span>
+            </div>
+          </div>
+          <p v-else class="muted-copy">No description recorded.</p>
+
+          <RouterLink v-if="metadata.replay_summary_conversation" :to="`/conversations/${metadata.replay_summary_conversation}`" class="button button--ghost">
+            View summary conversation →
+          </RouterLink>
+        </template>
+
+        <p v-else class="muted-copy">No metadata exists for this replay.</p>
+      </article>
+
+      <article class="panel panel-stack">
+        <div class="replay-duel-grid">
+          <article
+            v-for="panel in playerPanels"
+            :key="panel.replayPlayer.toon_handle"
+            class="duel-player-card"
+            :class="[
+              `duel-player-card--p${panel.idx + 1}`,
+              { 'duel-player-card--linked': panel.playerInfo },
+            ]"
           >
             <RouterLink
-              v-if="relation.player_info"
-              :to="`/players/${relation.replay_player.toon_handle}`"
-              class="list-row__overlay"
-              :aria-label="`View ${relation.replay_player.name}`"
+              v-if="panel.playerInfo"
+              :to="`/players/${panel.replayPlayer.toon_handle}`"
+              class="duel-player-card__overlay"
+              :aria-label="`View ${panel.replayPlayer.name}`"
             />
-            <div class="player-row__portrait">
-              <img
-                v-if="primaryPortraitUrl(relation.replay_player.toon_handle)"
-                :src="primaryPortraitUrl(relation.replay_player.toon_handle) ?? ''"
-                :alt="`${relation.replay_player.name} portrait`"
-                class="player-row__portrait-img"
-              />
-              <div v-else class="player-row__portrait-fallback">?</div>
+
+            <div class="duel-player-card__topline">
+              <span class="tag" :class="resultClass(panel.replayPlayer.result)">
+                {{ panel.replayPlayer.result }}
+              </span>
             </div>
 
-            <div class="player-row__body">
-              <div class="player-row__head">
-                <div>
-                  <strong class="player-row__name" :class="`player--p${idx + 1}`">{{ relation.replay_player.name }}</strong>
-                  </div>
+            <div class="duel-player-card__body">
+              <div class="duel-player-card__portrait">
+                <img
+                  v-if="panel.portraitUrl"
+                  :src="panel.portraitUrl"
+                  :alt="`${panel.replayPlayer.name} portrait`"
+                  class="duel-player-card__portrait-img"
+                />
+                <div v-else class="duel-player-card__portrait-fallback">{{ panel.replayPlayer.name.slice(0, 1) }}</div>
+              </div>
+
+              <div class="duel-player-card__identity">
+                <strong class="duel-player-card__name" :class="`player--p${panel.idx + 1}`">
+                  {{ panel.replayPlayer.name }}
+                </strong>
+                <p class="duel-player-card__toon">{{ panel.replayPlayer.toon_handle }}</p>
+
                 <div class="tag-row">
-                  <span class="tag" :class="resultClass(relation.replay_player.result)">
-                    {{ relation.replay_player.result }}
+                  <span class="tag" :class="raceTagClass(panel.replayPlayer.play_race)">
+                    {{ panel.replayPlayer.play_race }}
                   </span>
-                  <span class="tag" :class="raceTagClass(relation.replay_player.play_race)">
-                    {{ relation.replay_player.play_race }}
-                  </span>
-                  <span v-if="relation.replay_player.scaled_rating" class="tag">
-                    MMR {{ relation.replay_player.scaled_rating.toLocaleString() }}
+                  <span v-if="panel.replayPlayer.scaled_rating" class="tag">
+                    MMR {{ panel.replayPlayer.scaled_rating.toLocaleString() }}
                   </span>
                 </div>
               </div>
-
-              <div class="player-row__record">
-                <span v-if="relation.player_info" class="tag tag--ok">Known player</span>
-                <span v-else class="tag tag--warn">Unknown player</span>
-              </div>
             </div>
-          </li>
-        </ul>
+          </article>
+        </div>
       </article>
     </template>
   </section>
@@ -230,7 +258,7 @@ watch(
 <style scoped>
 .page-header {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   padding-bottom: 8px;
@@ -239,6 +267,14 @@ watch(
 .page-header__breadcrumb {
   display: grid;
   gap: 4px;
+}
+
+.page-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .breadcrumb-link {
@@ -263,83 +299,222 @@ watch(
   text-transform: uppercase;
 }
 
+.replay-header-tile {
+  display: grid;
+  gap: 6px;
+  min-width: 170px;
+  padding: 14px 16px;
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(17, 29, 45, 0.94), rgba(10, 16, 28, 0.98));
+  box-shadow: inset 0 1px 0 rgba(121, 210, 255, 0.14);
+}
+
+.replay-header-tile__label {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-family: var(--display);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.replay-header-tile__value {
+  font-family: var(--display);
+  font-size: 1.25rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 .metadata-desc {
   margin: 0;
   line-height: 1.65;
   color: var(--text-dim);
 }
 
-.player-row {
+.replay-summary-content {
   display: grid;
-  grid-template-columns: 72px 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
   gap: 16px;
-  padding: 16px 18px;
+  align-items: start;
+}
+
+.replay-summary-tags {
+  width: 100%;
+  justify-content: flex-end;
+  align-content: start;
+}
+
+.map-preview-card {
+  display: grid;
+  gap: 16px;
+}
+
+.map-preview-card__art {
+  display: grid;
+  align-content: end;
+  gap: 10px;
+  aspect-ratio: 1;
+  width: 100%;
+  padding: 18px;
+  border: 1px solid rgba(114, 154, 204, 0.14);
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(circle at top left, rgba(86, 194, 255, 0.16), transparent 34%),
+    linear-gradient(135deg, rgba(16, 24, 38, 0.96), rgba(10, 16, 26, 0.98));
+}
+
+.map-preview-card__eyebrow {
+  color: var(--accent-strong);
+  font-size: 0.72rem;
+  font-family: var(--display);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.map-preview-card__title {
+  max-width: 12ch;
+  font-family: var(--display);
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  line-height: 0.92;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.replay-duel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.duel-player-card {
+  position: relative;
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid rgba(114, 154, 204, 0.12);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(180deg, rgba(11, 17, 27, 0.78), rgba(8, 13, 22, 0.94)),
+    var(--panel-stripe);
+}
+
+.duel-player-card--p1 {
+  border-left: 2px solid var(--p1);
+}
+
+.duel-player-card--p2 {
+  border-left: 2px solid var(--p2);
+}
+
+.duel-player-card--linked {
+  transition: border-color 150ms ease, transform 150ms ease, background 150ms ease;
+}
+
+.duel-player-card--linked:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+  background:
+    linear-gradient(180deg, rgba(16, 24, 38, 0.88), rgba(10, 16, 28, 0.96)),
+    var(--panel-stripe);
+}
+
+.duel-player-card__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.duel-player-card__topline {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.duel-player-card__body {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 16px;
   align-items: center;
 }
 
-.player-row__portrait {
-  width: 72px;
-  height: 72px;
+.duel-player-card__portrait {
+  width: 88px;
+  height: 88px;
   border-radius: var(--radius-sm);
   overflow: hidden;
   border: 1px solid var(--border);
   background: linear-gradient(180deg, rgba(16, 24, 38, 0.9), rgba(10, 16, 26, 1));
-  flex-shrink: 0;
 }
 
-.player-row__portrait-img {
+.duel-player-card__portrait-img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.player-row__portrait-fallback {
+.duel-player-card__portrait-fallback {
   display: grid;
   place-items: center;
   width: 100%;
   height: 100%;
   color: var(--text-muted);
-  font-size: 1.2rem;
+  font-family: var(--display);
+  font-size: 1.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.player-row__body {
+.duel-player-card__identity {
   display: grid;
   gap: 10px;
+  min-width: 0;
 }
 
-.player-row__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.player-row__name {
+.duel-player-card__name {
   font-family: var(--display);
-  font-size: 1rem;
+  font-size: 1.2rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
-.player-row__toon {
-  margin: 4px 0 0;
-  font-size: 0.78rem;
+.duel-player-card__toon {
+  margin: -4px 0 0;
   color: var(--text-muted);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
 }
 
-.player-row__record {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+@media (max-width: 900px) {
+  .page-header__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .replay-summary-content {
+    grid-template-columns: 1fr;
+  }
+
+  .replay-summary-tags {
+    justify-content: flex-start;
+  }
+
+  .replay-duel-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-.replay-winner {
-  margin: 6px 0 0;
-  font-family: var(--display);
-  font-size: 1rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-dim);
+@media (max-width: 640px) {
+  .duel-player-card__body {
+    grid-template-columns: 1fr;
+  }
+
+  .duel-player-card__portrait {
+    width: 72px;
+    height: 72px;
+  }
 }
 </style>

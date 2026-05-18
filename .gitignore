@@ -29,3 +29,4 @@ rep.json
 .playwright/
 .playwright-cli/
 test-results/
+playground/tmp/
