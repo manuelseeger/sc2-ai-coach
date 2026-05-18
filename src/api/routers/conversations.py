@@ -140,13 +140,9 @@ def build_conversations_router() -> APIRouter:
     def get_conversation_items(
         conversation_id: str,
         request: Request,
-        included_in_context: bool | None = None,
     ) -> list[AIConversationItem]:
         persistence = get_persistence(request)
-        return persistence.conversation_store.list_items(
-            conversation_id,
-            included_only=included_in_context,
-        )
+        return persistence.conversation_store.list_items(conversation_id)
 
     @router.post("/{conversation_id}/items", response_model=AIConversationItem)
     def create_conversation_item(

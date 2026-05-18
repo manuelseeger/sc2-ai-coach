@@ -33,7 +33,6 @@ describe("read-only resource workflows", () => {
       status: null,
       raw_item: { kind: "assistant-trace" },
       source: "test",
-      included_in_context: true,
       metadata: { lane: "raw" },
     };
     const payload: PaginatedResponse<ConversationItemRecord> = {

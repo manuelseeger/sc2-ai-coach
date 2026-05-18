@@ -68,7 +68,7 @@ class AICoach:
         """Return the persisted conversation history for the active conversation."""
         if self.active_conversation_id is None:
             return []
-        return self.store.list_items(self.active_conversation_id, included_only=False)
+        return self.store.list_items(self.active_conversation_id)
 
     def create_conversation(
         self,

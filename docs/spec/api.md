@@ -810,10 +810,6 @@ This non-cascading delete behavior is the default admin contract rather than an 
 
 Returns ordered conversation items.
 
-Query parameters:
-
-- `included_in_context`: optional boolean filter.
-
 Default sort: `order` ascending.
 
 This route returns the full stored `AIConversationItem` models, including `raw_item` when that field is present.

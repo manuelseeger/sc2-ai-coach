@@ -79,7 +79,6 @@ const detailItems = computed(() => {
     { label: "Role", value: item.role ?? "None" },
     { label: "Order", value: item.order },
     { label: "Response ID", value: item.response_id ?? "None", valueClass: "kv-grid__mono" },
-    { label: "Included", value: item.included_in_context ? "Yes" : "No" },
     { label: "Source", value: item.source ?? "None" },
   ];
 });

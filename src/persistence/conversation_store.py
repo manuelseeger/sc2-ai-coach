@@ -124,7 +124,6 @@ class AIConversationItem(DbModel):
     raw_item: dict[str, Any] | None = None
 
     source: str | None = None
-    included_in_context: bool = True
     metadata: dict[str, Any] | None = Field(default_factory=dict)
 
     _collection: ClassVar = "ai_conversation_items"
@@ -380,14 +379,9 @@ class ConversationStore:
     def list_items(
         self,
         conversation: AIConversation | Id | str,
-        included_only: bool | None = True,
     ) -> list[AIConversationItem]:
         conversation_id = self._id(conversation)
         query = eq(AIConversationItem.conversation, conversation_id)  # type: ignore[arg-type]
-        if included_only is True:
-            query = query & eq(AIConversationItem.included_in_context, True)  # type: ignore[arg-type]
-        elif included_only is False:
-            query = query & eq(AIConversationItem.included_in_context, False)  # type: ignore[arg-type]
 
         return cast(
             list[AIConversationItem],

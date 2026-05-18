@@ -52,7 +52,6 @@ describe("conversation workflows", () => {
         status: null,
         raw_item: null,
         source: null,
-        included_in_context: true,
         metadata: {},
       },
     ];
@@ -121,7 +120,6 @@ describe("conversation workflows", () => {
       status: null,
       raw_item: null,
       source: null,
-      included_in_context: true,
       metadata: {},
     };
     const apiClient = {

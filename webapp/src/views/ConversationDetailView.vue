@@ -170,7 +170,6 @@ watch(conversationId, async (value) => {
               <div class="transcript-item__meta">
                 <span class="tag">{{ itemKindLabel(item) }}</span>
                 <span v-if="item.name" class="tag tag--accent">{{ item.name }}</span>
-                <span v-if="!item.included_in_context" class="tag tag--warn">Excluded from model context</span>
                 <time class="transcript-item__time">{{ formatDate(item.created_at) }}</time>
               </div>
 

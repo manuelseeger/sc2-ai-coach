@@ -122,14 +122,13 @@ def test_get_conversation_items_returns_full_ordered_flow_and_supports_included_
         role=AIMessageRole.assistant,
         text="hi",
     )
-    excluded_item = conversation_store.append_message(
+    trace_item = conversation_store.append_message(
         conversation,
         role=AIMessageRole.system,
         text="hidden from model context",
     )
-    excluded_item.included_in_context = False
-    excluded_item.raw_item = {"kind": "excluded"}
-    conversation_store.save(excluded_item)
+    trace_item.raw_item = {"kind": "trace"}
+    conversation_store.save(trace_item)
 
     api_app = importlib.import_module("src.api.app")
     app = api_app.create_app(
@@ -152,25 +151,7 @@ def test_get_conversation_items_returns_full_ordered_flow_and_supports_included_
             "assistant",
             "system",
         ]
-        assert response.json()[2]["included_in_context"] is False
-        assert response.json()[2]["raw_item"] == {"kind": "excluded"}
-
-        included_only = client.get(
-            f"/api/conversations/{conversation.id}/items",
-            params={"included_in_context": True},
-        )
-
-        assert included_only.status_code == 200
-        assert [item["order"] for item in included_only.json()] == [0, 1]
-        assert [item["role"] for item in included_only.json()] == ["user", "assistant"]
-
-        excluded_only = client.get(
-            f"/api/conversations/{conversation.id}/items",
-            params={"included_in_context": False},
-        )
-
-    assert excluded_only.status_code == 200
-    assert [item["id"] for item in excluded_only.json()] == [str(excluded_item.id)]
+        assert response.json()[2]["raw_item"] == {"kind": "trace"}
 
 
 @pytest.mark.mongo
@@ -651,7 +632,6 @@ def test_append_conversation_item_assigns_server_order_and_rejects_path_mismatch
                 "role": "assistant",
                 "content": [{"text": "follow-up from api"}],
                 "order": 99,
-                "included_in_context": True,
             },
         )
         mismatch = client.post(
@@ -662,7 +642,6 @@ def test_append_conversation_item_assigns_server_order_and_rejects_path_mismatch
                 "role": "assistant",
                 "content": [{"text": "wrong conversation"}],
                 "order": 5,
-                "included_in_context": True,
             },
         )
         ordered_items = client.get(f"/api/conversations/{conversation.id}/items")

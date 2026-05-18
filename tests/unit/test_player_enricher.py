@@ -65,5 +65,8 @@ def test_player_identity_enricher_updates_aliases_for_existing_player_in_seeded_
         aliased_name,
     }
     assert (
-        replay_store.raw["players"].count_documents({"_id": opponent.toon_handle}) == 1
+        replay_store.database.raw["players"].count_documents(
+            {"_id": opponent.toon_handle}
+        )
+        == 1
     )

@@ -104,7 +104,6 @@ export interface ConversationItemRecord {
   status: string | null;
   raw_item: Record<string, unknown> | null;
   source: string | null;
-  included_in_context: boolean;
   metadata: Record<string, unknown> | null;
 }
 

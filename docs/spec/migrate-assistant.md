@@ -172,7 +172,6 @@ class AIConversationItem(DbModel):
 
     # Local assembly/debugging metadata.
     source: str | None = None
-    included_in_context: bool = True
     metadata: dict[str, Any] = {}
 
     _collection: ClassVar = "ai_conversation_items"
