@@ -151,6 +151,20 @@ export interface ReplayListPlayer {
   scaled_rating?: number;
 }
 
+export interface ReplayDetailPlayer extends ReplayListPlayer {
+  avg_apm?: number | null;
+  avg_sq?: number | null;
+  clan_tag?: string | null;
+  clock_position?: number | null;
+  highest_league?: number | null;
+  official_apm?: number | null;
+  pick_race?: string | null;
+  pid?: number | null;
+  toon_id?: number | null;
+  uid?: number | null;
+  url?: string | null;
+}
+
 export interface PlayerInfoRecord {
   id: string;
   toon_handle: string;
@@ -210,7 +224,7 @@ export interface ReplayRecord {
 export type ReplayWritePayload = Record<string, unknown>;
 
 export interface ReplayPlayerRelationship {
-  replay_player: ReplayListPlayer;
+  replay_player: ReplayDetailPlayer;
   player_info: PlayerInfoRecord | null;
 }
 

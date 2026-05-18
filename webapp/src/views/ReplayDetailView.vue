@@ -10,10 +10,27 @@ import PageHeader from "../components/PageHeader.vue";
 import { formatCount, formatDate, formatDuration, replayRaceTagClass, replayResultClass } from "../formatters";
 import { loadPlayerPortraitMetadataMap } from "../players";
 import { loadReplayDetail } from "../replays";
-import type { MetadataRecord, PlayerPortraitMetadataRecord, ReplayPlayerRelationship, ReplayRecord } from "../types";
+import type { KeyValueItem } from "../components/KeyValueGrid.vue";
+import type {
+  MetadataRecord,
+  PlayerPortraitMetadataRecord,
+  ReplayDetailPlayer,
+  ReplayPlayerRelationship,
+  ReplayRecord,
+} from "../types";
 
 const apiClient = createApiClient();
 const route = useRoute();
+
+const leagueLabels: Record<number, string> = {
+  0: "Bronze",
+  1: "Silver",
+  2: "Gold",
+  3: "Platinum",
+  4: "Diamond",
+  5: "Master",
+  6: "Grandmaster",
+};
 
 const loading = ref(true);
 const errorMessage = ref<string | null>(null);
@@ -69,11 +86,52 @@ const playerPanels = computed(() => {
     return {
       idx,
       replayPlayer,
+      scalarItems: scalarItemsForPlayer(replayPlayer),
       playerInfo: relation?.player_info ?? null,
       portraitUrl: primaryPortraitUrl(replayPlayer.toon_handle),
     };
   });
 });
+
+function formatPlayerScalarNumber(value: number): string {
+  return Number.isInteger(value) ? formatCount(value) : value.toFixed(1);
+}
+
+function formatLeagueLabel(league: number): string {
+  return leagueLabels[league] ?? String(league);
+}
+
+function scalarItemsForPlayer(player: ReplayDetailPlayer): KeyValueItem[] {
+  const items: Array<KeyValueItem | null> = [
+    { label: "Name", value: player.name },
+    { label: "Play race", value: player.play_race },
+    { label: "Pick race", value: player.pick_race ?? "Unknown" },
+    { label: "Result", value: player.result },
+    player.scaled_rating != null
+      ? { label: "MMR", value: formatCount(player.scaled_rating) }
+      : null,
+    player.avg_apm != null
+      ? { label: "Avg APM", value: formatPlayerScalarNumber(player.avg_apm) }
+      : null,
+    player.official_apm != null
+      ? { label: "Official APM", value: formatPlayerScalarNumber(player.official_apm) }
+      : null,
+    player.avg_sq != null
+      ? { label: "Avg SQ", value: formatPlayerScalarNumber(player.avg_sq) }
+      : null,
+    player.highest_league != null
+      ? { label: "Highest league", value: formatLeagueLabel(player.highest_league) }
+      : null,
+    player.clock_position != null
+      ? { label: "Clock", value: `${player.clock_position} o'clock` }
+      : null,
+    player.clan_tag
+      ? { label: "Clan tag", value: player.clan_tag }
+      : null,
+  ];
+
+  return items.filter((item): item is KeyValueItem => item !== null);
+}
 
 function primaryPortraitUrl(toonHandle: string): string | null {
   const md = portraits.value[toonHandle];
@@ -226,6 +284,12 @@ watch(
                 </div>
               </div>
             </div>
+
+            <KeyValueGrid
+              v-if="panel.scalarItems.length"
+              class="duel-player-card__scalars"
+              :items="panel.scalarItems"
+            />
           </article>
         </div>
       </article>
@@ -362,6 +426,21 @@ watch(
   overflow-wrap: anywhere;
 }
 
+.duel-player-card__scalars {
+  position: relative;
+  z-index: 3;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.duel-player-card__scalars :deep(.data-card) {
+  min-width: 0;
+}
+
+.duel-player-card__scalars :deep(dd) {
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 900px) {
   .page-header__actions {
     width: 100%;
@@ -379,10 +458,18 @@ watch(
   .replay-duel-grid {
     grid-template-columns: 1fr;
   }
+
+  .duel-player-card__scalars {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
   .duel-player-card__body {
+    grid-template-columns: 1fr;
+  }
+
+  .duel-player-card__scalars {
     grid-template-columns: 1fr;
   }
 

@@ -14,6 +14,7 @@ import type {
   ApiClient,
   MetadataRecord,
   PaginatedResponse,
+  ReplayDetailPlayer,
   ReplayPlayerRelationship,
   ReplayRecord,
 } from "./types";
@@ -49,9 +50,27 @@ describe("replay workflows", () => {
       created_at: "2026-01-02T00:05:00Z",
       updated_at: "2026-01-02T00:05:00Z",
     };
+    const replayPlayer: ReplayDetailPlayer = {
+      name: "zatic",
+      toon_handle: "2-S2-1-123456",
+      play_race: "Zerg",
+      result: "Win",
+      scaled_rating: 4820,
+      avg_apm: 163.4,
+      avg_sq: 112.2,
+      clan_tag: "SC2",
+      clock_position: 7,
+      highest_league: 5,
+      official_apm: 171.8,
+      pick_race: "Zerg",
+      pid: 1,
+      toon_id: 123456,
+      uid: 789012,
+      url: "https://example.test/player/zatic",
+    };
     const players: ReplayPlayerRelationship[] = [
       {
-        replay_player: replay.players[0],
+        replay_player: replayPlayer,
         player_info: {
           id: "2-S2-1-123456",
           toon_handle: "2-S2-1-123456",
@@ -88,6 +107,7 @@ describe("replay workflows", () => {
     expect(detail.replay.id).toBe(replay.id);
     expect(detail.metadata?.id).toBe("metadata-1");
     expect(detail.players[0]?.player_info?.id).toBe("2-S2-1-123456");
+    expect(detail.players[0]?.replay_player.avg_apm).toBe(163.4);
   });
 
   it("treats missing replay metadata as an empty curated metadata state", async () => {
