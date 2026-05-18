@@ -155,8 +155,8 @@ watch(conversationId, async (value) => {
     <p v-else-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
 
     <template v-else-if="conversation">
-      <section class="detail-grid">
-        <article class="panel panel-stack">
+      <section class="conversation-detail-layout">
+        <article class="panel panel-stack conversation-summary-panel">
           <PanelHeading :title="triggerLabel(conversation.trigger)">
             <template #aside>
               <span class="pill" :class="conversation.status === 'active' ? 'pill--accent' : 'pill--amber'">
@@ -188,7 +188,7 @@ watch(conversationId, async (value) => {
           </template>
         </article>
 
-        <article class="panel panel-stack">
+        <article class="panel panel-stack transcript-panel">
           <PanelHeading eyebrow="Transcript" :title="`${items.length} persisted items`" />
 
           <p v-if="items.length === 0" class="muted-copy">No conversation items were persisted for this exchange.</p>
@@ -267,11 +267,16 @@ watch(conversationId, async (value) => {
   text-transform: uppercase;
 }
 
-.detail-grid {
+.conversation-detail-layout {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+}
+
+.conversation-summary-panel,
+.transcript-panel {
+  width: 100%;
 }
 
 .header-tags {
@@ -286,48 +291,50 @@ watch(conversationId, async (value) => {
 
 .transcript-list {
   display: grid;
-  gap: 12px;
+  gap: 0;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-/* Row container: gutter rail + item card side by side */
 .transcript-row {
+  position: relative;
   display: grid;
-  grid-template-columns: 12px 1fr;
-  gap: 4px;
+  grid-template-columns: 10px minmax(0, 1fr);
+  gap: 10px;
   align-items: stretch;
+  padding: 6px 0;
 }
 
-/* Gutter rail: 3 fixed lane slots */
 .transcript-rail {
   display: flex;
   flex-direction: row;
   gap: 2px;
   align-self: stretch;
+  min-height: 100%;
 }
 
 .rail-segment {
   flex: 1;
   min-width: 2px;
   --rail-color: transparent;
+  opacity: 0.58;
 }
 
 .rail-segment--lane-0 {
-  --rail-color: var(--accent-strong, rgba(56, 189, 248, 0.75));
+  --rail-color: rgba(121, 210, 255, 0.34);
 }
 
 .rail-segment--lane-1 {
-  --rail-color: rgba(139, 92, 246, 0.65);
+  --rail-color: rgba(197, 156, 255, 0.24);
 }
 
 .rail-segment--lane-2 {
-  --rail-color: var(--border, rgba(74, 222, 128, 0.5));
+  --rail-color: rgba(134, 239, 172, 0.18);
 }
 
 .rail-segment--call-start {
-  background: linear-gradient(to bottom, transparent 40%, var(--rail-color) 40%);
+  background: linear-gradient(to bottom, transparent 14%, var(--rail-color) 14%);
   border-radius: var(--radius-sm, 2px) var(--radius-sm, 2px) 0 0;
 }
 
@@ -336,33 +343,50 @@ watch(conversationId, async (value) => {
 }
 
 .rail-segment--result-end {
-  background: linear-gradient(to bottom, var(--rail-color) 60%, transparent 60%);
+  background: linear-gradient(to bottom, var(--rail-color) 86%, transparent 86%);
   border-radius: 0 0 var(--radius-sm, 2px) var(--radius-sm, 2px);
 }
 
 .transcript-item {
   display: grid;
   gap: 10px;
-  padding: 16px;
-  border: 1px solid var(--border);
+  padding: 18px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-md);
-  background: linear-gradient(180deg, rgba(14, 21, 33, 0.94), rgba(9, 14, 22, 0.98));
+  background: linear-gradient(180deg, rgba(14, 21, 33, 0.96), rgba(9, 14, 22, 0.99));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
 }
 
 .transcript-item--message.role--user {
-  border-left: 3px solid rgba(251, 191, 36, 0.5);
+  border-left: 4px solid rgba(251, 191, 36, 0.72);
+  background: linear-gradient(180deg, rgba(45, 31, 9, 0.72), rgba(15, 16, 20, 0.98));
 }
 
 .transcript-item--message.role--assistant {
-  border-left: 3px solid rgba(86, 194, 255, 0.5);
+  border-left: 4px solid rgba(86, 194, 255, 0.76);
+  background: linear-gradient(180deg, rgba(11, 33, 49, 0.78), rgba(10, 15, 24, 0.99));
 }
 
 .transcript-item--function_call {
-  border-left: 3px solid rgba(251, 191, 36, 0.4);
+  border-left: 2px solid rgba(197, 156, 255, 0.42);
+  background: linear-gradient(180deg, rgba(27, 25, 41, 0.84), rgba(12, 15, 24, 0.98));
+  color: var(--text-dim);
 }
 
 .transcript-item--function_call_output {
-  border-left: 3px solid rgba(74, 222, 128, 0.4);
+  border-left: 2px solid rgba(134, 239, 172, 0.32);
+  background: linear-gradient(180deg, rgba(16, 30, 24, 0.72), rgba(10, 16, 18, 0.98));
+  color: var(--text-dim);
+}
+
+.transcript-item--function_call :deep(.tag),
+.transcript-item--function_call_output :deep(.tag) {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-dim);
+}
+
+.transcript-item--message :deep(.tag) {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .transcript-item__meta {
@@ -383,7 +407,8 @@ watch(conversationId, async (value) => {
   white-space: pre-wrap;
   color: var(--text);
   font-family: var(--ui);
-  line-height: 1.6;
+  line-height: 1.7;
+  font-size: 0.98rem;
 }
 
 .transcript-item__body--code {
@@ -408,6 +433,11 @@ watch(conversationId, async (value) => {
   .page-header {
     align-items: start;
     flex-direction: column;
+  }
+
+  .transcript-row {
+    grid-template-columns: 8px minmax(0, 1fr);
+    gap: 8px;
   }
 
   .transcript-item__time {

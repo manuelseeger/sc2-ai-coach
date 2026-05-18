@@ -26,20 +26,20 @@ const display = computed(() => prepareDisplay(props.item.output));
 <style scoped>
 .tool-result-card {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .tool-result-card__linked {
   margin: 0;
   font-size: 0.72rem;
-  color: var(--fg-muted, #94a3b8);
+  color: var(--text-dim, #94a3b8);
   font-family: var(--display, sans-serif);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .tool-result-card__linked-name {
-  color: var(--accent-strong, #38bdf8);
+  color: var(--green-strong, #86efac);
   font-family: var(--mono, monospace);
   text-transform: none;
   letter-spacing: 0;
@@ -52,5 +52,6 @@ const display = computed(() => prepareDisplay(props.item.output));
   font-family: var(--ui, sans-serif);
   line-height: 1.6;
   word-break: break-word;
+  font-size: 0.9rem;
 }
 </style>

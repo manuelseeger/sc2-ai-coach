@@ -90,10 +90,12 @@ function isJsonValue(value: unknown): boolean {
       <div v-for="field in fields" :key="field.key" class="tool-call-card__field">
         <dt class="tool-call-card__label">
           {{ field.key }}
+        </dt>
+        <div class="tool-call-card__type">
           <span class="type-badge" :class="{ 'type-badge--unknown': field.isUnknownType }">
             {{ field.type }}
           </span>
-        </dt>
+        </div>
         <dd class="tool-call-card__value">
           <span v-if="field.value === undefined" class="value--absent" />
           <code v-else-if="isNullValue(field.value)" class="value--null">null</code>
@@ -109,62 +111,78 @@ function isJsonValue(value: unknown): boolean {
 <style scoped>
 .tool-call-card {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .tool-call-card__name {
   font-family: var(--mono, monospace);
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--accent-strong, #38bdf8);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--purple-strong, #c59cff);
   margin: 0;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .tool-call-card__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 6px 12px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
   margin: 0;
 }
 
 .tool-call-card__field {
   display: grid;
-  gap: 2px;
+  grid-template-columns: minmax(88px, 132px) minmax(54px, 72px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm, 8px);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .tool-call-card__label {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  display: block;
   font-size: 0.7rem;
-  color: var(--fg-muted, #94a3b8);
+  color: var(--text-dim, #aab3c2);
   font-family: var(--display, sans-serif);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
+.tool-call-card__type {
+  display: flex;
+  align-items: start;
+}
+
 .type-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 0.62rem;
-  padding: 0 4px;
+  min-height: 22px;
+  padding: 0 8px;
   border-radius: var(--radius-sm, 3px);
-  background: var(--border, #1e293b);
-  color: var(--fg-muted, #94a3b8);
+  background: rgba(197, 156, 255, 0.12);
+  color: var(--purple-strong, #c59cff);
   font-family: var(--mono, monospace);
   text-transform: lowercase;
   letter-spacing: 0;
   line-height: 1.6;
+  justify-self: start;
 }
 
 .type-badge--unknown {
   background: transparent;
   border: 1px solid var(--border-muted, #334155);
-  color: var(--fg-muted, #94a3b8);
+  color: var(--text-dim, #94a3b8);
 }
 
 .tool-call-card__value {
   margin: 0;
   font-size: 0.82rem;
+  min-width: 0;
   word-break: break-word;
 }
 
@@ -176,12 +194,19 @@ function isJsonValue(value: unknown): boolean {
 
 .value--text {
   font-family: var(--mono, monospace);
-  color: var(--fg, #e2e8f0);
+  color: var(--text, #e2e8f0);
 }
 
 .tool-call-card__empty {
   font-size: 0.78rem;
-  color: var(--fg-muted, #94a3b8);
+  color: var(--text-dim, #94a3b8);
   margin: 0;
+}
+
+@media (max-width: 720px) {
+  .tool-call-card__field {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
 }
 </style>

@@ -28,11 +28,15 @@ const expandDepth = computed(() => props.depth ?? 2);
 
 <style scoped>
 .json-pretty-print {
+  display: block;
+  width: 100%;
+  min-width: 0;
   font-family: var(--mono, monospace);
   font-size: 0.78rem;
   line-height: 1.5;
   background: transparent;
   padding: 0;
+  overflow-x: auto;
 }
 
 .json-pretty-print--text {
@@ -44,9 +48,11 @@ const expandDepth = computed(() => props.depth ?? 2);
 /* Override vue-json-pretty theme colors to match dark admin UI */
 :deep(.vjs-tree) {
   background: transparent;
-  color: var(--fg, #e2e8f0);
+  color: var(--text, #e2e8f0);
   font-family: var(--mono, monospace);
   font-size: 0.78rem;
+  min-width: max-content;
+  white-space: pre;
 }
 
 :deep(.vjs-key) {
@@ -55,16 +61,21 @@ const expandDepth = computed(() => props.depth ?? 2);
 
 :deep(.vjs-value-string) {
   color: #86efac;
+  white-space: pre;
+  word-break: normal;
 }
 
 :deep(.vjs-value-number),
 :deep(.vjs-value-boolean) {
   color: #f9a8d4;
+  white-space: pre;
+  word-break: normal;
 }
 
 :deep(.vjs-value-null) {
   color: var(--fg-muted, #94a3b8);
   font-style: italic;
+  white-space: pre;
 }
 
 :deep(.vjs-tree__brackets) {
