@@ -7,6 +7,7 @@ from typing import Any, Generator, Literal, Optional, Type, TypeVar
 from openai import OpenAI
 from pydantic import BaseModel
 
+from log import DEFAULT_LOGGER_NAME
 from src.persistence.conversation_store import ConversationStore, get_conversation_store
 from src.persistence.replay_store import ReplayStore
 from src.persistence.session_store import Session
@@ -17,8 +18,6 @@ from .functions import build_ai_functions, responses_tools
 from .functions.base import strict_json_schema
 from .openai_provider import get_openai_client
 from .prompt import Templates
-
-from log import DEFAULT_LOGGER_NAME
 
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
