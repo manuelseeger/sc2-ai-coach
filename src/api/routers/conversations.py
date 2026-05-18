@@ -9,11 +9,15 @@ from fastapi.responses import Response
 from src.api.errors import raise_api_error
 from src.api.models import QueryRequest
 from src.api.state import get_persistence
-from src.api.validation import parse_sort, validate_patch_document, validate_query_filter
+from src.api.validation import (
+    parse_sort,
+    validate_patch_document,
+    validate_query_filter,
+)
 from src.persistence.conversation_store import (
     AIConversation,
-    AIConversationStatus,
     AIConversationItem,
+    AIConversationStatus,
     AIConversationTrigger,
     AIResponseRecord,
 )
@@ -68,7 +72,9 @@ def build_conversations_router() -> APIRouter:
         )
 
     @router.post("", response_model=AIConversation)
-    def create_conversation(conversation: AIConversation, request: Request) -> AIConversation:
+    def create_conversation(
+        conversation: AIConversation, request: Request
+    ) -> AIConversation:
         persistence = get_persistence(request)
         return persistence.conversation_store.create(conversation)
 

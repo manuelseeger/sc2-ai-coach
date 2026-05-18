@@ -184,8 +184,7 @@ def cli(ctx, clean, debug, simulation, verbose, add_student):
         "Verbose mode is %s" % ("[on]on[/on]" if verbose else "[off]off[/off]")
     )
     console.print(
-        "Add student mode is %s"
-        % ("[on]on[/on]" if add_student else "[off]off[/off]")
+        "Add student mode is %s" % ("[on]on[/on]" if add_student else "[off]off[/off]")
     )
 
 
@@ -222,7 +221,9 @@ def cli(ctx, clean, debug, simulation, verbose, add_student):
     default=False,
     help="Create or update a player record for the configured student during this sync",
 )
-def sync(ctx, from_: datetime, to_: datetime, from_most_recent: bool, add_student: bool):
+def sync(
+    ctx, from_: datetime, to_: datetime, from_most_recent: bool, add_student: bool
+):
     """Sync replays and players from replay folder to MongoDB"""
     ctx.obj["ADD_STUDENT"] = _student_sync_enabled(ctx, add_student)
     runtime = _get_runtime(ctx)

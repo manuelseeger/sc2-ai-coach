@@ -76,7 +76,6 @@ export interface ConversationRecord {
   opponent?: string | null;
   twitch_user?: string | null;
   handler_context?: string | null;
-  title: string | null;
   item_count: number;
   last_item_at: string | null;
   metadata: Record<string, unknown>;

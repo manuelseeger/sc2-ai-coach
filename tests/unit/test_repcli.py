@@ -229,7 +229,9 @@ def test_add_student_flag_persists_student_player_record(monkeypatch):
     )
 
     monkeypatch.setattr(repcli, "_get_runtime", lambda ctx: fake_runtime)
-    monkeypatch.setattr(repcli, "syncreplay", lambda ctx, replay, summary, runtime: None)
+    monkeypatch.setattr(
+        repcli, "syncreplay", lambda ctx, replay, summary, runtime: None
+    )
 
     runner = CliRunner()
     result = runner.invoke(
@@ -240,4 +242,6 @@ def test_add_student_flag_persists_student_player_record(monkeypatch):
 
     assert result.exit_code == 0
     assert fake_replay_store.find_calls == [student_toon]
-    assert [player.toon_handle for player in fake_replay_store.upserted] == [student_toon]
+    assert [player.toon_handle for player in fake_replay_store.upserted] == [
+        student_toon
+    ]

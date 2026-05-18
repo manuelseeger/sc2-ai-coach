@@ -320,4 +320,6 @@ def test_replace_metadata_with_invalid_body_id_returns_validation_error_envelope
     assert body["error"]["code"] == "validation_error"
     assert body["error"]["message"] == "Request validation failed."
     assert isinstance(body["error"]["details"]["errors"], list)
-    assert any(error["loc"] == ["body", "id"] for error in body["error"]["details"]["errors"])
+    assert any(
+        error["loc"] == ["body", "id"] for error in body["error"]["details"]["errors"]
+    )

@@ -28,7 +28,6 @@ describe("conversation workflows", () => {
       trigger: "wake",
       status: "active",
       created_at: "2026-01-02T00:00:00Z",
-      title: "Wake conversation",
       item_count: 2,
       last_item_at: "2026-01-02T00:03:00Z",
       replay_id: "replay-1",
@@ -67,6 +66,7 @@ describe("conversation workflows", () => {
       listResource: vi.fn().mockResolvedValue(inbox),
       getResource: vi.fn().mockResolvedValue(conversation),
       getConversationItems: vi.fn().mockResolvedValue(items),
+      getConversationResponses: vi.fn().mockResolvedValue([]),
     } as unknown as ApiClient;
 
     const loadedInbox = await loadConversationInbox(apiClient, {
@@ -81,6 +81,7 @@ describe("conversation workflows", () => {
     });
     expect(apiClient.getResource).toHaveBeenCalledWith("conversations", conversation.id);
     expect(apiClient.getConversationItems).toHaveBeenCalledWith(conversation.id);
+    expect(apiClient.getConversationResponses).toHaveBeenCalledWith(conversation.id);
     expect(loadedInbox.docs[0]?.id).toBe(conversation.id);
     expect(detail.items[0]?.id).toBe("item-1");
   });
@@ -92,7 +93,6 @@ describe("conversation workflows", () => {
       trigger: "repl",
       status: "active",
       created_at: "2026-01-03T00:00:00Z",
-      title: "REPL conversation",
       item_count: 1,
       last_item_at: "2026-01-03T00:00:00Z",
       metadata: { scope: "test" },
@@ -128,7 +128,7 @@ describe("conversation workflows", () => {
       createResource: vi.fn().mockResolvedValue(conversation),
       queryResource: vi.fn().mockResolvedValue(paginated),
       patchResource: vi.fn().mockResolvedValue({ ...conversation, status: "closed" }),
-      replaceResource: vi.fn().mockResolvedValue({ ...conversation, title: "Replaced" }),
+      replaceResource: vi.fn().mockResolvedValue({ ...conversation, status: "closed" }),
       deleteResource: vi.fn().mockResolvedValue(undefined),
       createConversationItem: vi.fn().mockResolvedValue(item),
     } as unknown as ApiClient;
@@ -144,8 +144,8 @@ describe("conversation workflows", () => {
       patchConversationRecord(apiClient, conversation.id, { status: "closed" }),
     ).resolves.toMatchObject({ status: "closed" });
     await expect(
-      replaceConversationRecord(apiClient, conversation.id, { ...conversation, title: "Replaced" }),
-    ).resolves.toMatchObject({ title: "Replaced" });
+      replaceConversationRecord(apiClient, conversation.id, { ...conversation, status: "closed" }),
+    ).resolves.toMatchObject({ status: "closed" });
     await expect(deleteConversationRecord(apiClient, conversation.id)).resolves.toBeUndefined();
     await expect(
       appendConversationItem(apiClient, conversation.id, {
@@ -167,7 +167,7 @@ describe("conversation workflows", () => {
     expect(apiClient.replaceResource).toHaveBeenCalledWith(
       "conversations",
       conversation.id,
-      { ...conversation, title: "Replaced" },
+      { ...conversation, status: "closed" },
     );
     expect(apiClient.deleteResource).toHaveBeenCalledWith("conversations", conversation.id);
     expect(apiClient.createConversationItem).toHaveBeenCalledWith(conversation.id, {

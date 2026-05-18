@@ -90,7 +90,9 @@ def test_replay_crud_and_query_cover_documented_replay_routes(
 
         replace_payload = dict(create_payload)
         replace_payload["filename"] = "replaced-api-replay.SC2Replay"
-        replaced = client.put(f"/api/replays/{create_payload['id']}", json=replace_payload)
+        replaced = client.put(
+            f"/api/replays/{create_payload['id']}", json=replace_payload
+        )
         deleted = client.delete(f"/api/replays/{create_payload['id']}")
         missing = client.get(f"/api/replays/{create_payload['id']}")
 
@@ -176,7 +178,9 @@ def test_replay_metadata_relationship_routes_and_replay_delete_cascade(
 
     assert replaced.status_code == 200
     assert replaced.json()["replay"] == replay.id
-    assert replaced.json()["description"] == "Replay-level note from relationship route."
+    assert (
+        replaced.json()["description"] == "Replay-level note from relationship route."
+    )
 
     assert fetched.status_code == 200
     assert fetched.json()["id"] == replaced.json()["id"]
@@ -240,11 +244,17 @@ def test_replay_players_route_returns_embedded_players_with_known_player_records
     assert len(payload) == len(replay.players)
 
     linked = next(
-        item for item in payload if item["replay_player"]["toon_handle"] == known_player.toon_handle
+        item
+        for item in payload
+        if item["replay_player"]["toon_handle"] == known_player.toon_handle
     )
     assert linked["player_info"] is not None
     assert linked["player_info"]["id"] == known_player.toon_handle
     assert linked["player_info"]["name"] == known_player.name
 
-    missing = [item for item in payload if item["replay_player"]["toon_handle"] != known_player.toon_handle]
+    missing = [
+        item
+        for item in payload
+        if item["replay_player"]["toon_handle"] != known_player.toon_handle
+    ]
     assert any(item["player_info"] is None for item in missing)

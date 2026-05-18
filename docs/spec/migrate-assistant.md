@@ -105,7 +105,6 @@ class AIConversation(DbModel):
     map_name: str | None = None
     opponent: str | None = None
     twitch_user: str | None = None
-    title: str | None = None
     metadata: dict[str, Any] = {}
 
     # Denormalized operational fields.

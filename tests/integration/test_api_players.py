@@ -177,7 +177,9 @@ def test_player_portrait_metadata_helpers_and_media_routes_follow_documented_con
         portrait=b"primary-portrait",
         portrait_constructed=b"constructed-portrait",
         aliases=[
-            Alias(name="AliasOne", portraits=[b"alias-portrait-a", b"alias-portrait-b"]),
+            Alias(
+                name="AliasOne", portraits=[b"alias-portrait-a", b"alias-portrait-b"]
+            ),
             Alias(name="AliasTwo", portraits=[]),
         ],
         tags=["portraits"],
@@ -193,7 +195,9 @@ def test_player_portrait_metadata_helpers_and_media_routes_follow_documented_con
     seeded_replay_mongo_container.replay_store.upsert(secondary_player)
 
     with TestClient(app) as client:
-        single = client.get(f"/api/players/{primary_player.toon_handle}/portrait-metadata")
+        single = client.get(
+            f"/api/players/{primary_player.toon_handle}/portrait-metadata"
+        )
         bulk = client.post(
             "/api/players/portrait-metadata",
             json={

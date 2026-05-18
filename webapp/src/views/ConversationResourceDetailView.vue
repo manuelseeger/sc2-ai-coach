@@ -47,7 +47,6 @@ const currentJson = computed(() => JSON.stringify(record.value, null, 2));
 function resetEditors(value: ConversationRecord): void {
   patchText.value = JSON.stringify(
     {
-      title: value.title,
       status: value.status,
       metadata: value.metadata,
     },
@@ -157,7 +156,7 @@ watch(conversationId, async (value) => {
     <template v-else-if="record">
       <section class="detail-grid">
         <article class="panel panel-stack">
-          <PanelHeading eyebrow="Current record" :title="record.title || 'Untitled conversation'">
+          <PanelHeading eyebrow="Current record" :title="`Conversation ${record.id}`">
             <template #aside>
               <span class="tag">{{ record.item_count }} items</span>
             </template>

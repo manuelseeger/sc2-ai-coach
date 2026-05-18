@@ -49,7 +49,9 @@ def build_responses_router() -> APIRouter:
         )
 
     @router.get("/by-response-id/{response_id}", response_model=AIResponseRecord)
-    def get_response_by_response_id(response_id: str, request: Request) -> AIResponseRecord:
+    def get_response_by_response_id(
+        response_id: str, request: Request
+    ) -> AIResponseRecord:
         persistence = get_persistence(request)
         record = persistence.conversation_store.get_response_record_by_response_id(
             response_id

@@ -169,7 +169,7 @@ onMounted(async () => {
         <li v-for="record in result.docs" :key="record.id" class="list-row">
           <div class="split-topline">
             <div>
-              <strong>{{ record.title || "Untitled conversation" }}</strong>
+              <strong>Conversation {{ record.id }}</strong>
               <p class="mono-copy">{{ record.id }}</p>
             </div>
             <span class="tag">{{ record.item_count }} items</span>

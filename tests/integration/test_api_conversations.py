@@ -544,7 +544,6 @@ def test_conversation_crud_and_query_cover_documented_routes(
         "session": str(session.id),
         "trigger": AIConversationTrigger.wake.value,
         "status": AIConversationStatus.active.value,
-        "title": "Created through API",
         "metadata": {"scope": "conversation-crud", "step": "created"},
     }
 
@@ -584,12 +583,13 @@ def test_conversation_crud_and_query_cover_documented_routes(
         replace_payload = dict(created.json())
         replace_payload["status"] = AIConversationStatus.active.value
         replace_payload["closed_at"] = "2026-01-05T00:00:00Z"
-        replace_payload["title"] = "Replaced through API"
         replace_payload["metadata"] = {
             "scope": "conversation-crud",
             "step": "replaced",
         }
-        replaced = client.put(f"/api/conversations/{conversation_id}", json=replace_payload)
+        replaced = client.put(
+            f"/api/conversations/{conversation_id}", json=replace_payload
+        )
         deleted = client.delete(f"/api/conversations/{conversation_id}")
         missing = client.get(f"/api/conversations/{conversation_id}")
 
@@ -607,7 +607,6 @@ def test_conversation_crud_and_query_cover_documented_routes(
     assert replaced.status_code == 200
     assert replaced.json()["status"] == "active"
     assert replaced.json()["closed_at"] is None
-    assert replaced.json()["title"] == "Replaced through API"
 
     assert deleted.status_code == 204
     assert missing.status_code == 404

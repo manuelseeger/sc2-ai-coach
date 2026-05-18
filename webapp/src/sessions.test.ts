@@ -62,7 +62,6 @@ describe("session workflows", () => {
         trigger: "wake",
         status: "active",
         created_at: "2026-01-02T00:05:00",
-        title: "Ladder match",
         item_count: 3,
         last_item_at: "2026-01-02T00:10:00",
         metadata: {},

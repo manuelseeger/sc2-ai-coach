@@ -44,11 +44,15 @@ def _expected_map_stats(
         if min_date is not None and replay.date < min_date:
             continue
 
-        student = next((player for player in replay.players if player.name == student_name), None)
+        student = next(
+            (player for player in replay.players if player.name == student_name), None
+        )
         if student is None or student.play_race != student_race:
             continue
 
-        opponent = next(player for player in replay.players if player.name != student_name)
+        opponent = next(
+            player for player in replay.players if player.name != student_name
+        )
         matchup = f"{student.play_race}v{opponent.play_race}"
         bucket = expected.setdefault(replay.map_name, {}).setdefault(
             matchup,
@@ -136,7 +140,9 @@ def test_get_map_stats_by_name_returns_404_when_filter_removes_all_grouped_resul
     with TestClient(app) as client:
         response = client.get(
             f"/api/map-stats/{target_replay.map_name}",
-            params={"min_date": (target_replay.date + timedelta(days=3650)).isoformat()},
+            params={
+                "min_date": (target_replay.date + timedelta(days=3650)).isoformat()
+            },
         )
 
     assert response.status_code == 404

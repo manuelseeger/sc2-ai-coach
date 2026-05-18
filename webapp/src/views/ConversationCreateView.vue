@@ -15,7 +15,6 @@ const errorMessage = ref<string | null>(null);
 const draftText = ref(`{
   "trigger": "wake",
   "status": "active",
-  "title": "",
   "metadata": {}
 }`);
 

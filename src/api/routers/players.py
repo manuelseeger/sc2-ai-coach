@@ -20,8 +20,7 @@ from src.persistence.replay_store import PlayerInfo
 def _player_page_payload(page: Any) -> dict[str, Any]:
     payload = page.model_dump()
     payload["docs"] = [
-        PlayerInfoResponse.from_player_info(player).model_dump()
-        for player in page.docs
+        PlayerInfoResponse.from_player_info(player).model_dump() for player in page.docs
     ]
     return payload
 
@@ -148,7 +147,9 @@ def build_players_router() -> APIRouter:
         return PlayerInfoResponse.from_player_info(player)
 
     @router.get("/{toon_handle}/portrait-metadata")
-    def get_player_portrait_metadata(toon_handle: str, request: Request) -> dict[str, Any]:
+    def get_player_portrait_metadata(
+        toon_handle: str, request: Request
+    ) -> dict[str, Any]:
         persistence = get_persistence(request)
         player = persistence.replay_store.get_player_info(toon_handle)
         if player is None:

@@ -71,7 +71,9 @@ def test_history_routes_serve_built_webapp_index(
     dist_dir = tmp_path / "dist"
     dist_dir.mkdir()
     index_path = dist_dir / "index.html"
-    index_path.write_text("<html><body>session history route</body></html>", encoding="utf-8")
+    index_path.write_text(
+        "<html><body>session history route</body></html>", encoding="utf-8"
+    )
     runtime_settings.api.web_dist_dir = dist_dir
 
     api_app = importlib.import_module("src.api.app")

@@ -9,11 +9,9 @@ from jinja2 import Environment, FileSystemLoader
 from pydantic import HttpUrl, computed_field
 from pyodmongo import DbModel, MainBaseModel
 
-from src.persistence.replay_store import ReplayStore, get_replay_store
-from src.replays.types import Replay
-from src.runtime.settings import Config, get_config
-
 from log import DEFAULT_LOGGER_NAME
+from src.persistence.replay_store import ReplayStore, get_replay_store
+from src.runtime.settings import Config, get_config
 
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
