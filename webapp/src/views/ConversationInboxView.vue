@@ -3,11 +3,16 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { RouterLink } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
+import FormField from "../components/FormField.vue";
+import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
+import PageHeader from "../components/PageHeader.vue";
+import PaginationControls from "../components/PaginationControls.vue";
 import {
   getConversationInboxState,
   loadConversationInbox,
   setConversationInboxState,
 } from "../conversations";
+import { formatDate, triggerClass, triggerLabel } from "../formatters";
 import type { ConversationRecord, PaginatedResponse } from "../types";
 
 const apiClient = createApiClient();
@@ -44,17 +49,6 @@ const statusOptions = [
   { value: "failed", label: "Failed" },
 ];
 
-function formatDate(value: string | null): string {
-  if (!value) {
-    return "No activity yet";
-  }
-  return new Date(value).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-    hour12: false,
-  });
-}
-
 function saveState(): void {
   setConversationInboxState({
     params: {
@@ -89,14 +83,6 @@ async function refreshInbox(): Promise<void> {
   }
 }
 
-function triggerClass(value: string): string {
-  if (["game_start", "new_replay", "cast_replay", "replay_summary"].includes(value)) return "tag--ok";
-  if (["twitch_chat", "twitch_follow", "twitch_raid"].includes(value)) return "tag--accent";
-  if (value === "repl") return "tag--purple";
-  if (value === "wake") return "tag--warn";
-  return "";
-}
-
 function openConversation(conversationId: string): void {
   selectedConversationId.value = conversationId;
   saveState();
@@ -120,40 +106,35 @@ onMounted(async () => {
 
 <template>
   <section class="page conversation-page">
-    <header class="page-header">
-      <div>
-        <p class="eyebrow">Conversation review</p>
-        <h2 class="page-title">Conversations</h2>
-      </div>
-      <RouterLink to="/resources/conversations" class="button button--ghost">
-        Maintenance
-      </RouterLink>
-    </header>
+    <PageHeader eyebrow="Conversation review" title="Conversations">
+      <template #actions>
+        <RouterLink to="/resources/conversations" class="button button--ghost">
+          Maintenance
+        </RouterLink>
+      </template>
+    </PageHeader>
 
     <section class="panel filter-panel">
       <div class="filter-row">
-        <label class="filter-field">
-          <span class="form-label">Trigger</span>
+        <FormField label="Trigger" class="filter-field">
           <select v-model="filters.trigger" class="select-input">
             <option v-for="option in triggerOptions" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
           </select>
-        </label>
+        </FormField>
 
-        <label class="filter-field">
-          <span class="form-label">Status</span>
+        <FormField label="Status" class="filter-field">
           <select v-model="filters.status" class="select-input">
             <option v-for="option in statusOptions" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
           </select>
-        </label>
+        </FormField>
 
-        <label class="filter-field filter-field--narrow">
-          <span class="form-label">Page</span>
+        <FormField label="Page" class="filter-field filter-field--narrow">
           <input v-model.number="filters.currentPage" class="text-input" type="number" min="1" @keyup.enter="refreshInbox" />
-        </label>
+        </FormField>
 
         <div class="filter-field filter-field--action">
           <span class="form-label">&nbsp;</span>
@@ -169,86 +150,63 @@ onMounted(async () => {
         </div>
       </div>
 
-      <p v-if="loading" class="muted-copy list-block-spacing">Loading…</p>
-      <p v-else-if="errorMessage" class="muted-copy list-block-spacing error-copy">{{ errorMessage }}</p>
-      <p v-else-if="!inbox || inbox.docs.length === 0" class="muted-copy list-block-spacing">
-        {{ emptyState }}
-      </p>
+      <LoadingErrorEmpty
+        :loading="loading"
+        :error="errorMessage"
+        :empty="!inbox || inbox.docs.length === 0"
+        loading-message="Loading…"
+        :empty-message="emptyState"
+        loading-class="muted-copy list-block-spacing"
+        error-class="muted-copy list-block-spacing error-copy"
+        empty-class="muted-copy list-block-spacing"
+      >
+        <ul class="list list-block-spacing">
+          <li
+            v-for="conversation in inbox?.docs ?? []"
+            :key="conversation.id"
+            class="list-row list-row--linked conversation-row"
+            :class="{ 'conversation-row--selected': selectedConversationId === conversation.id }"
+          >
+            <RouterLink
+              :to="`/conversations/${conversation.id}`"
+              class="list-row__overlay"
+              aria-label="Open conversation"
+              @click="openConversation(conversation.id)"
+            />
 
-      <ul v-else class="list list-block-spacing">
-        <li
-          v-for="conversation in inbox.docs"
-          :key="conversation.id"
-          class="list-row list-row--linked conversation-row"
-          :class="{ 'conversation-row--selected': selectedConversationId === conversation.id }"
-        >
-          <RouterLink
-            :to="`/conversations/${conversation.id}`"
-            class="list-row__overlay"
-            aria-label="Open conversation"
-            @click="openConversation(conversation.id)"
-          />
-
-          <div class="conversation-row__main">
-            <div class="conversation-row__head">
-              <span class="tag" :class="conversation.status === 'active' ? 'tag--ok' : ''">
-                {{ conversation.status }}
-              </span>
-              <span class="tag" :class="triggerClass(conversation.trigger)">{{ triggerOptions.find((option) => option.value === conversation.trigger)?.label ?? conversation.trigger }}</span>
+            <div class="conversation-row__main">
+              <div class="conversation-row__head">
+                <span class="tag" :class="conversation.status === 'active' ? 'tag--ok' : ''">
+                  {{ conversation.status }}
+                </span>
+                <span class="tag" :class="triggerClass(conversation.trigger)">{{ triggerLabel(conversation.trigger) }}</span>
+              </div>
+              <p class="conversation-row__meta">
+                Started {{ formatDate(conversation.created_at, 'No activity yet') }}
+                <span v-if="conversation.last_item_at"> · Last item {{ formatDate(conversation.last_item_at, 'No activity yet') }}</span>
+              </p>
             </div>
-            <p class="conversation-row__meta">
-              Started {{ formatDate(conversation.created_at) }}
-              <span v-if="conversation.last_item_at"> · Last item {{ formatDate(conversation.last_item_at) }}</span>
-            </p>
-          </div>
 
-          <div class="conversation-row__stats">
-            <span class="tag">{{ conversation.item_count }} items</span>
-            <span v-if="conversation.session" class="tag">Session linked</span>
-            <span v-if="conversation.replay_id" class="tag">Replay linked</span>
-          </div>
-        </li>
-      </ul>
+            <div class="conversation-row__stats">
+              <span class="tag">{{ conversation.item_count }} items</span>
+              <span v-if="conversation.session" class="tag">Session linked</span>
+              <span v-if="conversation.replay_id" class="tag">Replay linked</span>
+            </div>
+          </li>
+        </ul>
 
-      <div v-if="inbox && inbox.page_quantity > 1" class="pagination-row">
-        <button
-          class="button button--ghost"
-          :disabled="filters.currentPage <= 1"
-          @click="filters.currentPage--; refreshInbox()"
-        >
-          ← Prev
-        </button>
-        <span class="pagination-label">{{ filters.currentPage }} / {{ inbox.page_quantity }}</span>
-        <button
-          class="button button--ghost"
-          :disabled="filters.currentPage >= inbox.page_quantity"
-          @click="filters.currentPage++; refreshInbox()"
-        >
-          Next →
-        </button>
-      </div>
+        <PaginationControls
+          :current-page="filters.currentPage"
+          :total-pages="inbox?.page_quantity ?? 1"
+          @prev="filters.currentPage--; refreshInbox()"
+          @next="filters.currentPage++; refreshInbox()"
+        />
+      </LoadingErrorEmpty>
     </section>
   </section>
 </template>
 
 <style scoped>
-.page-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 8px;
-}
-
-.page-title {
-  margin: 4px 0 0;
-  font-family: var(--display);
-  font-size: clamp(1.8rem, 3vw, 2.6rem);
-  line-height: 0.93;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
 .filter-panel {
   display: grid;
   gap: 14px;
@@ -317,22 +275,6 @@ onMounted(async () => {
   justify-content: flex-end;
   align-content: start;
   gap: 8px;
-}
-
-.pagination-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-muted);
-}
-
-.pagination-label {
-  color: var(--text-muted);
-  font-family: var(--display);
-  font-size: 0.8rem;
-  letter-spacing: 0.08em;
 }
 
 @media (max-width: 700px) {

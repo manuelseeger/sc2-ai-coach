@@ -628,6 +628,47 @@ select {
   gap: var(--gap-row);
 }
 
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--gap-row);
+  padding-bottom: 8px;
+}
+
+.page-header__breadcrumb,
+.page-header__copy {
+  display: grid;
+  gap: 4px;
+}
+
+.page-header__actions {
+  display: flex;
+  align-items: center;
+}
+
+.breadcrumb-link {
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-family: var(--display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: color 150ms ease;
+}
+
+.breadcrumb-link:hover {
+  color: var(--accent-strong);
+}
+
+.page-title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(1.5rem, 2.5vw, 2.2rem);
+  line-height: 0.95;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 .page-hero__title {
   margin: 8px 0 12px;
   font-family: var(--display);
@@ -693,6 +734,67 @@ dd.kv-value--token-output {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.pagination-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-muted);
+}
+
+.pagination-label {
+  color: var(--text-muted);
+  font-family: var(--display);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+}
+
+.stat-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.stat-grid--inline {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 32px;
+}
+
+.stat-tile {
+  display: grid;
+  gap: 4px;
+}
+
+.stat-tile--left {
+  text-align: left;
+}
+
+.stat-tile--right {
+  text-align: right;
+}
+
+.stat-tile__label {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-family: var(--display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.stat-tile__value {
+  color: var(--text);
+  font-family: var(--display);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+}
+
+.stat-tile__value--cost {
+  color: var(--green-strong);
 }
 
 .button {
@@ -836,9 +938,11 @@ dd.kv-value--token-output {
 }
 
 @media (max-width: 900px) {
+  .page-header,
   .page-hero,
   .split-topline {
     flex-direction: column;
+    align-items: flex-start;
   }
 }
 
@@ -859,5 +963,14 @@ dd.kv-value--token-output {
   .page-hero__title--xl,
   .panel-heading__title {
     letter-spacing: 0.03em;
+  }
+
+  .stat-grid--inline {
+    gap: 20px;
+    justify-content: flex-start;
+  }
+
+  .stat-tile--right {
+    text-align: left;
   }
 }

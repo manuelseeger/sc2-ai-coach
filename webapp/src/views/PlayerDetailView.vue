@@ -4,7 +4,10 @@ import { RouterLink, useRoute } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
 import KeyValueGrid from "../components/KeyValueGrid.vue";
+import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PanelHeading from "../components/PanelHeading.vue";
+import PageHeader from "../components/PageHeader.vue";
+import { formatDate } from "../formatters";
 import { loadPlayerDetail } from "../players";
 import type { PaginatedResponse, PlayerAliasRecord, PlayerInfoRecord, PlayerPortraitMetadataRecord, ReplayRecord } from "../types";
 
@@ -35,14 +38,6 @@ function portraitsForAlias(index: number) {
   return portraitMetadata.value?.aliases[index]?.portraits ?? [];
 }
 
-function formatDate(value: string): string {
-  return new Date(value).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-    hour12: false,
-  });
-}
-
 watch(
   toonHandle,
   async (value) => {
@@ -71,23 +66,20 @@ watch(
 
 <template>
   <section class="page player-detail-page">
-    <header class="page-header">
-      <div class="page-header__breadcrumb">
-        <RouterLink to="/players" class="breadcrumb-link">← Players</RouterLink>
-        <h2 v-if="player" class="page-title">{{ player.name }}</h2>
-        <h2 v-else class="page-title">Player detail</h2>
-      </div>
-      <div v-if="player" class="button-row">
-        <RouterLink :to="`/resources/players/${player.toon_handle}`" class="button button--ghost">
+    <PageHeader
+      :title="player ? player.name : 'Player detail'"
+      breadcrumb-label="← Players"
+      breadcrumb-to="/players"
+    >
+      <template #actions>
+        <RouterLink v-if="player" :to="`/resources/players/${player.toon_handle}`" class="button button--ghost">
           Maintenance
         </RouterLink>
-      </div>
-    </header>
+      </template>
+    </PageHeader>
 
-    <p v-if="loading" class="muted-copy">Loading player detail...</p>
-    <p v-else-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
-
-    <template v-else-if="player && portraitMetadata && replays">
+    <LoadingErrorEmpty :loading="loading" :error="errorMessage" loading-message="Loading player detail...">
+      <template v-if="player && portraitMetadata && replays">
       <section class="detail-grid">
         <article class="panel panel-stack">
           <div class="summary-topline">
@@ -177,41 +169,12 @@ watch(
           </li>
         </ul>
       </article>
-    </template>
+      </template>
+    </LoadingErrorEmpty>
   </section>
 </template>
 
 <style scoped>
-.page-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 8px;
-}
-
-.page-header__breadcrumb {
-  display: grid;
-  gap: 4px;
-}
-
-.breadcrumb-link {
-  color: var(--accent);
-  font-size: 0.78rem;
-  font-family: var(--display);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.page-title {
-  margin: 0;
-  font-family: var(--display);
-  font-size: clamp(1.9rem, 3vw, 2.8rem);
-  line-height: 0.94;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
 .summary-topline {
   display: flex;
   justify-content: flex-end;

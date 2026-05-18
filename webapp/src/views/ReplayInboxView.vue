@@ -3,6 +3,11 @@ import { onMounted, reactive, ref } from "vue";
 import { RouterLink } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
+import FormField from "../components/FormField.vue";
+import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
+import PageHeader from "../components/PageHeader.vue";
+import PaginationControls from "../components/PaginationControls.vue";
+import { formatDate, formatDuration, replayRaceAbbr, replayRaceClass } from "../formatters";
 import { loadReplayInbox } from "../replays";
 import type { PaginatedResponse, ReplayRecord } from "../types";
 
@@ -18,35 +23,6 @@ const filters = reactive({
   currentPage: 1,
   docsPerPage: 25,
 });
-
-function formatDate(value: string): string {
-  return new Date(value).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-    hour12: false,
-  });
-}
-
-function formatLength(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = String(seconds % 60).padStart(2, "0");
-  return `${m}:${s}`;
-}
-
-function raceClass(race: string): string {
-  const map: Record<string, string> = {
-    Terran: "race--t",
-    Protoss: "race--p",
-    Zerg: "race--z",
-    Random: "race--r",
-  };
-  return map[race] ?? "race--r";
-}
-
-function raceAbbr(race: string): string {
-  const map: Record<string, string> = { Terran: "T", Protoss: "P", Zerg: "Z", Random: "R" };
-  return map[race] ?? race[0] ?? "?";
-}
 
 async function refreshInbox(): Promise<void> {
   loading.value = true;
@@ -74,37 +50,31 @@ onMounted(async () => {
 
 <template>
   <section class="page replay-page">
-    <header class="page-header">
-      <div>
-        <p class="eyebrow">Replay review</p>
-        <h2 class="page-title">Replays</h2>
-      </div>
-      <RouterLink to="/resources/replays" class="button button--ghost">
-        Maintenance
-      </RouterLink>
-    </header>
+    <PageHeader eyebrow="Replay review" title="Replays">
+      <template #actions>
+        <RouterLink to="/resources/replays" class="button button--ghost">
+          Maintenance
+        </RouterLink>
+      </template>
+    </PageHeader>
 
     <section class="panel filter-panel">
       <div class="filter-row">
-        <label class="filter-field">
-          <span class="form-label">Player</span>
+        <FormField label="Player" class="filter-field">
           <input v-model="filters.player" class="text-input" type="text" placeholder="Name…" @keyup.enter="refreshInbox" />
-        </label>
+        </FormField>
 
-        <label class="filter-field">
-          <span class="form-label">Map</span>
+        <FormField label="Map" class="filter-field">
           <input v-model="filters.map" class="text-input" type="text" placeholder="Map name…" @keyup.enter="refreshInbox" />
-        </label>
+        </FormField>
 
-        <label class="filter-field filter-field--narrow">
-          <span class="form-label">Sort</span>
+        <FormField label="Sort" class="filter-field filter-field--narrow">
           <input v-model="filters.sort" class="text-input mono-copy" type="text" />
-        </label>
+        </FormField>
 
-        <label class="filter-field filter-field--narrow">
-          <span class="form-label">Page</span>
+        <FormField label="Page" class="filter-field filter-field--narrow">
           <input v-model.number="filters.currentPage" class="text-input" type="number" min="1" @keyup.enter="refreshInbox" />
-        </label>
+        </FormField>
 
         <div class="filter-field filter-field--action">
           <span class="form-label">&nbsp;</span>
@@ -124,77 +94,54 @@ onMounted(async () => {
         </span>
       </div>
 
-      <p v-if="loading" class="muted-copy list-block-spacing">Loading…</p>
-      <p v-else-if="errorMessage" class="muted-copy list-block-spacing error-copy">{{ errorMessage }}</p>
-      <p v-else-if="!inbox || inbox.docs.length === 0" class="muted-copy list-block-spacing">
-        No replays matched the current filters.
-      </p>
+      <LoadingErrorEmpty
+        :loading="loading"
+        :error="errorMessage"
+        :empty="!inbox || inbox.docs.length === 0"
+        loading-message="Loading…"
+        empty-message="No replays matched the current filters."
+        loading-class="muted-copy list-block-spacing"
+        error-class="muted-copy list-block-spacing error-copy"
+        empty-class="muted-copy list-block-spacing"
+      >
+        <ul class="list list-block-spacing">
+          <li
+            v-for="replay in inbox?.docs ?? []"
+            :key="replay.id"
+            class="list-row list-row--linked replay-row"
+          >
+            <RouterLink :to="`/replays/${replay.id}`" class="list-row__overlay" aria-label="Open replay" />
 
-      <ul v-else class="list list-block-spacing">
-        <li
-          v-for="replay in inbox.docs"
-          :key="replay.id"
-          class="list-row list-row--linked replay-row"
-        >
-          <RouterLink :to="`/replays/${replay.id}`" class="list-row__overlay" aria-label="Open replay" />
+            <div class="replay-row__main">
+              <strong class="replay-row__map">{{ replay.map_name }}</strong>
+              <p class="replay-row__matchup">
+                <template v-for="(player, idx) in replay.players" :key="player.toon_handle">
+                  <span v-if="idx > 0" class="replay-row__vs"> vs </span>
+                  <span class="replay-row__player-name" :class="replayRaceClass(player.play_race)">{{ player.name }}</span>
+                  <span class="replay-row__race" :class="replayRaceClass(player.play_race)">{{ replayRaceAbbr(player.play_race) }}</span>
+                </template>
+              </p>
+            </div>
 
-          <div class="replay-row__main">
-            <strong class="replay-row__map">{{ replay.map_name }}</strong>
-            <p class="replay-row__matchup">
-              <template v-for="(player, idx) in replay.players" :key="player.toon_handle">
-                <span v-if="idx > 0" class="replay-row__vs"> vs </span>
-                <span class="replay-row__player-name" :class="raceClass(player.play_race)">{{ player.name }}</span>
-                <span class="replay-row__race" :class="raceClass(player.play_race)">{{ raceAbbr(player.play_race) }}</span>
-              </template>
-            </p>
-          </div>
+            <div class="replay-row__meta">
+              <span class="tag">{{ formatDate(replay.date) }}</span>
+              <span v-if="replay.real_length" class="tag">{{ formatDuration(replay.real_length) }}</span>
+            </div>
+          </li>
+        </ul>
 
-          <div class="replay-row__meta">
-            <span class="tag">{{ formatDate(replay.date) }}</span>
-            <span v-if="replay.real_length" class="tag">{{ formatLength(replay.real_length) }}</span>
-          </div>
-        </li>
-      </ul>
-
-      <div v-if="inbox && inbox.page_quantity > 1" class="pagination-row">
-        <button
-          class="button button--ghost"
-          :disabled="filters.currentPage <= 1"
-          @click="filters.currentPage--; refreshInbox()"
-        >
-          ← Prev
-        </button>
-        <span class="pagination-label">{{ filters.currentPage }} / {{ inbox.page_quantity }}</span>
-        <button
-          class="button button--ghost"
-          :disabled="filters.currentPage >= inbox.page_quantity"
-          @click="filters.currentPage++; refreshInbox()"
-        >
-          Next →
-        </button>
-      </div>
+        <PaginationControls
+          :current-page="filters.currentPage"
+          :total-pages="inbox?.page_quantity ?? 1"
+          @prev="filters.currentPage--; refreshInbox()"
+          @next="filters.currentPage++; refreshInbox()"
+        />
+      </LoadingErrorEmpty>
     </section>
   </section>
 </template>
 
 <style scoped>
-.page-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 8px;
-}
-
-.page-title {
-  margin: 4px 0 0;
-  font-family: var(--display);
-  font-size: clamp(1.8rem, 3vw, 2.6rem);
-  line-height: 0.93;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
 .filter-panel {
   display: grid;
   gap: 14px;
@@ -293,21 +240,5 @@ onMounted(async () => {
   flex-wrap: wrap;
   gap: 6px;
   flex-shrink: 0;
-}
-
-.pagination-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-muted);
-}
-
-.pagination-label {
-  color: var(--text-muted);
-  font-family: var(--display);
-  font-size: 0.8rem;
-  letter-spacing: 0.08em;
 }
 </style>

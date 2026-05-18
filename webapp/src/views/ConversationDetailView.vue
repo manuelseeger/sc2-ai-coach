@@ -4,12 +4,15 @@ import { RouterLink, useRoute } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
 import KeyValueGrid from "../components/KeyValueGrid.vue";
+import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PanelHeading from "../components/PanelHeading.vue";
+import PageHeader from "../components/PageHeader.vue";
 import ToolCallCard from "../components/ToolCallCard.vue";
 import ToolResultCard from "../components/ToolResultCard.vue";
 import { computeConnectors } from "../connector";
 import type { ConnectorMeta } from "../connector";
 import { loadConversationDetail } from "../conversations";
+import { formatDate, triggerLabel } from "../formatters";
 import type { ConversationItemRecord, ConversationRecord, ResponseRecord, ToolDefinition } from "../types";
 
 const apiClient = createApiClient();
@@ -56,31 +59,6 @@ const tokenStats = computed(() => {
 });
 
 const conversationId = computed(() => String(route.params.conversationId ?? ""));
-
-function formatDate(value: string | null | undefined): string {
-  if (!value) {
-    return "None";
-  }
-  return new Date(value).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-    hour12: false,
-  });
-}
-
-function triggerLabel(value: string): string {
-  return {
-    wake: "Wake word",
-    repl: "REPL",
-    game_start: "Game start",
-    new_replay: "New replay",
-    twitch_chat: "Twitch chat",
-    twitch_follow: "Twitch follow",
-    twitch_raid: "Twitch raid",
-    cast_replay: "Cast replay",
-    replay_summary: "Replay summary",
-  }[value] ?? value;
-}
 
 function renderMessage(item: ConversationItemRecord): string {
   return item.content.map((part) => part.text).filter(Boolean).join("\n\n");
@@ -142,22 +120,25 @@ watch(conversationId, async (value) => {
 
 <template>
   <section class="page conversation-detail-page">
-    <header class="page-header">
-      <div class="page-header__breadcrumb">
-        <RouterLink to="/conversations" class="breadcrumb-link">← Back to conversations</RouterLink>
-        <p class="eyebrow">Conversation</p>
-        <h2 class="page-title">{{ conversation ? triggerLabel(conversation.trigger) : "Conversation" }}</h2>
-      </div>
-      <RouterLink v-if="conversation" :to="`/resources/conversations/${conversation.id}`" class="button button--ghost">
-        Maintenance
-      </RouterLink>
-    </header>
+    <PageHeader
+      eyebrow="Conversation"
+      :title="conversation ? triggerLabel(conversation.trigger) : 'Conversation'"
+      breadcrumb-label="← Back to conversations"
+      breadcrumb-to="/conversations"
+    >
+      <template #actions>
+        <RouterLink v-if="conversation" :to="`/resources/conversations/${conversation.id}`" class="button button--ghost">
+          Maintenance
+        </RouterLink>
+      </template>
+    </PageHeader>
 
-    <p v-if="loading" class="muted-copy">Loading conversation…</p>
-    <p v-else-if="notFound" class="feedback error-copy">Conversation not found. The deep link no longer resolves.</p>
-    <p v-else-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
+    <LoadingErrorEmpty :loading="loading" :error="errorMessage" :empty="notFound" loading-message="Loading conversation…">
+      <template #empty>
+        <p class="feedback error-copy">Conversation not found. The deep link no longer resolves.</p>
+      </template>
 
-    <template v-else-if="conversation">
+      <template v-if="conversation">
       <section class="conversation-detail-layout">
         <article class="panel panel-stack conversation-summary-panel">
           <div class="summary-topline">
@@ -167,7 +148,7 @@ watch(conversationId, async (value) => {
           </div>
 
           <div class="header-tags">
-            <span class="tag">Created {{ formatDate(conversation.created_at) }}</span>
+            <span class="tag">Created {{ formatDate(conversation.created_at, 'None') }}</span>
             <span class="tag">{{ conversation.item_count }} items</span>
             <RouterLink v-if="conversation.session" :to="`/sessions/${conversation.session}`" class="tag tag--link tag--accent">
               Session →
@@ -233,41 +214,12 @@ watch(conversationId, async (value) => {
           </ol>
         </article>
       </section>
-    </template>
+      </template>
+    </LoadingErrorEmpty>
   </section>
 </template>
 
 <style scoped>
-.page-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 8px;
-}
-
-.page-header__breadcrumb {
-  display: grid;
-  gap: 4px;
-}
-
-.breadcrumb-link {
-  color: var(--accent);
-  font-size: 0.78rem;
-  font-family: var(--display);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.page-title {
-  margin: 4px 0 0;
-  font-family: var(--display);
-  font-size: clamp(1.8rem, 3vw, 2.6rem);
-  line-height: 0.93;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
 .conversation-detail-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -441,11 +393,6 @@ watch(conversationId, async (value) => {
 
 
 @media (max-width: 700px) {
-  .page-header {
-    align-items: start;
-    flex-direction: column;
-  }
-
   .transcript-row {
     grid-template-columns: 8px minmax(0, 1fr);
     gap: 8px;

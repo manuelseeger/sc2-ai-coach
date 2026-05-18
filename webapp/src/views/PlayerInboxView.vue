@@ -3,7 +3,11 @@ import { onMounted, reactive, ref } from "vue";
 import { RouterLink } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
+import FormField from "../components/FormField.vue";
+import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
+import PageHeader from "../components/PageHeader.vue";
 import PanelHeading from "../components/PanelHeading.vue";
+import PaginationControls from "../components/PaginationControls.vue";
 import { loadPlayerInbox, loadPlayerPortraitMetadataMap } from "../players";
 import type { PaginatedResponse, PlayerInfoRecord, PlayerPortraitMetadataRecord } from "../types";
 
@@ -63,48 +67,40 @@ onMounted(async () => {
 
 <template>
   <section class="page players-page">
-    <header class="panel page-hero">
-      <div>
-        <p class="eyebrow">Player review</p>
-        <h2 class="page-hero__title">Players</h2>
-        <p class="panel-intro">
-          Browse known players with portrait history, aliases, and linked replays.
-        </p>
-      </div>
-
-      <div class="button-row">
+    <PageHeader
+      variant="hero"
+      eyebrow="Player review"
+      title="Players"
+      intro="Browse known players with portrait history, aliases, and linked replays."
+    >
+      <template #actions>
         <RouterLink to="/resources/players" class="button button--ghost">Maintenance</RouterLink>
-      </div>
-    </header>
+      </template>
+    </PageHeader>
 
     <section class="panel panel-stack">
       <PanelHeading eyebrow="Filters" title="Search" />
 
       <div class="form-grid">
-        <label class="form-field">
-          <span class="form-label">Search</span>
+        <FormField label="Search">
           <input v-model="filters.q" class="text-input" type="text" placeholder="Name, alias, or toon handle" @keyup.enter="refreshInbox" />
-        </label>
+        </FormField>
 
-        <label class="form-field">
-          <span class="form-label">Tag</span>
+        <FormField label="Tag">
           <input v-model="filters.tag" class="text-input" type="text" placeholder="ladder" @keyup.enter="refreshInbox" />
-        </label>
+        </FormField>
 
-        <label class="form-field">
-          <span class="form-label">Sort</span>
+        <FormField label="Sort">
           <input v-model="filters.sort" class="text-input mono-copy" type="text" @keyup.enter="refreshInbox" />
-        </label>
+        </FormField>
 
-        <label class="form-field">
-          <span class="form-label">Current page</span>
+        <FormField label="Current page">
           <input v-model.number="filters.currentPage" class="text-input" type="number" min="1" @keyup.enter="refreshInbox" />
-        </label>
+        </FormField>
 
-        <label class="form-field">
-          <span class="form-label">Docs per page</span>
+        <FormField label="Docs per page">
           <input v-model.number="filters.docsPerPage" class="text-input" type="number" min="1" />
-        </label>
+        </FormField>
       </div>
 
       <div class="button-row">
@@ -119,62 +115,53 @@ onMounted(async () => {
         </template>
       </PanelHeading>
 
-      <p v-if="loading" class="muted-copy">Loading players...</p>
-      <p v-else-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
-      <p v-else-if="!inbox || inbox.docs.length === 0" class="muted-copy">
-        No players matched the current filters.
-      </p>
+      <LoadingErrorEmpty
+        :loading="loading"
+        :error="errorMessage"
+        :empty="!inbox || inbox.docs.length === 0"
+        loading-message="Loading players..."
+        empty-message="No players matched the current filters."
+      >
+        <ul class="list list-block-spacing">
+          <li v-for="player in inbox?.docs ?? []" :key="player.toon_handle" class="list-row list-row--linked player-review-row">
+            <RouterLink :to="`/players/${player.toon_handle}`" class="list-row__overlay" :aria-label="`Open ${player.name}`" />
 
-      <ul v-else class="list list-block-spacing">
-        <li v-for="player in inbox.docs" :key="player.toon_handle" class="list-row list-row--linked player-review-row">
-          <RouterLink :to="`/players/${player.toon_handle}`" class="list-row__overlay" :aria-label="`Open ${player.name}`" />
+            <div class="player-review-row__portrait">
+              <img v-if="primaryPortraitUrl(player)" :src="primaryPortraitUrl(player) ?? ''" :alt="`${player.name} portrait`" class="player-review-row__image" />
+              <div v-else class="player-review-row__fallback">No portrait</div>
+            </div>
 
-          <div class="player-review-row__portrait">
-            <img v-if="primaryPortraitUrl(player)" :src="primaryPortraitUrl(player) ?? ''" :alt="`${player.name} portrait`" class="player-review-row__image" />
-            <div v-else class="player-review-row__fallback">No portrait</div>
-          </div>
-
-          <div class="player-review-row__body">
-            <div class="split-topline">
-              <div>
-                <strong>{{ player.name }}</strong>
+            <div class="player-review-row__body">
+              <div class="split-topline">
+                <div>
+                  <strong>{{ player.name }}</strong>
+                </div>
+                <div class="tag-row">
+                  <span class="tag">{{ player.aliases.length }} aliases</span>
+                  <span class="tag">{{ player.tags?.length ?? 0 }} tags</span>
+                </div>
               </div>
-              <div class="tag-row">
-                <span class="tag">{{ player.aliases.length }} aliases</span>
-                <span class="tag">{{ player.tags?.length ?? 0 }} tags</span>
+
+              <div v-if="player.aliases.length" class="tag-row">
+                <span v-for="alias in player.aliases.slice(0, 3)" :key="alias.name" class="tag">{{ alias.name }}</span>
+              </div>
+
+              <div class="button-row">
+                <RouterLink :to="`/resources/players/${player.toon_handle}`" class="button button--ghost row-action">
+                  Maintenance
+                </RouterLink>
               </div>
             </div>
+          </li>
+        </ul>
 
-            <div class="tag-row" v-if="player.aliases.length">
-              <span v-for="alias in player.aliases.slice(0, 3)" :key="alias.name" class="tag">{{ alias.name }}</span>
-            </div>
-
-            <div class="button-row">
-              <RouterLink :to="`/resources/players/${player.toon_handle}`" class="button button--ghost row-action">
-                Maintenance
-              </RouterLink>
-            </div>
-          </div>
-        </li>
-      </ul>
-
-      <div v-if="inbox && inbox.page_quantity > 1" class="pagination-row">
-        <button
-          class="button button--ghost"
-          :disabled="filters.currentPage <= 1"
-          @click="filters.currentPage--; refreshInbox()"
-        >
-          ← Prev
-        </button>
-        <span class="pagination-label">{{ filters.currentPage }} / {{ inbox.page_quantity }}</span>
-        <button
-          class="button button--ghost"
-          :disabled="filters.currentPage >= inbox.page_quantity"
-          @click="filters.currentPage++; refreshInbox()"
-        >
-          Next →
-        </button>
-      </div>
+        <PaginationControls
+          :current-page="filters.currentPage"
+          :total-pages="inbox?.page_quantity ?? 1"
+          @prev="filters.currentPage--; refreshInbox()"
+          @next="filters.currentPage++; refreshInbox()"
+        />
+      </LoadingErrorEmpty>
     </section>
   </section>
 </template>
@@ -216,22 +203,6 @@ onMounted(async () => {
 .player-review-row__body {
   display: grid;
   gap: 10px;
-}
-
-.pagination-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-muted);
-}
-
-.pagination-label {
-  color: var(--text-muted);
-  font-family: var(--display);
-  font-size: 0.8rem;
-  letter-spacing: 0.08em;
 }
 
 @media (max-width: 700px) {

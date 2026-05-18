@@ -4,7 +4,10 @@ import { RouterLink, useRoute } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
 import KeyValueGrid from "../components/KeyValueGrid.vue";
+import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PanelHeading from "../components/PanelHeading.vue";
+import PageHeader from "../components/PageHeader.vue";
+import { formatDate, triggerClass, triggerLabel } from "../formatters";
 import { loadSessionDetail } from "../sessions";
 import type { ConversationRecord, SessionRecord } from "../types";
 
@@ -33,33 +36,6 @@ const sessionMetricItems = computed(() => {
   ];
 });
 
-function triggerLabel(value: string): string {
-  return {
-    wake: "Wake word",
-    repl: "REPL",
-    game_start: "Game start",
-    new_replay: "New replay",
-    twitch_chat: "Twitch chat",
-    twitch_follow: "Twitch follow",
-    twitch_raid: "Twitch raid",
-    cast_replay: "Cast replay",
-    replay_summary: "Replay summary",
-  }[value] ?? value;
-}
-
-function triggerClass(value: string): string {
-  if (["game_start", "new_replay", "cast_replay", "replay_summary"].includes(value)) return "tag--ok";
-  if (["twitch_chat", "twitch_follow", "twitch_raid"].includes(value)) return "tag--accent";
-  if (value === "repl") return "tag--purple";
-  if (value === "wake") return "tag--warn";
-  return "";
-}
-
-function formatDate(value: string | null): string {
-  if (!value) return "—";
-  return new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", hour12: false });
-}
-
 watch(
   sessionId,
   async (value) => {
@@ -85,19 +61,18 @@ watch(
 
 <template>
   <section class="page session-detail-page">
-    <header class="page-header">
-      <div class="page-header__breadcrumb">
-        <RouterLink to="/sessions" class="breadcrumb-link">← Sessions</RouterLink>
-        <h2 v-if="session" class="page-title">{{ formatDate(session.session_date) }}</h2>
-        <h2 v-else class="page-title">Session detail</h2>
-      </div>
-      <span v-if="session" class="tag tag--accent">{{ session.ai_backend }}</span>
-    </header>
+    <PageHeader
+      :title="session ? formatDate(session.session_date) : 'Session detail'"
+      breadcrumb-label="← Sessions"
+      breadcrumb-to="/sessions"
+    >
+      <template #actions>
+        <span v-if="session" class="tag tag--accent">{{ session.ai_backend }}</span>
+      </template>
+    </PageHeader>
 
-    <p v-if="loading" class="muted-copy">Loading…</p>
-    <p v-else-if="errorMessage" class="muted-copy error-copy">{{ errorMessage }}</p>
-
-    <template v-else-if="session">
+    <LoadingErrorEmpty :loading="loading" :error="errorMessage" loading-message="Loading…" error-class="muted-copy error-copy">
+      <template v-if="session">
       <section class="detail-grid">
         <article class="panel">
           <PanelHeading eyebrow="Session overview" title="Metrics">
@@ -143,46 +118,12 @@ watch(
           </ul>
         </article>
       </section>
-    </template>
+      </template>
+    </LoadingErrorEmpty>
   </section>
 </template>
 
 <style scoped>
-.page-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 8px;
-}
-
-.page-header__breadcrumb {
-  display: grid;
-  gap: 4px;
-}
-
-.breadcrumb-link {
-  color: var(--accent);
-  font-size: 0.78rem;
-  font-family: var(--display);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  transition: color 150ms ease;
-}
-
-.breadcrumb-link:hover {
-  color: var(--accent-strong);
-}
-
-.page-title {
-  margin: 0;
-  font-family: var(--display);
-  font-size: clamp(1.5rem, 2.5vw, 2.2rem);
-  line-height: 0.95;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
 .conversation-row {
   display: grid;
   gap: 8px;

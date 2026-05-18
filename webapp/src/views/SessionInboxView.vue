@@ -3,6 +3,10 @@ import { onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 
 import { createApiClient, ApiError } from "../api";
+import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
+import PageHeader from "../components/PageHeader.vue";
+import StatGrid from "../components/StatGrid.vue";
+import { formatDate, formatUsd } from "../formatters";
 import { loadSessionInbox } from "../sessions";
 import type { PaginatedResponse, SessionRecord } from "../types";
 
@@ -12,16 +16,12 @@ const inbox = ref<PaginatedResponse<SessionRecord> | null>(null);
 const loading = ref(true);
 const errorMessage = ref<string | null>(null);
 
-function formatDate(value: string): string {
-  return new Date(value).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-    hour12: false,
-  });
-}
-
-function formatCost(value: number): string {
-  return `$${value.toFixed(4)}`;
+function sessionStatItems(session: SessionRecord) {
+  return [
+    { label: "Conversations", value: session.conversations.length },
+    { label: "Tokens", value: session.total_tokens.toLocaleString() },
+    { label: "Cost", value: formatUsd(session.total_cost), valueClass: "stat-tile__value--cost" },
+  ];
 }
 
 onMounted(async () => {
@@ -38,13 +38,11 @@ onMounted(async () => {
 
 <template>
   <section class="page sessions-page">
-    <header class="page-header">
-      <div>
-        <p class="eyebrow">Coaching sessions</p>
-        <h2 class="page-title">Sessions</h2>
-      </div>
-      <span class="pill pill--amber">Read only</span>
-    </header>
+    <PageHeader eyebrow="Coaching sessions" title="Sessions">
+      <template #actions>
+        <span class="pill pill--amber">Read only</span>
+      </template>
+    </PageHeader>
 
     <section class="panel">
       <div class="section-heading">
@@ -55,65 +53,40 @@ onMounted(async () => {
         <span v-if="inbox" class="pill">Recent first</span>
       </div>
 
-      <p v-if="loading" class="muted-copy list-block-spacing">Loading…</p>
-      <p v-else-if="errorMessage" class="muted-copy list-block-spacing error-copy">{{ errorMessage }}</p>
-      <p v-else-if="!inbox || inbox.docs.length === 0" class="muted-copy list-block-spacing">
-        No sessions recorded yet.
-      </p>
+      <LoadingErrorEmpty
+        :loading="loading"
+        :error="errorMessage"
+        :empty="!inbox || inbox.docs.length === 0"
+        loading-message="Loading…"
+        empty-message="No sessions recorded yet."
+        loading-class="muted-copy list-block-spacing"
+        error-class="muted-copy list-block-spacing error-copy"
+        empty-class="muted-copy list-block-spacing"
+      >
+        <ul class="list list-block-spacing">
+          <li
+            v-for="session in inbox?.docs ?? []"
+            :key="session.id"
+            class="list-row list-row--linked session-row"
+          >
+            <RouterLink :to="`/sessions/${session.id}`" class="list-row__overlay" aria-label="Open session" />
 
-      <ul v-else class="list list-block-spacing">
-        <li
-          v-for="session in inbox.docs"
-          :key="session.id"
-          class="list-row list-row--linked session-row"
-        >
-          <RouterLink :to="`/sessions/${session.id}`" class="list-row__overlay" aria-label="Open session" />
+            <div class="session-row__main">
+              <div class="session-row__head">
+                <strong class="session-row__date">{{ formatDate(session.session_date) }}</strong>
+                <span class="tag tag--accent">{{ session.ai_backend }}</span>
+              </div>
+            </div>
 
-          <div class="session-row__main">
-            <div class="session-row__head">
-              <strong class="session-row__date">{{ formatDate(session.session_date) }}</strong>
-              <span class="tag tag--accent">{{ session.ai_backend }}</span>
-            </div>
-          </div>
-
-          <div class="session-row__stats">
-            <div class="stat-item">
-              <span class="stat-item__label">Conversations</span>
-              <span class="stat-item__value">{{ session.conversations.length }}</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-item__label">Tokens</span>
-              <span class="stat-item__value">{{ session.total_tokens.toLocaleString() }}</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-item__label">Cost</span>
-              <span class="stat-item__value stat-item__value--cost">{{ formatCost(session.total_cost) }}</span>
-            </div>
-          </div>
-        </li>
-      </ul>
+            <StatGrid :items="sessionStatItems(session)" inline />
+          </li>
+        </ul>
+      </LoadingErrorEmpty>
     </section>
   </section>
 </template>
 
 <style scoped>
-.page-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 8px;
-}
-
-.page-title {
-  margin: 4px 0 0;
-  font-family: var(--display);
-  font-size: clamp(1.8rem, 3vw, 2.6rem);
-  line-height: 0.93;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
 .session-row {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -140,49 +113,10 @@ onMounted(async () => {
   text-transform: uppercase;
 }
 
-
-.session-row__stats {
-  display: flex;
-  gap: 32px;
-}
-
-.stat-item {
-  display: grid;
-  gap: 4px;
-  text-align: right;
-}
-
-.stat-item__label {
-  color: var(--text-muted);
-  font-size: 0.68rem;
-  font-family: var(--display);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.stat-item__value {
-  color: var(--text);
-  font-family: var(--display);
-  font-size: 0.95rem;
-  letter-spacing: 0.04em;
-}
-
-.stat-item__value--cost {
-  color: var(--green-strong);
-}
-
 @media (max-width: 700px) {
   .session-row {
     grid-template-columns: 1fr;
     gap: 12px;
-  }
-
-  .session-row__stats {
-    gap: 20px;
-  }
-
-  .stat-item {
-    text-align: left;
   }
 }
 </style>

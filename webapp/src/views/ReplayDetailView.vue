@@ -4,7 +4,10 @@ import { RouterLink, useRoute } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
 import KeyValueGrid from "../components/KeyValueGrid.vue";
+import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PanelHeading from "../components/PanelHeading.vue";
+import PageHeader from "../components/PageHeader.vue";
+import { formatDate, formatDuration, replayRaceTagClass, replayResultClass } from "../formatters";
 import { loadPlayerPortraitMetadataMap } from "../players";
 import { loadReplayDetail } from "../replays";
 import type { MetadataRecord, PlayerPortraitMetadataRecord, ReplayPlayerRelationship, ReplayRecord } from "../types";
@@ -32,19 +35,13 @@ const replayItems = computed(() => {
     },
     {
       label: "Date",
-      value: new Date(replay.value.date).toLocaleString(undefined, {
-        dateStyle: "medium",
-        timeStyle: "short",
-        hour12: false,
-      }),
+      value: formatDate(replay.value.date),
     },
     { label: "Map", value: replay.value.map_name },
     { label: "Region", value: replay.value.region },
     {
       label: "Length",
-      value: replay.value.real_length
-        ? `${Math.floor(replay.value.real_length / 60)}:${String(replay.value.real_length % 60).padStart(2, "0")}`
-        : "—",
+      value: formatDuration(replay.value.real_length),
     },
   ];
 });
@@ -86,22 +83,6 @@ function primaryPortraitUrl(toonHandle: string): string | null {
   return null;
 }
 
-function resultClass(result: string): string {
-  if (result === "Win") return "tag--ok";
-  if (result === "Loss") return "tag--warn";
-  return "";
-}
-
-function raceTagClass(race: string): string {
-  const map: Record<string, string> = {
-    Terran: "tag--race-t",
-    Protoss: "tag--race-p",
-    Zerg: "tag--race-z",
-    Random: "tag--race-r",
-  };
-  return map[race] ?? "";
-}
-
 watch(
   replayId,
   async (value) => {
@@ -137,25 +118,22 @@ watch(
 
 <template>
   <section class="page replay-detail-page">
-    <header class="page-header">
-      <div class="page-header__breadcrumb">
-        <RouterLink to="/replays" class="breadcrumb-link">← Replays</RouterLink>
-        <h2 v-if="replay" class="page-title">{{ replay.map_name }}</h2>
-        <h2 v-else class="page-title">Replay detail</h2>
-      </div>
-      <div v-if="replay" class="page-header__actions">
-        <div class="button-row">
+    <PageHeader
+      :title="replay ? replay.map_name : 'Replay detail'"
+      breadcrumb-label="← Replays"
+      breadcrumb-to="/replays"
+    >
+      <template #actions>
+        <div v-if="replay" class="button-row">
           <RouterLink :to="`/resources/replays/${replay.id}`" class="button button--ghost">
             Maintenance
           </RouterLink>
         </div>
-      </div>
-    </header>
+      </template>
+    </PageHeader>
 
-    <p v-if="loading" class="muted-copy">Loading…</p>
-    <p v-else-if="errorMessage" class="muted-copy error-copy">{{ errorMessage }}</p>
-
-    <template v-else-if="replay">
+    <LoadingErrorEmpty :loading="loading" :error="errorMessage" loading-message="Loading…" error-class="muted-copy error-copy">
+      <template v-if="replay">
       <section class="detail-grid">
         <article class="panel">
           <PanelHeading eyebrow="Replay overview" title="Metrics" />
@@ -216,7 +194,7 @@ watch(
             />
 
             <div class="duel-player-card__topline">
-              <span class="tag" :class="resultClass(panel.replayPlayer.result)">
+              <span class="tag" :class="replayResultClass(panel.replayPlayer.result)">
                 {{ panel.replayPlayer.result }}
               </span>
             </div>
@@ -239,7 +217,7 @@ watch(
                 <p class="duel-player-card__toon">{{ panel.replayPlayer.toon_handle }}</p>
 
                 <div class="tag-row">
-                  <span class="tag" :class="raceTagClass(panel.replayPlayer.play_race)">
+                  <span class="tag" :class="replayRaceTagClass(panel.replayPlayer.play_race)">
                     {{ panel.replayPlayer.play_race }}
                   </span>
                   <span v-if="panel.replayPlayer.scaled_rating" class="tag">
@@ -251,22 +229,14 @@ watch(
           </article>
         </div>
       </article>
-    </template>
+      </template>
+    </LoadingErrorEmpty>
   </section>
 </template>
 
 <style scoped>
-.page-header {
-  display: flex;
+.replay-detail-page :deep(.page-header) {
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 8px;
-}
-
-.page-header__breadcrumb {
-  display: grid;
-  gap: 4px;
 }
 
 .page-header__actions {
@@ -275,28 +245,6 @@ watch(
   align-items: flex-start;
   justify-content: flex-end;
   gap: 12px;
-}
-
-.breadcrumb-link {
-  color: var(--accent);
-  font-size: 0.78rem;
-  font-family: var(--display);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  transition: color 150ms ease;
-}
-
-.breadcrumb-link:hover {
-  color: var(--accent-strong);
-}
-
-.page-title {
-  margin: 0;
-  font-family: var(--display);
-  font-size: clamp(1.5rem, 2.5vw, 2.2rem);
-  line-height: 0.95;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
 }
 
 .replay-header-tile {
