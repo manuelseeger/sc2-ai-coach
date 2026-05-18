@@ -73,8 +73,6 @@ onMounted(async () => {
     </PageHeader>
 
     <section class="panel inbox-pane inbox-pane--filter">
-      <PanelHeading eyebrow="Filters" title="Refine list" />
-
       <div class="inbox-filter-row">
         <FormField label="Search" class="inbox-filter-field">
           <input v-model="filters.q" class="text-input" type="text" placeholder="Name, alias, or toon handle" @keyup.enter="refreshInbox" />

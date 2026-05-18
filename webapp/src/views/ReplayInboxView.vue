@@ -6,7 +6,6 @@ import { ApiError, createApiClient } from "../api";
 import FormField from "../components/FormField.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PageHeader from "../components/PageHeader.vue";
-import PanelHeading from "../components/PanelHeading.vue";
 import PaginationControls from "../components/PaginationControls.vue";
 import { formatDate, formatDuration, replayRaceAbbr, replayRaceClass } from "../formatters";
 import { loadReplayInbox } from "../replays";
@@ -60,8 +59,6 @@ onMounted(async () => {
     </PageHeader>
 
     <section class="panel inbox-pane inbox-pane--filter">
-      <PanelHeading eyebrow="Filters" title="Refine list" />
-
       <div class="inbox-filter-row">
         <FormField label="Player" class="inbox-filter-field">
           <input v-model="filters.player" class="text-input" type="text" placeholder="Name…" @keyup.enter="refreshInbox" />

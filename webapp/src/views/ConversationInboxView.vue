@@ -6,7 +6,6 @@ import { ApiError, createApiClient } from "../api";
 import FormField from "../components/FormField.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PageHeader from "../components/PageHeader.vue";
-import PanelHeading from "../components/PanelHeading.vue";
 import PaginationControls from "../components/PaginationControls.vue";
 import {
   getConversationInboxState,
@@ -116,8 +115,6 @@ onMounted(async () => {
     </PageHeader>
 
     <section class="panel inbox-pane inbox-pane--filter">
-      <PanelHeading eyebrow="Filters" title="Refine list" />
-
       <div class="inbox-filter-row">
         <FormField label="Trigger" class="inbox-filter-field">
           <select v-model="filters.trigger" class="select-input">
