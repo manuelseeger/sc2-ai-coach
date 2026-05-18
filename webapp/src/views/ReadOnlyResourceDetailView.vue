@@ -49,7 +49,7 @@ const title = computed(() => {
   }
 
   const item = toConversationItem(record.value);
-  return item.name ?? `${item.type} record`;
+  return item.name ?? item.type;
 });
 
 const detailItems = computed(() => {
@@ -113,29 +113,28 @@ watch(recordId, async (value) => {
   <section class="page read-only-resource-detail-page">
     <header class="page-header">
       <div class="page-header__copy">
-        <p class="eyebrow">Raw document inspection</p>
+        <p class="eyebrow">Inspection</p>
         <h2 class="page-title">{{ title }}</h2>
         <p class="panel-intro">
-          This detail view shows the stored document exactly as persisted. Use the curated conversation screen for
-          chronological review and transcript context.
+          View the details of this record. Open the conversation for full context.
         </p>
       </div>
 
       <div class="button-row">
         <RouterLink :to="`/resources/${resource.name}`" class="button button--ghost">Back to inbox</RouterLink>
         <RouterLink v-if="record" :to="curatedConversationPath" class="button button--accent">
-          Open curated conversation
+          Open conversation
         </RouterLink>
       </div>
     </header>
 
-    <p v-if="loading" class="muted-copy">Loading raw detail...</p>
+    <p v-if="loading" class="muted-copy">Loading...</p>
     <p v-else-if="errorMessage && !record" class="feedback error-copy">{{ errorMessage }}</p>
 
     <template v-else-if="record">
       <section class="detail-grid">
         <article class="panel panel-stack">
-          <PanelHeading eyebrow="Stored facts" title="Read-only detail">
+          <PanelHeading eyebrow="Details" title="Record details">
             <template #aside>
               <span class="pill pill--amber">Read only</span>
             </template>
@@ -145,10 +144,10 @@ watch(recordId, async (value) => {
         </article>
 
         <article class="panel panel-stack">
-          <PanelHeading eyebrow="Stored JSON" title="Exact persisted document" />
+          <PanelHeading eyebrow="Raw data" title="Stored data" />
 
           <label class="form-field form-field--wide">
-            <span class="form-label">Current JSON</span>
+            <span class="form-label">Current data</span>
             <textarea class="text-area" :value="currentJson" readonly />
           </label>
         </article>

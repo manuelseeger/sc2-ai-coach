@@ -322,6 +322,35 @@ select {
   margin: 6px 0;
 }
 
+.nav-utility {
+  padding-top: 8px;
+  border-top: 1px solid var(--border-muted);
+}
+
+.nav-link--utility {
+  padding: 7px 14px 7px 18px;
+  background: transparent;
+}
+
+.nav-link--utility span {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.14em;
+}
+
+.nav-link--utility:hover span,
+.nav-link--utility.active span {
+  color: var(--text-dim);
+}
+
+.nav-link--utility:hover,
+.nav-link--utility.active {
+  background: transparent;
+  border-color: transparent;
+  border-left-color: var(--text-muted);
+  transform: none;
+}
+
 .rail-footer {
   padding: 14px;
   border: 1px solid var(--border);
@@ -645,7 +674,7 @@ dd.kv-value--token-input {
 }
 
 dd.kv-value--token-cached {
-  color: var(--green-strong);
+  color: var(--amber-strong);
 }
 
 dd.kv-value--token-output {

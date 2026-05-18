@@ -39,9 +39,9 @@ async function submit(): Promise<void> {
     <header class="panel page-hero">
       <div>
         <p class="eyebrow">Create conversation</p>
-        <h2 class="page-hero__title">Open a new top-level conversation record</h2>
+        <h2 class="page-hero__title">Start a new conversation</h2>
         <p class="panel-intro">
-          Creation works on the persisted conversation document only. Transcript items are appended separately through the conversation-scoped route.
+          Create a conversation record. Messages can be added afterwards.
         </p>
       </div>
 
@@ -49,10 +49,10 @@ async function submit(): Promise<void> {
     </header>
 
     <article class="panel panel-stack">
-      <PanelHeading eyebrow="Create body" title="Conversation JSON" />
+      <PanelHeading eyebrow="New conversation" title="Conversation data" />
 
       <label class="form-field form-field--wide">
-        <span class="form-label">Request JSON</span>
+        <span class="form-label">Conversation data</span>
         <textarea v-model="draftText" class="text-area" spellcheck="false" />
       </label>
 

@@ -39,11 +39,10 @@ async function submit(): Promise<void> {
   <section class="page metadata-create-page">
     <header class="panel page-hero">
       <div>
-        <p class="eyebrow">Create metadata</p>
-        <h2 class="page-hero__title">Open a new replay annotation record</h2>
+        <p class="eyebrow">New annotation</p>
+        <h2 class="page-hero__title">Add a new replay annotation</h2>
         <p class="panel-intro">
-          Create uses the same persisted Metadata model as the API response body. Submit valid
-          JSON, then continue on the detail screen for patch, replace, or delete work.
+          Fill in the annotation details below.
         </p>
       </div>
 
@@ -51,10 +50,10 @@ async function submit(): Promise<void> {
     </header>
 
     <article class="panel panel-stack">
-      <PanelHeading eyebrow="Create body" title="Metadata JSON" />
+      <PanelHeading eyebrow="New annotation" title="Annotation data" />
 
       <label class="form-field form-field--wide">
-        <span class="form-label">Request JSON</span>
+        <span class="form-label">Annotation data</span>
         <textarea v-model="draftText" class="text-area" spellcheck="false" />
       </label>
 
@@ -62,7 +61,7 @@ async function submit(): Promise<void> {
 
       <div class="button-row">
         <button type="button" class="button button--accent" :disabled="submitting" @click="submit">
-          {{ submitting ? "Creating..." : "Create metadata" }}
+          {{ submitting ? "Creating..." : "Create annotation" }}
         </button>
       </div>
     </article>

@@ -77,17 +77,15 @@ onMounted(async () => {
   <section class="page replay-resource-page">
     <header class="panel page-hero">
       <div>
-        <p class="eyebrow">Replay maintenance</p>
-        <h2 class="page-hero__title">Generic replay CRUD stays separate from curated review</h2>
+        <p class="eyebrow">Replay management</p>
+        <h2 class="page-hero__title">Browse and manage replays</h2>
         <p class="panel-intro">
-          Use this expert maintenance surface to create, query, patch, replace, or delete replay
-          documents without collapsing the operator replay-review path into a generic editor. Raw
-          JSON requests are allowed, but replay writes must still validate as a Replay.
+          Search, edit, and manage replay records. Use the replay view for the full experience.
         </p>
       </div>
 
       <div class="button-row">
-        <RouterLink to="/replays" class="button button--ghost">Back to replay review</RouterLink>
+        <RouterLink to="/replays" class="button button--ghost">Back to replays</RouterLink>
         <RouterLink to="/resources/replays/new" class="button button--accent">
           Create replay
         </RouterLink>
@@ -96,11 +94,7 @@ onMounted(async () => {
 
     <section class="results-grid">
       <article class="panel panel-stack">
-        <PanelHeading eyebrow="List filters" title="Replay inbox controls">
-          <template #aside>
-            <span class="pill">GET /api/replays</span>
-          </template>
-        </PanelHeading>
+        <PanelHeading eyebrow="Filters" title="Browse replays" />
 
         <div class="form-grid">
           <label class="form-field">
@@ -119,50 +113,46 @@ onMounted(async () => {
           </label>
 
           <label class="form-field">
-            <span class="form-label">Current page</span>
+            <span class="form-label">Page</span>
             <input v-model.number="filters.currentPage" class="text-input" type="number" min="1" />
           </label>
 
           <label class="form-field">
-            <span class="form-label">Docs per page</span>
+            <span class="form-label">Per page</span>
             <input v-model.number="filters.docsPerPage" class="text-input" type="number" min="1" />
           </label>
         </div>
 
         <div class="button-row">
-          <button type="button" class="button button--accent" @click="refreshList">Run list</button>
+          <button type="button" class="button button--accent" @click="refreshList">Search</button>
         </div>
       </article>
 
       <article class="panel panel-stack">
-        <PanelHeading eyebrow="Advanced query" title="Read-only replay query body">
-          <template #aside>
-            <span class="pill">POST /api/replays/query</span>
-          </template>
-        </PanelHeading>
+        <PanelHeading eyebrow="Advanced search" title="Custom filter" />
 
         <label class="form-field form-field--wide">
-          <span class="form-label">Query JSON</span>
+          <span class="form-label">Filter</span>
           <textarea v-model="queryText" class="text-area" spellcheck="false" />
         </label>
 
         <div class="button-row">
-          <button type="button" class="button" @click="runAdvancedQuery">Run query</button>
+          <button type="button" class="button" @click="runAdvancedQuery">Run filter</button>
         </div>
       </article>
     </section>
 
     <section class="panel panel-stack">
-      <PanelHeading eyebrow="Results" :title="resultMode === 'list' ? 'Replay list results' : 'Replay query results'">
+      <PanelHeading eyebrow="Results" :title="resultMode === 'list' ? 'Replays' : 'Filtered replays'">
         <template #aside>
           <span v-if="result" class="pill">{{ result.docs_quantity }} replays</span>
         </template>
       </PanelHeading>
 
-      <p v-if="loading" class="muted-copy">Loading replay maintenance results...</p>
+      <p v-if="loading" class="muted-copy">Loading...</p>
       <p v-else-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
       <p v-else-if="!result || result.docs.length === 0" class="muted-copy">
-        No replay documents matched the current request.
+        No replays found.
       </p>
 
       <ul v-else class="list list-block-spacing">
@@ -181,7 +171,7 @@ onMounted(async () => {
           </div>
 
           <RouterLink :to="`/resources/replays/${replay.id}`" class="list-link">
-            Open replay document
+            Open replay
           </RouterLink>
         </li>
       </ul>

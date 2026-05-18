@@ -86,9 +86,9 @@ async function applyPatch(): Promise<void> {
     const patched = await patchConversationRecord(apiClient, record.value.id, JSON.parse(patchText.value));
     record.value = patched;
     resetEditors(patched);
-    feedbackMessage.value = "Patch saved to MongoDB and reloaded.";
+    feedbackMessage.value = "Changes saved.";
   } catch (error) {
-    errorMessage.value = error instanceof ApiError ? error.message : "Patch request failed.";
+    errorMessage.value = error instanceof ApiError ? error.message : "Update failed.";
   }
 }
 
@@ -104,9 +104,9 @@ async function applyReplace(): Promise<void> {
     const replaced = await replaceConversationRecord(apiClient, record.value.id, JSON.parse(replaceText.value));
     record.value = replaced;
     resetEditors(replaced);
-    feedbackMessage.value = "Replace saved to MongoDB and reloaded.";
+    feedbackMessage.value = "Changes saved.";
   } catch (error) {
-    errorMessage.value = error instanceof ApiError ? error.message : "Replace request failed.";
+    errorMessage.value = error instanceof ApiError ? error.message : "Update failed.";
   }
 }
 
@@ -139,15 +139,15 @@ watch(conversationId, async (value) => {
     <header class="panel page-hero">
       <div>
         <p class="eyebrow">Conversation detail</p>
-        <h2 class="page-hero__title">Inspect and edit one persisted conversation document</h2>
+        <h2 class="page-hero__title">Edit conversation details</h2>
         <p class="panel-intro">
-          Generic maintenance stays document-centric here: patch, replace, and delete act on the conversation record only, while transcript items remain outside generic write flows.
+          Update or delete this conversation. Messages are managed separately.
         </p>
       </div>
 
       <div class="button-row">
         <RouterLink to="/resources/conversations" class="button button--ghost">Back to inbox</RouterLink>
-        <RouterLink v-if="record" :to="`/conversations/${record.id}`" class="button button--accent">Open curated view</RouterLink>
+        <RouterLink v-if="record" :to="`/conversations/${record.id}`" class="button button--accent">Open conversation</RouterLink>
       </div>
     </header>
 
@@ -166,33 +166,33 @@ watch(conversationId, async (value) => {
           <KeyValueGrid :items="conversationItems" />
 
           <label class="form-field form-field--wide">
-            <span class="form-label">Current JSON</span>
+            <span class="form-label">Current data</span>
             <textarea class="text-area" :value="currentJson" readonly />
           </label>
         </article>
 
         <article class="panel panel-stack">
-          <PanelHeading eyebrow="Write actions" title="Patch, replace, or delete" />
+          <PanelHeading eyebrow="Edit" title="Update or delete" />
 
           <p v-if="feedbackMessage" class="feedback">{{ feedbackMessage }}</p>
           <p v-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
 
           <label class="form-field form-field--wide">
-            <span class="form-label">Patch JSON</span>
+            <span class="form-label">Fields to update</span>
             <textarea v-model="patchText" class="text-area" spellcheck="false" />
           </label>
 
           <div class="button-row">
-            <button type="button" class="button" @click="applyPatch">Apply patch</button>
+            <button type="button" class="button" @click="applyPatch">Save changes</button>
           </div>
 
           <label class="form-field form-field--wide">
-            <span class="form-label">Replace JSON</span>
+            <span class="form-label">Full record</span>
             <textarea v-model="replaceText" class="text-area" spellcheck="false" />
           </label>
 
           <div class="button-row">
-            <button type="button" class="button button--accent" @click="applyReplace">Replace document</button>
+            <button type="button" class="button button--accent" @click="applyReplace">Replace</button>
             <button type="button" class="button button--danger" :disabled="deleting" @click="removeRecord">
               {{ deleting ? "Deleting..." : "Delete conversation" }}
             </button>

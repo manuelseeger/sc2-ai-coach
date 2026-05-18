@@ -75,9 +75,9 @@ async function applyPatch(): Promise<void> {
     const patched = await patchPlayerRecord(apiClient, record.value.toon_handle, JSON.parse(patchText.value));
     record.value = patched;
     resetEditors(patched);
-    feedbackMessage.value = "Patch saved to MongoDB and reloaded.";
+    feedbackMessage.value = "Changes saved.";
   } catch (error) {
-    errorMessage.value = error instanceof ApiError ? error.message : "Patch request failed.";
+    errorMessage.value = error instanceof ApiError ? error.message : "Update failed.";
   }
 }
 
@@ -91,9 +91,9 @@ async function applyReplace(): Promise<void> {
     const replaced = await replacePlayerRecord(apiClient, record.value.toon_handle, JSON.parse(replaceText.value));
     record.value = replaced;
     resetEditors(replaced);
-    feedbackMessage.value = "Replace saved to MongoDB and reloaded.";
+    feedbackMessage.value = "Changes saved.";
   } catch (error) {
-    errorMessage.value = error instanceof ApiError ? error.message : "Replace request failed.";
+    errorMessage.value = error instanceof ApiError ? error.message : "Update failed.";
   }
 }
 
@@ -123,17 +123,16 @@ watch(toonHandle, async (value) => {
   <section class="page player-detail-page">
     <header class="panel page-hero">
       <div>
-        <p class="eyebrow">Player detail</p>
-        <h2 class="page-hero__title">Inspect and edit one persisted player document</h2>
+        <p class="eyebrow">Player</p>
+        <h2 class="page-hero__title">Edit player details</h2>
         <p class="panel-intro">
-          This maintenance view stays document-centric while the curated player review keeps
-          portraits, aliases, and replay navigation front and center.
+          Edit player fields or remove this player entry entirely.
         </p>
       </div>
 
       <div class="button-row">
         <RouterLink to="/resources/players" class="button button--ghost">Back to inbox</RouterLink>
-        <RouterLink :to="`/players/${toonHandle}`" class="button button--ghost">Open player review</RouterLink>
+        <RouterLink :to="`/players/${toonHandle}`" class="button button--ghost">Open player</RouterLink>
       </div>
     </header>
 
@@ -152,33 +151,33 @@ watch(toonHandle, async (value) => {
           <KeyValueGrid :items="playerItems" />
 
           <label class="form-field form-field--wide">
-            <span class="form-label">Current JSON</span>
+            <span class="form-label">Current data</span>
             <textarea class="text-area" :value="currentJson" readonly />
           </label>
         </article>
 
         <article class="panel panel-stack">
-          <PanelHeading eyebrow="Write actions" title="Patch, replace, or delete" />
+          <PanelHeading eyebrow="Edit" title="Update or delete" />
 
           <p v-if="feedbackMessage" class="feedback">{{ feedbackMessage }}</p>
           <p v-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
 
           <label class="form-field form-field--wide">
-            <span class="form-label">Patch JSON</span>
+            <span class="form-label">Fields to update</span>
             <textarea v-model="patchText" class="text-area" spellcheck="false" />
           </label>
 
           <div class="button-row">
-            <button type="button" class="button" @click="applyPatch">Apply patch</button>
+            <button type="button" class="button" @click="applyPatch">Save changes</button>
           </div>
 
           <label class="form-field form-field--wide">
-            <span class="form-label">Replace JSON</span>
+            <span class="form-label">Full record</span>
             <textarea v-model="replaceText" class="text-area" spellcheck="false" />
           </label>
 
           <div class="button-row">
-            <button type="button" class="button button--accent" @click="applyReplace">Replace document</button>
+            <button type="button" class="button button--accent" @click="applyReplace">Replace</button>
             <button type="button" class="button button--danger" :disabled="deleting" @click="removeRecord">
               {{ deleting ? "Deleting..." : "Delete player" }}
             </button>

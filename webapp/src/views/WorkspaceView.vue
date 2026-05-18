@@ -12,35 +12,35 @@ const quickLinks = [
   },
   {
     label: "Conversations",
-    description: "Transcript-focused conversation review with typed filters",
+    description: "Review coaching conversations and transcripts",
     path: "/conversations",
     eyebrow: "Curated review",
     accent: "accent",
   },
   {
     label: "Replays",
-    description: "Replay inbox with metadata and player relationships",
+    description: "Browse replays with linked annotations and players",
     path: "/replays",
     eyebrow: "Curated review",
     accent: "accent",
   },
   {
     label: "Players",
-    description: "Portrait-aware player review with alias history and replay links",
+    description: "Browse players with aliases and replay history",
     path: "/players",
     eyebrow: "Curated review",
     accent: "accent",
   },
   {
     label: "Map Stats",
-    description: "Aggregated matchup win-rate data by map",
+    description: "Win-rate statistics by map and matchup",
     path: "/map-stats",
     eyebrow: "Read only",
     accent: "muted",
   },
   {
     label: "Health",
-    description: "Backend and database readiness",
+    description: "Service status and connectivity",
     path: "/health",
     eyebrow: "System",
     accent: "muted",
@@ -55,8 +55,7 @@ const quickLinks = [
         <p class="eyebrow">SC2 AI Coach</p>
         <h2 class="workspace-hero__title">Admin Workspace</h2>
         <p class="workspace-hero__lead">
-          Inspect and manage coaching sessions, replays, players, and conversations. All data is
-          served from the standalone API backed by MongoDB.
+          Inspect and manage coaching sessions, replays, players, and conversations.
         </p>
       </div>
     </header>

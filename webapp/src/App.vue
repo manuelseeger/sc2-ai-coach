@@ -5,7 +5,10 @@ import { adminAreas, resourceRegistry } from "./route-registry";
 
 const route = useRoute();
 
-const primaryNav = adminAreas.filter((area) => !area.path.startsWith("/resources/"));
+const primaryNav = adminAreas.filter(
+  (area) => !area.path.startsWith("/resources/") && area.id !== "workspace" && area.id !== "health"
+);
+const healthArea = adminAreas.find((area) => area.id === "health")!;
 
 function isAreaActive(path: string): boolean {
   if (path === "/") {
@@ -26,7 +29,6 @@ function isAreaActive(path: string): boolean {
       </div>
 
       <nav class="nav">
-        <p class="nav-section-label">Workspace</p>
         <RouterLink
           v-for="area in primaryNav"
           :key="area.id"
@@ -51,6 +53,16 @@ function isAreaActive(path: string): boolean {
           <small v-if="!resource.writable" class="nav-link__badge">read only</small>
         </RouterLink>
       </nav>
+
+      <div class="nav-utility">
+        <RouterLink
+          :to="healthArea.path"
+          class="nav-link nav-link--utility"
+          :class="{ active: isAreaActive(healthArea.path) }"
+        >
+          <span>{{ healthArea.label }}</span>
+        </RouterLink>
+      </div>
     </aside>
 
     <main class="content">

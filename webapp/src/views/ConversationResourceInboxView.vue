@@ -82,15 +82,15 @@ onMounted(async () => {
   <section class="page conversation-resource-page">
     <header class="panel page-hero">
       <div>
-        <p class="eyebrow">Conversation maintenance</p>
-        <h2 class="page-hero__title">Writable conversation documents</h2>
+        <p class="eyebrow">Conversation management</p>
+        <h2 class="page-hero__title">Browse and manage conversations</h2>
         <p class="panel-intro">
-          Generic maintenance stays on the top-level conversation documents. Transcript items remain append-only through the conversation-scoped API route and are not editable here.
+          Search and manage conversation records. Messages are managed separately within each conversation.
         </p>
       </div>
 
       <div class="button-row">
-        <span class="pill pill--accent">Writable resource</span>
+        <span class="pill pill--accent">Editable</span>
         <RouterLink to="/resources/conversations/new" class="button button--accent">
           Create conversation
         </RouterLink>
@@ -99,11 +99,7 @@ onMounted(async () => {
 
     <section class="results-grid">
       <article class="panel panel-stack">
-        <PanelHeading eyebrow="List filters" title="Reviewable browser controls">
-          <template #aside>
-            <span class="pill">GET /api/conversations</span>
-          </template>
-        </PanelHeading>
+        <PanelHeading eyebrow="Filters" title="Browse conversations" />
 
         <div class="form-grid">
           <label class="form-field">
@@ -127,52 +123,46 @@ onMounted(async () => {
           </label>
 
           <label class="form-field">
-            <span class="form-label">Current page</span>
+            <span class="form-label">Page</span>
             <input v-model.number="filters.currentPage" class="text-input" type="number" min="1" />
           </label>
 
           <label class="form-field">
-            <span class="form-label">Docs per page</span>
+            <span class="form-label">Per page</span>
             <input v-model.number="filters.docsPerPage" class="text-input" type="number" min="1" />
           </label>
         </div>
 
         <div class="button-row">
-          <button type="button" class="button button--accent" @click="refreshList">Run list</button>
-          <span class="pill pill--amber">Typed filters</span>
+          <button type="button" class="button button--accent" @click="refreshList">Search</button>
         </div>
       </article>
 
       <article class="panel panel-stack">
-        <PanelHeading eyebrow="Advanced query" title="Guarded JSON filter body">
-          <template #aside>
-            <span class="pill">POST /api/conversations/query</span>
-          </template>
-        </PanelHeading>
+        <PanelHeading eyebrow="Advanced search" title="Custom filter" />
 
         <label class="form-field form-field--wide">
-          <span class="form-label">Query JSON</span>
+          <span class="form-label">Filter</span>
           <textarea v-model="queryText" class="text-area" spellcheck="false" />
         </label>
 
         <div class="button-row">
-          <button type="button" class="button" @click="runAdvancedQuery">Run query</button>
-          <span class="pill">Read-only query endpoint</span>
+          <button type="button" class="button" @click="runAdvancedQuery">Run filter</button>
         </div>
       </article>
     </section>
 
     <section class="panel panel-stack">
-      <PanelHeading eyebrow="Results" :title="resultMode === 'list' ? 'List results' : 'Advanced query results'">
+      <PanelHeading eyebrow="Results" :title="resultMode === 'list' ? 'Conversations' : 'Filtered results'">
         <template #aside>
-          <span v-if="result" class="pill">{{ result.docs_quantity }} records</span>
+          <span v-if="result" class="pill">{{ result.docs_quantity }} conversations</span>
         </template>
       </PanelHeading>
 
-      <p v-if="loading" class="muted-copy">Loading conversation records...</p>
+      <p v-if="loading" class="muted-copy">Loading...</p>
       <p v-else-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
       <p v-else-if="!result || result.docs.length === 0" class="muted-copy">
-        No conversation records matched the current request.
+        No conversations found.
       </p>
 
       <ul v-else class="list list-block-spacing">
@@ -192,7 +182,7 @@ onMounted(async () => {
           </div>
 
           <RouterLink :to="`/resources/conversations/${record.id}`" class="list-link">
-            Open conversation detail
+            Open conversation
           </RouterLink>
         </li>
       </ul>
