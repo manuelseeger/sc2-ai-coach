@@ -6,6 +6,7 @@ import { ApiError, createApiClient } from "../api";
 import KeyValueGrid from "../components/KeyValueGrid.vue";
 import PanelHeading from "../components/PanelHeading.vue";
 import ToolCallCard from "../components/ToolCallCard.vue";
+import ToolResultCard from "../components/ToolResultCard.vue";
 import { loadConversationDetail } from "../conversations";
 import type { ConversationItemRecord, ConversationRecord, ResponseRecord, ToolDefinition } from "../types";
 
@@ -24,6 +25,16 @@ const toolsMap = computed<Map<string, ToolDefinition>>(() => {
   const map = new Map<string, ToolDefinition>();
   for (const t of tools.value) {
     map.set(t.name, t);
+  }
+  return map;
+});
+
+const callIdNameMap = computed<Map<string, string>>(() => {
+  const map = new Map<string, string>();
+  for (const item of items.value) {
+    if (item.type === "function_call" && item.call_id && item.name) {
+      map.set(item.call_id, item.name);
+    }
   }
   return map;
 });
@@ -192,10 +203,11 @@ watch(conversationId, async (value) => {
                 :tool-def="item.name ? toolsMap.get(item.name) : undefined"
               />
 
-              <details v-else-if="item.type === 'function_call_output'" class="transcript-item__details">
-                <summary>Raw result</summary>
-                <pre class="transcript-item__body transcript-item__body--code">{{ item.output || "" }}</pre>
-              </details>
+              <ToolResultCard
+                v-else-if="item.type === 'function_call_output'"
+                :item="item"
+                :linked-tool-name="item.call_id ? callIdNameMap.get(item.call_id) : undefined"
+              />
             </li>
           </ol>
         </article>
@@ -313,14 +325,6 @@ watch(conversationId, async (value) => {
   border: 1px solid var(--border-muted);
   font-family: var(--mono);
   font-size: 0.82rem;
-}
-
-.transcript-item__details summary {
-  cursor: pointer;
-  color: var(--accent-strong);
-  font-family: var(--display);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .token-eyebrow {
