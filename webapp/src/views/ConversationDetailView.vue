@@ -5,8 +5,9 @@ import { RouterLink, useRoute } from "vue-router";
 import { ApiError, createApiClient } from "../api";
 import KeyValueGrid from "../components/KeyValueGrid.vue";
 import PanelHeading from "../components/PanelHeading.vue";
+import ToolCallCard from "../components/ToolCallCard.vue";
 import { loadConversationDetail } from "../conversations";
-import type { ConversationItemRecord, ConversationRecord, ResponseRecord } from "../types";
+import type { ConversationItemRecord, ConversationRecord, ResponseRecord, ToolDefinition } from "../types";
 
 const apiClient = createApiClient();
 const route = useRoute();
@@ -17,6 +18,15 @@ const notFound = ref(false);
 const conversation = ref<ConversationRecord | null>(null);
 const items = ref<ConversationItemRecord[]>([]);
 const responses = ref<ResponseRecord[]>([]);
+const tools = ref<ToolDefinition[]>([]);
+
+const toolsMap = computed<Map<string, ToolDefinition>>(() => {
+  const map = new Map<string, ToolDefinition>();
+  for (const t of tools.value) {
+    map.set(t.name, t);
+  }
+  return map;
+});
 
 const tokenStats = computed(() => {
   if (responses.value.length === 0) return null;
@@ -77,10 +87,6 @@ function itemKindLabel(item: ConversationItemRecord): string {
   return item.role ? `${item.role} message` : item.type;
 }
 
-function rawArguments(item: ConversationItemRecord): string {
-  return JSON.stringify(item.arguments ?? {}, null, 2);
-}
-
 async function refreshConversation(id: string): Promise<void> {
   loading.value = true;
   errorMessage.value = null;
@@ -91,6 +97,7 @@ async function refreshConversation(id: string): Promise<void> {
     conversation.value = loaded.conversation;
     items.value = loaded.items;
     responses.value = loaded.responses;
+    tools.value = loaded.tools;
   } catch (error) {
     if (error instanceof ApiError && error.code === "not_found") {
       notFound.value = true;
@@ -179,10 +186,11 @@ watch(conversationId, async (value) => {
                 :class="{ 'transcript-item__body--code': isCodeLike(renderMessage(item)) }"
               >{{ renderMessage(item) }}</pre>
 
-              <details v-else-if="item.type === 'function_call'" class="transcript-item__details">
-                <summary>Raw arguments</summary>
-                <pre class="transcript-item__body transcript-item__body--code">{{ rawArguments(item) }}</pre>
-              </details>
+              <ToolCallCard
+                v-else-if="item.type === 'function_call'"
+                :item="item"
+                :tool-def="item.name ? toolsMap.get(item.name) : undefined"
+              />
 
               <details v-else-if="item.type === 'function_call_output'" class="transcript-item__details">
                 <summary>Raw result</summary>
