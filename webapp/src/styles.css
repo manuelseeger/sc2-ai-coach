@@ -629,6 +629,48 @@ select {
   gap: var(--gap-panel-stack);
 }
 
+.inbox-pane {
+  display: grid;
+  gap: var(--gap-panel-stack);
+}
+
+.inbox-pane--filter {
+  background:
+    linear-gradient(180deg, rgba(13, 20, 32, 0.96), rgba(9, 14, 22, 0.99)),
+    var(--panel-stripe);
+}
+
+.inbox-pane__intro {
+  max-width: 64ch;
+}
+
+.inbox-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.inbox-filter-field {
+  display: grid;
+  gap: 6px;
+  flex: 1 1 180px;
+}
+
+.inbox-filter-field--narrow {
+  flex: 0 1 120px;
+}
+
+.inbox-filter-field--action {
+  flex: 0 0 auto;
+}
+
+.inbox-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .panel-heading__title {
   margin: 6px 0 0;
   font-family: var(--display);
@@ -1010,6 +1052,13 @@ dd.kv-value--token-output {
   .results-grid,
   .form-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .inbox-filter-field--narrow,
+  .inbox-filter-field--action {
+    flex-basis: 100%;
   }
 }
 

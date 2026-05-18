@@ -5,6 +5,7 @@ import { RouterLink } from "vue-router";
 import { createApiClient, ApiError } from "../api";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PageHeader from "../components/PageHeader.vue";
+import PanelHeading from "../components/PanelHeading.vue";
 import StatGrid from "../components/StatGrid.vue";
 import { formatCount, formatDate, formatUsd } from "../formatters";
 import { loadSessionInbox } from "../sessions";
@@ -44,14 +45,12 @@ onMounted(async () => {
       </template>
     </PageHeader>
 
-    <section class="panel">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Recent sessions</p>
-          <h3>{{ inbox ? `${inbox.docs_quantity} sessions` : "Sessions" }}</h3>
-        </div>
-        <span v-if="inbox" class="pill">Recent first</span>
-      </div>
+    <section class="panel inbox-pane">
+      <PanelHeading eyebrow="Results" :title="inbox ? `${inbox.docs_quantity} sessions` : 'Sessions'">
+        <template #aside>
+          <span v-if="inbox" class="pill">Recent first</span>
+        </template>
+      </PanelHeading>
 
       <LoadingErrorEmpty
         :loading="loading"

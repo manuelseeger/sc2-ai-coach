@@ -6,6 +6,7 @@ import { ApiError, createApiClient } from "../api";
 import FormField from "../components/FormField.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PageHeader from "../components/PageHeader.vue";
+import PanelHeading from "../components/PanelHeading.vue";
 import PaginationControls from "../components/PaginationControls.vue";
 import { formatDate, formatDuration, replayRaceAbbr, replayRaceClass } from "../formatters";
 import { loadReplayInbox } from "../replays";
@@ -58,41 +59,41 @@ onMounted(async () => {
       </template>
     </PageHeader>
 
-    <section class="panel filter-panel">
-      <div class="filter-row">
-        <FormField label="Player" class="filter-field">
+    <section class="panel inbox-pane inbox-pane--filter">
+      <PanelHeading eyebrow="Filters" title="Refine list" />
+
+      <div class="inbox-filter-row">
+        <FormField label="Player" class="inbox-filter-field">
           <input v-model="filters.player" class="text-input" type="text" placeholder="Name…" @keyup.enter="refreshInbox" />
         </FormField>
 
-        <FormField label="Map" class="filter-field">
+        <FormField label="Map" class="inbox-filter-field">
           <input v-model="filters.map" class="text-input" type="text" placeholder="Map name…" @keyup.enter="refreshInbox" />
         </FormField>
 
-        <FormField label="Sort" class="filter-field filter-field--narrow">
+        <FormField label="Sort" class="inbox-filter-field inbox-filter-field--narrow">
           <input v-model="filters.sort" class="text-input mono-copy" type="text" />
         </FormField>
 
-        <FormField label="Page" class="filter-field filter-field--narrow">
+        <FormField label="Page" class="inbox-filter-field inbox-filter-field--narrow">
           <input v-model.number="filters.currentPage" class="text-input" type="number" min="1" @keyup.enter="refreshInbox" />
         </FormField>
 
-        <div class="filter-field filter-field--action">
+        <div class="inbox-filter-field inbox-filter-field--action">
           <span class="form-label">&nbsp;</span>
           <button type="button" class="button button--accent" @click="refreshInbox">Apply</button>
         </div>
       </div>
     </section>
 
-    <section class="panel">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Results</p>
-          <h3>{{ inbox ? `${inbox.docs_quantity} replays` : "Replays" }}</h3>
-        </div>
-        <span v-if="inbox" class="pill">
-          Page {{ inbox.current_page }} of {{ inbox.page_quantity }}
-        </span>
-      </div>
+    <section class="panel inbox-pane">
+      <PanelHeading eyebrow="Results" :title="inbox ? `${inbox.docs_quantity} replays` : 'Replays'">
+        <template #aside>
+          <span v-if="inbox" class="pill">
+            Page {{ inbox.current_page }} of {{ inbox.page_quantity }}
+          </span>
+        </template>
+      </PanelHeading>
 
       <LoadingErrorEmpty
         :loading="loading"
@@ -142,32 +143,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.filter-panel {
-  display: grid;
-  gap: 14px;
-}
-
-.filter-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 14px;
-}
-
-.filter-field {
-  display: grid;
-  gap: 6px;
-  flex: 1 1 180px;
-}
-
-.filter-field--narrow {
-  flex: 0 1 120px;
-}
-
-.filter-field--action {
-  flex: 0 0 auto;
-}
-
 .replay-row {
   display: flex;
   align-items: center;

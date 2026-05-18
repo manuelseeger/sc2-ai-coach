@@ -21,7 +21,7 @@ When saving files using playwright, for example when you take screenshots, put t
 
 For all changes, consider whether they can be made globally in the app in components or global stylesheet. Try to keep individual changes on views minimal if possible. Don't be afraid to refactor the frontend. 
 
-See if you can identify components that can be reused across the app. Extract these to reusable components.
+See if you can identify components that can be reused across the app. Extract these to reusable components. DRY.
 
 Same with TypeScript types and code. Try to keep the code DRY and reusable.
 

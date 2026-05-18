@@ -23,7 +23,6 @@ const filters = reactive({
   tag: "",
   sort: "name",
   currentPage: 1,
-  docsPerPage: 24,
 });
 
 async function refreshInbox(): Promise<void> {
@@ -36,7 +35,7 @@ async function refreshInbox(): Promise<void> {
       tag: filters.tag || undefined,
       sort: filters.sort || undefined,
       current_page: filters.currentPage,
-      docs_per_page: filters.docsPerPage,
+      docs_per_page: 25,
     });
     inbox.value = loaded;
     portraits.value = await loadPlayerPortraitMetadataMap(
@@ -67,51 +66,47 @@ onMounted(async () => {
 
 <template>
   <section class="page players-page">
-    <PageHeader
-      variant="hero"
-      eyebrow="Player review"
-      title="Players"
-      intro="Browse known players with portrait history, aliases, and linked replays."
-    >
+    <PageHeader eyebrow="Player review" title="Players">
       <template #actions>
         <RouterLink to="/resources/players" class="button button--ghost">Maintenance</RouterLink>
       </template>
     </PageHeader>
 
-    <section class="panel panel-stack">
-      <PanelHeading eyebrow="Filters" title="Search" />
+    <section class="panel inbox-pane inbox-pane--filter">
+      <PanelHeading eyebrow="Filters" title="Refine list" />
 
-      <div class="form-grid">
-        <FormField label="Search">
+      <div class="inbox-filter-row">
+        <FormField label="Search" class="inbox-filter-field">
           <input v-model="filters.q" class="text-input" type="text" placeholder="Name, alias, or toon handle" @keyup.enter="refreshInbox" />
         </FormField>
 
-        <FormField label="Tag">
+        <FormField label="Tag" class="inbox-filter-field">
           <input v-model="filters.tag" class="text-input" type="text" placeholder="ladder" @keyup.enter="refreshInbox" />
         </FormField>
 
-        <FormField label="Sort">
+        <FormField label="Sort" class="inbox-filter-field inbox-filter-field--narrow">
           <input v-model="filters.sort" class="text-input mono-copy" type="text" @keyup.enter="refreshInbox" />
         </FormField>
 
-        <FormField label="Current page">
+        <FormField label="Page" class="inbox-filter-field inbox-filter-field--narrow">
           <input v-model.number="filters.currentPage" class="text-input" type="number" min="1" @keyup.enter="refreshInbox" />
         </FormField>
 
-        <FormField label="Docs per page">
-          <input v-model.number="filters.docsPerPage" class="text-input" type="number" min="1" />
-        </FormField>
-      </div>
-
-      <div class="button-row">
-        <button type="button" class="button button--accent" @click="refreshInbox">Refresh players</button>
+        <div class="inbox-filter-field inbox-filter-field--action">
+          <span class="form-label">&nbsp;</span>
+          <div class="inbox-filter-actions">
+            <button type="button" class="button button--accent" @click="refreshInbox">Apply</button>
+          </div>
+        </div>
       </div>
     </section>
 
-    <section class="panel panel-stack">
-      <PanelHeading eyebrow="Results" title="Known players">
+    <section class="panel inbox-pane">
+      <PanelHeading eyebrow="Results" :title="inbox ? `${inbox.docs_quantity} players` : 'Players'">
         <template #aside>
-          <span v-if="inbox" class="pill">{{ inbox.docs_quantity }} players</span>
+          <span v-if="inbox" class="pill">
+            Page {{ inbox.current_page }} of {{ inbox.page_quantity }}
+          </span>
         </template>
       </PanelHeading>
 
@@ -135,6 +130,7 @@ onMounted(async () => {
               <div class="split-topline">
                 <div>
                   <strong>{{ player.name }}</strong>
+                  <p class="player-review-row__meta mono-copy">{{ player.toon_handle }}</p>
                 </div>
                 <div class="tag-row">
                   <span class="tag">{{ player.aliases.length }} aliases</span>
@@ -172,6 +168,7 @@ onMounted(async () => {
   grid-template-columns: 92px 1fr;
   gap: 18px;
   align-items: center;
+  padding: 16px 20px;
 }
 
 .player-review-row__portrait {
@@ -203,6 +200,12 @@ onMounted(async () => {
 .player-review-row__body {
   display: grid;
   gap: 10px;
+}
+
+.player-review-row__meta {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
 }
 
 @media (max-width: 700px) {
