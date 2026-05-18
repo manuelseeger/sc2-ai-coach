@@ -141,11 +141,13 @@ watch(conversationId, async (value) => {
       <template v-if="conversation">
       <section class="conversation-detail-layout">
         <article class="panel panel-stack conversation-summary-panel">
-          <div class="summary-topline">
-            <span class="pill" :class="conversation.status === 'active' ? 'pill--accent' : 'pill--amber'">
-              {{ conversation.status }}
-            </span>
-          </div>
+          <PanelHeading eyebrow="Conversation overview" title="Metrics">
+            <template #aside>
+              <span class="pill" :class="conversation.status === 'active' ? 'pill--accent' : 'pill--amber'">
+                {{ conversation.status }}
+              </span>
+            </template>
+          </PanelHeading>
 
           <div class="header-tags">
             <span class="tag">Created {{ formatDate(conversation.created_at, 'None') }}</span>
@@ -162,12 +164,7 @@ watch(conversationId, async (value) => {
             {{ conversation.handler_context }}
           </p>
 
-          <template v-if="tokenStats">
-            <p class="eyebrow token-eyebrow">Token usage</p>
-            <div class="token-grid">
-              <KeyValueGrid :items="tokenStats" />
-            </div>
-          </template>
+          <KeyValueGrid v-if="tokenStats" class="list-block-spacing" :items="tokenStats" />
         </article>
 
         <article class="panel panel-stack transcript-panel">
@@ -230,11 +227,6 @@ watch(conversationId, async (value) => {
 .conversation-summary-panel,
 .transcript-panel {
   width: 100%;
-}
-
-.summary-topline {
-  display: flex;
-  justify-content: flex-end;
 }
 
 .header-tags {
@@ -381,14 +373,6 @@ watch(conversationId, async (value) => {
   border: 1px solid var(--border-muted);
   font-family: var(--mono);
   font-size: 0.82rem;
-}
-
-.token-eyebrow {
-  margin-bottom: -4px;
-}
-
-.token-grid :deep(.data-grid) {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 

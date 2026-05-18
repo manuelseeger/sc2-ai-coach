@@ -82,11 +82,13 @@ watch(
       <template v-if="player && portraitMetadata && replays">
       <section class="detail-grid">
         <article class="panel panel-stack">
-          <div class="summary-topline">
-            <span class="pill">{{ aliases.length }} aliases</span>
-          </div>
+          <PanelHeading eyebrow="Player overview" title="Metrics">
+            <template #aside>
+              <span class="pill">{{ aliases.length }} aliases</span>
+            </template>
+          </PanelHeading>
 
-          <KeyValueGrid :items="playerItems" />
+          <KeyValueGrid class="list-block-spacing" :items="playerItems" />
         </article>
 
         <article class="panel panel-stack">
@@ -175,11 +177,6 @@ watch(
 </template>
 
 <style scoped>
-.summary-topline {
-  display: flex;
-  justify-content: flex-end;
-}
-
 .portrait-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
