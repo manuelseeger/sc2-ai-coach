@@ -3,6 +3,7 @@ import { computed, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
+import BuildOrderSequence from "../components/BuildOrderSequence.vue";
 import KeyValueGrid from "../components/KeyValueGrid.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PanelHeading from "../components/PanelHeading.vue";
@@ -289,6 +290,11 @@ watch(
               v-if="panel.scalarItems.length"
               class="duel-player-card__scalars"
               :items="panel.scalarItems"
+            />
+
+            <BuildOrderSequence
+              :entries="panel.replayPlayer.build_order"
+              :player-name="panel.replayPlayer.name"
             />
           </article>
         </div>
