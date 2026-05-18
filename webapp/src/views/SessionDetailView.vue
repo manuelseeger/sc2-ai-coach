@@ -7,7 +7,7 @@ import KeyValueGrid from "../components/KeyValueGrid.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PanelHeading from "../components/PanelHeading.vue";
 import PageHeader from "../components/PageHeader.vue";
-import { formatDate, triggerClass, triggerLabel } from "../formatters";
+import { formatCount, formatDate, formatUsd, triggerClass, triggerLabel } from "../formatters";
 import { loadSessionDetail } from "../sessions";
 import type { ConversationRecord, SessionRecord } from "../types";
 
@@ -26,13 +26,13 @@ const sessionMetricItems = computed(() => {
 
   return [
     { label: "AI backend", value: session.value.ai_backend },
-    { label: "Total tokens", value: session.value.total_tokens.toLocaleString() },
-    { label: "Input tokens", value: session.value.total_input_tokens.toLocaleString(), valueClass: "kv-value--token-input" },
-    { label: "Cached tokens", value: session.value.total_cached_tokens.toLocaleString(), valueClass: "kv-value--token-cached" },
-    { label: "Output tokens", value: session.value.total_output_tokens.toLocaleString(), valueClass: "kv-value--token-output" },
-    { label: "Prompt cost", value: `$${session.value.prompt_pricing.toFixed(4)}`, valueClass: "kv-value--cost" },
-    { label: "Completion cost", value: `$${session.value.completion_pricing.toFixed(4)}`, valueClass: "kv-value--cost" },
-    { label: "Total cost", value: `$${session.value.total_cost.toFixed(4)}`, valueClass: "kv-value--cost" },
+    { label: "Total tokens", value: formatCount(session.value.total_tokens) },
+    { label: "Input tokens", value: formatCount(session.value.total_input_tokens), valueClass: "kv-value--token-input" },
+    { label: "Cached tokens", value: formatCount(session.value.total_cached_tokens), valueClass: "kv-value--token-cached" },
+    { label: "Output tokens", value: formatCount(session.value.total_output_tokens), valueClass: "kv-value--token-output" },
+    { label: "Prompt cost", value: formatUsd(session.value.prompt_pricing), valueClass: "kv-value--cost" },
+    { label: "Completion cost", value: formatUsd(session.value.completion_pricing), valueClass: "kv-value--cost" },
+    { label: "Total cost", value: formatUsd(session.value.total_cost), valueClass: "kv-value--cost" },
   ];
 });
 

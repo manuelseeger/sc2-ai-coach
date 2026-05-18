@@ -3,8 +3,10 @@ import { computed, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
-import KeyValueGrid from "../components/KeyValueGrid.vue";
-import PanelHeading from "../components/PanelHeading.vue";
+import CrudPanel from "../components/CrudPanel.vue";
+import DetailMetadataPanel from "../components/DetailMetadataPanel.vue";
+import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
+import PageHeader from "../components/PageHeader.vue";
 import { deletePlayerRecord, loadPlayerResourceDetail, patchPlayerRecord, replacePlayerRecord } from "../players";
 import type { PlayerInfoRecord } from "../types";
 
@@ -121,69 +123,42 @@ watch(toonHandle, async (value) => {
 
 <template>
   <section class="page player-detail-page">
-    <header class="panel page-hero">
-      <div>
-        <p class="eyebrow">Player</p>
-        <h2 class="page-hero__title">Edit player details</h2>
-        <p class="panel-intro">
-          Edit player fields or remove this player entry entirely.
-        </p>
-      </div>
-
-      <div class="button-row">
+    <PageHeader
+      variant="hero"
+      eyebrow="Player"
+      title="Edit player details"
+      intro="Edit player fields or remove this player entry entirely."
+    >
+      <template #actions>
         <RouterLink to="/resources/players" class="button button--ghost">Back to inbox</RouterLink>
         <RouterLink :to="`/players/${toonHandle}`" class="button button--ghost">Open player</RouterLink>
-      </div>
-    </header>
+      </template>
+    </PageHeader>
 
-    <p v-if="loading" class="muted-copy">Loading player detail...</p>
-    <p v-else-if="errorMessage && !record" class="feedback error-copy">{{ errorMessage }}</p>
-
-    <template v-else-if="record">
+    <LoadingErrorEmpty :loading="loading" :error="errorMessage && !record ? errorMessage : null" loading-message="Loading player detail...">
+      <template v-if="record">
       <section class="detail-grid">
-        <article class="panel panel-stack">
-          <PanelHeading eyebrow="Current record" :title="record.name">
-            <template #aside>
-              <span class="tag">{{ record.aliases.length }} aliases</span>
-            </template>
-          </PanelHeading>
+        <DetailMetadataPanel eyebrow="Current record" :title="record.name" :items="playerItems" :json-text="currentJson">
+          <template #aside>
+            <span class="tag">{{ record.aliases.length }} aliases</span>
+          </template>
+        </DetailMetadataPanel>
 
-          <KeyValueGrid :items="playerItems" />
-
-          <label class="form-field form-field--wide">
-            <span class="form-label">Current data</span>
-            <textarea class="text-area" :value="currentJson" readonly />
-          </label>
-        </article>
-
-        <article class="panel panel-stack">
-          <PanelHeading eyebrow="Edit" title="Update or delete" />
-
-          <p v-if="feedbackMessage" class="feedback">{{ feedbackMessage }}</p>
-          <p v-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
-
-          <label class="form-field form-field--wide">
-            <span class="form-label">Fields to update</span>
-            <textarea v-model="patchText" class="text-area" spellcheck="false" />
-          </label>
-
-          <div class="button-row">
-            <button type="button" class="button" @click="applyPatch">Save changes</button>
-          </div>
-
-          <label class="form-field form-field--wide">
-            <span class="form-label">Full record</span>
-            <textarea v-model="replaceText" class="text-area" spellcheck="false" />
-          </label>
-
-          <div class="button-row">
-            <button type="button" class="button button--accent" @click="applyReplace">Replace</button>
-            <button type="button" class="button button--danger" :disabled="deleting" @click="removeRecord">
-              {{ deleting ? "Deleting..." : "Delete player" }}
-            </button>
-          </div>
-        </article>
+        <CrudPanel
+          :feedback-message="feedbackMessage"
+          :error-message="errorMessage"
+          :patch-text="patchText"
+          :replace-text="replaceText"
+          :deleting="deleting"
+          delete-button-label="Delete player"
+          @patch="applyPatch"
+          @replace="applyReplace"
+          @delete="removeRecord"
+          @update:patch-text="patchText = $event"
+          @update:replace-text="replaceText = $event"
+        />
       </section>
-    </template>
+      </template>
+    </LoadingErrorEmpty>
   </section>
 </template>

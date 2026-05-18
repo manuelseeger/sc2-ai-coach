@@ -3,6 +3,9 @@ import { onMounted, reactive, ref } from "vue";
 import { RouterLink } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
+import FormField from "../components/FormField.vue";
+import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
+import PageHeader from "../components/PageHeader.vue";
 import PanelHeading from "../components/PanelHeading.vue";
 import { loadPlayerInbox, queryPlayerRecords } from "../players";
 import type { PaginatedResponse, PlayerInfoRecord, QueryBody } from "../types";
@@ -75,50 +78,42 @@ onMounted(async () => {
 
 <template>
   <section class="page player-resource-page">
-    <header class="panel page-hero">
-      <div>
-        <p class="eyebrow">Player management</p>
-        <h2 class="page-hero__title">Browse and manage players</h2>
-        <p class="panel-intro">
-          Search, edit, and manage player records.
-        </p>
-      </div>
-
-      <div class="button-row">
+    <PageHeader
+      variant="hero"
+      eyebrow="Player management"
+      title="Browse and manage players"
+      intro="Search, edit, and manage player records."
+    >
+      <template #actions>
         <RouterLink to="/players" class="button button--ghost">Back to players</RouterLink>
         <RouterLink to="/resources/players/new" class="button button--accent">Create player</RouterLink>
-      </div>
-    </header>
+      </template>
+    </PageHeader>
 
     <section class="results-grid">
       <article class="panel panel-stack">
         <PanelHeading eyebrow="Filters" title="Browse players" />
 
         <div class="form-grid">
-          <label class="form-field">
-            <span class="form-label">Search</span>
+          <FormField label="Search">
             <input v-model="filters.q" class="text-input" type="text" />
-          </label>
+          </FormField>
 
-          <label class="form-field">
-            <span class="form-label">Tag</span>
+          <FormField label="Tag">
             <input v-model="filters.tag" class="text-input" type="text" />
-          </label>
+          </FormField>
 
-          <label class="form-field">
-            <span class="form-label">Sort</span>
+          <FormField label="Sort">
             <input v-model="filters.sort" class="text-input mono-copy" type="text" />
-          </label>
+          </FormField>
 
-          <label class="form-field">
-            <span class="form-label">Page</span>
+          <FormField label="Page">
             <input v-model.number="filters.currentPage" class="text-input" type="number" min="1" />
-          </label>
+          </FormField>
 
-          <label class="form-field">
-            <span class="form-label">Per page</span>
+          <FormField label="Per page">
             <input v-model.number="filters.docsPerPage" class="text-input" type="number" min="1" />
-          </label>
+          </FormField>
         </div>
 
         <div class="button-row">
@@ -129,10 +124,9 @@ onMounted(async () => {
       <article class="panel panel-stack">
         <PanelHeading eyebrow="Advanced search" title="Custom filter" />
 
-        <label class="form-field form-field--wide">
-          <span class="form-label">Filter</span>
+        <FormField class="form-field--wide" label="Filter">
           <textarea v-model="queryText" class="text-area" spellcheck="false" />
-        </label>
+        </FormField>
 
         <div class="button-row">
           <button type="button" class="button" @click="runAdvancedQuery">Run filter</button>
@@ -147,13 +141,8 @@ onMounted(async () => {
         </template>
       </PanelHeading>
 
-      <p v-if="loading" class="muted-copy">Loading...</p>
-      <p v-else-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
-      <p v-else-if="!result || result.docs.length === 0" class="muted-copy">
-        No players found.
-      </p>
-
-      <ul v-else class="list list-block-spacing">
+      <LoadingErrorEmpty :loading="loading" :error="errorMessage" :empty="!result || result.docs.length === 0" loading-message="Loading..." empty-message="No players found.">
+        <ul class="list list-block-spacing">
         <li v-for="player in result.docs" :key="player.toon_handle" class="list-row">
           <div class="split-topline">
             <div>
@@ -171,7 +160,8 @@ onMounted(async () => {
             Open player
           </RouterLink>
         </li>
-      </ul>
+        </ul>
+      </LoadingErrorEmpty>
     </section>
   </section>
 </template>

@@ -3,6 +3,8 @@ import { ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
+import FormField from "../components/FormField.vue";
+import PageHeader from "../components/PageHeader.vue";
 import PanelHeading from "../components/PanelHeading.vue";
 import { createConversationRecord } from "../conversations";
 
@@ -35,25 +37,23 @@ async function submit(): Promise<void> {
 
 <template>
   <section class="page conversation-create-page">
-    <header class="panel page-hero">
-      <div>
-        <p class="eyebrow">Create conversation</p>
-        <h2 class="page-hero__title">Start a new conversation</h2>
-        <p class="panel-intro">
-          Create a conversation record. Messages can be added afterwards.
-        </p>
-      </div>
-
-      <RouterLink to="/resources/conversations" class="button button--ghost">Back to inbox</RouterLink>
-    </header>
+    <PageHeader
+      variant="hero"
+      eyebrow="Create conversation"
+      title="Start a new conversation"
+      intro="Create a conversation record. Messages can be added afterwards."
+    >
+      <template #actions>
+        <RouterLink to="/resources/conversations" class="button button--ghost">Back to inbox</RouterLink>
+      </template>
+    </PageHeader>
 
     <article class="panel panel-stack">
       <PanelHeading eyebrow="New conversation" title="Conversation data" />
 
-      <label class="form-field form-field--wide">
-        <span class="form-label">Conversation data</span>
+      <FormField class="form-field--wide" label="Conversation data">
         <textarea v-model="draftText" class="text-area" spellcheck="false" />
-      </label>
+      </FormField>
 
       <p v-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
 

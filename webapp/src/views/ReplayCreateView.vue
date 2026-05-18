@@ -3,6 +3,8 @@ import { ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
+import FormField from "../components/FormField.vue";
+import PageHeader from "../components/PageHeader.vue";
 import PanelHeading from "../components/PanelHeading.vue";
 import { createReplayRecord } from "../replays";
 
@@ -61,25 +63,23 @@ async function submit(): Promise<void> {
 
 <template>
   <section class="page replay-create-page">
-    <header class="panel page-hero">
-      <div>
-        <p class="eyebrow">Create replay</p>
-        <h2 class="page-hero__title">Add a new replay manually</h2>
-        <p class="panel-intro">
-          Enter the replay data below. Required fields must be valid before saving.
-        </p>
-      </div>
-
-      <RouterLink to="/resources/replays" class="button button--ghost">Back to replays</RouterLink>
-    </header>
+    <PageHeader
+      variant="hero"
+      eyebrow="Create replay"
+      title="Add a new replay manually"
+      intro="Enter the replay data below. Required fields must be valid before saving."
+    >
+      <template #actions>
+        <RouterLink to="/resources/replays" class="button button--ghost">Back to replays</RouterLink>
+      </template>
+    </PageHeader>
 
     <article class="panel panel-stack">
       <PanelHeading eyebrow="New replay" title="Replay data" />
 
-      <label class="form-field form-field--wide">
-        <span class="form-label">Replay data</span>
+      <FormField class="form-field--wide" label="Replay data">
         <textarea v-model="draftText" class="text-area" spellcheck="false" />
-      </label>
+      </FormField>
 
       <p v-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
 

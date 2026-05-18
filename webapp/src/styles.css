@@ -114,6 +114,23 @@
   --hero-title-size-xl: clamp(2.2rem, 4vw, 4rem);
   --title-line-tight: 0.94;
   --title-line-display: 0.9;
+  --surface-card-border-soft: rgba(114, 154, 204, 0.12);
+  --surface-card-border-quiet: rgba(114, 154, 204, 0.08);
+  --surface-card-bg: linear-gradient(180deg, rgba(11, 17, 27, 0.74), rgba(8, 13, 22, 0.9));
+  --surface-card-bg-hover: linear-gradient(180deg, rgba(16, 24, 38, 0.88), rgba(10, 16, 28, 0.96));
+  --surface-card-bg-raised: linear-gradient(180deg, rgba(15, 22, 34, 0.94), rgba(9, 14, 22, 0.99));
+  --surface-card-bg-glow-hover:
+    radial-gradient(ellipse at top right, rgba(86, 194, 255, 0.06), transparent 50%),
+    linear-gradient(180deg, rgba(18, 27, 42, 0.97), rgba(10, 16, 26, 1));
+  --feature-surface-border: rgba(114, 154, 204, 0.14);
+  --feature-surface-bg:
+    radial-gradient(circle at top left, rgba(86, 194, 255, 0.16), transparent 34%),
+    linear-gradient(135deg, rgba(16, 24, 38, 0.96), rgba(10, 16, 26, 0.98));
+  --workspace-hero-bg:
+    radial-gradient(ellipse at 80% 50%, rgba(86, 194, 255, 0.07), transparent 60%),
+    radial-gradient(ellipse at 20% 80%, rgba(167, 139, 250, 0.04), transparent 50%),
+    linear-gradient(180deg, rgba(15, 22, 34, 0.96), rgba(9, 14, 22, 0.99)),
+    var(--panel-stripe);
 
   /* Decorative gradients */
   --section-rule: linear-gradient(90deg, rgba(86, 194, 255, 0.34), rgba(86, 194, 255, 0.03) 38%, transparent 70%);
@@ -681,6 +698,65 @@ select {
 .page-hero__title--xl {
   font-size: var(--hero-title-size-xl);
   line-height: var(--title-line-display);
+}
+
+.section-label {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-family: var(--display);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.surface-card {
+  border: 1px solid var(--surface-card-border-soft);
+  border-radius: var(--radius-md);
+  background: var(--surface-card-bg), var(--panel-stripe);
+}
+
+.surface-card--raised {
+  background: var(--surface-card-bg-raised), var(--panel-stripe);
+}
+
+.surface-card--interactive {
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+
+.surface-card--interactive:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-card-bg-hover), var(--panel-stripe);
+}
+
+.surface-card--glow-hover {
+  transition: border-color 180ms ease, background 180ms ease, transform 150ms ease;
+}
+
+.surface-card--glow-hover:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-card-bg-glow-hover), var(--panel-stripe);
+  transform: translateY(-2px);
+}
+
+.feature-surface {
+  display: grid;
+  align-content: end;
+  gap: 10px;
+  aspect-ratio: 1;
+  width: 100%;
+  padding: 18px;
+  border: 1px solid var(--feature-surface-border);
+  border-radius: var(--radius-md);
+  background: var(--feature-surface-bg);
+}
+
+.feature-surface__title {
+  max-width: 12ch;
+  font-family: var(--display);
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  line-height: 0.92;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .split-topline {

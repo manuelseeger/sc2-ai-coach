@@ -3,8 +3,11 @@ import { computed, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
-import KeyValueGrid from "../components/KeyValueGrid.vue";
-import PanelHeading from "../components/PanelHeading.vue";
+import CrudPanel from "../components/CrudPanel.vue";
+import DetailMetadataPanel from "../components/DetailMetadataPanel.vue";
+import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
+import PageHeader from "../components/PageHeader.vue";
+import { formatDate } from "../formatters";
 import {
   deleteReplayRecord,
   patchReplayRecord,
@@ -35,7 +38,7 @@ const replayItems = computed(() => {
     { label: "Replay ID", value: record.value.id, valueClass: "kv-grid__mono" },
     { label: "Map", value: record.value.map_name },
     { label: "Filename", value: record.value.filename },
-    { label: "Date", value: new Date(record.value.date).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", hour12: false }) },
+    { label: "Date", value: formatDate(record.value.date) },
     { label: "Region", value: record.value.region },
     { label: "Type", value: record.value.real_type },
   ];
@@ -131,73 +134,44 @@ watch(
 
 <template>
   <section class="page replay-resource-detail-page">
-    <header class="panel page-hero">
-      <div>
-        <p class="eyebrow">Replay</p>
-        <h2 class="page-hero__title">Edit or delete this replay</h2>
-        <p class="panel-intro">
-          Edit replay fields or remove this entry entirely.
-        </p>
-      </div>
-
-      <div class="button-row">
+    <PageHeader
+      variant="hero"
+      eyebrow="Replay"
+      title="Edit or delete this replay"
+      intro="Edit replay fields or remove this entry entirely."
+    >
+      <template #actions>
         <RouterLink to="/resources/replays" class="button button--ghost">Back to replays</RouterLink>
         <RouterLink v-if="record" :to="`/replays/${record.id}`" class="button button--accent">
           Open replay
         </RouterLink>
-      </div>
-    </header>
+      </template>
+    </PageHeader>
 
-    <p v-if="loading" class="muted-copy">Loading...</p>
-    <p v-else-if="errorMessage && !record" class="feedback error-copy">{{ errorMessage }}</p>
-
-    <template v-else-if="record">
+    <LoadingErrorEmpty :loading="loading" :error="errorMessage && !record ? errorMessage : null" loading-message="Loading...">
+      <template v-if="record">
       <section class="detail-grid">
-        <article class="panel panel-stack">
-          <PanelHeading eyebrow="Current replay" :title="record.map_name">
-            <template #aside>
-              <span class="pill">{{ record.filename }}</span>
-            </template>
-          </PanelHeading>
+        <DetailMetadataPanel eyebrow="Current replay" :title="record.map_name" :items="replayItems" :json-text="currentJson">
+          <template #aside>
+            <span class="pill">{{ record.filename }}</span>
+          </template>
+        </DetailMetadataPanel>
 
-          <KeyValueGrid :items="replayItems" />
-
-          <label class="form-field form-field--wide">
-            <span class="form-label">Current data</span>
-            <textarea class="text-area" :value="currentJson" readonly />
-          </label>
-        </article>
-
-        <article class="panel panel-stack">
-          <PanelHeading eyebrow="Edit" title="Update or delete" />
-
-          <p v-if="feedbackMessage" class="feedback">{{ feedbackMessage }}</p>
-          <p v-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
-
-          <label class="form-field form-field--wide">
-            <span class="form-label">Fields to update</span>
-            <textarea v-model="patchText" class="text-area" spellcheck="false" />
-          </label>
-
-          <div class="button-row">
-            <button type="button" class="button" @click="applyPatch">Save changes</button>
-          </div>
-
-          <label class="form-field form-field--wide">
-            <span class="form-label">Full record</span>
-            <textarea v-model="replaceText" class="text-area" spellcheck="false" />
-          </label>
-
-          <div class="button-row">
-            <button type="button" class="button button--accent" @click="applyReplace">
-              Replace
-            </button>
-            <button type="button" class="button button--danger" :disabled="deleting" @click="removeRecord">
-              {{ deleting ? "Deleting..." : "Delete replay" }}
-            </button>
-          </div>
-        </article>
+        <CrudPanel
+          :feedback-message="feedbackMessage"
+          :error-message="errorMessage"
+          :patch-text="patchText"
+          :replace-text="replaceText"
+          :deleting="deleting"
+          delete-button-label="Delete replay"
+          @patch="applyPatch"
+          @replace="applyReplace"
+          @delete="removeRecord"
+          @update:patch-text="patchText = $event"
+          @update:replace-text="replaceText = $event"
+        />
       </section>
-    </template>
+      </template>
+    </LoadingErrorEmpty>
   </section>
 </template>

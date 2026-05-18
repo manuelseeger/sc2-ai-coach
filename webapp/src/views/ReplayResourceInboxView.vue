@@ -3,6 +3,9 @@ import { onMounted, reactive, ref } from "vue";
 import { RouterLink } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
+import FormField from "../components/FormField.vue";
+import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
+import PageHeader from "../components/PageHeader.vue";
 import PanelHeading from "../components/PanelHeading.vue";
 import { loadReplayInbox, queryReplayRecords } from "../replays";
 import type { PaginatedResponse, QueryBody, ReplayRecord } from "../types";
@@ -75,52 +78,44 @@ onMounted(async () => {
 
 <template>
   <section class="page replay-resource-page">
-    <header class="panel page-hero">
-      <div>
-        <p class="eyebrow">Replay management</p>
-        <h2 class="page-hero__title">Browse and manage replays</h2>
-        <p class="panel-intro">
-          Search, edit, and manage replay records. Use the replay view for the full experience.
-        </p>
-      </div>
-
-      <div class="button-row">
+    <PageHeader
+      variant="hero"
+      eyebrow="Replay management"
+      title="Browse and manage replays"
+      intro="Search, edit, and manage replay records. Use the replay view for the full experience."
+    >
+      <template #actions>
         <RouterLink to="/replays" class="button button--ghost">Back to replays</RouterLink>
         <RouterLink to="/resources/replays/new" class="button button--accent">
           Create replay
         </RouterLink>
-      </div>
-    </header>
+      </template>
+    </PageHeader>
 
     <section class="results-grid">
       <article class="panel panel-stack">
         <PanelHeading eyebrow="Filters" title="Browse replays" />
 
         <div class="form-grid">
-          <label class="form-field">
-            <span class="form-label">Player</span>
+          <FormField label="Player">
             <input v-model="filters.player" class="text-input" type="text" />
-          </label>
+          </FormField>
 
-          <label class="form-field">
-            <span class="form-label">Map</span>
+          <FormField label="Map">
             <input v-model="filters.map" class="text-input" type="text" />
-          </label>
+          </FormField>
 
-          <label class="form-field">
-            <span class="form-label">Sort</span>
+          <FormField label="Sort">
             <input v-model="filters.sort" class="text-input mono-copy" type="text" />
-          </label>
+          </FormField>
 
-          <label class="form-field">
-            <span class="form-label">Page</span>
+          <FormField label="Page">
             <input v-model.number="filters.currentPage" class="text-input" type="number" min="1" />
-          </label>
+          </FormField>
 
-          <label class="form-field">
-            <span class="form-label">Per page</span>
+          <FormField label="Per page">
             <input v-model.number="filters.docsPerPage" class="text-input" type="number" min="1" />
-          </label>
+          </FormField>
         </div>
 
         <div class="button-row">
@@ -131,10 +126,9 @@ onMounted(async () => {
       <article class="panel panel-stack">
         <PanelHeading eyebrow="Advanced search" title="Custom filter" />
 
-        <label class="form-field form-field--wide">
-          <span class="form-label">Filter</span>
+        <FormField class="form-field--wide" label="Filter">
           <textarea v-model="queryText" class="text-area" spellcheck="false" />
-        </label>
+        </FormField>
 
         <div class="button-row">
           <button type="button" class="button" @click="runAdvancedQuery">Run filter</button>
@@ -149,13 +143,8 @@ onMounted(async () => {
         </template>
       </PanelHeading>
 
-      <p v-if="loading" class="muted-copy">Loading...</p>
-      <p v-else-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
-      <p v-else-if="!result || result.docs.length === 0" class="muted-copy">
-        No replays found.
-      </p>
-
-      <ul v-else class="list list-block-spacing">
+      <LoadingErrorEmpty :loading="loading" :error="errorMessage" :empty="!result || result.docs.length === 0" loading-message="Loading..." empty-message="No replays found.">
+        <ul class="list list-block-spacing">
         <li v-for="replay in result.docs" :key="replay.id" class="list-row">
           <div class="split-topline">
             <div>
@@ -174,7 +163,8 @@ onMounted(async () => {
             Open replay
           </RouterLink>
         </li>
-      </ul>
+        </ul>
+      </LoadingErrorEmpty>
     </section>
   </section>
 </template>

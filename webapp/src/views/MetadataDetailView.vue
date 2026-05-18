@@ -3,8 +3,11 @@ import { computed, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
-import KeyValueGrid from "../components/KeyValueGrid.vue";
-import PanelHeading from "../components/PanelHeading.vue";
+import CrudPanel from "../components/CrudPanel.vue";
+import DetailMetadataPanel from "../components/DetailMetadataPanel.vue";
+import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
+import PageHeader from "../components/PageHeader.vue";
+import { formatDate } from "../formatters";
 import {
   deleteMetadataRecord,
   loadMetadataDetail,
@@ -41,8 +44,8 @@ const metadataItems = computed(() => {
       value: record.value.replay_summary_conversation ?? "None",
       valueClass: record.value.replay_summary_conversation ? "kv-grid__mono" : undefined,
     },
-    { label: "Created", value: new Date(record.value.created_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", hour12: false }) },
-    { label: "Updated", value: new Date(record.value.updated_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", hour12: false }) },
+    { label: "Created", value: formatDate(record.value.created_at) },
+    { label: "Updated", value: formatDate(record.value.updated_at) },
   ];
 });
 
@@ -155,75 +158,45 @@ watch(metadataId, async (value) => {
 
 <template>
   <section class="page metadata-detail-page">
-    <header class="panel page-hero">
-      <div>
-        <p class="eyebrow">Annotation detail</p>
-        <h2 class="page-hero__title">Edit replay annotation</h2>
-        <p class="panel-intro">
-          Review and update annotation details, or remove this annotation entirely.
-        </p>
-      </div>
-
-      <div class="button-row">
+    <PageHeader
+      variant="hero"
+      eyebrow="Annotation detail"
+      title="Edit replay annotation"
+      intro="Review and update annotation details, or remove this annotation entirely."
+    >
+      <template #actions>
         <RouterLink to="/resources/metadata" class="button button--ghost">Back to inbox</RouterLink>
         <RouterLink to="/resources/metadata/new" class="button button--accent">New annotation</RouterLink>
-      </div>
-    </header>
+      </template>
+    </PageHeader>
 
-    <p v-if="loading" class="muted-copy">Loading metadata detail...</p>
-    <p v-else-if="errorMessage && !record" class="feedback error-copy">{{ errorMessage }}</p>
-
-    <template v-else-if="record">
+    <LoadingErrorEmpty :loading="loading" :error="errorMessage && !record ? errorMessage : null" loading-message="Loading metadata detail...">
+      <template v-if="record">
       <section class="detail-grid">
-        <article class="panel panel-stack">
-          <PanelHeading eyebrow="Current record" :title="record.description || 'Untitled metadata'">
-            <template #aside>
-              <span class="tag">{{ record.tags.length }} tags</span>
-            </template>
-          </PanelHeading>
-
-          <KeyValueGrid :items="metadataItems" />
-
+        <DetailMetadataPanel eyebrow="Current record" :title="record.description || 'Untitled metadata'" :items="metadataItems" :json-text="currentJson">
+          <template #aside>
+            <span class="tag">{{ record.tags.length }} tags</span>
+          </template>
           <div class="tag-row">
             <span v-for="tag in record.tags" :key="tag" class="tag">{{ tag }}</span>
           </div>
+        </DetailMetadataPanel>
 
-          <label class="form-field form-field--wide">
-            <span class="form-label">Current data</span>
-            <textarea class="text-area" :value="currentJson" readonly />
-          </label>
-        </article>
-
-        <article class="panel panel-stack">
-          <PanelHeading eyebrow="Edit" title="Update or delete" />
-
-          <p v-if="feedbackMessage" class="feedback">{{ feedbackMessage }}</p>
-          <p v-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
-
-          <label class="form-field form-field--wide">
-            <span class="form-label">Fields to update</span>
-            <textarea v-model="patchText" class="text-area" spellcheck="false" />
-          </label>
-
-          <div class="button-row">
-            <button type="button" class="button" @click="applyPatch">Save changes</button>
-          </div>
-
-          <label class="form-field form-field--wide">
-            <span class="form-label">Full record</span>
-            <textarea v-model="replaceText" class="text-area" spellcheck="false" />
-          </label>
-
-          <div class="button-row">
-            <button type="button" class="button button--accent" @click="applyReplace">
-              Replace
-            </button>
-            <button type="button" class="button button--danger" :disabled="deleting" @click="removeRecord">
-              {{ deleting ? "Deleting..." : "Delete annotation" }}
-            </button>
-          </div>
-        </article>
+        <CrudPanel
+          :feedback-message="feedbackMessage"
+          :error-message="errorMessage"
+          :patch-text="patchText"
+          :replace-text="replaceText"
+          :deleting="deleting"
+          delete-button-label="Delete annotation"
+          @patch="applyPatch"
+          @replace="applyReplace"
+          @delete="removeRecord"
+          @update:patch-text="patchText = $event"
+          @update:replace-text="replaceText = $event"
+        />
       </section>
-    </template>
+      </template>
+    </LoadingErrorEmpty>
   </section>
 </template>

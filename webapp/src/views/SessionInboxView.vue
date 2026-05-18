@@ -6,7 +6,7 @@ import { createApiClient, ApiError } from "../api";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PageHeader from "../components/PageHeader.vue";
 import StatGrid from "../components/StatGrid.vue";
-import { formatDate, formatUsd } from "../formatters";
+import { formatCount, formatDate, formatUsd } from "../formatters";
 import { loadSessionInbox } from "../sessions";
 import type { PaginatedResponse, SessionRecord } from "../types";
 
@@ -19,7 +19,7 @@ const errorMessage = ref<string | null>(null);
 function sessionStatItems(session: SessionRecord) {
   return [
     { label: "Conversations", value: session.conversations.length },
-    { label: "Tokens", value: session.total_tokens.toLocaleString() },
+    { label: "Tokens", value: formatCount(session.total_tokens) },
     { label: "Cost", value: formatUsd(session.total_cost), valueClass: "stat-tile__value--cost" },
   ];
 }

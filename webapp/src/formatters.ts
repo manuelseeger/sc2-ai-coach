@@ -49,6 +49,10 @@ export function formatUsd(value: number, digits = 4): string {
   return `$${value.toFixed(digits)}`;
 }
 
+export function formatCount(value: number): string {
+  return value.toLocaleString();
+}
+
 export function formatDuration(seconds: number | null | undefined, fallback = "—"): string {
   if (seconds == null) {
     return fallback;

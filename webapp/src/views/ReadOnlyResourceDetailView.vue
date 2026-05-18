@@ -3,13 +3,15 @@ import { computed, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
-import KeyValueGrid from "../components/KeyValueGrid.vue";
-import PanelHeading from "../components/PanelHeading.vue";
+import DetailMetadataPanel from "../components/DetailMetadataPanel.vue";
+import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
+import PageHeader from "../components/PageHeader.vue";
 import {
   loadReadOnlyResourceDetail,
   type ReadOnlyResourceName,
   type ReadOnlyResourceRecord,
 } from "../read-only-resources";
+import { formatUsd } from "../formatters";
 import type {
   ConversationItemRecord,
   ResourceDefinition,
@@ -66,7 +68,7 @@ const detailItems = computed(() => {
       { label: "Model", value: response.model ?? "Unknown" },
       { label: "Status", value: response.status ?? "Unknown" },
       { label: "Total tokens", value: response.total_tokens },
-      { label: "Total cost", value: `$${response.total_cost.toFixed(4)}` },
+      { label: "Total cost", value: formatUsd(response.total_cost) },
       { label: "Streamed", value: response.streamed ? "Yes" : "No" },
     ];
   }
@@ -110,71 +112,30 @@ watch(recordId, async (value) => {
 
 <template>
   <section class="page read-only-resource-detail-page">
-    <header class="page-header">
-      <div class="page-header__copy">
-        <p class="eyebrow">Inspection</p>
-        <h2 class="page-title">{{ title }}</h2>
-        <p class="panel-intro">
-          View the details of this record. Open the conversation for full context.
-        </p>
-      </div>
-
-      <div class="button-row">
+    <PageHeader
+      variant="hero"
+      eyebrow="Inspection"
+      :title="title"
+      intro="View the details of this record. Open the conversation for full context."
+    >
+      <template #actions>
         <RouterLink :to="`/resources/${resource.name}`" class="button button--ghost">Back to inbox</RouterLink>
         <RouterLink v-if="record" :to="curatedConversationPath" class="button button--accent">
           Open conversation
         </RouterLink>
-      </div>
-    </header>
+      </template>
+    </PageHeader>
 
-    <p v-if="loading" class="muted-copy">Loading...</p>
-    <p v-else-if="errorMessage && !record" class="feedback error-copy">{{ errorMessage }}</p>
-
-    <template v-else-if="record">
+    <LoadingErrorEmpty :loading="loading" :error="errorMessage && !record ? errorMessage : null" loading-message="Loading...">
+      <template v-if="record">
       <section class="detail-grid">
-        <article class="panel panel-stack">
-          <PanelHeading eyebrow="Details" title="Record details">
-            <template #aside>
-              <span class="pill pill--amber">Read only</span>
-            </template>
-          </PanelHeading>
-
-          <KeyValueGrid :items="detailItems" />
-        </article>
-
-        <article class="panel panel-stack">
-          <PanelHeading eyebrow="Raw data" title="Stored data" />
-
-          <label class="form-field form-field--wide">
-            <span class="form-label">Current data</span>
-            <textarea class="text-area" :value="currentJson" readonly />
-          </label>
-        </article>
+        <DetailMetadataPanel eyebrow="Details" title="Record details" :items="detailItems" :json-text="currentJson">
+          <template #aside>
+            <span class="pill pill--amber">Read only</span>
+          </template>
+        </DetailMetadataPanel>
       </section>
-    </template>
+      </template>
+    </LoadingErrorEmpty>
   </section>
 </template>
-
-<style scoped>
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.page-header__copy {
-  display: grid;
-  gap: 8px;
-  max-width: 72ch;
-}
-
-.page-title {
-  margin: 0;
-  font-family: var(--display);
-  font-size: clamp(1.7rem, 3vw, 2.5rem);
-  line-height: 0.94;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-</style>

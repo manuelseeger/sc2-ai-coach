@@ -3,7 +3,11 @@ import { computed, onMounted, ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
+import FormField from "../components/FormField.vue";
+import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
+import PageHeader from "../components/PageHeader.vue";
 import PanelHeading from "../components/PanelHeading.vue";
+import { formatDate } from "../formatters";
 import {
   loadReadOnlyResourceInbox,
   lookupResponseRecord,
@@ -58,14 +62,6 @@ function toConversationItem(record: ReadOnlyResourceRecord): ConversationItemRec
 
 function toResponseRecord(record: ReadOnlyResourceRecord): ResponseRecord {
   return record as ResponseRecord;
-}
-
-function formatDate(value: string): string {
-  return new Date(value).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-    hour12: false,
-  });
 }
 
 function recordTitle(record: ReadOnlyResourceRecord): string {
@@ -156,16 +152,15 @@ onMounted(async () => {
 
 <template>
   <section class="page read-only-resource-page">
-    <header class="page-header">
-      <div class="page-header__copy">
-        <p class="eyebrow">Inspection</p>
-        <h2 class="page-title">{{ resource.label }}</h2>
-        <p class="panel-intro">
-          Browse stored records and open the full conversation view for context.
-        </p>
-      </div>
-      <span class="pill pill--amber">Read only</span>
-    </header>
+    <PageHeader
+      eyebrow="Inspection"
+      :title="resource.label"
+      intro="Browse stored records and open the full conversation view for context."
+    >
+      <template #actions>
+        <span class="pill pill--amber">Read only</span>
+      </template>
+    </PageHeader>
 
     <section class="detail-grid">
       <article class="panel panel-stack">
@@ -175,13 +170,8 @@ onMounted(async () => {
           </template>
         </PanelHeading>
 
-        <p v-if="loading" class="muted-copy">Loading...</p>
-        <p v-else-if="errorMessage && !inbox" class="feedback error-copy">{{ errorMessage }}</p>
-        <p v-else-if="!inbox || inbox.docs.length === 0" class="muted-copy">
-          No records to show.
-        </p>
-
-        <ul v-else class="list">
+        <LoadingErrorEmpty :loading="loading" :error="errorMessage && !inbox ? errorMessage : null" :empty="!inbox || inbox.docs.length === 0" loading-message="Loading..." empty-message="No records to show.">
+          <ul class="list">
           <li v-for="record in inbox.docs" :key="record.id" class="list-row raw-row">
             <div class="raw-row__copy">
               <strong>{{ recordTitle(record) }}</strong>
@@ -201,7 +191,8 @@ onMounted(async () => {
               </RouterLink>
             </div>
           </li>
-        </ul>
+          </ul>
+        </LoadingErrorEmpty>
       </article>
 
       <article class="panel panel-stack">
@@ -211,10 +202,9 @@ onMounted(async () => {
           Run a custom search across stored records.
         </p>
 
-        <label class="form-field form-field--wide">
-          <span class="form-label">Filter</span>
+        <FormField class="form-field--wide" label="Filter">
           <textarea v-model="queryText" class="text-area" spellcheck="false" />
-        </label>
+        </FormField>
 
         <div class="button-row">
           <button type="button" class="button" :disabled="queryLoading" @click="runQuery">
@@ -223,15 +213,14 @@ onMounted(async () => {
         </div>
 
         <div v-if="isResponseResource" class="lookup-block">
-          <label class="form-field form-field--wide">
-            <span class="form-label">Look up by response ID</span>
+          <FormField class="form-field--wide" label="Look up by response ID">
             <input
               v-model="responseLookupId"
               class="text-input"
               type="text"
               placeholder="resp-..."
             />
-          </label>
+          </FormField>
           <div class="button-row">
             <button type="button" class="button button--ghost" @click="openResponseLookup">
               Open response
@@ -261,28 +250,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.page-header__copy {
-  display: grid;
-  gap: 8px;
-  max-width: 72ch;
-}
-
-.page-title {
-  margin: 0;
-  font-family: var(--display);
-  font-size: clamp(1.7rem, 3vw, 2.5rem);
-  line-height: 0.94;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
 .raw-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

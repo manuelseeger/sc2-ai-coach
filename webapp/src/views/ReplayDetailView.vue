@@ -7,7 +7,7 @@ import KeyValueGrid from "../components/KeyValueGrid.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PanelHeading from "../components/PanelHeading.vue";
 import PageHeader from "../components/PageHeader.vue";
-import { formatDate, formatDuration, replayRaceTagClass, replayResultClass } from "../formatters";
+import { formatCount, formatDate, formatDuration, replayRaceTagClass, replayResultClass } from "../formatters";
 import { loadPlayerPortraitMetadataMap } from "../players";
 import { loadReplayDetail } from "../replays";
 import type { MetadataRecord, PlayerPortraitMetadataRecord, ReplayPlayerRelationship, ReplayRecord } from "../types";
@@ -142,9 +142,9 @@ watch(
 
         <article class="panel panel-stack">
           <div class="map-preview-card">
-            <div class="map-preview-card__art">
-              <span class="map-preview-card__eyebrow">Image coming later</span>
-              <strong class="map-preview-card__title">{{ replay.map_name }}</strong>
+            <div class="feature-surface">
+              <span class="eyebrow">Image coming later</span>
+              <strong class="feature-surface__title">{{ replay.map_name }}</strong>
             </div>
             <p class="muted-copy">Placeholder artwork panel for future map images.</p>
           </div>
@@ -180,10 +180,10 @@ watch(
           <article
             v-for="panel in playerPanels"
             :key="panel.replayPlayer.toon_handle"
-            class="duel-player-card"
+            class="duel-player-card surface-card"
             :class="[
               `duel-player-card--p${panel.idx + 1}`,
-              { 'duel-player-card--linked': panel.playerInfo },
+              { 'surface-card--interactive': panel.playerInfo },
             ]"
           >
             <RouterLink
@@ -221,7 +221,7 @@ watch(
                     {{ panel.replayPlayer.play_race }}
                   </span>
                   <span v-if="panel.replayPlayer.scaled_rating" class="tag">
-                    MMR {{ panel.replayPlayer.scaled_rating.toLocaleString() }}
+                    MMR {{ formatCount(panel.replayPlayer.scaled_rating) }}
                   </span>
                 </div>
               </div>
@@ -245,32 +245,6 @@ watch(
   align-items: flex-start;
   justify-content: flex-end;
   gap: 12px;
-}
-
-.replay-header-tile {
-  display: grid;
-  gap: 6px;
-  min-width: 170px;
-  padding: 14px 16px;
-  border: 1px solid var(--accent-border);
-  border-radius: var(--radius-md);
-  background: linear-gradient(180deg, rgba(17, 29, 45, 0.94), rgba(10, 16, 28, 0.98));
-  box-shadow: inset 0 1px 0 rgba(121, 210, 255, 0.14);
-}
-
-.replay-header-tile__label {
-  color: var(--text-muted);
-  font-size: 0.68rem;
-  font-family: var(--display);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-.replay-header-tile__value {
-  font-family: var(--display);
-  font-size: 1.25rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
 }
 
 .metadata-desc {
@@ -297,37 +271,6 @@ watch(
   gap: 16px;
 }
 
-.map-preview-card__art {
-  display: grid;
-  align-content: end;
-  gap: 10px;
-  aspect-ratio: 1;
-  width: 100%;
-  padding: 18px;
-  border: 1px solid rgba(114, 154, 204, 0.14);
-  border-radius: var(--radius-md);
-  background:
-    radial-gradient(circle at top left, rgba(86, 194, 255, 0.16), transparent 34%),
-    linear-gradient(135deg, rgba(16, 24, 38, 0.96), rgba(10, 16, 26, 0.98));
-}
-
-.map-preview-card__eyebrow {
-  color: var(--accent-strong);
-  font-size: 0.72rem;
-  font-family: var(--display);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-.map-preview-card__title {
-  max-width: 12ch;
-  font-family: var(--display);
-  font-size: clamp(1.8rem, 3vw, 2.6rem);
-  line-height: 0.92;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
 .replay-duel-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -339,11 +282,6 @@ watch(
   display: grid;
   gap: 18px;
   padding: 18px;
-  border: 1px solid rgba(114, 154, 204, 0.12);
-  border-radius: var(--radius-md);
-  background:
-    linear-gradient(180deg, rgba(11, 17, 27, 0.78), rgba(8, 13, 22, 0.94)),
-    var(--panel-stripe);
 }
 
 .duel-player-card--p1 {
@@ -352,18 +290,6 @@ watch(
 
 .duel-player-card--p2 {
   border-left: 2px solid var(--p2);
-}
-
-.duel-player-card--linked {
-  transition: border-color 150ms ease, transform 150ms ease, background 150ms ease;
-}
-
-.duel-player-card--linked:hover {
-  transform: translateY(-1px);
-  border-color: var(--border-strong);
-  background:
-    linear-gradient(180deg, rgba(16, 24, 38, 0.88), rgba(10, 16, 28, 0.96)),
-    var(--panel-stripe);
 }
 
 .duel-player-card__overlay {

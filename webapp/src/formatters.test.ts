@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDate, formatDuration, formatUsd, replayRaceAbbr, replayRaceClass, replayRaceTagClass, replayResultClass, triggerClass, triggerLabel } from "./formatters";
+import { formatCount, formatDate, formatDuration, formatUsd, replayRaceAbbr, replayRaceClass, replayRaceTagClass, replayResultClass, triggerClass, triggerLabel } from "./formatters";
 
 describe("formatters", () => {
   it("formats missing dates with the provided fallback", () => {
@@ -16,6 +16,7 @@ describe("formatters", () => {
   it("formats costs as usd strings", () => {
     expect(formatUsd(1.23456)).toBe("$1.2346");
     expect(formatUsd(1.2, 2)).toBe("$1.20");
+    expect(formatCount(12345)).toBe((12345).toLocaleString());
   });
 
   it("formats durations and replay race helpers", () => {

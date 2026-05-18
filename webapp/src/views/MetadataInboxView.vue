@@ -3,7 +3,11 @@ import { onMounted, reactive, ref } from "vue";
 import { RouterLink } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
+import FormField from "../components/FormField.vue";
+import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
+import PageHeader from "../components/PageHeader.vue";
 import PanelHeading from "../components/PanelHeading.vue";
+import { formatDate } from "../formatters";
 import { loadMetadataInbox, queryMetadataRecords } from "../metadata";
 import type { ListParams, MetadataRecord, PaginatedResponse, QueryBody } from "../types";
 
@@ -33,10 +37,6 @@ const queryText = ref(`{
   "current_page": 1,
   "docs_per_page": 10
 }`);
-
-function formatDate(value: string): string {
-  return new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", hour12: false });
-}
 
 function listParams(): ListParams {
   return {
@@ -88,60 +88,51 @@ onMounted(async () => {
 
 <template>
   <section class="page metadata-page">
-    <header class="panel page-hero">
-      <div>
-        <p class="eyebrow">Annotations</p>
-        <h2 class="page-hero__title">Replay annotations</h2>
-        <p class="panel-intro">
-          Browse, filter, and manage replay annotations.
-        </p>
-      </div>
-
-      <div class="button-row">
+    <PageHeader
+      variant="hero"
+      eyebrow="Annotations"
+      title="Replay annotations"
+      intro="Browse, filter, and manage replay annotations."
+    >
+      <template #actions>
         <RouterLink to="/resources/metadata/new" class="button button--accent">
           New annotation
         </RouterLink>
-      </div>
-    </header>
+      </template>
+    </PageHeader>
 
     <section class="results-grid">
       <article class="panel panel-stack">
         <PanelHeading eyebrow="Filters" title="Browse annotations" />
 
         <div class="form-grid">
-          <label class="form-field">
-            <span class="form-label">Replay</span>
+          <FormField label="Replay">
             <input v-model="filters.replay" class="text-input mono-copy" type="text" />
-          </label>
+          </FormField>
 
-          <label class="form-field">
-            <span class="form-label">Tag</span>
+          <FormField label="Tag">
             <input v-model="filters.tag" class="text-input" type="text" />
-          </label>
+          </FormField>
 
-          <label class="form-field">
-            <span class="form-label">Has summary</span>
+          <FormField label="Has summary">
             <select v-model="filters.hasSummary" class="select-input">
               <option value="any">Any</option>
               <option value="true">Has summary</option>
               <option value="false">No summary</option>
             </select>
-          </label>
+          </FormField>
 
-          <label class="form-field">
-            <span class="form-label">Sort</span>
+          <FormField label="Sort">
             <input v-model="filters.sort" class="text-input mono-copy" type="text" />
-          </label>
+          </FormField>
 
-          <label class="form-field">
-            <span class="form-label">Page</span>
+          <FormField label="Page">
             <input v-model.number="filters.currentPage" class="text-input" type="number" min="1" />
-          </label>
+          </FormField>
 
-          <label class="form-field">
-            <span class="form-label">Per page</span>
+          <FormField label="Per page">
             <input v-model.number="filters.docsPerPage" class="text-input" type="number" min="1" />
-          </label>
+          </FormField>
         </div>
 
         <div class="button-row">
@@ -152,10 +143,9 @@ onMounted(async () => {
       <article class="panel panel-stack">
         <PanelHeading eyebrow="Advanced search" title="Custom filter" />
 
-        <label class="form-field form-field--wide">
-          <span class="form-label">Filter</span>
+        <FormField class="form-field--wide" label="Filter">
           <textarea v-model="queryText" class="text-area" spellcheck="false" />
-        </label>
+        </FormField>
 
         <div class="button-row">
           <button type="button" class="button" @click="runAdvancedQuery">Run filter</button>
@@ -170,13 +160,8 @@ onMounted(async () => {
         </template>
       </PanelHeading>
 
-      <p v-if="loading" class="muted-copy">Loading...</p>
-      <p v-else-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
-      <p v-else-if="!result || result.docs.length === 0" class="muted-copy">
-        No annotations found.
-      </p>
-
-      <ul v-else class="list list-block-spacing">
+      <LoadingErrorEmpty :loading="loading" :error="errorMessage" :empty="!result || result.docs.length === 0" loading-message="Loading..." empty-message="No annotations found.">
+        <ul class="list list-block-spacing">
         <li v-for="record in result.docs" :key="record.id" class="list-row">
           <div class="split-topline">
             <div>
@@ -196,7 +181,8 @@ onMounted(async () => {
             Open annotation
           </RouterLink>
         </li>
-      </ul>
+        </ul>
+      </LoadingErrorEmpty>
     </section>
   </section>
 </template>

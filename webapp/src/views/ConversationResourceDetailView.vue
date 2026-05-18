@@ -3,8 +3,11 @@ import { computed, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
-import KeyValueGrid from "../components/KeyValueGrid.vue";
-import PanelHeading from "../components/PanelHeading.vue";
+import CrudPanel from "../components/CrudPanel.vue";
+import DetailMetadataPanel from "../components/DetailMetadataPanel.vue";
+import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
+import PageHeader from "../components/PageHeader.vue";
+import { formatDate } from "../formatters";
 import {
   deleteConversationRecord,
   loadConversationDetail,
@@ -37,7 +40,7 @@ const conversationItems = computed(() => {
     { label: "Session", value: record.value.session ?? "None", valueClass: record.value.session ? "kv-grid__mono" : undefined },
     { label: "Trigger", value: record.value.trigger },
     { label: "Status", value: record.value.status },
-    { label: "Created", value: new Date(record.value.created_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", hour12: false }) },
+    { label: "Created", value: formatDate(record.value.created_at) },
     { label: "Items", value: record.value.item_count },
   ];
 });
@@ -135,69 +138,42 @@ watch(conversationId, async (value) => {
 
 <template>
   <section class="page conversation-detail-page">
-    <header class="panel page-hero">
-      <div>
-        <p class="eyebrow">Conversation detail</p>
-        <h2 class="page-hero__title">Edit conversation details</h2>
-        <p class="panel-intro">
-          Update or delete this conversation. Messages are managed separately.
-        </p>
-      </div>
-
-      <div class="button-row">
+    <PageHeader
+      variant="hero"
+      eyebrow="Conversation detail"
+      title="Edit conversation details"
+      intro="Update or delete this conversation. Messages are managed separately."
+    >
+      <template #actions>
         <RouterLink to="/resources/conversations" class="button button--ghost">Back to inbox</RouterLink>
         <RouterLink v-if="record" :to="`/conversations/${record.id}`" class="button button--accent">Open conversation</RouterLink>
-      </div>
-    </header>
+      </template>
+    </PageHeader>
 
-    <p v-if="loading" class="muted-copy">Loading conversation detail...</p>
-    <p v-else-if="errorMessage && !record" class="feedback error-copy">{{ errorMessage }}</p>
-
-    <template v-else-if="record">
+    <LoadingErrorEmpty :loading="loading" :error="errorMessage && !record ? errorMessage : null" loading-message="Loading conversation detail...">
+      <template v-if="record">
       <section class="detail-grid">
-        <article class="panel panel-stack">
-          <PanelHeading eyebrow="Current record" :title="`Conversation ${record.id}`">
-            <template #aside>
-              <span class="tag">{{ record.item_count }} items</span>
-            </template>
-          </PanelHeading>
+        <DetailMetadataPanel eyebrow="Current record" :title="`Conversation ${record.id}`" :items="conversationItems" :json-text="currentJson">
+          <template #aside>
+            <span class="tag">{{ record.item_count }} items</span>
+          </template>
+        </DetailMetadataPanel>
 
-          <KeyValueGrid :items="conversationItems" />
-
-          <label class="form-field form-field--wide">
-            <span class="form-label">Current data</span>
-            <textarea class="text-area" :value="currentJson" readonly />
-          </label>
-        </article>
-
-        <article class="panel panel-stack">
-          <PanelHeading eyebrow="Edit" title="Update or delete" />
-
-          <p v-if="feedbackMessage" class="feedback">{{ feedbackMessage }}</p>
-          <p v-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
-
-          <label class="form-field form-field--wide">
-            <span class="form-label">Fields to update</span>
-            <textarea v-model="patchText" class="text-area" spellcheck="false" />
-          </label>
-
-          <div class="button-row">
-            <button type="button" class="button" @click="applyPatch">Save changes</button>
-          </div>
-
-          <label class="form-field form-field--wide">
-            <span class="form-label">Full record</span>
-            <textarea v-model="replaceText" class="text-area" spellcheck="false" />
-          </label>
-
-          <div class="button-row">
-            <button type="button" class="button button--accent" @click="applyReplace">Replace</button>
-            <button type="button" class="button button--danger" :disabled="deleting" @click="removeRecord">
-              {{ deleting ? "Deleting..." : "Delete conversation" }}
-            </button>
-          </div>
-        </article>
+        <CrudPanel
+          :feedback-message="feedbackMessage"
+          :error-message="errorMessage"
+          :patch-text="patchText"
+          :replace-text="replaceText"
+          :deleting="deleting"
+          delete-button-label="Delete conversation"
+          @patch="applyPatch"
+          @replace="applyReplace"
+          @delete="removeRecord"
+          @update:patch-text="patchText = $event"
+          @update:replace-text="replaceText = $event"
+        />
       </section>
-    </template>
+      </template>
+    </LoadingErrorEmpty>
   </section>
 </template>

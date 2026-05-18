@@ -12,7 +12,7 @@ import ToolResultCard from "../components/ToolResultCard.vue";
 import { computeConnectors } from "../connector";
 import type { ConnectorMeta } from "../connector";
 import { loadConversationDetail } from "../conversations";
-import { formatDate, triggerLabel } from "../formatters";
+import { formatCount, formatDate, formatUsd, triggerLabel } from "../formatters";
 import type { ConversationItemRecord, ConversationRecord, ResponseRecord, ToolDefinition } from "../types";
 
 const apiClient = createApiClient();
@@ -51,10 +51,10 @@ const tokenStats = computed(() => {
   const output = responses.value.reduce((s, r) => s + r.output_tokens, 0);
   const cost = responses.value.reduce((s, r) => s + r.total_cost, 0);
   return [
-    { label: "Input tokens", value: input.toLocaleString(), valueClass: "kv-value--token-input" },
-    { label: "Cached tokens", value: cached.toLocaleString(), valueClass: "kv-value--token-cached" },
-    { label: "Output tokens", value: output.toLocaleString(), valueClass: "kv-value--token-output" },
-    { label: "Total cost", value: `$${cost.toFixed(4)}`, valueClass: "kv-value--cost" },
+    { label: "Input tokens", value: formatCount(input), valueClass: "kv-value--token-input" },
+    { label: "Cached tokens", value: formatCount(cached), valueClass: "kv-value--token-cached" },
+    { label: "Output tokens", value: formatCount(output), valueClass: "kv-value--token-output" },
+    { label: "Total cost", value: formatUsd(cost), valueClass: "kv-value--cost" },
   ];
 });
 

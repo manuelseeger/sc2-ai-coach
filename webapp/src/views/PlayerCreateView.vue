@@ -3,6 +3,8 @@ import { ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
+import FormField from "../components/FormField.vue";
+import PageHeader from "../components/PageHeader.vue";
 import PanelHeading from "../components/PanelHeading.vue";
 import { createPlayerRecord } from "../players";
 
@@ -37,25 +39,23 @@ async function submit(): Promise<void> {
 
 <template>
   <section class="page player-create-page">
-    <header class="panel page-hero">
-      <div>
-        <p class="eyebrow">Create player</p>
-        <h2 class="page-hero__title">Add a new player</h2>
-        <p class="panel-intro">
-          Fill in the player details below.
-        </p>
-      </div>
-
-      <RouterLink to="/resources/players" class="button button--ghost">Back to inbox</RouterLink>
-    </header>
+    <PageHeader
+      variant="hero"
+      eyebrow="Create player"
+      title="Add a new player"
+      intro="Fill in the player details below."
+    >
+      <template #actions>
+        <RouterLink to="/resources/players" class="button button--ghost">Back to inbox</RouterLink>
+      </template>
+    </PageHeader>
 
     <article class="panel panel-stack">
       <PanelHeading eyebrow="New player" title="Player data" />
 
-      <label class="form-field form-field--wide">
-        <span class="form-label">Player data</span>
+      <FormField class="form-field--wide" label="Player data">
         <textarea v-model="draftText" class="text-area" spellcheck="false" />
-      </label>
+      </FormField>
 
       <p v-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
 

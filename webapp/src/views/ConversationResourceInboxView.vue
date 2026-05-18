@@ -3,8 +3,12 @@ import { onMounted, reactive, ref } from "vue";
 import { RouterLink } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
+import FormField from "../components/FormField.vue";
+import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
+import PageHeader from "../components/PageHeader.vue";
 import PanelHeading from "../components/PanelHeading.vue";
 import { loadConversationInbox, queryConversationRecords } from "../conversations";
+import { formatDate } from "../formatters";
 import type { ConversationRecord, PaginatedResponse, QueryBody } from "../types";
 
 const apiClient = createApiClient();
@@ -33,10 +37,6 @@ const queryText = ref(`{
   "current_page": 1,
   "docs_per_page": 10
 }`);
-
-function formatDate(value: string): string {
-  return new Date(value).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", hour12: false });
-}
 
 async function refreshList(): Promise<void> {
   loading.value = true;
@@ -80,57 +80,48 @@ onMounted(async () => {
 
 <template>
   <section class="page conversation-resource-page">
-    <header class="panel page-hero">
-      <div>
-        <p class="eyebrow">Conversation management</p>
-        <h2 class="page-hero__title">Browse and manage conversations</h2>
-        <p class="panel-intro">
-          Search and manage conversation records. Messages are managed separately within each conversation.
-        </p>
-      </div>
-
-      <div class="button-row">
+    <PageHeader
+      variant="hero"
+      eyebrow="Conversation management"
+      title="Browse and manage conversations"
+      intro="Search and manage conversation records. Messages are managed separately within each conversation."
+    >
+      <template #actions>
         <span class="pill pill--accent">Editable</span>
         <RouterLink to="/resources/conversations/new" class="button button--accent">
           Create conversation
         </RouterLink>
-      </div>
-    </header>
+      </template>
+    </PageHeader>
 
     <section class="results-grid">
       <article class="panel panel-stack">
         <PanelHeading eyebrow="Filters" title="Browse conversations" />
 
         <div class="form-grid">
-          <label class="form-field">
-            <span class="form-label">Session</span>
+          <FormField label="Session">
             <input v-model="filters.session" class="text-input mono-copy" type="text" />
-          </label>
+          </FormField>
 
-          <label class="form-field">
-            <span class="form-label">Trigger</span>
+          <FormField label="Trigger">
             <input v-model="filters.trigger" class="text-input" type="text" />
-          </label>
+          </FormField>
 
-          <label class="form-field">
-            <span class="form-label">Status</span>
+          <FormField label="Status">
             <input v-model="filters.status" class="text-input" type="text" />
-          </label>
+          </FormField>
 
-          <label class="form-field">
-            <span class="form-label">Sort</span>
+          <FormField label="Sort">
             <input v-model="filters.sort" class="text-input mono-copy" type="text" />
-          </label>
+          </FormField>
 
-          <label class="form-field">
-            <span class="form-label">Page</span>
+          <FormField label="Page">
             <input v-model.number="filters.currentPage" class="text-input" type="number" min="1" />
-          </label>
+          </FormField>
 
-          <label class="form-field">
-            <span class="form-label">Per page</span>
+          <FormField label="Per page">
             <input v-model.number="filters.docsPerPage" class="text-input" type="number" min="1" />
-          </label>
+          </FormField>
         </div>
 
         <div class="button-row">
@@ -141,10 +132,9 @@ onMounted(async () => {
       <article class="panel panel-stack">
         <PanelHeading eyebrow="Advanced search" title="Custom filter" />
 
-        <label class="form-field form-field--wide">
-          <span class="form-label">Filter</span>
+        <FormField class="form-field--wide" label="Filter">
           <textarea v-model="queryText" class="text-area" spellcheck="false" />
-        </label>
+        </FormField>
 
         <div class="button-row">
           <button type="button" class="button" @click="runAdvancedQuery">Run filter</button>
@@ -159,13 +149,8 @@ onMounted(async () => {
         </template>
       </PanelHeading>
 
-      <p v-if="loading" class="muted-copy">Loading...</p>
-      <p v-else-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
-      <p v-else-if="!result || result.docs.length === 0" class="muted-copy">
-        No conversations found.
-      </p>
-
-      <ul v-else class="list list-block-spacing">
+      <LoadingErrorEmpty :loading="loading" :error="errorMessage" :empty="!result || result.docs.length === 0" loading-message="Loading..." empty-message="No conversations found.">
+        <ul class="list list-block-spacing">
         <li v-for="record in result.docs" :key="record.id" class="list-row">
           <div class="split-topline">
             <div>
@@ -185,7 +170,8 @@ onMounted(async () => {
             Open conversation
           </RouterLink>
         </li>
-      </ul>
+        </ul>
+      </LoadingErrorEmpty>
     </section>
   </section>
 </template>
