@@ -47,3 +47,4 @@ This repo uses a single-context domain-doc layout rooted at `CONTEXT.md` with AD
 Use the playwright skill to access api / frontend during testing. 
 
 Make sure to run playwright with the  --headed flag during tests. 
+If you need to save files during a playwright session, put them into .playwright-cli/

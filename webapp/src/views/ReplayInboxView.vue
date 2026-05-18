@@ -88,12 +88,12 @@ onMounted(async () => {
       <div class="filter-row">
         <label class="filter-field">
           <span class="form-label">Player</span>
-          <input v-model="filters.player" class="text-input" type="text" placeholder="Name…" />
+          <input v-model="filters.player" class="text-input" type="text" placeholder="Name…" @keyup.enter="refreshInbox" />
         </label>
 
         <label class="filter-field">
           <span class="form-label">Map</span>
-          <input v-model="filters.map" class="text-input" type="text" placeholder="Map name…" />
+          <input v-model="filters.map" class="text-input" type="text" placeholder="Map name…" @keyup.enter="refreshInbox" />
         </label>
 
         <label class="filter-field filter-field--narrow">
@@ -103,7 +103,7 @@ onMounted(async () => {
 
         <label class="filter-field filter-field--narrow">
           <span class="form-label">Page</span>
-          <input v-model.number="filters.currentPage" class="text-input" type="number" min="1" />
+          <input v-model.number="filters.currentPage" class="text-input" type="number" min="1" @keyup.enter="refreshInbox" />
         </label>
 
         <div class="filter-field filter-field--action">
@@ -143,16 +143,14 @@ onMounted(async () => {
             <p class="replay-row__matchup">
               <template v-for="(player, idx) in replay.players" :key="player.toon_handle">
                 <span v-if="idx > 0" class="replay-row__vs"> vs </span>
-                <span class="replay-row__player-name" :class="`player--p${idx + 1}`">{{ player.name }}</span>
+                <span class="replay-row__player-name" :class="raceClass(player.play_race)">{{ player.name }}</span>
                 <span class="replay-row__race" :class="raceClass(player.play_race)">{{ raceAbbr(player.play_race) }}</span>
               </template>
             </p>
-            <p class="replay-row__id mono-copy">{{ replay.id }}</p>
           </div>
 
           <div class="replay-row__meta">
             <span class="tag">{{ formatDate(replay.date) }}</span>
-            <span class="tag">{{ replay.real_type }}</span>
             <span v-if="replay.real_length" class="tag">{{ formatLength(replay.real_length) }}</span>
           </div>
         </li>
@@ -261,9 +259,17 @@ onMounted(async () => {
   padding: 0 2px;
 }
 
-.replay-row__player-name {
-  color: var(--text-dim);
-}
+.replay-row__player-name.race--t,
+.replay-row__race.race--t { color: var(--race-t); }
+
+.replay-row__player-name.race--p,
+.replay-row__race.race--p { color: var(--race-p); }
+
+.replay-row__player-name.race--z,
+.replay-row__race.race--z { color: var(--race-z); }
+
+.replay-row__player-name.race--r,
+.replay-row__race.race--r { color: var(--race-r); }
 
 .replay-row__race {
   font-size: 0.7rem;

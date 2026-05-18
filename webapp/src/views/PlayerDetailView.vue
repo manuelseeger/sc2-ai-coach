@@ -169,12 +169,10 @@ watch(
         <p v-if="replays.docs.length === 0" class="muted-copy">No related replays found for this player.</p>
 
         <ul v-else class="list list-block-spacing">
-          <li v-for="replay in replays.docs" :key="replay.id" class="list-row">
+          <li v-for="replay in replays.docs" :key="replay.id" class="list-row list-row--linked">
+            <RouterLink :to="`/replays/${replay.id}`" class="list-row__overlay" aria-label="Open replay" />
             <div class="split-topline">
-              <div>
-                <strong>{{ replay.map_name }}</strong>
-                <p class="mono-copy">{{ replay.id }}</p>
-              </div>
+              <strong>{{ replay.map_name }}</strong>
               <span class="tag">{{ formatDate(replay.date) }}</span>
             </div>
 
@@ -182,8 +180,6 @@ watch(
               <span class="tag">{{ replay.real_type }}</span>
               <span class="tag">{{ replay.players.length }} players</span>
             </div>
-
-            <RouterLink :to="`/replays/${replay.id}`" class="list-link">Open replay review</RouterLink>
           </li>
         </ul>
       </article>

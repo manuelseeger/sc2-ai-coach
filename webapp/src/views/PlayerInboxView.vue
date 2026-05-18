@@ -80,31 +80,27 @@ onMounted(async () => {
     </header>
 
     <section class="panel panel-stack">
-      <PanelHeading eyebrow="Filters" title="Player review inbox">
-        <template #aside>
-          <span class="pill">GET /api/players</span>
-        </template>
-      </PanelHeading>
+      <PanelHeading eyebrow="Filters" title="Player review inbox" />
 
       <div class="form-grid">
         <label class="form-field">
           <span class="form-label">Search</span>
-          <input v-model="filters.q" class="text-input" type="text" placeholder="Name, alias, or toon handle" />
+          <input v-model="filters.q" class="text-input" type="text" placeholder="Name, alias, or toon handle" @keyup.enter="refreshInbox" />
         </label>
 
         <label class="form-field">
           <span class="form-label">Tag</span>
-          <input v-model="filters.tag" class="text-input" type="text" placeholder="ladder" />
+          <input v-model="filters.tag" class="text-input" type="text" placeholder="ladder" @keyup.enter="refreshInbox" />
         </label>
 
         <label class="form-field">
           <span class="form-label">Sort</span>
-          <input v-model="filters.sort" class="text-input mono-copy" type="text" />
+          <input v-model="filters.sort" class="text-input mono-copy" type="text" @keyup.enter="refreshInbox" />
         </label>
 
         <label class="form-field">
           <span class="form-label">Current page</span>
-          <input v-model.number="filters.currentPage" class="text-input" type="number" min="1" />
+          <input v-model.number="filters.currentPage" class="text-input" type="number" min="1" @keyup.enter="refreshInbox" />
         </label>
 
         <label class="form-field">
@@ -132,7 +128,9 @@ onMounted(async () => {
       </p>
 
       <ul v-else class="list list-block-spacing">
-        <li v-for="player in inbox.docs" :key="player.toon_handle" class="list-row player-review-row">
+        <li v-for="player in inbox.docs" :key="player.toon_handle" class="list-row list-row--linked player-review-row">
+          <RouterLink :to="`/players/${player.toon_handle}`" class="list-row__overlay" :aria-label="`Open ${player.name}`" />
+
           <div class="player-review-row__portrait">
             <img v-if="primaryPortraitUrl(player)" :src="primaryPortraitUrl(player) ?? ''" :alt="`${player.name} portrait`" class="player-review-row__image" />
             <div v-else class="player-review-row__fallback">No portrait</div>
@@ -142,7 +140,6 @@ onMounted(async () => {
             <div class="split-topline">
               <div>
                 <strong>{{ player.name }}</strong>
-                <p class="mono-copy">{{ player.toon_handle }}</p>
               </div>
               <div class="tag-row">
                 <span class="tag">{{ player.aliases.length }} aliases</span>
@@ -155,16 +152,31 @@ onMounted(async () => {
             </div>
 
             <div class="button-row">
-              <RouterLink :to="`/players/${player.toon_handle}`" class="list-link">
-                Open player review
-              </RouterLink>
-              <RouterLink :to="`/resources/players/${player.toon_handle}`" class="button button--ghost">
+              <RouterLink :to="`/resources/players/${player.toon_handle}`" class="button button--ghost row-action">
                 Maintenance
               </RouterLink>
             </div>
           </div>
         </li>
       </ul>
+
+      <div v-if="inbox && inbox.page_quantity > 1" class="pagination-row">
+        <button
+          class="button button--ghost"
+          :disabled="filters.currentPage <= 1"
+          @click="filters.currentPage--; refreshInbox()"
+        >
+          ← Prev
+        </button>
+        <span class="pagination-label">{{ filters.currentPage }} / {{ inbox.page_quantity }}</span>
+        <button
+          class="button button--ghost"
+          :disabled="filters.currentPage >= inbox.page_quantity"
+          @click="filters.currentPage++; refreshInbox()"
+        >
+          Next →
+        </button>
+      </div>
     </section>
   </section>
 </template>
@@ -206,6 +218,22 @@ onMounted(async () => {
 .player-review-row__body {
   display: grid;
   gap: 10px;
+}
+
+.pagination-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-muted);
+}
+
+.pagination-label {
+  color: var(--text-muted);
+  font-family: var(--display);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
 }
 
 @media (max-width: 700px) {

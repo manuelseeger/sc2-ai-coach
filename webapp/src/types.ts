@@ -150,6 +150,7 @@ export interface ReplayListPlayer {
   toon_handle: string;
   play_race: string;
   result: string;
+  scaled_rating?: number;
 }
 
 export interface PlayerInfoRecord {

@@ -3,9 +3,10 @@ import { computed, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
+import KeyValueGrid from "../components/KeyValueGrid.vue";
 import PanelHeading from "../components/PanelHeading.vue";
 import { loadConversationDetail } from "../conversations";
-import type { ConversationItemRecord, ConversationRecord } from "../types";
+import type { ConversationItemRecord, ConversationRecord, ResponseRecord } from "../types";
 
 const apiClient = createApiClient();
 const route = useRoute();
@@ -15,6 +16,21 @@ const errorMessage = ref<string | null>(null);
 const notFound = ref(false);
 const conversation = ref<ConversationRecord | null>(null);
 const items = ref<ConversationItemRecord[]>([]);
+const responses = ref<ResponseRecord[]>([]);
+
+const tokenStats = computed(() => {
+  if (responses.value.length === 0) return null;
+  const input = responses.value.reduce((s, r) => s + r.input_tokens, 0);
+  const cached = responses.value.reduce((s, r) => s + r.cached_tokens, 0);
+  const output = responses.value.reduce((s, r) => s + r.output_tokens, 0);
+  const cost = responses.value.reduce((s, r) => s + r.total_cost, 0);
+  return [
+    { label: "Input tokens", value: input.toLocaleString() },
+    { label: "Cached tokens", value: cached.toLocaleString() },
+    { label: "Output tokens", value: output.toLocaleString() },
+    { label: "Total cost", value: `$${cost.toFixed(4)}` },
+  ];
+});
 
 const conversationId = computed(() => String(route.params.conversationId ?? ""));
 
@@ -74,6 +90,7 @@ async function refreshConversation(id: string): Promise<void> {
     const loaded = await loadConversationDetail(apiClient, id);
     conversation.value = loaded.conversation;
     items.value = loaded.items;
+    responses.value = loaded.responses;
   } catch (error) {
     if (error instanceof ApiError && error.code === "not_found") {
       notFound.value = true;
@@ -123,17 +140,24 @@ watch(conversationId, async (value) => {
           <div class="header-tags">
             <span class="tag">Created {{ formatDate(conversation.created_at) }}</span>
             <span class="tag">{{ conversation.item_count }} items</span>
-            <RouterLink v-if="conversation.session" :to="`/sessions/${conversation.session}`" class="tag tag--link mono-copy">
-              Session {{ conversation.session }}
+            <RouterLink v-if="conversation.session" :to="`/sessions/${conversation.session}`" class="tag tag--link tag--accent">
+              Session →
             </RouterLink>
-            <RouterLink v-if="conversation.replay_id" :to="`/replays/${conversation.replay_id}`" class="tag tag--link mono-copy">
-              Replay {{ conversation.replay_id }}
+            <RouterLink v-if="conversation.replay_id" :to="`/replays/${conversation.replay_id}`" class="tag tag--link tag--ok">
+              Replay →
             </RouterLink>
           </div>
 
           <p v-if="conversation.handler_context" class="panel-intro">
             {{ conversation.handler_context }}
           </p>
+
+          <template v-if="tokenStats">
+            <p class="eyebrow token-eyebrow">Token usage</p>
+            <div class="token-grid">
+              <KeyValueGrid :items="tokenStats" />
+            </div>
+          </template>
         </article>
 
         <article class="panel panel-stack">
@@ -142,7 +166,7 @@ watch(conversationId, async (value) => {
           <p v-if="items.length === 0" class="muted-copy">No conversation items were persisted for this exchange.</p>
 
           <ol v-else class="transcript-list">
-            <li v-for="item in items" :key="item.id" class="transcript-item" :class="`transcript-item--${item.type}`">
+            <li v-for="item in items" :key="item.id" class="transcript-item" :class="[`transcript-item--${item.type}`, item.role ? `role--${item.role}` : '']">
               <div class="transcript-item__meta">
                 <span class="tag">{{ itemKindLabel(item) }}</span>
                 <span v-if="item.name" class="tag tag--accent">{{ item.name }}</span>
@@ -206,7 +230,9 @@ watch(conversationId, async (value) => {
 
 .detail-grid {
   display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr);
   gap: 16px;
+  align-items: start;
 }
 
 .header-tags {
@@ -236,8 +262,12 @@ watch(conversationId, async (value) => {
   background: linear-gradient(180deg, rgba(14, 21, 33, 0.94), rgba(9, 14, 22, 0.98));
 }
 
-.transcript-item--message {
-  border-left: 3px solid rgba(86, 194, 255, 0.32);
+.transcript-item--message.role--user {
+  border-left: 3px solid rgba(251, 191, 36, 0.5);
+}
+
+.transcript-item--message.role--assistant {
+  border-left: 3px solid rgba(86, 194, 255, 0.5);
 }
 
 .transcript-item--function_call {
@@ -285,6 +315,15 @@ watch(conversationId, async (value) => {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+
+.token-eyebrow {
+  margin-bottom: -4px;
+}
+
+.token-grid :deep(.data-grid) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 
 @media (max-width: 700px) {
   .page-header {

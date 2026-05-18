@@ -22,16 +22,38 @@ const sessionMetricItems = computed(() => {
   if (!session.value) return [];
 
   return [
-    { label: "Session ID", value: session.value.id, valueClass: "kv-grid__mono" },
     { label: "AI backend", value: session.value.ai_backend },
     { label: "Total tokens", value: session.value.total_tokens.toLocaleString() },
     { label: "Input tokens", value: session.value.total_input_tokens.toLocaleString() },
+    { label: "Cached tokens", value: session.value.total_cached_tokens.toLocaleString() },
     { label: "Output tokens", value: session.value.total_output_tokens.toLocaleString() },
     { label: "Prompt cost", value: `$${session.value.prompt_pricing.toFixed(4)}` },
     { label: "Completion cost", value: `$${session.value.completion_pricing.toFixed(4)}` },
     { label: "Total cost", value: `$${session.value.total_cost.toFixed(4)}` },
   ];
 });
+
+function triggerLabel(value: string): string {
+  return {
+    wake: "Wake word",
+    repl: "REPL",
+    game_start: "Game start",
+    new_replay: "New replay",
+    twitch_chat: "Twitch chat",
+    twitch_follow: "Twitch follow",
+    twitch_raid: "Twitch raid",
+    cast_replay: "Cast replay",
+    replay_summary: "Replay summary",
+  }[value] ?? value;
+}
+
+function triggerClass(value: string): string {
+  if (["game_start", "new_replay", "cast_replay", "replay_summary"].includes(value)) return "tag--ok";
+  if (["twitch_chat", "twitch_follow", "twitch_raid"].includes(value)) return "tag--accent";
+  if (value === "repl") return "tag--purple";
+  if (value === "wake") return "tag--warn";
+  return "";
+}
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
@@ -111,7 +133,7 @@ watch(
                 <span class="tag" :class="conversation.status === 'closed' ? '' : 'tag--ok'">
                   {{ conversation.status }}
                 </span>
-                <span class="tag">{{ conversation.trigger }}</span>
+                <span class="tag" :class="triggerClass(conversation.trigger)">{{ triggerLabel(conversation.trigger) }}</span>
               </div>
               <p class="conversation-row__time">{{ formatDate(conversation.created_at) }}</p>
               <div class="conversation-row__stats">
