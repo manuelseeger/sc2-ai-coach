@@ -89,6 +89,14 @@ async function refreshInbox(): Promise<void> {
   }
 }
 
+function triggerClass(value: string): string {
+  if (["game_start", "new_replay", "cast_replay", "replay_summary"].includes(value)) return "tag--ok";
+  if (["twitch_chat", "twitch_follow", "twitch_raid"].includes(value)) return "tag--accent";
+  if (value === "repl") return "tag--purple";
+  if (value === "wake") return "tag--warn";
+  return "";
+}
+
 function openConversation(conversationId: string): void {
   selectedConversationId.value = conversationId;
   saveState();
@@ -144,7 +152,7 @@ onMounted(async () => {
 
         <label class="filter-field filter-field--narrow">
           <span class="form-label">Page</span>
-          <input v-model.number="filters.currentPage" class="text-input" type="number" min="1" />
+          <input v-model.number="filters.currentPage" class="text-input" type="number" min="1" @keyup.enter="refreshInbox" />
         </label>
 
         <div class="filter-field filter-field--action">
@@ -157,10 +165,8 @@ onMounted(async () => {
     <section class="panel">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">Transcript inbox</p>
           <h3>{{ inbox ? `${inbox.docs_quantity} conversations` : "Conversations" }}</h3>
         </div>
-        <span class="pill pill--amber">Read oriented</span>
       </div>
 
       <p v-if="loading" class="muted-copy list-block-spacing">Loading…</p>
@@ -188,9 +194,8 @@ onMounted(async () => {
               <span class="tag" :class="conversation.status === 'active' ? 'tag--ok' : ''">
                 {{ conversation.status }}
               </span>
-              <span class="tag">{{ triggerOptions.find((option) => option.value === conversation.trigger)?.label ?? conversation.trigger }}</span>
+              <span class="tag" :class="triggerClass(conversation.trigger)">{{ triggerOptions.find((option) => option.value === conversation.trigger)?.label ?? conversation.trigger }}</span>
             </div>
-            <strong class="conversation-row__title">{{ conversation.title || "Untitled conversation" }}</strong>
             <p class="conversation-row__meta">
               Started {{ formatDate(conversation.created_at) }}
               <span v-if="conversation.last_item_at"> · Last item {{ formatDate(conversation.last_item_at) }}</span>
@@ -199,8 +204,8 @@ onMounted(async () => {
 
           <div class="conversation-row__stats">
             <span class="tag">{{ conversation.item_count }} items</span>
-            <span v-if="conversation.session" class="tag mono-copy">Session linked</span>
-            <span v-if="conversation.replay_id" class="tag mono-copy">Replay linked</span>
+            <span v-if="conversation.session" class="tag">Session linked</span>
+            <span v-if="conversation.replay_id" class="tag">Replay linked</span>
           </div>
         </li>
       </ul>

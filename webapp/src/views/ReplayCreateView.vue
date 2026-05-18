@@ -64,27 +64,20 @@ async function submit(): Promise<void> {
     <header class="panel page-hero">
       <div>
         <p class="eyebrow">Create replay</p>
-        <h2 class="page-hero__title">Open a new replay document through the generic editor</h2>
+        <h2 class="page-hero__title">Add a new replay manually</h2>
         <p class="panel-intro">
-          Replay creation stays in the generic maintenance surface, separate from the curated
-          replay-review route. Raw JSON is allowed here, but the server only stores payloads that
-          validate as a Replay.
+          Enter the replay data below. Required fields must be valid before saving.
         </p>
       </div>
 
-      <RouterLink to="/resources/replays" class="button button--ghost">Back to replay maintenance</RouterLink>
+      <RouterLink to="/resources/replays" class="button button--ghost">Back to replays</RouterLink>
     </header>
 
     <article class="panel panel-stack">
-      <PanelHeading eyebrow="Create body" title="Replay JSON" />
-
-      <p class="muted-copy">
-        Send a full replay document. Invalid fields or missing required Replay fields will be
-        rejected.
-      </p>
+      <PanelHeading eyebrow="New replay" title="Replay data" />
 
       <label class="form-field form-field--wide">
-        <span class="form-label">Request JSON</span>
+        <span class="form-label">Replay data</span>
         <textarea v-model="draftText" class="text-area" spellcheck="false" />
       </label>
 

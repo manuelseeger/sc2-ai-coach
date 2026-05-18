@@ -74,7 +74,6 @@ onMounted(async () => {
               <strong class="session-row__date">{{ formatDate(session.session_date) }}</strong>
               <span class="tag tag--accent">{{ session.ai_backend }}</span>
             </div>
-            <p class="session-row__id mono-copy">{{ session.id }}</p>
           </div>
 
           <div class="session-row__stats">
@@ -141,14 +140,6 @@ onMounted(async () => {
   text-transform: uppercase;
 }
 
-.session-row__id {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 40ch;
-}
 
 .session-row__stats {
   display: flex;

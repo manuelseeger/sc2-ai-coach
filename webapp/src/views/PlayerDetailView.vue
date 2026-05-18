@@ -90,7 +90,7 @@ watch(
     <template v-else-if="player && portraitMetadata && replays">
       <section class="detail-grid">
         <article class="panel panel-stack">
-          <PanelHeading eyebrow="Player facts" :title="player.name">
+          <PanelHeading :title="player.name">
             <template #aside>
               <span class="pill">{{ aliases.length }} aliases</span>
             </template>
@@ -100,11 +100,7 @@ watch(
         </article>
 
         <article class="panel panel-stack">
-          <PanelHeading eyebrow="Portraits" title="Discovered media endpoints">
-            <template #aside>
-              <span class="pill pill--amber">Helper-driven</span>
-            </template>
-          </PanelHeading>
+          <PanelHeading eyebrow="Portraits" title="Player Portraits" />
 
           <div class="portrait-grid">
             <div class="portrait-card">
@@ -133,7 +129,7 @@ watch(
       </section>
 
       <article class="panel panel-stack">
-        <PanelHeading eyebrow="Aliases" title="Known names and alias portraits" />
+        <PanelHeading eyebrow="Aliases" title="Names & Portraits" />
 
         <ul class="list list-block-spacing">
           <li v-for="(alias, index) in aliases" :key="`${alias.name}-${index}`" class="list-row alias-row">
@@ -160,7 +156,7 @@ watch(
       </article>
 
       <article class="panel panel-stack">
-        <PanelHeading eyebrow="Related replays" title="Replay navigation from player review">
+        <PanelHeading eyebrow="Related replays" title="Recent Replays">
           <template #aside>
             <span class="pill">{{ replays.docs_quantity }} replays</span>
           </template>
@@ -169,12 +165,10 @@ watch(
         <p v-if="replays.docs.length === 0" class="muted-copy">No related replays found for this player.</p>
 
         <ul v-else class="list list-block-spacing">
-          <li v-for="replay in replays.docs" :key="replay.id" class="list-row">
+          <li v-for="replay in replays.docs" :key="replay.id" class="list-row list-row--linked">
+            <RouterLink :to="`/replays/${replay.id}`" class="list-row__overlay" aria-label="Open replay" />
             <div class="split-topline">
-              <div>
-                <strong>{{ replay.map_name }}</strong>
-                <p class="mono-copy">{{ replay.id }}</p>
-              </div>
+              <strong>{{ replay.map_name }}</strong>
               <span class="tag">{{ formatDate(replay.date) }}</span>
             </div>
 
@@ -182,8 +176,6 @@ watch(
               <span class="tag">{{ replay.real_type }}</span>
               <span class="tag">{{ replay.players.length }} players</span>
             </div>
-
-            <RouterLink :to="`/replays/${replay.id}`" class="list-link">Open replay review</RouterLink>
           </li>
         </ul>
       </article>

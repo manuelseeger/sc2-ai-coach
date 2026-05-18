@@ -49,7 +49,7 @@ const responseLookupId = ref("");
 const resourceName = computed(() => props.resource.name as ReadOnlyResourceName);
 const isResponseResource = computed(() => resourceName.value === "responses");
 const listTitle = computed(() =>
-  props.resource.name === "responses" ? "Raw response audit records" : "Raw conversation-item documents",
+  props.resource.name === "responses" ? "Response records" : "Conversation items",
 );
 
 function toConversationItem(record: ReadOnlyResourceRecord): ConversationItemRecord {
@@ -84,7 +84,7 @@ function recordTitle(record: ReadOnlyResourceRecord): string {
 function recordSummary(record: ReadOnlyResourceRecord): string {
   if (isResponseResource.value) {
     const response = toResponseRecord(record);
-    return `${response.model ?? "unknown model"} • ${response.status ?? "unknown status"}`;
+    return `${response.model ?? "Unknown model"} • ${response.status ?? "Unknown status"}`;
   }
 
   const item = toConversationItem(record);
@@ -94,7 +94,7 @@ function recordSummary(record: ReadOnlyResourceRecord): string {
   if (item.output) {
     return item.output.slice(0, 120);
   }
-  return item.response_id ?? "Raw transcript record";
+  return item.response_id ?? "Transcript record";
 }
 
 function detailPath(record: ReadOnlyResourceRecord): string {
@@ -158,11 +158,10 @@ onMounted(async () => {
   <section class="page read-only-resource-page">
     <header class="page-header">
       <div class="page-header__copy">
-        <p class="eyebrow">Raw document inspection</p>
+        <p class="eyebrow">Inspection</p>
         <h2 class="page-title">{{ resource.label }}</h2>
         <p class="panel-intro">
-          This inbox stays document-centric on purpose. Use it to inspect persisted records exactly as stored,
-          then jump to the curated conversation screen when you want the ordered review flow.
+          Browse stored records and open the full conversation view for context.
         </p>
       </div>
       <span class="pill pill--amber">Read only</span>
@@ -170,16 +169,16 @@ onMounted(async () => {
 
     <section class="detail-grid">
       <article class="panel panel-stack">
-        <PanelHeading eyebrow="Registry-backed reads" :title="listTitle">
+        <PanelHeading eyebrow="Recent records" :title="listTitle">
           <template #aside>
-            <span v-if="inbox" class="tag">{{ inbox.docs_quantity }} documents</span>
+            <span v-if="inbox" class="tag">{{ inbox.docs_quantity }} records</span>
           </template>
         </PanelHeading>
 
-        <p v-if="loading" class="muted-copy">Loading raw documents...</p>
+        <p v-if="loading" class="muted-copy">Loading...</p>
         <p v-else-if="errorMessage && !inbox" class="feedback error-copy">{{ errorMessage }}</p>
         <p v-else-if="!inbox || inbox.docs.length === 0" class="muted-copy">
-          No persisted documents matched the default list view.
+          No records to show.
         </p>
 
         <ul v-else class="list">
@@ -195,10 +194,10 @@ onMounted(async () => {
 
             <div class="raw-row__actions">
               <RouterLink :to="curatedConversationPath(record)" class="button button--ghost">
-                Curated conversation
+                Open conversation
               </RouterLink>
               <RouterLink :to="detailPath(record)" class="button button--accent">
-                Raw detail
+                View detail
               </RouterLink>
             </div>
           </li>
@@ -206,19 +205,14 @@ onMounted(async () => {
       </article>
 
       <article class="panel panel-stack">
-        <PanelHeading eyebrow="Advanced query" title="Guarded raw filter">
-          <template #aside>
-            <span class="pill">POST /query</span>
-          </template>
-        </PanelHeading>
+        <PanelHeading eyebrow="Advanced search" title="Custom filter" />
 
         <p class="panel-intro">
-          Keep broader filtering here. The curated conversation UI remains separate so transcript review does not
-          collapse into arbitrary document querying.
+          Run a custom search across stored records.
         </p>
 
         <label class="form-field form-field--wide">
-          <span class="form-label">Query JSON</span>
+          <span class="form-label">Filter</span>
           <textarea v-model="queryText" class="text-area" spellcheck="false" />
         </label>
 
@@ -230,7 +224,7 @@ onMounted(async () => {
 
         <div v-if="isResponseResource" class="lookup-block">
           <label class="form-field form-field--wide">
-            <span class="form-label">Lookup by response id</span>
+            <span class="form-label">Look up by response ID</span>
             <input
               v-model="responseLookupId"
               class="text-input"
@@ -240,15 +234,15 @@ onMounted(async () => {
           </label>
           <div class="button-row">
             <button type="button" class="button button--ghost" @click="openResponseLookup">
-              Open response record
+              Open response
             </button>
           </div>
           <p v-if="lookupErrorMessage" class="feedback error-copy">{{ lookupErrorMessage }}</p>
         </div>
 
         <p v-if="errorMessage && inbox" class="feedback error-copy">{{ errorMessage }}</p>
-        <p v-if="!queryResults" class="muted-copy">Query results appear here after a request.</p>
-        <p v-else-if="queryResults.docs.length === 0" class="muted-copy">No documents matched the query.</p>
+        <p v-if="!queryResults" class="muted-copy">Results will appear here after running a filter.</p>
+        <p v-else-if="queryResults.docs.length === 0" class="muted-copy">No results found.</p>
 
         <ul v-else class="list">
           <li v-for="record in queryResults.docs" :key="`query-${record.id}`" class="list-row raw-row">
@@ -257,7 +251,7 @@ onMounted(async () => {
               <p class="raw-row__summary">{{ recordSummary(record) }}</p>
             </div>
             <div class="raw-row__actions">
-              <RouterLink :to="detailPath(record)" class="button button--ghost">Open detail</RouterLink>
+              <RouterLink :to="detailPath(record)" class="button button--ghost">View detail</RouterLink>
             </div>
           </li>
         </ul>

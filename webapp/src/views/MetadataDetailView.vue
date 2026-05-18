@@ -101,9 +101,9 @@ async function applyPatch(): Promise<void> {
     const patched = await patchMetadataRecord(apiClient, record.value.id, JSON.parse(patchText.value));
     record.value = patched;
     resetEditors(patched);
-    feedbackMessage.value = "Patch saved to MongoDB and reloaded.";
+    feedbackMessage.value = "Changes saved.";
   } catch (error) {
-    errorMessage.value = error instanceof ApiError ? error.message : "Patch request failed.";
+    errorMessage.value = error instanceof ApiError ? error.message : "Update failed.";
   }
 }
 
@@ -123,9 +123,9 @@ async function applyReplace(): Promise<void> {
     );
     record.value = replaced;
     resetEditors(replaced);
-    feedbackMessage.value = "Replace saved to MongoDB and reloaded.";
+    feedbackMessage.value = "Changes saved.";
   } catch (error) {
-    errorMessage.value = error instanceof ApiError ? error.message : "Replace request failed.";
+    errorMessage.value = error instanceof ApiError ? error.message : "Update failed.";
   }
 }
 
@@ -157,17 +157,16 @@ watch(metadataId, async (value) => {
   <section class="page metadata-detail-page">
     <header class="panel page-hero">
       <div>
-        <p class="eyebrow">Metadata detail</p>
-        <h2 class="page-hero__title">Inspect and edit one persisted metadata document</h2>
+        <p class="eyebrow">Annotation detail</p>
+        <h2 class="page-hero__title">Edit replay annotation</h2>
         <p class="panel-intro">
-          Detail review stays document-centric while JSON patch and replace calls exercise the full
-          writable maintenance path against the same record.
+          Review and update annotation details, or remove this annotation entirely.
         </p>
       </div>
 
       <div class="button-row">
         <RouterLink to="/resources/metadata" class="button button--ghost">Back to inbox</RouterLink>
-        <RouterLink to="/resources/metadata/new" class="button button--accent">New metadata</RouterLink>
+        <RouterLink to="/resources/metadata/new" class="button button--accent">New annotation</RouterLink>
       </div>
     </header>
 
@@ -190,37 +189,37 @@ watch(metadataId, async (value) => {
           </div>
 
           <label class="form-field form-field--wide">
-            <span class="form-label">Current JSON</span>
+            <span class="form-label">Current data</span>
             <textarea class="text-area" :value="currentJson" readonly />
           </label>
         </article>
 
         <article class="panel panel-stack">
-          <PanelHeading eyebrow="Write actions" title="Patch, replace, or delete" />
+          <PanelHeading eyebrow="Edit" title="Update or delete" />
 
           <p v-if="feedbackMessage" class="feedback">{{ feedbackMessage }}</p>
           <p v-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
 
           <label class="form-field form-field--wide">
-            <span class="form-label">Patch JSON</span>
+            <span class="form-label">Fields to update</span>
             <textarea v-model="patchText" class="text-area" spellcheck="false" />
           </label>
 
           <div class="button-row">
-            <button type="button" class="button" @click="applyPatch">Apply patch</button>
+            <button type="button" class="button" @click="applyPatch">Save changes</button>
           </div>
 
           <label class="form-field form-field--wide">
-            <span class="form-label">Replace JSON</span>
+            <span class="form-label">Full record</span>
             <textarea v-model="replaceText" class="text-area" spellcheck="false" />
           </label>
 
           <div class="button-row">
             <button type="button" class="button button--accent" @click="applyReplace">
-              Replace document
+              Replace
             </button>
             <button type="button" class="button button--danger" :disabled="deleting" @click="removeRecord">
-              {{ deleting ? "Deleting..." : "Delete metadata" }}
+              {{ deleting ? "Deleting..." : "Delete annotation" }}
             </button>
           </div>
         </article>

@@ -133,23 +133,22 @@ watch(
   <section class="page replay-resource-detail-page">
     <header class="panel page-hero">
       <div>
-        <p class="eyebrow">Replay document</p>
-        <h2 class="page-hero__title">Patch, replace, or delete one replay record</h2>
+        <p class="eyebrow">Replay</p>
+        <h2 class="page-hero__title">Edit or delete this replay</h2>
         <p class="panel-intro">
-          This JSON-first maintenance view accepts raw JSON, but replay writes are only persisted
-          when the payload still validates as a Replay.
+          Edit replay fields or remove this entry entirely.
         </p>
       </div>
 
       <div class="button-row">
-        <RouterLink to="/resources/replays" class="button button--ghost">Back to replay maintenance</RouterLink>
+        <RouterLink to="/resources/replays" class="button button--ghost">Back to replays</RouterLink>
         <RouterLink v-if="record" :to="`/replays/${record.id}`" class="button button--accent">
-          Open curated replay view
+          Open replay
         </RouterLink>
       </div>
     </header>
 
-    <p v-if="loading" class="muted-copy">Loading replay document...</p>
+    <p v-if="loading" class="muted-copy">Loading...</p>
     <p v-else-if="errorMessage && !record" class="feedback error-copy">{{ errorMessage }}</p>
 
     <template v-else-if="record">
@@ -164,39 +163,34 @@ watch(
           <KeyValueGrid :items="replayItems" />
 
           <label class="form-field form-field--wide">
-            <span class="form-label">Current JSON</span>
+            <span class="form-label">Current data</span>
             <textarea class="text-area" :value="currentJson" readonly />
           </label>
         </article>
 
         <article class="panel panel-stack">
-          <PanelHeading eyebrow="Write actions" title="Patch, replace, or delete" />
-
-          <p class="muted-copy">
-            Patch and replace requests are validated server-side against the Replay model before
-            they are written.
-          </p>
+          <PanelHeading eyebrow="Edit" title="Update or delete" />
 
           <p v-if="feedbackMessage" class="feedback">{{ feedbackMessage }}</p>
           <p v-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
 
           <label class="form-field form-field--wide">
-            <span class="form-label">Patch JSON</span>
+            <span class="form-label">Fields to update</span>
             <textarea v-model="patchText" class="text-area" spellcheck="false" />
           </label>
 
           <div class="button-row">
-            <button type="button" class="button" @click="applyPatch">Apply patch</button>
+            <button type="button" class="button" @click="applyPatch">Save changes</button>
           </div>
 
           <label class="form-field form-field--wide">
-            <span class="form-label">Replace JSON</span>
+            <span class="form-label">Full record</span>
             <textarea v-model="replaceText" class="text-area" spellcheck="false" />
           </label>
 
           <div class="button-row">
             <button type="button" class="button button--accent" @click="applyReplace">
-              Replace document
+              Replace
             </button>
             <button type="button" class="button button--danger" :disabled="deleting" @click="removeRecord">
               {{ deleting ? "Deleting..." : "Delete replay" }}

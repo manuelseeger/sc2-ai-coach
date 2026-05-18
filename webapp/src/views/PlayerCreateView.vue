@@ -40,10 +40,9 @@ async function submit(): Promise<void> {
     <header class="panel page-hero">
       <div>
         <p class="eyebrow">Create player</p>
-        <h2 class="page-hero__title">Open a new player identity record</h2>
+        <h2 class="page-hero__title">Add a new player</h2>
         <p class="panel-intro">
-          Submit a valid player document, then continue in the detail screen for patch, replace,
-          or delete work.
+          Fill in the player details below.
         </p>
       </div>
 
@@ -51,10 +50,10 @@ async function submit(): Promise<void> {
     </header>
 
     <article class="panel panel-stack">
-      <PanelHeading eyebrow="Create body" title="Player JSON" />
+      <PanelHeading eyebrow="New player" title="Player data" />
 
       <label class="form-field form-field--wide">
-        <span class="form-label">Request JSON</span>
+        <span class="form-label">Player data</span>
         <textarea v-model="draftText" class="text-area" spellcheck="false" />
       </label>
 

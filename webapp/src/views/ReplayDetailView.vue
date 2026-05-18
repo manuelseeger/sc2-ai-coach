@@ -5,8 +5,9 @@ import { RouterLink, useRoute } from "vue-router";
 import { ApiError, createApiClient } from "../api";
 import KeyValueGrid from "../components/KeyValueGrid.vue";
 import PanelHeading from "../components/PanelHeading.vue";
+import { loadPlayerPortraitMetadataMap } from "../players";
 import { loadReplayDetail } from "../replays";
-import type { MetadataRecord, ReplayPlayerRelationship, ReplayRecord } from "../types";
+import type { MetadataRecord, PlayerPortraitMetadataRecord, ReplayPlayerRelationship, ReplayRecord } from "../types";
 
 const apiClient = createApiClient();
 const route = useRoute();
@@ -16,6 +17,7 @@ const errorMessage = ref<string | null>(null);
 const replay = ref<ReplayRecord | null>(null);
 const metadata = ref<MetadataRecord | null>(null);
 const players = ref<ReplayPlayerRelationship[]>([]);
+const portraits = ref<Record<string, PlayerPortraitMetadataRecord>>({});
 
 const replayId = computed(() => String(route.params.replayId ?? ""));
 
@@ -23,7 +25,6 @@ const replayItems = computed(() => {
   if (!replay.value) return [];
 
   return [
-    { label: "Replay ID", value: replay.value.id, valueClass: "kv-grid__mono" },
     {
       label: "Date",
       value: new Date(replay.value.date).toLocaleString(undefined, {
@@ -33,7 +34,6 @@ const replayItems = computed(() => {
       }),
     },
     { label: "Map", value: replay.value.map_name },
-    { label: "Filename", value: replay.value.filename },
     { label: "Region", value: replay.value.region },
     {
       label: "Length",
@@ -41,10 +41,26 @@ const replayItems = computed(() => {
         ? `${Math.floor(replay.value.real_length / 60)}:${String(replay.value.real_length % 60).padStart(2, "0")}`
         : "—",
     },
-    { label: "Type", value: replay.value.real_type },
-    { label: "Speed", value: replay.value.speed },
   ];
 });
+
+const winner = computed(() => {
+  if (!replay.value) return null;
+  return replay.value.players.find(p => p.result === "Win") ?? null;
+});
+
+const winnerIdx = computed(() => {
+  if (!replay.value || !winner.value) return -1;
+  return replay.value.players.indexOf(winner.value);
+});
+
+function primaryPortraitUrl(toonHandle: string): string | null {
+  const md = portraits.value[toonHandle];
+  if (!md) return null;
+  if (md.portrait.available) return md.portrait.url;
+  if (md.portrait_constructed.available) return md.portrait_constructed.url;
+  return null;
+}
 
 function resultClass(result: string): string {
   if (result === "Win") return "tag--ok";
@@ -73,6 +89,14 @@ watch(
       replay.value = detail.replay;
       metadata.value = detail.metadata;
       players.value = detail.players;
+      try {
+        portraits.value = await loadPlayerPortraitMetadataMap(
+          apiClient,
+          detail.players.map(p => p.replay_player.toon_handle),
+        );
+      } catch {
+        portraits.value = {};
+      }
     } catch (error) {
       errorMessage.value =
         error instanceof ApiError ? error.message : "Unable to load replay detail.";
@@ -94,6 +118,9 @@ watch(
         <RouterLink to="/replays" class="breadcrumb-link">← Replays</RouterLink>
         <h2 v-if="replay" class="page-title">{{ replay.map_name }}</h2>
         <h2 v-else class="page-title">Replay detail</h2>
+        <p v-if="winner" class="replay-winner">
+          Winner: <span :class="`player--p${winnerIdx + 1}`">{{ winner.name }}</span>
+        </p>
       </div>
       <div v-if="replay" class="button-row">
         <RouterLink :to="`/resources/replays/${replay.id}`" class="button button--ghost">
@@ -108,7 +135,7 @@ watch(
     <template v-else-if="replay">
       <section class="detail-grid">
         <article class="panel panel-stack">
-          <PanelHeading eyebrow="Replay facts" :title="replay.map_name">
+          <PanelHeading eyebrow="Match" :title="replay.map_name">
             <template #aside>
               <div class="tag-row">
                 <template v-for="(p, idx) in replay.players" :key="p.toon_handle">
@@ -123,11 +150,7 @@ watch(
         </article>
 
         <article class="panel panel-stack">
-          <PanelHeading eyebrow="Metadata" title="Replay annotation">
-            <template #aside>
-              <span class="pill pill--amber">Relationship route</span>
-            </template>
-          </PanelHeading>
+          <PanelHeading eyebrow="Notes" title="Game Summary" />
 
           <template v-if="metadata">
             <p v-if="metadata.description" class="metadata-desc">{{ metadata.description }}</p>
@@ -137,9 +160,9 @@ watch(
               <span v-for="tag in metadata.tags" :key="tag" class="tag">{{ tag }}</span>
             </div>
 
-            <p v-if="metadata.replay_summary_conversation" class="muted-copy">
-              Summary conversation: <span class="mono-copy">{{ metadata.replay_summary_conversation }}</span>
-            </p>
+            <RouterLink v-if="metadata.replay_summary_conversation" :to="`/conversations/${metadata.replay_summary_conversation}`" class="button button--ghost">
+              View summary conversation →
+            </RouterLink>
           </template>
 
           <p v-else class="muted-copy">
@@ -149,41 +172,53 @@ watch(
       </section>
 
       <article class="panel panel-stack">
-        <PanelHeading eyebrow="Players" title="Participants and known identities" />
+        <PanelHeading eyebrow="Players" title="Players in this match" />
 
         <ul class="list list-block-spacing">
           <li
             v-for="(relation, idx) in players"
             :key="relation.replay_player.toon_handle"
             class="list-row player-row"
-            :class="`list-row--p${idx + 1}`"
+            :class="[`list-row--p${idx + 1}`, { 'list-row--linked': relation.player_info }]"
           >
-            <div class="player-row__head">
-              <div>
-                <strong class="player-row__name" :class="`player--p${idx + 1}`">{{ relation.replay_player.name }}</strong>
-                <p class="player-row__toon mono-copy">{{ relation.replay_player.toon_handle }}</p>
-              </div>
-              <div class="tag-row">
-                <span class="tag" :class="resultClass(relation.replay_player.result)">
-                  {{ relation.replay_player.result }}
-                </span>
-                <span class="tag" :class="raceTagClass(relation.replay_player.play_race)">
-                  {{ relation.replay_player.play_race }}
-                </span>
-              </div>
+            <RouterLink
+              v-if="relation.player_info"
+              :to="`/players/${relation.replay_player.toon_handle}`"
+              class="list-row__overlay"
+              :aria-label="`View ${relation.replay_player.name}`"
+            />
+            <div class="player-row__portrait">
+              <img
+                v-if="primaryPortraitUrl(relation.replay_player.toon_handle)"
+                :src="primaryPortraitUrl(relation.replay_player.toon_handle) ?? ''"
+                :alt="`${relation.replay_player.name} portrait`"
+                class="player-row__portrait-img"
+              />
+              <div v-else class="player-row__portrait-fallback">?</div>
             </div>
 
-            <div class="player-row__record">
-              <template v-if="relation.player_info">
-                <span class="tag tag--ok">Player record found</span>
-                <RouterLink
-                  :to="`/players/${relation.replay_player.toon_handle}`"
-                  class="button button--ghost"
-                >
-                  View player
-                </RouterLink>
-              </template>
-              <span v-else class="tag tag--warn">No player record</span>
+            <div class="player-row__body">
+              <div class="player-row__head">
+                <div>
+                  <strong class="player-row__name" :class="`player--p${idx + 1}`">{{ relation.replay_player.name }}</strong>
+                  </div>
+                <div class="tag-row">
+                  <span class="tag" :class="resultClass(relation.replay_player.result)">
+                    {{ relation.replay_player.result }}
+                  </span>
+                  <span class="tag" :class="raceTagClass(relation.replay_player.play_race)">
+                    {{ relation.replay_player.play_race }}
+                  </span>
+                  <span v-if="relation.replay_player.scaled_rating" class="tag">
+                    MMR {{ relation.replay_player.scaled_rating.toLocaleString() }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="player-row__record">
+                <span v-if="relation.player_info" class="tag tag--ok">Known player</span>
+                <span v-else class="tag tag--warn">Unknown player</span>
+              </div>
             </div>
           </li>
         </ul>
@@ -236,8 +271,41 @@ watch(
 
 .player-row {
   display: grid;
-  gap: 12px;
+  grid-template-columns: 72px 1fr;
+  gap: 16px;
   padding: 16px 18px;
+  align-items: center;
+}
+
+.player-row__portrait {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(16, 24, 38, 0.9), rgba(10, 16, 26, 1));
+  flex-shrink: 0;
+}
+
+.player-row__portrait-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.player-row__portrait-fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+}
+
+.player-row__body {
+  display: grid;
+  gap: 10px;
 }
 
 .player-row__head {
@@ -264,5 +332,14 @@ watch(
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.replay-winner {
+  margin: 6px 0 0;
+  font-family: var(--display);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
 }
 </style>

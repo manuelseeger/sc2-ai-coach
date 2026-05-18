@@ -18,8 +18,8 @@ const healthItems = computed(() => {
 
   return [
     { label: "Status", value: health.value.status },
-    { label: "Database", value: health.value.database },
-    { label: "DB name", value: health.value.db_name },
+    { label: "Connection", value: health.value.database },
+    { label: "Database", value: health.value.db_name },
   ];
 });
 
@@ -37,19 +37,19 @@ onMounted(async () => {
 <template>
   <section class="page">
     <article class="panel panel-stack">
-      <PanelHeading eyebrow="Health" title="Backend readiness" level="h2">
+      <PanelHeading eyebrow="Health" title="System status" level="h2">
         <template #aside>
           <span class="pill" :class="health ? 'pill--accent' : 'pill--amber'">
-            {{ loading ? "Polling" : health ? "Reachable" : "Attention" }}
+            {{ loading ? "Checking" : health ? "Reachable" : "Attention" }}
           </span>
         </template>
       </PanelHeading>
 
       <p class="panel-intro">
-        Lightweight operator check for the backend process and its configured database target.
+        Check that the service is running and connected.
       </p>
 
-      <p v-if="loading" class="list-row feedback">Loading backend health...</p>
+      <p v-if="loading" class="list-row feedback">Checking status...</p>
       <p v-else-if="errorMessage" class="list-row feedback error-copy">{{ errorMessage }}</p>
 
       <KeyValueGrid v-else-if="health" :items="healthItems" />

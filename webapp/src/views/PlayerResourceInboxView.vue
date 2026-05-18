@@ -77,27 +77,22 @@ onMounted(async () => {
   <section class="page player-resource-page">
     <header class="panel page-hero">
       <div>
-        <p class="eyebrow">Player maintenance</p>
-        <h2 class="page-hero__title">Generic player CRUD stays separate from portrait review</h2>
+        <p class="eyebrow">Player management</p>
+        <h2 class="page-hero__title">Browse and manage players</h2>
         <p class="panel-intro">
-          Use this expert maintenance surface for direct list, detail, query, create, patch,
-          replace, and delete operations on persisted player documents.
+          Search, edit, and manage player records.
         </p>
       </div>
 
       <div class="button-row">
-        <RouterLink to="/players" class="button button--ghost">Back to player review</RouterLink>
+        <RouterLink to="/players" class="button button--ghost">Back to players</RouterLink>
         <RouterLink to="/resources/players/new" class="button button--accent">Create player</RouterLink>
       </div>
     </header>
 
     <section class="results-grid">
       <article class="panel panel-stack">
-        <PanelHeading eyebrow="List filters" title="Player inbox controls">
-          <template #aside>
-            <span class="pill">GET /api/players</span>
-          </template>
-        </PanelHeading>
+        <PanelHeading eyebrow="Filters" title="Browse players" />
 
         <div class="form-grid">
           <label class="form-field">
@@ -116,50 +111,46 @@ onMounted(async () => {
           </label>
 
           <label class="form-field">
-            <span class="form-label">Current page</span>
+            <span class="form-label">Page</span>
             <input v-model.number="filters.currentPage" class="text-input" type="number" min="1" />
           </label>
 
           <label class="form-field">
-            <span class="form-label">Docs per page</span>
+            <span class="form-label">Per page</span>
             <input v-model.number="filters.docsPerPage" class="text-input" type="number" min="1" />
           </label>
         </div>
 
         <div class="button-row">
-          <button type="button" class="button button--accent" @click="refreshList">Run list</button>
+          <button type="button" class="button button--accent" @click="refreshList">Search</button>
         </div>
       </article>
 
       <article class="panel panel-stack">
-        <PanelHeading eyebrow="Advanced query" title="Read-only player query body">
-          <template #aside>
-            <span class="pill">POST /api/players/query</span>
-          </template>
-        </PanelHeading>
+        <PanelHeading eyebrow="Advanced search" title="Custom filter" />
 
         <label class="form-field form-field--wide">
-          <span class="form-label">Query JSON</span>
+          <span class="form-label">Filter</span>
           <textarea v-model="queryText" class="text-area" spellcheck="false" />
         </label>
 
         <div class="button-row">
-          <button type="button" class="button" @click="runAdvancedQuery">Run query</button>
+          <button type="button" class="button" @click="runAdvancedQuery">Run filter</button>
         </div>
       </article>
     </section>
 
     <section class="panel panel-stack">
-      <PanelHeading eyebrow="Results" :title="resultMode === 'list' ? 'Player list results' : 'Player query results'">
+      <PanelHeading eyebrow="Results" :title="resultMode === 'list' ? 'Players' : 'Filtered players'">
         <template #aside>
           <span v-if="result" class="pill">{{ result.docs_quantity }} players</span>
         </template>
       </PanelHeading>
 
-      <p v-if="loading" class="muted-copy">Loading player maintenance results...</p>
+      <p v-if="loading" class="muted-copy">Loading...</p>
       <p v-else-if="errorMessage" class="feedback error-copy">{{ errorMessage }}</p>
       <p v-else-if="!result || result.docs.length === 0" class="muted-copy">
-        No player documents matched the current request.
+        No players found.
       </p>
 
       <ul v-else class="list list-block-spacing">
@@ -177,7 +168,7 @@ onMounted(async () => {
           </div>
 
           <RouterLink :to="`/resources/players/${player.toon_handle}`" class="list-link">
-            Open player document
+            Open player
           </RouterLink>
         </li>
       </ul>
