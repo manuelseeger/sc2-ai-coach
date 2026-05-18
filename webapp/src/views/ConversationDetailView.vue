@@ -7,6 +7,8 @@ import KeyValueGrid from "../components/KeyValueGrid.vue";
 import PanelHeading from "../components/PanelHeading.vue";
 import ToolCallCard from "../components/ToolCallCard.vue";
 import ToolResultCard from "../components/ToolResultCard.vue";
+import { computeConnectors } from "../connector";
+import type { ConnectorMeta } from "../connector";
 import { loadConversationDetail } from "../conversations";
 import type { ConversationItemRecord, ConversationRecord, ResponseRecord, ToolDefinition } from "../types";
 
@@ -98,6 +100,14 @@ function itemKindLabel(item: ConversationItemRecord): string {
   return item.role ? `${item.role} message` : item.type;
 }
 
+const connectors = computed(() => computeConnectors(items.value));
+
+function railSegmentClass(segs: ConnectorMeta[], lane: number): string {
+  const seg = segs.find((s) => s.lane === lane);
+  if (!seg) return "";
+  return `rail-segment--lane-${seg.lane} rail-segment--${seg.role}`;
+}
+
 async function refreshConversation(id: string): Promise<void> {
   loading.value = true;
   errorMessage.value = null;
@@ -184,30 +194,40 @@ watch(conversationId, async (value) => {
           <p v-if="items.length === 0" class="muted-copy">No conversation items were persisted for this exchange.</p>
 
           <ol v-else class="transcript-list">
-            <li v-for="item in items" :key="item.id" class="transcript-item" :class="[`transcript-item--${item.type}`, item.role ? `role--${item.role}` : '']">
-              <div class="transcript-item__meta">
-                <span class="tag">{{ itemKindLabel(item) }}</span>
-                <span v-if="item.name" class="tag tag--accent">{{ item.name }}</span>
-                <time class="transcript-item__time">{{ formatDate(item.created_at) }}</time>
+            <li v-for="(item, idx) in items" :key="item.id" class="transcript-row">
+              <div class="transcript-rail" aria-hidden="true">
+                <span
+                  v-for="lane in 3"
+                  :key="lane"
+                  class="rail-segment"
+                  :class="railSegmentClass(connectors[idx], lane - 1)"
+                />
               </div>
+              <div class="transcript-item" :class="[`transcript-item--${item.type}`, item.role ? `role--${item.role}` : '']">
+                <div class="transcript-item__meta">
+                  <span class="tag">{{ itemKindLabel(item) }}</span>
+                  <span v-if="item.name" class="tag tag--accent">{{ item.name }}</span>
+                  <time class="transcript-item__time">{{ formatDate(item.created_at) }}</time>
+                </div>
 
-              <pre
-                v-if="item.type === 'message'"
-                class="transcript-item__body"
-                :class="{ 'transcript-item__body--code': isCodeLike(renderMessage(item)) }"
-              >{{ renderMessage(item) }}</pre>
+                <pre
+                  v-if="item.type === 'message'"
+                  class="transcript-item__body"
+                  :class="{ 'transcript-item__body--code': isCodeLike(renderMessage(item)) }"
+                >{{ renderMessage(item) }}</pre>
 
-              <ToolCallCard
-                v-else-if="item.type === 'function_call'"
-                :item="item"
-                :tool-def="item.name ? toolsMap.get(item.name) : undefined"
-              />
+                <ToolCallCard
+                  v-else-if="item.type === 'function_call'"
+                  :item="item"
+                  :tool-def="item.name ? toolsMap.get(item.name) : undefined"
+                />
 
-              <ToolResultCard
-                v-else-if="item.type === 'function_call_output'"
-                :item="item"
-                :linked-tool-name="item.call_id ? callIdNameMap.get(item.call_id) : undefined"
-              />
+                <ToolResultCard
+                  v-else-if="item.type === 'function_call_output'"
+                  :item="item"
+                  :linked-tool-name="item.call_id ? callIdNameMap.get(item.call_id) : undefined"
+                />
+              </div>
             </li>
           </ol>
         </article>
@@ -270,6 +290,54 @@ watch(conversationId, async (value) => {
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+/* Row container: gutter rail + item card side by side */
+.transcript-row {
+  display: grid;
+  grid-template-columns: 12px 1fr;
+  gap: 4px;
+  align-items: stretch;
+}
+
+/* Gutter rail: 3 fixed lane slots */
+.transcript-rail {
+  display: flex;
+  flex-direction: row;
+  gap: 2px;
+  align-self: stretch;
+}
+
+.rail-segment {
+  flex: 1;
+  min-width: 2px;
+  --rail-color: transparent;
+}
+
+.rail-segment--lane-0 {
+  --rail-color: var(--accent-strong, rgba(56, 189, 248, 0.75));
+}
+
+.rail-segment--lane-1 {
+  --rail-color: rgba(139, 92, 246, 0.65);
+}
+
+.rail-segment--lane-2 {
+  --rail-color: var(--border, rgba(74, 222, 128, 0.5));
+}
+
+.rail-segment--call-start {
+  background: linear-gradient(to bottom, transparent 40%, var(--rail-color) 40%);
+  border-radius: var(--radius-sm, 2px) var(--radius-sm, 2px) 0 0;
+}
+
+.rail-segment--through {
+  background: var(--rail-color);
+}
+
+.rail-segment--result-end {
+  background: linear-gradient(to bottom, var(--rail-color) 60%, transparent 60%);
+  border-radius: 0 0 var(--radius-sm, 2px) var(--radius-sm, 2px);
 }
 
 .transcript-item {
