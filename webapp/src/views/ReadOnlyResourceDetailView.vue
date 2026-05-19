@@ -11,11 +11,12 @@ import {
   type ReadOnlyResourceName,
   type ReadOnlyResourceRecord,
 } from "../read-only-resources";
-import { formatUsd } from "../formatters";
+import { formatDate, formatUsd } from "../formatters";
 import type {
   ConversationItemRecord,
   ResourceDefinition,
   ResponseRecord,
+  SessionRecord,
 } from "../types";
 
 const props = defineProps<{
@@ -31,6 +32,11 @@ const record = ref<ReadOnlyResourceRecord | null>(null);
 
 const resourceName = computed(() => props.resource.name as ReadOnlyResourceName);
 const recordId = computed(() => String(route.params.recordId ?? ""));
+const headerIntro = computed(() =>
+  resourceName.value === "sessions"
+    ? "View the stored session record and open the curated session screen for linked context."
+    : "View the details of this record. Open the conversation for full context.",
+);
 
 function toConversationItem(value: ReadOnlyResourceRecord): ConversationItemRecord {
   return value as ConversationItemRecord;
@@ -40,9 +46,18 @@ function toResponseRecord(value: ReadOnlyResourceRecord): ResponseRecord {
   return value as ResponseRecord;
 }
 
+function toSessionRecord(value: ReadOnlyResourceRecord): SessionRecord {
+  return value as SessionRecord;
+}
+
 const title = computed(() => {
   if (!record.value) {
     return props.resource.label;
+  }
+
+  if (resourceName.value === "sessions") {
+    const session = toSessionRecord(record.value);
+    return formatDate(session.session_date, session.id);
   }
 
   if (resourceName.value === "responses") {
@@ -57,6 +72,28 @@ const title = computed(() => {
 const detailItems = computed(() => {
   if (!record.value) {
     return [];
+  }
+
+  if (resourceName.value === "sessions") {
+    const session = toSessionRecord(record.value);
+    return [
+      { label: "Record ID", value: session.id, valueClass: "kv-grid__mono" },
+      { label: "Session date", value: formatDate(session.session_date) },
+      { label: "AI backend", value: session.ai_backend },
+      { label: "Conversations", value: session.conversations.length },
+      {
+        label: "Current conversation",
+        value: session.current_conversation ?? "None",
+        valueClass: session.current_conversation ? "kv-grid__mono" : undefined,
+      },
+      {
+        label: "Twitch conversation",
+        value: session.twitch_conversation ?? "None",
+        valueClass: session.twitch_conversation ? "kv-grid__mono" : undefined,
+      },
+      { label: "Total tokens", value: session.total_tokens },
+      { label: "Total cost", value: formatUsd(session.total_cost) },
+    ];
   }
 
   if (resourceName.value === "responses") {
@@ -86,8 +123,20 @@ const detailItems = computed(() => {
 });
 
 const currentJson = computed(() => JSON.stringify(record.value, null, 2));
-const curatedConversationPath = computed(() =>
-  record.value ? `/conversations/${record.value.conversation}` : "/conversations",
+const curatedResourcePath = computed(() => {
+  if (!record.value) {
+    return props.resource.name === "sessions" ? "/sessions" : "/conversations";
+  }
+
+  if (resourceName.value === "sessions") {
+    return `/sessions/${record.value.id}`;
+  }
+
+  return `/conversations/${(record.value as ConversationItemRecord | ResponseRecord).conversation}`;
+});
+
+const curatedActionLabel = computed(() =>
+  resourceName.value === "sessions" ? "Open session" : "Open conversation",
 );
 
 async function loadRecord(id: string): Promise<void> {
@@ -116,12 +165,12 @@ watch(recordId, async (value) => {
       variant="hero"
       eyebrow="Inspection"
       :title="title"
-      intro="View the details of this record. Open the conversation for full context."
+      :intro="headerIntro"
     >
       <template #actions>
         <RouterLink :to="`/resources/${resource.name}`" class="button button--ghost">Back to inbox</RouterLink>
-        <RouterLink v-if="record" :to="curatedConversationPath" class="button button--accent">
-          Open conversation
+        <RouterLink v-if="record" :to="curatedResourcePath" class="button button--accent">
+          {{ curatedActionLabel }}
         </RouterLink>
       </template>
     </PageHeader>

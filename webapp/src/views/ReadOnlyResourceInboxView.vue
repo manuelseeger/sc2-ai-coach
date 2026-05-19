@@ -7,7 +7,7 @@ import FormField from "../components/FormField.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PageHeader from "../components/PageHeader.vue";
 import PanelHeading from "../components/PanelHeading.vue";
-import { formatDate } from "../formatters";
+import { formatCount, formatDate, formatUsd } from "../formatters";
 import {
   loadReadOnlyResourceInbox,
   lookupResponseRecord,
@@ -21,6 +21,7 @@ import type {
   ResourceDefinition,
   ResponseRecord,
   PaginatedResponse,
+  SessionRecord,
 } from "../types";
 
 const props = defineProps<{
@@ -36,11 +37,16 @@ const errorMessage = ref<string | null>(null);
 const lookupErrorMessage = ref<string | null>(null);
 const inbox = ref<PaginatedResponse<ReadOnlyResourceRecord> | null>(null);
 const queryResults = ref<PaginatedResponse<ReadOnlyResourceRecord> | null>(null);
+const responseLookupId = ref("");
+
+const resourceName = computed(() => props.resource.name as ReadOnlyResourceName);
+const isResponseResource = computed(() => resourceName.value === "responses");
+const isSessionResource = computed(() => resourceName.value === "sessions");
 const queryText = ref(
   JSON.stringify(
     {
       filter: {},
-      sort: { created_at: -1 },
+      sort: { [isSessionResource.value ? "session_date" : "created_at"]: -1 },
       current_page: 1,
       docs_per_page: 10,
     },
@@ -48,12 +54,17 @@ const queryText = ref(
     2,
   ),
 );
-const responseLookupId = ref("");
-
-const resourceName = computed(() => props.resource.name as ReadOnlyResourceName);
-const isResponseResource = computed(() => resourceName.value === "responses");
 const listTitle = computed(() =>
-  props.resource.name === "responses" ? "Response records" : "Conversation items",
+  props.resource.name === "responses"
+    ? "Response records"
+    : props.resource.name === "sessions"
+      ? "Session records"
+      : "Conversation items",
+);
+const headerIntro = computed(() =>
+  isSessionResource.value
+    ? "Browse stored session records and open the curated session view for context."
+    : "Browse stored records and open the full conversation view for context.",
 );
 
 function toConversationItem(record: ReadOnlyResourceRecord): ConversationItemRecord {
@@ -64,7 +75,16 @@ function toResponseRecord(record: ReadOnlyResourceRecord): ResponseRecord {
   return record as ResponseRecord;
 }
 
+function toSessionRecord(record: ReadOnlyResourceRecord): SessionRecord {
+  return record as SessionRecord;
+}
+
 function recordTitle(record: ReadOnlyResourceRecord): string {
+  if (isSessionResource.value) {
+    const session = toSessionRecord(record);
+    return formatDate(session.session_date, session.id);
+  }
+
   if (isResponseResource.value) {
     const response = toResponseRecord(record);
     return response.response_id ?? response.id;
@@ -78,6 +98,11 @@ function recordTitle(record: ReadOnlyResourceRecord): string {
 }
 
 function recordSummary(record: ReadOnlyResourceRecord): string {
+  if (isSessionResource.value) {
+    const session = toSessionRecord(record);
+    return `${session.ai_backend} • ${formatCount(session.conversations.length)} conversations • ${formatUsd(session.total_cost)}`;
+  }
+
   if (isResponseResource.value) {
     const response = toResponseRecord(record);
     return `${response.model ?? "Unknown model"} • ${response.status ?? "Unknown status"}`;
@@ -97,8 +122,24 @@ function detailPath(record: ReadOnlyResourceRecord): string {
   return `/resources/${props.resource.name}/${record.id}`;
 }
 
-function curatedConversationPath(record: ReadOnlyResourceRecord): string {
-  return `/conversations/${record.conversation}`;
+function curatedResourcePath(record: ReadOnlyResourceRecord): string {
+  if (isSessionResource.value) {
+    return `/sessions/${record.id}`;
+  }
+
+  return `/conversations/${(record as ConversationItemRecord | ResponseRecord).conversation}`;
+}
+
+function curatedActionLabel(): string {
+  return isSessionResource.value ? "Open session" : "Open conversation";
+}
+
+function recordTimestamp(record: ReadOnlyResourceRecord): string {
+  if (isSessionResource.value) {
+    return formatDate(toSessionRecord(record).session_date);
+  }
+
+  return formatDate((record as ConversationItemRecord | ResponseRecord).created_at);
 }
 
 async function loadInbox(): Promise<void> {
@@ -107,7 +148,7 @@ async function loadInbox(): Promise<void> {
 
   try {
     inbox.value = await loadReadOnlyResourceInbox(apiClient, resourceName.value, {
-      sort: "-created_at",
+      sort: isSessionResource.value ? "-session_date" : "-created_at",
       current_page: 1,
       docs_per_page: 25,
     });
@@ -155,7 +196,7 @@ onMounted(async () => {
     <PageHeader
       eyebrow="Inspection"
       :title="resource.label"
-      intro="Browse stored records and open the full conversation view for context."
+      :intro="headerIntro"
     >
       <template #actions>
         <span class="pill pill--amber">Read only</span>
@@ -178,13 +219,13 @@ onMounted(async () => {
               <p class="raw-row__summary">{{ recordSummary(record) }}</p>
               <div class="raw-row__meta">
                 <span class="tag mono-copy">{{ record.id }}</span>
-                <span class="tag mono-copy">{{ formatDate(record.created_at) }}</span>
+                <span class="tag mono-copy">{{ recordTimestamp(record) }}</span>
               </div>
             </div>
 
             <div class="raw-row__actions">
-              <RouterLink :to="curatedConversationPath(record)" class="button button--ghost">
-                Open conversation
+              <RouterLink :to="curatedResourcePath(record)" class="button button--ghost">
+                {{ curatedActionLabel() }}
               </RouterLink>
               <RouterLink :to="detailPath(record)" class="button button--accent">
                 View detail

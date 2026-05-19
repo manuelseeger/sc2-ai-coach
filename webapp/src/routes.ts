@@ -27,12 +27,12 @@ import SessionInboxView from "./views/SessionInboxView.vue";
 import WorkspaceView from "./views/WorkspaceView.vue";
 
 const implementedReadOnlyResources = resourceRegistry.filter((resource) =>
-  ["conversation-items", "responses"].includes(resource.name),
+  ["sessions", "conversation-items", "responses"].includes(resource.name),
 );
 
 const placeholderResources = resourceRegistry.filter(
   (resource) =>
-    !["conversations", "metadata", "players", "replays", "conversation-items", "responses"].includes(
+    !["conversations", "metadata", "players", "replays", "sessions", "conversation-items", "responses"].includes(
       resource.name,
     ),
 );
@@ -164,7 +164,7 @@ export const routes = [
   ...implementedReadOnlyResources.flatMap((resource) => [
     {
       path: `/resources/${resource.name}`,
-      name: `${resource.name}-inbox`,
+      name: `${resource.name}-resource-inbox`,
       component: ReadOnlyResourceInboxView,
       props: {
         resource,
@@ -172,7 +172,7 @@ export const routes = [
     },
     {
       path: `/resources/${resource.name}/:recordId`,
-      name: `${resource.name}-detail`,
+      name: `${resource.name}-resource-detail`,
       component: ReadOnlyResourceDetailView,
       props: {
         resource,

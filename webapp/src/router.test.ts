@@ -28,5 +28,7 @@ describe("router", () => {
     expect(routes.map((route) => route.path)).toContain("/resources/conversation-items/:recordId");
     expect(routes.map((route) => route.path)).toContain("/resources/responses");
     expect(routes.map((route) => route.path)).toContain("/resources/responses/:recordId");
+    expect(routes.map((route) => route.path)).toContain("/resources/sessions");
+    expect(routes.map((route) => route.path)).toContain("/resources/sessions/:recordId");
   });
 });

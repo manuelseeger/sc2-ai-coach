@@ -6,11 +6,12 @@ import type {
   QueryBody,
   ResourceName,
   ResponseRecord,
+  SessionRecord,
 } from "./types";
 
-export type ReadOnlyResourceName = "conversation-items" | "responses";
+export type ReadOnlyResourceName = "conversation-items" | "responses" | "sessions";
 
-export type ReadOnlyResourceRecord = ConversationItemRecord | ResponseRecord;
+export type ReadOnlyResourceRecord = ConversationItemRecord | ResponseRecord | SessionRecord;
 
 export function loadReadOnlyResourceInbox(
   apiClient: ApiClient,
