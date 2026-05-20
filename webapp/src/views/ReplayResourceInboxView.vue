@@ -7,6 +7,8 @@ import FormField from "../components/FormField.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PageHeader from "../components/PageHeader.vue";
 import PanelHeading from "../components/PanelHeading.vue";
+import ResourceInboxControls from "../components/ResourceInboxControls.vue";
+import ResourceListRow from "../components/ResourceListRow.vue";
 import { loadReplayInbox, queryReplayRecords } from "../replays";
 import type { PaginatedResponse, QueryBody, ReplayRecord } from "../types";
 
@@ -92,10 +94,12 @@ onMounted(async () => {
       </template>
     </PageHeader>
 
-    <section class="results-grid">
-      <article class="panel panel-stack">
-        <PanelHeading eyebrow="Filters" title="Browse replays" />
-
+    <ResourceInboxControls
+      primary-title="Browse replays"
+      secondary-title="Custom filter"
+      secondary-intro="Run a direct JSON query when the replay list filters are too coarse."
+    >
+      <template #primary>
         <div class="form-grid">
           <FormField label="Player">
             <input v-model="filters.player" class="text-input" type="text" />
@@ -121,11 +125,9 @@ onMounted(async () => {
         <div class="button-row">
           <button type="button" class="button button--accent" @click="refreshList">Search</button>
         </div>
-      </article>
+      </template>
 
-      <article class="panel panel-stack">
-        <PanelHeading eyebrow="Advanced search" title="Custom filter" />
-
+      <template #secondary>
         <FormField class="form-field--wide" label="Filter">
           <textarea v-model="queryText" class="text-area" spellcheck="false" />
         </FormField>
@@ -133,8 +135,8 @@ onMounted(async () => {
         <div class="button-row">
           <button type="button" class="button" @click="runAdvancedQuery">Run filter</button>
         </div>
-      </article>
-    </section>
+      </template>
+    </ResourceInboxControls>
 
     <section class="panel panel-stack">
       <PanelHeading eyebrow="Results" :title="resultMode === 'list' ? 'Replays' : 'Filtered replays'">
@@ -145,24 +147,19 @@ onMounted(async () => {
 
       <LoadingErrorEmpty :loading="loading" :error="errorMessage" :empty="!result || result.docs.length === 0" loading-message="Loading..." empty-message="No replays found.">
         <ul class="list list-block-spacing">
-        <li v-for="replay in result.docs" :key="replay.id" class="list-row">
-          <div class="split-topline">
-            <div>
-              <strong>{{ replay.map_name }}</strong>
-              <p class="mono-copy">{{ replay.id }}</p>
-            </div>
-            <span class="tag">{{ replay.filename }}</span>
-          </div>
-
-          <div class="tag-row">
-            <span class="tag">{{ replay.players.length }} players</span>
-            <span class="tag">{{ replay.real_type }}</span>
-          </div>
-
-          <RouterLink :to="`/resources/replays/${replay.id}`" class="list-link">
-            Open replay
-          </RouterLink>
-        </li>
+          <ResourceListRow
+            v-for="replay in result.docs"
+            :key="replay.id"
+            :to="`/resources/replays/${replay.id}`"
+            :title="replay.map_name"
+            :summary="replay.id"
+            :aria-label="`Open replay ${replay.id}`"
+          >
+            <template #meta>
+              <span class="tag">{{ replay.players.length }} players</span>
+              <span class="tag">{{ replay.real_type }}</span>
+            </template>
+          </ResourceListRow>
         </ul>
       </LoadingErrorEmpty>
     </section>

@@ -7,6 +7,7 @@ import CrudPanel from "../components/CrudPanel.vue";
 import DetailMetadataPanel from "../components/DetailMetadataPanel.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PageHeader from "../components/PageHeader.vue";
+import ResourceJsonPanel from "../components/ResourceJsonPanel.vue";
 import { formatDate } from "../formatters";
 import {
   deleteMetadataRecord,
@@ -38,7 +39,6 @@ const metadataItems = computed(() => {
   return [
     { label: "Metadata ID", value: record.value.id, valueClass: "kv-grid__mono" },
     { label: "Replay", value: record.value.replay, valueClass: "kv-grid__mono" },
-    { label: "Description", value: record.value.description ?? "None" },
     {
       label: "Summary conversation",
       value: record.value.replay_summary_conversation ?? "None",
@@ -49,7 +49,19 @@ const metadataItems = computed(() => {
   ];
 });
 
-const currentJson = computed(() => JSON.stringify(record.value, null, 2));
+const metadataTitle = computed(() => {
+  const description = record.value?.description?.trim();
+
+  if (!description) {
+    return "Untitled metadata";
+  }
+
+  if (description.length <= 20) {
+    return description;
+  }
+
+  return `${description.slice(0, 19).trimEnd()}…`;
+});
 
 function resetEditors(value: MetadataRecord): void {
   patchText.value = JSON.stringify(
@@ -172,30 +184,34 @@ watch(metadataId, async (value) => {
 
     <LoadingErrorEmpty :loading="loading" :error="errorMessage && !record ? errorMessage : null" loading-message="Loading metadata detail...">
       <template v-if="record">
-      <section class="detail-grid">
-        <DetailMetadataPanel eyebrow="Current record" :title="record.description || 'Untitled metadata'" :items="metadataItems" :json-text="currentJson">
-          <template #aside>
-            <span class="tag">{{ record.tags.length }} tags</span>
-          </template>
-          <div class="tag-row">
-            <span v-for="tag in record.tags" :key="tag" class="tag">{{ tag }}</span>
-          </div>
-        </DetailMetadataPanel>
+        <section class="resource-detail-layout">
+          <section class="detail-grid">
+            <DetailMetadataPanel eyebrow="Current record" :title="metadataTitle" :items="metadataItems">
+              <template #aside>
+                <span class="tag">{{ record.tags.length }} tags</span>
+              </template>
+              <div class="tag-row">
+                <span v-for="tag in record.tags" :key="tag" class="tag">{{ tag }}</span>
+              </div>
+            </DetailMetadataPanel>
 
-        <CrudPanel
-          :feedback-message="feedbackMessage"
-          :error-message="errorMessage"
-          :patch-text="patchText"
-          :replace-text="replaceText"
-          :deleting="deleting"
-          delete-button-label="Delete annotation"
-          @patch="applyPatch"
-          @replace="applyReplace"
-          @delete="removeRecord"
-          @update:patch-text="patchText = $event"
-          @update:replace-text="replaceText = $event"
-        />
-      </section>
+            <CrudPanel
+              :feedback-message="feedbackMessage"
+              :error-message="errorMessage"
+              :patch-text="patchText"
+              :replace-text="replaceText"
+              :deleting="deleting"
+              delete-button-label="Delete annotation"
+              @patch="applyPatch"
+              @replace="applyReplace"
+              @delete="removeRecord"
+              @update:patch-text="patchText = $event"
+              @update:replace-text="replaceText = $event"
+            />
+          </section>
+
+          <ResourceJsonPanel :value="record" title="Annotation JSON" />
+        </section>
       </template>
     </LoadingErrorEmpty>
   </section>

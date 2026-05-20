@@ -23,10 +23,8 @@ const resourceItems = computed(() => [
   <section class="page">
     <article class="panel panel-stack">
       <PanelHeading eyebrow="Registry-backed route" :title="resource.label" level="h2">
-        <template #aside>
-          <span class="pill" :class="resource.writable ? 'pill--accent' : 'pill--amber'">
-            {{ resource.writable ? "Write-enabled" : "Read only" }}
-          </span>
+        <template v-if="!resource.writable" #aside>
+          <span class="pill pill--amber">Read only</span>
         </template>
       </PanelHeading>
 

@@ -7,6 +7,8 @@ import FormField from "../components/FormField.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PageHeader from "../components/PageHeader.vue";
 import PanelHeading from "../components/PanelHeading.vue";
+import ResourceInboxControls from "../components/ResourceInboxControls.vue";
+import ResourceListRow from "../components/ResourceListRow.vue";
 import { loadPlayerInbox, queryPlayerRecords } from "../players";
 import type { PaginatedResponse, PlayerInfoRecord, QueryBody } from "../types";
 
@@ -90,10 +92,12 @@ onMounted(async () => {
       </template>
     </PageHeader>
 
-    <section class="results-grid">
-      <article class="panel panel-stack">
-        <PanelHeading eyebrow="Filters" title="Browse players" />
-
+    <ResourceInboxControls
+      primary-title="Browse players"
+      secondary-title="Custom filter"
+      secondary-intro="Run a direct JSON query when tag and text filters are not enough."
+    >
+      <template #primary>
         <div class="form-grid">
           <FormField label="Search">
             <input v-model="filters.q" class="text-input" type="text" />
@@ -119,11 +123,9 @@ onMounted(async () => {
         <div class="button-row">
           <button type="button" class="button button--accent" @click="refreshList">Search</button>
         </div>
-      </article>
+      </template>
 
-      <article class="panel panel-stack">
-        <PanelHeading eyebrow="Advanced search" title="Custom filter" />
-
+      <template #secondary>
         <FormField class="form-field--wide" label="Filter">
           <textarea v-model="queryText" class="text-area" spellcheck="false" />
         </FormField>
@@ -131,8 +133,8 @@ onMounted(async () => {
         <div class="button-row">
           <button type="button" class="button" @click="runAdvancedQuery">Run filter</button>
         </div>
-      </article>
-    </section>
+      </template>
+    </ResourceInboxControls>
 
     <section class="panel panel-stack">
       <PanelHeading eyebrow="Results" :title="resultMode === 'list' ? 'Players' : 'Filtered players'">
@@ -143,23 +145,21 @@ onMounted(async () => {
 
       <LoadingErrorEmpty :loading="loading" :error="errorMessage" :empty="!result || result.docs.length === 0" loading-message="Loading..." empty-message="No players found.">
         <ul class="list list-block-spacing">
-        <li v-for="player in result.docs" :key="player.toon_handle" class="list-row">
-          <div class="split-topline">
-            <div>
-              <strong>{{ player.name }}</strong>
-              <p class="mono-copy">{{ player.toon_handle }}</p>
-            </div>
-            <span class="tag">{{ player.aliases.length }} aliases</span>
-          </div>
-
-          <div class="tag-row">
-            <span class="tag">{{ player.tags?.length ?? 0 }} tags</span>
-          </div>
-
-          <RouterLink :to="`/resources/players/${player.toon_handle}`" class="list-link">
-            Open player
-          </RouterLink>
-        </li>
+          <ResourceListRow
+            v-for="player in result.docs"
+            :key="player.toon_handle"
+            :to="`/resources/players/${player.toon_handle}`"
+            :title="player.name"
+            :summary="player.toon_handle"
+            :aria-label="`Open player ${player.name}`"
+          >
+            <template #aside>
+              <span class="tag">{{ player.aliases.length }} aliases</span>
+            </template>
+            <template #meta>
+              <span class="tag">{{ player.tags?.length ?? 0 }} tags</span>
+            </template>
+          </ResourceListRow>
         </ul>
       </LoadingErrorEmpty>
     </section>

@@ -6,6 +6,7 @@ import { ApiError, createApiClient } from "../api";
 import DetailMetadataPanel from "../components/DetailMetadataPanel.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PageHeader from "../components/PageHeader.vue";
+import ResourceJsonPanel from "../components/ResourceJsonPanel.vue";
 import {
   loadReadOnlyResourceDetail,
   type ReadOnlyResourceName,
@@ -122,7 +123,6 @@ const detailItems = computed(() => {
   ];
 });
 
-const currentJson = computed(() => JSON.stringify(record.value, null, 2));
 const curatedResourcePath = computed(() => {
   if (!record.value) {
     return props.resource.name === "sessions" ? "/sessions" : "/conversations";
@@ -177,13 +177,15 @@ watch(recordId, async (value) => {
 
     <LoadingErrorEmpty :loading="loading" :error="errorMessage && !record ? errorMessage : null" loading-message="Loading...">
       <template v-if="record">
-      <section class="detail-grid">
-        <DetailMetadataPanel eyebrow="Details" title="Record details" :items="detailItems" :json-text="currentJson">
-          <template #aside>
-            <span class="pill pill--amber">Read only</span>
-          </template>
-        </DetailMetadataPanel>
-      </section>
+        <section class="resource-detail-layout">
+          <DetailMetadataPanel eyebrow="Details" title="Record details" :items="detailItems">
+            <template #aside>
+              <span class="pill pill--amber">Read only</span>
+            </template>
+          </DetailMetadataPanel>
+
+          <ResourceJsonPanel :value="record" title="Record JSON" />
+        </section>
       </template>
     </LoadingErrorEmpty>
   </section>

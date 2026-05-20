@@ -7,6 +7,8 @@ import FormField from "../components/FormField.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PageHeader from "../components/PageHeader.vue";
 import PanelHeading from "../components/PanelHeading.vue";
+import ResourceInboxControls from "../components/ResourceInboxControls.vue";
+import ResourceListRow from "../components/ResourceListRow.vue";
 import { loadConversationInbox, queryConversationRecords } from "../conversations";
 import { formatDate } from "../formatters";
 import type { ConversationRecord, PaginatedResponse, QueryBody } from "../types";
@@ -87,17 +89,18 @@ onMounted(async () => {
       intro="Search and manage conversation records. Messages are managed separately within each conversation."
     >
       <template #actions>
-        <span class="pill pill--accent">Editable</span>
         <RouterLink to="/resources/conversations/new" class="button button--accent">
           Create conversation
         </RouterLink>
       </template>
     </PageHeader>
 
-    <section class="results-grid">
-      <article class="panel panel-stack">
-        <PanelHeading eyebrow="Filters" title="Browse conversations" />
-
+    <ResourceInboxControls
+      primary-title="Browse conversations"
+      secondary-title="Custom filter"
+      secondary-intro="Run a direct JSON query when the default list filters are too narrow."
+    >
+      <template #primary>
         <div class="form-grid">
           <FormField label="Session">
             <input v-model="filters.session" class="text-input mono-copy" type="text" />
@@ -127,11 +130,9 @@ onMounted(async () => {
         <div class="button-row">
           <button type="button" class="button button--accent" @click="refreshList">Search</button>
         </div>
-      </article>
+      </template>
 
-      <article class="panel panel-stack">
-        <PanelHeading eyebrow="Advanced search" title="Custom filter" />
-
+      <template #secondary>
         <FormField class="form-field--wide" label="Filter">
           <textarea v-model="queryText" class="text-area" spellcheck="false" />
         </FormField>
@@ -139,8 +140,8 @@ onMounted(async () => {
         <div class="button-row">
           <button type="button" class="button" @click="runAdvancedQuery">Run filter</button>
         </div>
-      </article>
-    </section>
+      </template>
+    </ResourceInboxControls>
 
     <section class="panel panel-stack">
       <PanelHeading eyebrow="Results" :title="resultMode === 'list' ? 'Conversations' : 'Filtered results'">
@@ -151,25 +152,23 @@ onMounted(async () => {
 
       <LoadingErrorEmpty :loading="loading" :error="errorMessage" :empty="!result || result.docs.length === 0" loading-message="Loading..." empty-message="No conversations found.">
         <ul class="list list-block-spacing">
-        <li v-for="record in result.docs" :key="record.id" class="list-row">
-          <div class="split-topline">
-            <div>
-              <strong>Conversation {{ record.id }}</strong>
-              <p class="mono-copy">{{ record.id }}</p>
-            </div>
-            <span class="tag">{{ record.item_count }} items</span>
-          </div>
-
-          <div class="tag-row">
-            <span class="tag">{{ record.trigger }}</span>
-            <span class="tag">{{ record.status }}</span>
-            <span class="tag">Created {{ formatDate(record.created_at) }}</span>
-          </div>
-
-          <RouterLink :to="`/resources/conversations/${record.id}`" class="list-link">
-            Open conversation
-          </RouterLink>
-        </li>
+          <ResourceListRow
+            v-for="record in result.docs"
+            :key="record.id"
+            :to="`/resources/conversations/${record.id}`"
+            :title="`Conversation ${record.id}`"
+            :summary="record.id"
+            :aria-label="`Open conversation ${record.id}`"
+          >
+            <template #aside>
+              <span class="tag">{{ record.item_count }} items</span>
+            </template>
+            <template #meta>
+              <span class="tag">{{ record.trigger }}</span>
+              <span class="tag">{{ record.status }}</span>
+              <span class="tag">Created {{ formatDate(record.created_at) }}</span>
+            </template>
+          </ResourceListRow>
         </ul>
       </LoadingErrorEmpty>
     </section>

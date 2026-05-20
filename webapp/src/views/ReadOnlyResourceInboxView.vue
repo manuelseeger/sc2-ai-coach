@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { RouterLink, useRouter } from "vue-router";
+import { useRouter } from "vue-router";
 
 import { ApiError, createApiClient } from "../api";
 import FormField from "../components/FormField.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PageHeader from "../components/PageHeader.vue";
 import PanelHeading from "../components/PanelHeading.vue";
+import ResourceInboxControls from "../components/ResourceInboxControls.vue";
+import ResourceListRow from "../components/ResourceListRow.vue";
 import { formatCount, formatDate, formatUsd } from "../formatters";
 import {
   loadReadOnlyResourceInbox,
@@ -122,18 +124,6 @@ function detailPath(record: ReadOnlyResourceRecord): string {
   return `/resources/${props.resource.name}/${record.id}`;
 }
 
-function curatedResourcePath(record: ReadOnlyResourceRecord): string {
-  if (isSessionResource.value) {
-    return `/sessions/${record.id}`;
-  }
-
-  return `/conversations/${(record as ConversationItemRecord | ResponseRecord).conversation}`;
-}
-
-function curatedActionLabel(): string {
-  return isSessionResource.value ? "Open session" : "Open conversation";
-}
-
 function recordTimestamp(record: ReadOnlyResourceRecord): string {
   if (isSessionResource.value) {
     return formatDate(toSessionRecord(record).session_date);
@@ -203,46 +193,12 @@ onMounted(async () => {
       </template>
     </PageHeader>
 
-    <section class="detail-grid">
-      <article class="panel panel-stack">
-        <PanelHeading eyebrow="Recent records" :title="listTitle">
-          <template #aside>
-            <span v-if="inbox" class="tag">{{ inbox.docs_quantity }} records</span>
-          </template>
-        </PanelHeading>
-
-        <LoadingErrorEmpty :loading="loading" :error="errorMessage && !inbox ? errorMessage : null" :empty="!inbox || inbox.docs.length === 0" loading-message="Loading..." empty-message="No records to show.">
-          <ul class="list">
-          <li v-for="record in inbox.docs" :key="record.id" class="list-row raw-row">
-            <div class="raw-row__copy">
-              <strong>{{ recordTitle(record) }}</strong>
-              <p class="raw-row__summary">{{ recordSummary(record) }}</p>
-              <div class="raw-row__meta">
-                <span class="tag mono-copy">{{ record.id }}</span>
-                <span class="tag mono-copy">{{ recordTimestamp(record) }}</span>
-              </div>
-            </div>
-
-            <div class="raw-row__actions">
-              <RouterLink :to="curatedResourcePath(record)" class="button button--ghost">
-                {{ curatedActionLabel() }}
-              </RouterLink>
-              <RouterLink :to="detailPath(record)" class="button button--accent">
-                View detail
-              </RouterLink>
-            </div>
-          </li>
-          </ul>
-        </LoadingErrorEmpty>
-      </article>
-
-      <article class="panel panel-stack">
-        <PanelHeading eyebrow="Advanced search" title="Custom filter" />
-
-        <p class="panel-intro">
-          Run a custom search across stored records.
-        </p>
-
+    <ResourceInboxControls
+      primary-eyebrow="Query"
+      primary-title="Inspect records"
+      primary-intro="Run a JSON query to inspect a narrower slice of stored records. Rows below open the raw detail view."
+    >
+      <template #primary>
         <FormField class="form-field--wide" label="Filter">
           <textarea v-model="queryText" class="text-area" spellcheck="false" />
         </FormField>
@@ -271,19 +227,60 @@ onMounted(async () => {
         </div>
 
         <p v-if="errorMessage && inbox" class="feedback error-copy">{{ errorMessage }}</p>
+      </template>
+    </ResourceInboxControls>
+
+    <section class="resource-detail-layout">
+      <article class="panel panel-stack">
+        <PanelHeading eyebrow="Recent records" :title="listTitle">
+          <template #aside>
+            <span v-if="inbox" class="tag">{{ inbox.docs_quantity }} records</span>
+          </template>
+        </PanelHeading>
+
+        <LoadingErrorEmpty :loading="loading" :error="errorMessage && !inbox ? errorMessage : null" :empty="!inbox || inbox.docs.length === 0" loading-message="Loading..." empty-message="No records to show.">
+          <ul class="list">
+            <ResourceListRow
+              v-for="record in inbox.docs"
+              :key="record.id"
+              :to="detailPath(record)"
+              :title="recordTitle(record)"
+              :summary="recordSummary(record)"
+              :aria-label="`Open ${resource.label} record ${record.id}`"
+            >
+              <template #meta>
+                <span class="tag mono-copy">{{ record.id }}</span>
+                <span class="tag mono-copy">{{ recordTimestamp(record) }}</span>
+              </template>
+            </ResourceListRow>
+          </ul>
+        </LoadingErrorEmpty>
+      </article>
+
+      <article class="panel panel-stack">
+        <PanelHeading eyebrow="Query results" title="Filtered records">
+          <template #aside>
+            <span v-if="queryResults" class="tag">{{ queryResults.docs_quantity }} matches</span>
+          </template>
+        </PanelHeading>
+
         <p v-if="!queryResults" class="muted-copy">Results will appear here after running a filter.</p>
         <p v-else-if="queryResults.docs.length === 0" class="muted-copy">No results found.</p>
 
         <ul v-else class="list">
-          <li v-for="record in queryResults.docs" :key="`query-${record.id}`" class="list-row raw-row">
-            <div class="raw-row__copy">
-              <strong>{{ recordTitle(record) }}</strong>
-              <p class="raw-row__summary">{{ recordSummary(record) }}</p>
-            </div>
-            <div class="raw-row__actions">
-              <RouterLink :to="detailPath(record)" class="button button--ghost">View detail</RouterLink>
-            </div>
-          </li>
+          <ResourceListRow
+            v-for="record in queryResults.docs"
+            :key="`query-${record.id}`"
+            :to="detailPath(record)"
+            :title="recordTitle(record)"
+            :summary="recordSummary(record)"
+            :aria-label="`Open filtered ${resource.label} record ${record.id}`"
+          >
+            <template #meta>
+              <span class="tag mono-copy">{{ record.id }}</span>
+              <span class="tag mono-copy">{{ recordTimestamp(record) }}</span>
+            </template>
+          </ResourceListRow>
         </ul>
       </article>
     </section>
@@ -291,37 +288,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.raw-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
-  align-items: start;
-}
-
-.raw-row__copy {
-  display: grid;
-  gap: 8px;
-}
-
-.raw-row__summary {
-  margin: 0;
-  color: var(--text-dim);
-  line-height: 1.55;
-}
-
-.raw-row__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.raw-row__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
 .lookup-block {
   display: grid;
   gap: 10px;
@@ -337,15 +303,5 @@ onMounted(async () => {
   border: 1px solid var(--border-strong);
   background: rgba(8, 12, 20, 0.92);
   color: var(--text);
-}
-
-@media (max-width: 900px) {
-  .raw-row {
-    grid-template-columns: 1fr;
-  }
-
-  .raw-row__actions {
-    justify-content: flex-start;
-  }
 }
 </style>

@@ -7,6 +7,7 @@ import CrudPanel from "../components/CrudPanel.vue";
 import DetailMetadataPanel from "../components/DetailMetadataPanel.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PageHeader from "../components/PageHeader.vue";
+import ResourceJsonPanel from "../components/ResourceJsonPanel.vue";
 import { formatDate } from "../formatters";
 import {
   deleteConversationRecord,
@@ -44,8 +45,6 @@ const conversationItems = computed(() => {
     { label: "Items", value: record.value.item_count },
   ];
 });
-
-const currentJson = computed(() => JSON.stringify(record.value, null, 2));
 
 function resetEditors(value: ConversationRecord): void {
   patchText.value = JSON.stringify(
@@ -152,27 +151,31 @@ watch(conversationId, async (value) => {
 
     <LoadingErrorEmpty :loading="loading" :error="errorMessage && !record ? errorMessage : null" loading-message="Loading conversation detail...">
       <template v-if="record">
-      <section class="detail-grid">
-        <DetailMetadataPanel eyebrow="Current record" :title="`Conversation ${record.id}`" :items="conversationItems" :json-text="currentJson">
-          <template #aside>
-            <span class="tag">{{ record.item_count }} items</span>
-          </template>
-        </DetailMetadataPanel>
+        <section class="resource-detail-layout">
+          <section class="detail-grid">
+            <DetailMetadataPanel eyebrow="Current record" :title="`Conversation ${record.id}`" :items="conversationItems">
+              <template #aside>
+                <span class="tag">{{ record.item_count }} items</span>
+              </template>
+            </DetailMetadataPanel>
 
-        <CrudPanel
-          :feedback-message="feedbackMessage"
-          :error-message="errorMessage"
-          :patch-text="patchText"
-          :replace-text="replaceText"
-          :deleting="deleting"
-          delete-button-label="Delete conversation"
-          @patch="applyPatch"
-          @replace="applyReplace"
-          @delete="removeRecord"
-          @update:patch-text="patchText = $event"
-          @update:replace-text="replaceText = $event"
-        />
-      </section>
+            <CrudPanel
+              :feedback-message="feedbackMessage"
+              :error-message="errorMessage"
+              :patch-text="patchText"
+              :replace-text="replaceText"
+              :deleting="deleting"
+              delete-button-label="Delete conversation"
+              @patch="applyPatch"
+              @replace="applyReplace"
+              @delete="removeRecord"
+              @update:patch-text="patchText = $event"
+              @update:replace-text="replaceText = $event"
+            />
+          </section>
+
+          <ResourceJsonPanel :value="record" title="Conversation JSON" />
+        </section>
       </template>
     </LoadingErrorEmpty>
   </section>

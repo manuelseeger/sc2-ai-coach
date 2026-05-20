@@ -7,6 +7,8 @@ import FormField from "../components/FormField.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PageHeader from "../components/PageHeader.vue";
 import PanelHeading from "../components/PanelHeading.vue";
+import ResourceInboxControls from "../components/ResourceInboxControls.vue";
+import ResourceListRow from "../components/ResourceListRow.vue";
 import { formatDate } from "../formatters";
 import { loadMetadataInbox, queryMetadataRecords } from "../metadata";
 import type { ListParams, MetadataRecord, PaginatedResponse, QueryBody } from "../types";
@@ -101,10 +103,12 @@ onMounted(async () => {
       </template>
     </PageHeader>
 
-    <section class="results-grid">
-      <article class="panel panel-stack">
-        <PanelHeading eyebrow="Filters" title="Browse annotations" />
-
+    <ResourceInboxControls
+      primary-title="Browse annotations"
+      secondary-title="Custom filter"
+      secondary-intro="Run a direct JSON query when you need a more exact metadata slice."
+    >
+      <template #primary>
         <div class="form-grid">
           <FormField label="Replay">
             <input v-model="filters.replay" class="text-input mono-copy" type="text" />
@@ -138,11 +142,9 @@ onMounted(async () => {
         <div class="button-row">
           <button type="button" class="button button--accent" @click="refreshList">Search</button>
         </div>
-      </article>
+      </template>
 
-      <article class="panel panel-stack">
-        <PanelHeading eyebrow="Advanced search" title="Custom filter" />
-
+      <template #secondary>
         <FormField class="form-field--wide" label="Filter">
           <textarea v-model="queryText" class="text-area" spellcheck="false" />
         </FormField>
@@ -150,8 +152,8 @@ onMounted(async () => {
         <div class="button-row">
           <button type="button" class="button" @click="runAdvancedQuery">Run filter</button>
         </div>
-      </article>
-    </section>
+      </template>
+    </ResourceInboxControls>
 
     <section class="panel panel-stack">
       <PanelHeading eyebrow="Results" :title="resultMode === 'list' ? 'Annotations' : 'Filtered results'">
@@ -162,25 +164,23 @@ onMounted(async () => {
 
       <LoadingErrorEmpty :loading="loading" :error="errorMessage" :empty="!result || result.docs.length === 0" loading-message="Loading..." empty-message="No annotations found.">
         <ul class="list list-block-spacing">
-        <li v-for="record in result.docs" :key="record.id" class="list-row">
-          <div class="split-topline">
-            <div>
-              <strong>{{ record.description || "Untitled metadata" }}</strong>
-              <p class="mono-copy">{{ record.id }}</p>
-            </div>
-            <span class="tag">{{ record.tags.length }} tags</span>
-          </div>
-
-          <div class="tag-row">
-            <span class="tag mono-copy">Replay {{ record.replay }}</span>
-            <span class="tag">{{ record.replay_summary_conversation ? "Has summary" : "No summary" }}</span>
-            <span class="tag">Updated {{ formatDate(record.updated_at) }}</span>
-          </div>
-
-          <RouterLink :to="`/resources/metadata/${record.id}`" class="list-link">
-            Open annotation
-          </RouterLink>
-        </li>
+          <ResourceListRow
+            v-for="record in result.docs"
+            :key="record.id"
+            :to="`/resources/metadata/${record.id}`"
+            :title="record.description || 'Untitled metadata'"
+            :summary="record.id"
+            :aria-label="`Open annotation ${record.id}`"
+          >
+            <template #aside>
+              <span class="tag">{{ record.tags.length }} tags</span>
+            </template>
+            <template #meta>
+              <span class="tag mono-copy">Replay {{ record.replay }}</span>
+              <span class="tag">{{ record.replay_summary_conversation ? "Has summary" : "No summary" }}</span>
+              <span class="tag">Updated {{ formatDate(record.updated_at) }}</span>
+            </template>
+          </ResourceListRow>
         </ul>
       </LoadingErrorEmpty>
     </section>

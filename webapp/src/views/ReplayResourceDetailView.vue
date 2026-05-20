@@ -7,6 +7,7 @@ import CrudPanel from "../components/CrudPanel.vue";
 import DetailMetadataPanel from "../components/DetailMetadataPanel.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PageHeader from "../components/PageHeader.vue";
+import ResourceJsonPanel from "../components/ResourceJsonPanel.vue";
 import { formatDate } from "../formatters";
 import {
   deleteReplayRecord,
@@ -43,8 +44,6 @@ const replayItems = computed(() => {
     { label: "Type", value: record.value.real_type },
   ];
 });
-
-const currentJson = computed(() => JSON.stringify(record.value, null, 2));
 
 function resetEditors(value: ReplayRecord): void {
   patchText.value = JSON.stringify({ filename: value.filename }, null, 2);
@@ -150,27 +149,31 @@ watch(
 
     <LoadingErrorEmpty :loading="loading" :error="errorMessage && !record ? errorMessage : null" loading-message="Loading...">
       <template v-if="record">
-      <section class="detail-grid">
-        <DetailMetadataPanel eyebrow="Current replay" :title="record.map_name" :items="replayItems" :json-text="currentJson">
-          <template #aside>
-            <span class="pill">{{ record.filename }}</span>
-          </template>
-        </DetailMetadataPanel>
+        <section class="resource-detail-layout">
+          <section class="detail-grid">
+            <DetailMetadataPanel eyebrow="Current replay" :title="record.map_name" :items="replayItems">
+              <template #aside>
+                <span class="pill">{{ record.filename }}</span>
+              </template>
+            </DetailMetadataPanel>
 
-        <CrudPanel
-          :feedback-message="feedbackMessage"
-          :error-message="errorMessage"
-          :patch-text="patchText"
-          :replace-text="replaceText"
-          :deleting="deleting"
-          delete-button-label="Delete replay"
-          @patch="applyPatch"
-          @replace="applyReplace"
-          @delete="removeRecord"
-          @update:patch-text="patchText = $event"
-          @update:replace-text="replaceText = $event"
-        />
-      </section>
+            <CrudPanel
+              :feedback-message="feedbackMessage"
+              :error-message="errorMessage"
+              :patch-text="patchText"
+              :replace-text="replaceText"
+              :deleting="deleting"
+              delete-button-label="Delete replay"
+              @patch="applyPatch"
+              @replace="applyReplace"
+              @delete="removeRecord"
+              @update:patch-text="patchText = $event"
+              @update:replace-text="replaceText = $event"
+            />
+          </section>
+
+          <ResourceJsonPanel :value="record" title="Replay JSON" />
+        </section>
       </template>
     </LoadingErrorEmpty>
   </section>

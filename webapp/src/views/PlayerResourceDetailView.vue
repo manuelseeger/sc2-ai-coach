@@ -7,6 +7,7 @@ import CrudPanel from "../components/CrudPanel.vue";
 import DetailMetadataPanel from "../components/DetailMetadataPanel.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PageHeader from "../components/PageHeader.vue";
+import ResourceJsonPanel from "../components/ResourceJsonPanel.vue";
 import { deletePlayerRecord, loadPlayerResourceDetail, patchPlayerRecord, replacePlayerRecord } from "../players";
 import type { PlayerInfoRecord } from "../types";
 
@@ -34,8 +35,6 @@ const playerItems = computed(() => {
     { label: "Tags", value: record.value.tags?.join(", ") || "None" },
   ];
 });
-
-const currentJson = computed(() => JSON.stringify(record.value, null, 2));
 
 function resetEditors(value: PlayerInfoRecord): void {
   patchText.value = JSON.stringify(
@@ -137,27 +136,31 @@ watch(toonHandle, async (value) => {
 
     <LoadingErrorEmpty :loading="loading" :error="errorMessage && !record ? errorMessage : null" loading-message="Loading player detail...">
       <template v-if="record">
-      <section class="detail-grid">
-        <DetailMetadataPanel eyebrow="Current record" :title="record.name" :items="playerItems" :json-text="currentJson">
-          <template #aside>
-            <span class="tag">{{ record.aliases.length }} aliases</span>
-          </template>
-        </DetailMetadataPanel>
+        <section class="resource-detail-layout">
+          <section class="detail-grid">
+            <DetailMetadataPanel eyebrow="Current record" :title="record.name" :items="playerItems">
+              <template #aside>
+                <span class="tag">{{ record.aliases.length }} aliases</span>
+              </template>
+            </DetailMetadataPanel>
 
-        <CrudPanel
-          :feedback-message="feedbackMessage"
-          :error-message="errorMessage"
-          :patch-text="patchText"
-          :replace-text="replaceText"
-          :deleting="deleting"
-          delete-button-label="Delete player"
-          @patch="applyPatch"
-          @replace="applyReplace"
-          @delete="removeRecord"
-          @update:patch-text="patchText = $event"
-          @update:replace-text="replaceText = $event"
-        />
-      </section>
+            <CrudPanel
+              :feedback-message="feedbackMessage"
+              :error-message="errorMessage"
+              :patch-text="patchText"
+              :replace-text="replaceText"
+              :deleting="deleting"
+              delete-button-label="Delete player"
+              @patch="applyPatch"
+              @replace="applyReplace"
+              @delete="removeRecord"
+              @update:patch-text="patchText = $event"
+              @update:replace-text="replaceText = $event"
+            />
+          </section>
+
+          <ResourceJsonPanel :value="record" title="Player JSON" />
+        </section>
       </template>
     </LoadingErrorEmpty>
   </section>
