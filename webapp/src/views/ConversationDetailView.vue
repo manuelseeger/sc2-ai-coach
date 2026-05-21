@@ -7,6 +7,7 @@ import KeyValueGrid from "../components/KeyValueGrid.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PanelHeading from "../components/PanelHeading.vue";
 import PageHeader from "../components/PageHeader.vue";
+import MessageContentRenderer from "../components/MessageContentRenderer.vue";
 import ToolCallCard from "../components/ToolCallCard.vue";
 import ToolResultCard from "../components/ToolResultCard.vue";
 import { computeConnectors } from "../connector";
@@ -59,14 +60,6 @@ const tokenStats = computed(() => {
 });
 
 const conversationId = computed(() => String(route.params.conversationId ?? ""));
-
-function renderMessage(item: ConversationItemRecord): string {
-  return item.content.map((part) => part.text).filter(Boolean).join("\n\n");
-}
-
-function isCodeLike(text: string): boolean {
-  return /(\{.*\}|\[.*\]|=>|class\s+|def\s+|function\s+)/s.test(text) || /\n\s{2,}\S/.test(text);
-}
 
 function itemKindLabel(item: ConversationItemRecord): string {
   if (item.type === "function_call") {
@@ -189,11 +182,10 @@ watch(conversationId, async (value) => {
                   <time class="transcript-item__time">{{ formatDate(item.created_at) }}</time>
                 </div>
 
-                <pre
+                <MessageContentRenderer
                   v-if="item.type === 'message'"
-                  class="transcript-item__body"
-                  :class="{ 'transcript-item__body--code': isCodeLike(renderMessage(item)) }"
-                >{{ renderMessage(item) }}</pre>
+                  :content="item.content"
+                />
 
                 <ToolCallCard
                   v-else-if="item.type === 'function_call'"
@@ -357,23 +349,7 @@ watch(conversationId, async (value) => {
   font-size: 0.78rem;
 }
 
-.transcript-item__body {
-  margin: 0;
-  white-space: pre-wrap;
-  color: var(--text);
-  font-family: var(--ui);
-  line-height: 1.7;
-  font-size: 0.98rem;
-}
 
-.transcript-item__body--code {
-  padding: 14px;
-  border-radius: var(--radius-sm);
-  background: rgba(7, 10, 16, 0.9);
-  border: 1px solid var(--border-muted);
-  font-family: var(--mono);
-  font-size: 0.82rem;
-}
 
 
 @media (max-width: 700px) {
