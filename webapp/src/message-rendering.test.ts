@@ -74,10 +74,18 @@ describe("renderMessage", () => {
     }
   });
 
-  it("bare JSON object (no fences) is treated as plain Markdown text, not a json block", () => {
+  it("bare JSON object (no fences) renders as a json block", () => {
     const blocks = renderMessage('{"no":"fences"}');
     expect(blocks).toHaveLength(1);
-    expect(blocks[0].kind).toBe("html");
+    expect(blocks[0].kind).toBe("json");
+    if (blocks[0].kind === "json") expect(blocks[0].value).toEqual({ no: "fences" });
+  });
+
+  it("bare JSON array (no fences) renders as a json block", () => {
+    const blocks = renderMessage('[1, 2, 3]');
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].kind).toBe("json");
+    if (blocks[0].kind === "json") expect(blocks[0].value).toEqual([1, 2, 3]);
   });
 
   it("content with multiple paragraphs produces a single html block containing both", () => {

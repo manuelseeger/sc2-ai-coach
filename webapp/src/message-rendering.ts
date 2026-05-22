@@ -44,6 +44,13 @@ md.renderer.rules.fence = (tokens, idx, _options, env, _self) => {
 export function renderMessage(text: string): MessageBlock[] {
   if (!text.trim()) return [];
 
+  // If the entire message is a bare JSON object or array, render it directly
+  // without requiring fenced syntax.
+  const wholeCheck = prepareDisplay(text.trim());
+  if (wholeCheck.isJson) {
+    return [{ kind: "json", value: wholeCheck.parsed }];
+  }
+
   const env: RenderEnv = { jsonStore: [] };
   const rendered = md.render(text, env as object);
 
