@@ -69,7 +69,7 @@ describe("build order presentation", () => {
     ];
 
     expect(summarizeOpening(entries, 4)).toBe(
-      "14 SupplyDepot -> 16 Barracks -> 17 Refinery -> 19 OrbitalCommand",
+      "14 Supply Depot -> 16 Barracks -> 17 Refinery -> 19 Orbital Command",
     );
   });
 });

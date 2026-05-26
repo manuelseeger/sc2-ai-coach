@@ -295,6 +295,7 @@ watch(
             <BuildOrderSequence
               :entries="panel.replayPlayer.build_order"
               :player-name="panel.replayPlayer.name"
+              :player-index="panel.idx + 1"
             />
           </article>
         </div>

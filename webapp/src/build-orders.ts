@@ -1,4 +1,5 @@
 import type { ReplayBuildOrderEntry } from "./types";
+import { canonicalUnitName } from "./unit-name-aliases";
 
 export interface BuildOrderDisplayStep {
   id: string;
@@ -19,7 +20,7 @@ export function summarizeBuildOrder(entries: ReplayBuildOrderEntry[] | null | un
       id: `step-${index}-${entry.name}-${entry.time}`,
       time: entry.time,
       supply: String(entry.supply),
-      build: entry.name,
+      build: canonicalUnitName(entry.name),
       isChronoboosted: Boolean(entry.is_chronoboosted),
     }));
 }
@@ -32,6 +33,6 @@ export function summarizeOpening(entries: ReplayBuildOrderEntry[] | null | undef
   return entries
     .filter((entry) => !entry.is_worker)
     .slice(0, limit)
-    .map((entry) => `${entry.supply} ${entry.name}`)
+    .map((entry) => `${entry.supply} ${canonicalUnitName(entry.name)}`)
     .join(" -> ");
 }

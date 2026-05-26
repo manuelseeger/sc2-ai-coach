@@ -30,3 +30,4 @@ rep.json
 .playwright-cli/
 test-results/
 playground/tmp/
+playground/icons/

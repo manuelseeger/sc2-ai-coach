@@ -3,11 +3,22 @@ import { computed, ref, watch } from "vue";
 
 import { summarizeBuildOrder, summarizeOpening } from "../build-orders";
 import type { ReplayBuildOrderEntry } from "../types";
+import { getUnitIconUrl, type StructureColor } from "../unit-icons";
 
-const props = defineProps<{
-  entries?: ReplayBuildOrderEntry[] | null;
-  playerName: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    entries?: ReplayBuildOrderEntry[] | null;
+    playerName: string;
+    playerIndex?: number;
+  }>(),
+  { playerIndex: 1 },
+);
+
+const structureColor = computed<StructureColor>(() => (props.playerIndex === 2 ? "red" : "blue"));
+
+function unitIconUrl(name: string): string | null {
+  return getUnitIconUrl(name, structureColor.value);
+}
 
 const expanded = ref(false);
 const defaultVisibleStepCount = 24;
@@ -61,6 +72,14 @@ watch(
         <span class="build-order-step__time" role="cell">{{ step.time }}</span>
         <span class="build-order-step__supply" role="cell">{{ step.supply }}</span>
         <div class="build-order-step__build" role="cell">
+          <img
+            v-if="unitIconUrl(step.build)"
+            :src="unitIconUrl(step.build) ?? ''"
+            :alt="step.build"
+            class="build-order-step__icon"
+            loading="lazy"
+          />
+          <span v-else class="build-order-step__icon build-order-step__icon--placeholder" aria-hidden="true" />
           <strong class="build-order-step__label">{{ step.build }}</strong>
           <span v-if="step.isChronoboosted" class="tag build-order-step__badge">Chronoboost</span>
         </div>
@@ -173,9 +192,24 @@ watch(
 
 .build-order-step__build {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
   min-width: 0;
+}
+
+.build-order-step__icon {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+.build-order-step__icon--placeholder {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px dashed var(--border-muted);
+  border-radius: 3px;
 }
 
 .build-order-step__label {
