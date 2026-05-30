@@ -210,6 +210,14 @@ def test_add_student_flag_persists_student_player_record(monkeypatch):
         def to_typed_replay(self, replay_raw):
             return fake_replay
 
+    enricher_calls: list[dict] = []
+
+    def fake_save_from_replay(replay, *, player_name=None):
+        enricher_calls.append({"replay": replay, "player_name": player_name})
+        if player_name == student_name:
+            return FakePlayerInfo(student_toon, student_name, student_toon)
+        return FakePlayerInfo(opponent_toon, opponent_name, opponent_toon)
+
     fake_runtime = repcli.RepCliRuntime(
         settings=types.SimpleNamespace(
             replay_folder=".",
@@ -220,11 +228,7 @@ def test_add_student_flag_persists_student_player_record(monkeypatch):
         replay_model=object,
         player_info_model=FakePlayerInfo,
         player_identity_enricher=types.SimpleNamespace(
-            save_from_replay=lambda replay: FakePlayerInfo(
-                opponent_toon,
-                opponent_name,
-                opponent_toon,
-            )
+            save_from_replay=fake_save_from_replay
         ),
     )
 
@@ -241,7 +245,4 @@ def test_add_student_flag_persists_student_player_record(monkeypatch):
     )
 
     assert result.exit_code == 0
-    assert fake_replay_store.find_calls == [student_toon]
-    assert [player.toon_handle for player in fake_replay_store.upserted] == [
-        student_toon
-    ]
+    assert [call["player_name"] for call in enricher_calls] == [None, student_name]

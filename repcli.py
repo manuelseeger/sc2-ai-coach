@@ -7,7 +7,7 @@ from datetime import date, datetime, timedelta
 from io import BytesIO
 from os.path import basename, getmtime, join
 from pathlib import Path
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated
 
 import click
 import climage
@@ -24,6 +24,12 @@ from src.playeridentity import PlayerIdentityEnrichmentError
 from src.runtime.playeridentity import build_player_identity_services
 from src.runtime.settings import Config, get_config
 
+if TYPE_CHECKING:
+    from src.persistence.replay_store import PlayerInfo, ReplayStore
+    from src.playeridentity import PlayerIdentityEnricher
+    from src.replays.reader import ReplayReader
+    from src.replays.types import Replay
+
 custom_theme = Theme(
     {
         "on": "bold green",
@@ -37,11 +43,11 @@ console = Console(theme=custom_theme)
 @dataclass
 class RepCliRuntime:
     settings: "Config"
-    reader: Any
-    replay_store: Any
-    replay_model: type
-    player_info_model: type
-    player_identity_enricher: Any
+    reader: "ReplayReader"
+    replay_store: "ReplayStore"
+    replay_model: type["Replay"]
+    player_info_model: type["PlayerInfo"]
+    player_identity_enricher: "PlayerIdentityEnricher"
 
 
 def load_runtime_settings() -> "Config":
@@ -446,31 +452,6 @@ def syncplayer(ctx, replay, summary: SyncSummary, runtime: RepCliRuntime):
             )
 
 
-def _upsert_player_info(player, replay, summary: SyncSummary, runtime: RepCliRuntime):
-    player_info = runtime.player_info_model(
-        id=player.toon_handle,
-        name=player.name,
-        toon_handle=player.toon_handle,
-    )
-
-    existing_player_info = runtime.replay_store.find(player_info)
-    if existing_player_info is not None:
-        player_info = existing_player_info
-
-    player_info.name = player.name
-    player_info.update_aliases(seen_on=replay.date)
-
-    result = runtime.replay_store.upsert(player_info)
-    if not result.acknowledged:
-        raise ValueError(f"{player.name} ({player.toon_handle}) was not acknowledged")
-
-    if player_info.toon_handle not in summary.players:
-        summary.players.append(player_info.toon_handle)
-        summary.players_added += 1
-
-    return player_info
-
-
 def syncstudent(ctx, replay, summary: SyncSummary, runtime: RepCliRuntime):
     student = replay.get_player(runtime.settings.student.name)
 
@@ -479,11 +460,22 @@ def syncstudent(ctx, replay, summary: SyncSummary, runtime: RepCliRuntime):
         return
 
     try:
-        _upsert_player_info(student, replay, summary, runtime)
+        player_info = runtime.player_identity_enricher.save_from_replay(
+            replay, player_name=student.name
+        )
         console.print(
             f":white_heavy_check_mark: {student.name} ({student.toon_handle}) added to DB from {replay}"
         )
-    except Exception as exc:  # noqa: BLE001
+        if player_info.toon_handle not in summary.players:
+            summary.players.append(player_info.toon_handle)
+            summary.players_added += 1
+            summary.portraits_added += 1 if player_info.portrait else 0
+            summary.portraits_constructed += (
+                1 if player_info.portrait_constructed else 0
+            )
+        if ctx.obj["VERBOSE"]:
+            print_player_portrait(player_info)
+    except PlayerIdentityEnrichmentError as exc:
         console.print(
             f":x: {student.name} ({student.toon_handle}) not added to DB: {exc}"
         )
