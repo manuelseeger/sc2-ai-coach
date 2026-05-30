@@ -17,7 +17,6 @@ In scope:
 - Specialized views for relationship-heavy resources where the API exposes dedicated relationship or aggregate endpoints.
 - Read-only query workflows for guarded `/query` endpoints.
 - Rendering of portrait media and portrait-availability metadata for player records.
-- Read-only visualization of aggregation-backed map stats endpoints.
 - Static build output served by the backend API at `/`.
 
 Out of scope:
@@ -182,12 +181,10 @@ Relationship and resource-specific methods:
 - `getPlayerPortraitMetadata(toonHandle)`
 - `getPlayersPortraitMetadata(toonHandles)`
 - `getResponseByResponseId(responseId)`
-- `getMapStats(params)`
-- `getMapStatsByName(mapName, params)`
 
 Optional helper methods are acceptable where they reduce UI complexity for known routes, for example `getOpenApiDocument()` when the frontend wants to inspect FastAPI's generated contract at `GET /api/openapi.json`.
 
-The generic helpers apply only to the documented registry-backed resource families. They do not apply to relationship endpoints, portrait media endpoints, read-only map-stats endpoints, or the conversation-specific item-append flow.
+The generic helpers apply only to the documented registry-backed resource families. They do not apply to relationship endpoints, portrait media endpoints, or the conversation-specific item-append flow.
 
 Image endpoints do not need to be rewrapped as JSON helpers. The UI can use the portrait URLs returned by the API directly in image elements and related media previews.
 
@@ -222,7 +219,7 @@ The first screen is the admin workspace, not a marketing landing page.
 It should show the supported admin areas and make it easy to jump into:
 
 - Generic resource lists for the registry-backed API route families.
-- Specialized conversation, session, replay, player, and map-stat views.
+- Specialized conversation, session, replay, and player views.
 - Health inspection and optional OpenAPI inspection where useful for admin/debug workflows.
 
 When a resource has a curated screen and is also writable, the workspace may expose both:
@@ -242,7 +239,7 @@ Generic detail views should support:
 - `DELETE` for writable resources.
 - Disabled or hidden write actions for read-only resources.
 
-The generic maintenance UI is only for the registry-backed resource families documented by the API. It does not apply to relationship-first specialized screens such as map stats, replay players, portrait media endpoints, or the ordered conversation-item append flow.
+The generic maintenance UI is only for the registry-backed resource families documented by the API. It does not apply to relationship-first specialized screens such as replay players, portrait media endpoints, or the ordered conversation-item append flow.
 
 FastAPI's generated OpenAPI document at `GET /api/openapi.json` may inform labels and field hints where practical, but raw JSON editing remains the primary fallback for complex persisted models. The webapp should not depend on a per-resource schema endpoint because the API does not define one.
 
@@ -365,24 +362,6 @@ The UI should:
 Player list and collection-oriented views may use `POST /api/players/portrait-metadata` to resolve portrait availability for multiple players in one request.
 
 Generic player maintenance remains separate from this specialized review flow and is treated as an expert or repair workflow rather than the default player-review path.
-
-### Map Stats View
-
-Map stats should be treated as a specialized read-only reporting view.
-
-It should use:
-
-- `GET /api/map-stats`
-- `GET /api/map-stats/{map_name}`
-
-The view should support:
-
-- Map selection.
-- Lower-bound date filtering through `min_date`.
-- Read-only display of the existing `MatchupsByMap` model returned by the backend.
-
-The UI must not imply that map stats are editable documents.
-The UI must not imply support for arbitrary groupings, upper-bound date filters, or named comparison ranges because the API does not define them.
 
 ## Binary and Media Handling
 

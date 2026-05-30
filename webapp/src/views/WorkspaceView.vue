@@ -32,13 +32,6 @@ const quickLinks = [
     accent: "accent",
   },
   {
-    label: "Map Stats",
-    description: "Win-rate statistics by map and matchup",
-    path: "/map-stats",
-    eyebrow: "Read only",
-    accent: "muted",
-  },
-  {
     label: "Health",
     description: "Service status and connectivity",
     path: "/health",

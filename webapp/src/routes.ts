@@ -7,7 +7,6 @@ import { resourceRegistry } from "./route-registry";
 import MetadataCreateView from "./views/MetadataCreateView.vue";
 import MetadataDetailView from "./views/MetadataDetailView.vue";
 import MetadataInboxView from "./views/MetadataInboxView.vue";
-import MapStatsView from "./views/MapStatsView.vue";
 import PlayerCreateView from "./views/PlayerCreateView.vue";
 import PlayerDetailView from "./views/PlayerDetailView.vue";
 import PlayerInboxView from "./views/PlayerInboxView.vue";
@@ -91,11 +90,6 @@ export const routes = [
     name: "player-detail",
     component: PlayerDetailView,
     props: true,
-  },
-  {
-    path: "/map-stats",
-    name: "map-stats",
-    component: MapStatsView,
   },
   {
     path: "/resources/replays",

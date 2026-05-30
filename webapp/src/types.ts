@@ -27,19 +27,6 @@ export interface HealthResponse {
   db_name: string;
 }
 
-export interface MatchupRecord {
-  matchup: string;
-  totalGames: number;
-  wins: number;
-  losses: number;
-  winrate: number;
-}
-
-export interface MatchupsByMapRecord {
-  map: string;
-  matchups: MatchupRecord[];
-}
-
 export interface PaginatedResponse<T> {
   current_page: number;
   page_quantity: number;
@@ -269,8 +256,6 @@ export interface ToolDefinition {
 
 export interface ApiClient {
   getHealth(): Promise<HealthResponse>;
-  getMapStats<T>(params?: ListParams): Promise<T>;
-  getMapStatsByName<T>(mapName: string, params?: ListParams): Promise<T>;
   listResource<T>(resource: ResourceName, params?: ListParams): Promise<T>;
   queryResource<T>(resource: ResourceName, body: QueryBody): Promise<T>;
   getResource<T>(resource: ResourceName, id: string): Promise<T>;

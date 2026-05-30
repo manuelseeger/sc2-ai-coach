@@ -19,16 +19,11 @@ describe("webapp bootstrap", () => {
     expect(adminAreas.map((area) => area.id)).toContain("workspace");
     expect(adminAreas.map((area) => area.id)).toContain("health");
     expect(adminAreas.map((area) => area.id)).toContain("players-review");
-    expect(adminAreas.map((area) => area.id)).toContain("map-stats-review");
-
-    expect(routes.some((route) => route.path === "/map-stats")).toBe(true);
 
     const client = createApiClient();
 
     expect(client).toMatchObject({
       getHealth: expect.any(Function),
-      getMapStats: expect.any(Function),
-      getMapStatsByName: expect.any(Function),
       listResource: expect.any(Function),
       getResource: expect.any(Function),
       getSessionConversations: expect.any(Function),

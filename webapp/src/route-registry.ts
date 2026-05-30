@@ -77,12 +77,6 @@ export const adminAreas: AdminArea[] = [
     path: "/players",
   },
   {
-    id: "map-stats-review",
-    label: "Map Stats",
-    description: "Win-rate statistics by map and matchup.",
-    path: "/map-stats",
-  },
-  {
     id: "health",
     label: "Health",
     description: "Check service health and connectivity.",

@@ -101,14 +101,6 @@ export function createApiClient(baseUrl = "/api"): ApiClient {
     return request<HealthResponse>("/health");
   }
 
-  function getMapStats<T>(params?: ListParams): Promise<T> {
-    return request<T>(`/map-stats${buildQuery(params)}`);
-  }
-
-  function getMapStatsByName<T>(mapName: string, params?: ListParams): Promise<T> {
-    return request<T>(`/map-stats/${encodeURIComponent(mapName)}${buildQuery(params)}`);
-  }
-
   function getConversationItems<T>(conversationId: string, params?: ListParams): Promise<T> {
     return request<T>(
       `/conversations/${encodeURIComponent(conversationId)}/items${buildQuery(params)}`,
@@ -169,8 +161,6 @@ export function createApiClient(baseUrl = "/api"): ApiClient {
 
   return {
     getHealth,
-    getMapStats,
-    getMapStatsByName,
     listResource,
     queryResource,
     getResource,
