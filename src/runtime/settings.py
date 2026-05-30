@@ -303,7 +303,7 @@ class Config(BaseSettings):
     default_projection: Dict[str, int]
 
     db_name: str
-    mongo_dsn: MongoSRVDsn
+    mongo_dsn: MongoSRVDsn = "mongodb://localhost:28765/SC2AICOACH"  # pyright: ignore[reportAssignmentType]
     api: ApiConfig = Field(default_factory=ApiConfig)
 
     @classmethod

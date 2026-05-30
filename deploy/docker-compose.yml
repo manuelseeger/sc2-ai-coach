@@ -5,7 +5,7 @@ services:
     image: mongo:7
     restart: unless-stopped
     ports:
-      - "${DB_PORT:-27018}:27017"
+      - "${DB_PORT:-28765}:27017"
     environment:
       MONGO_INITDB_DATABASE: "${DB_NAME:-SC2AICOACH}"
     volumes:
