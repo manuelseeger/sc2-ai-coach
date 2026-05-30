@@ -254,18 +254,8 @@ watch(
             v-for="panel in playerPanels"
             :key="panel.replayPlayer.toon_handle"
             class="duel-player-card surface-card"
-            :class="[
-              `duel-player-card--p${panel.idx + 1}`,
-              { 'surface-card--interactive': panel.playerInfo },
-            ]"
+            :class="[`duel-player-card--p${panel.idx + 1}`]"
           >
-            <RouterLink
-              v-if="panel.playerInfo"
-              :to="`/players/${panel.replayPlayer.toon_handle}`"
-              class="duel-player-card__overlay"
-              :aria-label="`View ${panel.replayPlayer.name}`"
-            />
-
             <div class="duel-player-card__topline">
               <span class="tag" :class="replayResultClass(panel.replayPlayer.result)">
                 {{ panel.replayPlayer.result }}
@@ -273,7 +263,11 @@ watch(
             </div>
 
             <div class="duel-player-card__body">
-              <div class="duel-player-card__portrait">
+              <RouterLink
+                :to="`/players/${panel.replayPlayer.toon_handle}`"
+                class="duel-player-card__portrait duel-player-card__portrait-link"
+                :aria-label="`View ${panel.replayPlayer.name}`"
+              >
                 <img
                   v-if="panel.portraitUrl"
                   :src="panel.portraitUrl"
@@ -281,12 +275,17 @@ watch(
                   class="duel-player-card__portrait-img"
                 />
                 <div v-else class="duel-player-card__portrait-fallback">{{ panel.replayPlayer.name.slice(0, 1) }}</div>
-              </div>
+              </RouterLink>
 
               <div class="duel-player-card__identity">
-                <strong class="duel-player-card__name" :class="`player--p${panel.idx + 1}`">
-                  {{ panel.replayPlayer.name }}
-                </strong>
+                <RouterLink
+                  :to="`/players/${panel.replayPlayer.toon_handle}`"
+                  class="duel-player-card__name-link"
+                >
+                  <strong class="duel-player-card__name" :class="`player--p${panel.idx + 1}`">
+                    {{ panel.replayPlayer.name }}
+                  </strong>
+                </RouterLink>
                 <p class="duel-player-card__toon">{{ panel.replayPlayer.toon_handle }}</p>
 
                 <div class="tag-row">
@@ -386,12 +385,6 @@ watch(
   border-left: 2px solid var(--p2);
 }
 
-.duel-player-card__overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-}
-
 .duel-player-card__topline {
   display: flex;
   align-items: center;
@@ -415,6 +408,26 @@ watch(
   overflow: hidden;
   border: 1px solid var(--border);
   background: linear-gradient(180deg, rgba(16, 24, 38, 0.9), rgba(10, 16, 26, 1));
+}
+
+.duel-player-card__portrait-link {
+  display: block;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.duel-player-card__portrait-link:hover,
+.duel-player-card__portrait-link:focus-visible {
+  border-color: var(--accent);
+}
+
+.duel-player-card__name-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.duel-player-card__name-link:hover .duel-player-card__name,
+.duel-player-card__name-link:focus-visible .duel-player-card__name {
+  text-decoration: underline;
 }
 
 .duel-player-card__portrait-img {
