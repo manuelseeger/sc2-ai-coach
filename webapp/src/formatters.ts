@@ -99,6 +99,17 @@ export function replayRaceTagClass(race: string): string {
   return replayRaceTagClasses[race] ?? "";
 }
 
+export function sc2pulseUrl(toonHandle: string | null | undefined): string | null {
+  if (!toonHandle) return null;
+  const parts = toonHandle.split("-");
+  // format: region - S{region} - realm - profileId  => 4 parts
+  if (parts.length !== 4) return null;
+  const [region, , realm, profileId] = parts;
+  if (!region || !realm || !profileId) return null;
+  const bnet = `https://starcraft2.blizzard.com/en-us/profile/${region}/${realm}/${profileId}`;
+  return `https://sc2pulse.nephest.com/sc2/?type=search&name=${encodeURIComponent(bnet)}#search`;
+}
+
 export function replayResultClass(result: string): string {
   if (result === "Win") {
     return "tag--ok";

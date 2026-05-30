@@ -7,8 +7,8 @@ import KeyValueGrid from "../components/KeyValueGrid.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PanelHeading from "../components/PanelHeading.vue";
 import PageHeader from "../components/PageHeader.vue";
-import { formatDate } from "../formatters";
-import { loadPlayerDetail } from "../players";
+import { formatDate, sc2pulseUrl } from "../formatters";
+import { loadPlayerDetail, patchPlayerRecord } from "../players";
 import type { PaginatedResponse, PlayerAliasRecord, PlayerInfoRecord, PlayerPortraitMetadataRecord, ReplayRecord } from "../types";
 
 const apiClient = createApiClient();
@@ -21,7 +21,13 @@ const aliases = ref<PlayerAliasRecord[]>([]);
 const portraitMetadata = ref<PlayerPortraitMetadataRecord | null>(null);
 const replays = ref<PaginatedResponse<ReplayRecord> | null>(null);
 
+const tags = ref<string[]>([]);
+const newTag = ref("");
+const savingTags = ref(false);
+const tagError = ref<string | null>(null);
+
 const toonHandle = computed(() => String(route.params.toonHandle ?? ""));
+const pulseUrl = computed(() => sc2pulseUrl(player.value?.toon_handle));
 
 const playerItems = computed(() => {
   if (!player.value) return [];
@@ -30,9 +36,42 @@ const playerItems = computed(() => {
     { label: "Toon handle", value: player.value.toon_handle, valueClass: "kv-grid__mono" },
     { label: "Name", value: player.value.name },
     { label: "Aliases", value: String(aliases.value.length) },
-    { label: "Tags", value: player.value.tags?.join(", ") || "None" },
   ];
 });
+
+async function saveTags(nextTags: string[]): Promise<void> {
+  if (!player.value) return;
+
+  const previous = tags.value;
+  savingTags.value = true;
+  tagError.value = null;
+  tags.value = nextTags;
+
+  try {
+    const patched = await patchPlayerRecord(apiClient, player.value.toon_handle, { tags: nextTags });
+    player.value = patched;
+    tags.value = patched.tags ?? [];
+  } catch (error) {
+    tags.value = previous;
+    tagError.value = error instanceof ApiError ? error.message : "Unable to update tags.";
+  } finally {
+    savingTags.value = false;
+  }
+}
+
+function addTag(): void {
+  const value = newTag.value.trim();
+  if (!value || tags.value.includes(value)) {
+    newTag.value = "";
+    return;
+  }
+  newTag.value = "";
+  void saveTags([...tags.value, value]);
+}
+
+function removeTag(tag: string): void {
+  void saveTags(tags.value.filter((existing) => existing !== tag));
+}
 
 function portraitsForAlias(index: number) {
   return portraitMetadata.value?.aliases[index]?.portraits ?? [];
@@ -50,12 +89,16 @@ watch(
       aliases.value = detail.aliases;
       portraitMetadata.value = detail.portraitMetadata;
       replays.value = detail.replays;
+      tags.value = detail.player.tags ?? [];
+      tagError.value = null;
+      newTag.value = "";
     } catch (error) {
       errorMessage.value = error instanceof ApiError ? error.message : "Unable to load player review.";
       player.value = null;
       aliases.value = [];
       portraitMetadata.value = null;
       replays.value = null;
+      tags.value = [];
     } finally {
       loading.value = false;
     }
@@ -72,6 +115,15 @@ watch(
       breadcrumb-to="/players"
     >
       <template #actions>
+        <a
+          v-if="player && pulseUrl"
+          :href="pulseUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="button button--ghost"
+        >
+          sc2pulse ↗
+        </a>
         <RouterLink v-if="player" :to="`/resources/players/${player.toon_handle}`" class="button button--ghost">
           Maintenance
         </RouterLink>
@@ -89,6 +141,36 @@ watch(
           </PanelHeading>
 
           <KeyValueGrid class="list-block-spacing" :items="playerItems" />
+
+          <div class="tag-editor list-block-spacing">
+            <span class="form-label">Tags</span>
+            <div class="tag-row">
+              <span v-for="tag in tags" :key="tag" class="tag tag-editor__chip">
+                {{ tag }}
+                <button
+                  type="button"
+                  class="tag-editor__remove"
+                  :disabled="savingTags"
+                  :aria-label="`Remove tag ${tag}`"
+                  @click="removeTag(tag)"
+                >
+                  ×
+                </button>
+              </span>
+              <span v-if="!tags.length" class="muted-copy">No tags yet.</span>
+            </div>
+            <form class="tag-editor__add" @submit.prevent="addTag">
+              <input
+                v-model="newTag"
+                class="text-input"
+                type="text"
+                placeholder="Add a tag…"
+                :disabled="savingTags"
+              />
+              <button type="submit" class="button" :disabled="savingTags || !newTag.trim()">Add</button>
+            </form>
+            <p v-if="tagError" class="muted-copy tag-editor__error">{{ tagError }}</p>
+          </div>
         </article>
 
         <article class="panel panel-stack">
@@ -207,5 +289,51 @@ watch(
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.tag-editor {
+  display: grid;
+  gap: 8px;
+}
+
+.tag-editor__chip {
+  gap: 6px;
+  text-transform: none;
+}
+
+.tag-editor__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.tag-editor__remove:hover:not(:disabled) {
+  opacity: 1;
+}
+
+.tag-editor__remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.tag-editor__add {
+  display: flex;
+  gap: 8px;
+}
+
+.tag-editor__add .text-input {
+  flex: 1;
+}
+
+.tag-editor__error {
+  color: var(--danger-soft);
 }
 </style>

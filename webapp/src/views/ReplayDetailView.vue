@@ -8,7 +8,7 @@ import KeyValueGrid from "../components/KeyValueGrid.vue";
 import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PanelHeading from "../components/PanelHeading.vue";
 import PageHeader from "../components/PageHeader.vue";
-import { formatCount, formatDate, formatDuration, replayRaceTagClass, replayResultClass } from "../formatters";
+import { formatCount, formatDate, formatDuration, replayRaceTagClass, replayResultClass, sc2pulseUrl } from "../formatters";
 import { loadPlayerPortraitMetadataMap } from "../players";
 import { loadReplayDetail } from "../replays";
 import type { KeyValueItem } from "../components/KeyValueGrid.vue";
@@ -287,6 +287,15 @@ watch(
                   </strong>
                 </RouterLink>
                 <p class="duel-player-card__toon">{{ panel.replayPlayer.toon_handle }}</p>
+                <a
+                  v-if="sc2pulseUrl(panel.replayPlayer.toon_handle)"
+                  :href="sc2pulseUrl(panel.replayPlayer.toon_handle)!"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="duel-player-card__pulse-link"
+                >
+                  sc2pulse ↗
+                </a>
 
                 <div class="tag-row">
                   <span class="tag" :class="replayRaceTagClass(panel.replayPlayer.play_race)">
@@ -467,6 +476,20 @@ watch(
   color: var(--text-muted);
   font-size: 0.8rem;
   overflow-wrap: anywhere;
+}
+
+.duel-player-card__pulse-link {
+  margin-top: -4px;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  text-decoration: none;
+  justify-self: start;
+}
+
+.duel-player-card__pulse-link:hover,
+.duel-player-card__pulse-link:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
 }
 
 .duel-player-card__scalars {
