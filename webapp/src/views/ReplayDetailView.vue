@@ -39,8 +39,15 @@ const replay = ref<ReplayRecord | null>(null);
 const metadata = ref<MetadataRecord | null>(null);
 const players = ref<ReplayPlayerRelationship[]>([]);
 const portraits = ref<Record<string, PlayerPortraitMetadataRecord>>({});
+const mapImageMissing = ref(false);
 
 const replayId = computed(() => String(route.params.replayId ?? ""));
+
+const mapImageUrl = computed(() => {
+  if (!replay.value?.map_name) return null;
+  const filename = replay.value.map_name.replace(/ /g, "_").replace(/[^A-Za-z0-9._+-]/g, "_");
+  return `/assets/sc2-maps/${filename}.jpg`;
+});
 
 const replayItems = computed(() => {
   if (!replay.value) return [];
@@ -147,6 +154,7 @@ watch(
   async (value) => {
     loading.value = true;
     errorMessage.value = null;
+    mapImageMissing.value = false;
 
     try {
       const detail = await loadReplayDetail(apiClient, value);
@@ -201,11 +209,17 @@ watch(
 
         <article class="panel panel-stack">
           <div class="map-preview-card">
-            <div class="feature-surface">
-              <span class="eyebrow">Image coming later</span>
+            <img
+              v-if="mapImageUrl && !mapImageMissing"
+              :src="mapImageUrl"
+              :alt="`${replay.map_name} map`"
+              class="map-preview-card__image"
+              @error="mapImageMissing = true"
+            />
+            <div v-else class="feature-surface">
+              <span class="eyebrow">Map preview</span>
               <strong class="feature-surface__title">{{ replay.map_name }}</strong>
             </div>
-            <p class="muted-copy">Placeholder artwork panel for future map images.</p>
           </div>
         </article>
       </section>
@@ -340,6 +354,14 @@ watch(
 .map-preview-card {
   display: grid;
   gap: 16px;
+}
+
+.map-preview-card__image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
 }
 
 .replay-duel-grid {
