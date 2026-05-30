@@ -15,6 +15,13 @@ export const NAME_TO_CANONICAL: Record<string, string> = {
   SensorTower: "Sensor Tower",
   SupplyDepot: "Supply Depot",
   TechLab: "Tech Lab",
+  BarracksTechLab: "Tech Lab",
+  FactoryTechLab: "Tech Lab",
+  StarportTechLab: "Tech Lab",
+  Reactor: "Reactor",
+  BarracksReactor: "Reactor",
+  FactoryReactor: "Reactor",
+  StarportReactor: "Reactor",
   // Zerg structures
   BanelingNest: "Baneling Nest",
   CreepTumor: "Creep Tumor",
