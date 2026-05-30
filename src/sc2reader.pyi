@@ -1,7 +1,7 @@
 """Type stubs for sc2reader library."""
 
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 # Main Replay class
 class Replay:
@@ -117,15 +117,21 @@ class Observer:
     pid: Optional[int]
     messages: List[Message]
 
-# Factories
-class DictCachedSC2Factory:
-    def __init__(self, cache_max_size: int = 100) -> None: ...
-    def load_replay(self, filepath: str) -> Replay: ...
-    def register_plugin(self, replay_type: str, plugin: Any) -> None: ...
-
 class SC2Factory:
     def load_replay(self, filepath: str) -> Replay: ...
     def register_plugin(self, replay_type: str, plugin: Any) -> None: ...
+
+class DictCachedSC2Factory(SC2Factory):
+    def __init__(self, cache_max_size: int = 100) -> None: ...
+
+class DoubleCachedSC2Factory(DictCachedSC2Factory):
+    def __init__(self, cache_dir: str, cache_max_size: int = 100) -> None: ...
+
+# Factories object
+class Factories:
+    DictCachedSC2Factory: Type[DictCachedSC2Factory]
+    SC2Factory: Type[SC2Factory]
+    DoubleCachedSC2Factory: Type[DoubleCachedSC2Factory]
 
 # Engine
 class Engine:
@@ -133,6 +139,6 @@ class Engine:
 
 # Module-level objects and functions
 engine: Engine
-factories: Any
+factories: Factories
 
 def load_replay(filepath: str) -> Replay: ...

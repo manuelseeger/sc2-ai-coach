@@ -274,6 +274,7 @@ class Config(BaseSettings):
     blizzard_region: SC2Region
     bnet_cache_dir: Optional[DirectoryPath] = None
     include_map_details: bool = True
+    reader_cache_dir: Optional[DirectoryPath] = None
 
     twitch: TwitchConfig | None = None
 
