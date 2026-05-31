@@ -9,24 +9,6 @@ Add full dependencies
 
 Some dependencies need manual setup:
 
-## pytorch with CUDA
-
-Needs CUDA and a capabale NVidia GPU to run fast whisper.
-
-Install with uv: https://docs.astral.sh/uv/guides/integration/pytorch/
-
-## Flash attention
-
-https://pypi.org/project/flash-attn/
-
-Notes: 
-- Get C++ build tools: https://visualstudio.microsoft.com/visual-cpp-build-tools/
-  - MSVC C++ 2022 build tools latest
-  - Windows 11 SDK
-- Set MAX_JOBS=4 if less than 100Gb of RAM
-
-Build with uv but you need to have torch installed first. 
-
 ## tesseract
 
 Install tesseract with language data. (Windows: https://github.com/UB-Mannheim/tesseract/wiki).
@@ -43,3 +25,18 @@ https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=ms
 Install with your preferred engine, for example realtimetts[system,coqui]
 
 Requires C++ redistributable
+
+
+## Custom Wakeword
+
+To train a custom wakeword: 
+
+```
+uv tool install livekit-wakeword[train,eval,export]
+livekit-wakeword setup --config configs/prod.yaml
+```
+See https://github.com/livekit/livekit-wakeword
+
+Prerequisites: 
+https://github.com/espeak-ng/espeak-ng/
+

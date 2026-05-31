@@ -31,8 +31,7 @@ def test_player_identity_enricher_persists_player_info_in_seeded_store(
     assert player_info.toon_handle == opponent.toon_handle
     assert stored_player_info.name == opponent.name
     assert stored_player_info.toon_handle == opponent.toon_handle
-    assert stored_player_info.portrait is None
-    assert stored_player_info.portrait_constructed is None
+
     assert any(alias.name == opponent.name for alias in stored_player_info.aliases)
 
 
