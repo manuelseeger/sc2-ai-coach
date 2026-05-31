@@ -6,6 +6,7 @@ import numpy as np
 from PIL import Image
 from pyodmongo.queries import elem_match
 
+from log import DEFAULT_LOGGER_NAME
 from shared import http_client
 from src.lib.sc2client import SC2Client
 from src.lib.sc2pulse import SC2PulseClient
@@ -18,8 +19,6 @@ from src.persistence.replay_store import (
 from src.playeridentity import PlayerPortraitSource
 from src.runtime.settings import Config
 from src.util import is_barcode
-
-from log import DEFAULT_LOGGER_NAME
 
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 

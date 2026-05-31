@@ -82,12 +82,17 @@ class PlayerPortraitSource:
             and abs(reference_date - portrait_file_date).seconds < 200
         )
 
-    def get_matching_portrait_from_replay(self, replay: Replay) -> bytes | None:
-        opponent = replay.get_opponent_of(self.settings.student.name)
+    def get_matching_portrait_from_replay(
+        self, replay: Replay, *, player_name: str | None = None
+    ) -> bytes | None:
+        if player_name is None:
+            player = replay.get_opponent_of(self.settings.student.name)
+        else:
+            player = replay.get_player(player_name)
         reference_date = replay.date - timedelta(seconds=replay.real_length)
         reference_date = reference_date.replace(tzinfo=timezone.utc)
         return self.get_matching_portrait(
-            opponent.name, replay.map_name, reference_date
+            player.name, replay.map_name, reference_date
         )
 
     def get_matching_portrait(
@@ -157,14 +162,22 @@ class PlayerIdentityEnricher:
         self.replay_store = replay_store or get_replay_store()
         self.portrait_source = portrait_source or PlayerPortraitSource(settings)
 
-    def save_from_replay(self, replay: Replay) -> PlayerInfo:
+    def save_from_replay(
+        self, replay: Replay, *, player_name: str | None = None
+    ) -> PlayerInfo:
+        if player_name is None:
+            player = replay.get_opponent_of(self.settings.student.name)
+        else:
+            player = replay.get_player(player_name)
+
         portrait = None
         if self.settings.obs_integration:
-            portrait = self.portrait_source.get_matching_portrait_from_replay(replay)
+            portrait = self.portrait_source.get_matching_portrait_from_replay(
+                replay, player_name=player.name
+            )
 
-        opponent = replay.get_opponent_of(self.settings.student.name)
         portrait_constructed = self.portrait_source.portrait_construct_from_bnet(
-            opponent.toon_id
+            player.toon_id
         )
 
         if portrait is not None:
@@ -174,9 +187,9 @@ class PlayerIdentityEnricher:
             portrait_constructed = to_bson_binary(portrait_constructed)
 
         player_info = PlayerInfo(
-            id=opponent.toon_handle,
-            name=opponent.name,
-            toon_handle=opponent.toon_handle,
+            id=player.toon_handle,
+            name=player.name,
+            toon_handle=player.toon_handle,
             portrait=portrait,
             portrait_constructed=portrait_constructed,
         )
@@ -188,14 +201,14 @@ class PlayerIdentityEnricher:
         except Exception as exc:  # noqa: BLE001
             raise PlayerIdentityEnrichmentError(
                 "Failed to load existing player identity",
-                opponent_name=opponent.name,
-                toon_handle=opponent.toon_handle,
+                opponent_name=player.name,
+                toon_handle=player.toon_handle,
             ) from exc
 
         if existing_player_info:
             player_info = existing_player_info
 
-        player_info.name = opponent.name
+        player_info.name = player.name
         if portrait:
             player_info.portrait = portrait
 
@@ -221,7 +234,7 @@ class PlayerIdentityEnricher:
             )
 
         log.info(
-            f"Saved player info for opponent {player_info.name}, Aliases: {player_info.aliases}"
+            f"Saved player info for {player_info.name}, Aliases: {player_info.aliases}"
         )
 
         return player_info

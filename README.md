@@ -18,17 +18,17 @@ This is a personal research project to explore LLM-based agents applied to compe
 
 ### Examples
 
-Looking up past games when a new game is being played:
+| Analyzing a replay after a game just finished | Looking up past games when a new game is being played |
+|--|--|
+| ![Example replay](assets/aicoach-newreplay-manners.png "New Replay, discussing player's manners") | ![Example new game](assets/aicoach-scanner-example.png "New game started") |
 
-![Example new game](assets/aicoach-scanner-example.png "New game started")
+### Replay DB
 
-Analyzing a replay after a game just finished:
+The app comes with a replay DB and a simple UI to review replay, players, conversations, and replay metadata. The UI is meant for keeping track of AI coach conversations and generated metadata. The replay data stored with AICoach is intentionally filtered to the basics, and the UI does not fully replace a replay DB like SCElight. 
 
-![Example replay](assets/aicoach-newreplay-manners.png "New Replay, discussing player's manners")
-
-Answering arbitrary questions on SC2:
-
-![Example replay](assets/aicoach-hey-goat.png "Weighing in on the GOAT debate")
+| Replay DB UI | Replay conversation |
+|--|--|
+| ![Replay DB UI](assets/ReplayDB-admin.png) | ![Replay conversation](assets/ReplayDB-conversation.png) |
 
 ## Minimal Setup
 
@@ -63,9 +63,9 @@ The rest of the settings will be taken from `config.yml`.
 
 Secrets are configured with environment variables. Either provide them at runtime or put them in a local `.env` file. Note: `.env.example` is ignored by the application.
 
-### Database
+### Database and admin UI
 
-Any MongoDB > 4.5 will do. Either setup one by yourself, or use the local Docker Compose file in [mongodb/docker-compose.yml](mongodb/docker-compose.yml) for dev/testing.
+Use [deploy/docker-compose.yml](deploy/docker-compose.yml) to start up a database and a DB admin UI. 
 
 If you setup your own MongoDB, create a database and add the DB name to settings:
 
@@ -97,6 +97,8 @@ Options:
   --debug        Print debug messages, including replay parser
   --simulation   Run in simulation mode, don't actually insert to DB
   -v, --verbose  Print verbose output
+  --add-student  Create or update a player record for the configured student
+                 during replay imports
   --help         Show this message and exit.
 
 Commands:
@@ -120,6 +122,7 @@ The `replays` collection of the DB should now be populated with replay documents
 
 See `uv run repcli.py sync --help` for more options. You can always repopulate the DB from replay files without destroying anything. AICoach does not change anything on the replay data in the DB.
 
+### AI Coach
 
 Prerequisites:
 
@@ -137,7 +140,6 @@ If you just want a database with your replays you can skip this step and the nex
 ### (Optional) Additional settings
 
 Configure a wake hotkey. When pressed, AICoach will wake up and ask for input (default: `ctrl+alt+w`).
-
 
 Configure `student.emoji` if you want to show a [different icon](./playground/emojis.txt) in the terminal output.
 
@@ -217,8 +219,10 @@ Please note: This is a hobby project and advanced features are not ready to use 
 
 **Prerequisites:**
 - All requirements from minimal setup above
-- NVIDIA GPU (for local voice recognition and synthesis)
-- Microphone and speakers
+- torch, RealtimeTTS for voice synthesis
+- xAI API key for transcription
+- Porcupine API for wake word
+- Microphone and speakers, ideally with NVidia Broadcast
 
 For advanced setup with voice integration, see [Installation.md](Installation.md) for detailed steps. This requires Python experience and familiarity with machine learning tools.
 
@@ -233,11 +237,6 @@ For advanced setup with voice integration, see [Installation.md](Installation.md
 - SC2 Pulse integration - can unmask barcode players
 - Smurf detection - analyzes whether opponents are smurfs
 - Replay commentary - AICoach can commentate games from replays
-
-## Testing
-
-Tests are import-safe by default and should not load runtime settings at module import time.
-When a test intentionally needs the current yaml/env-backed runtime settings, use `tests.conftest.load_test_settings()` or the `runtime_settings` fixture.
 
 ## Limitations
 

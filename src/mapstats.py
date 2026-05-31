@@ -9,11 +9,9 @@ from jinja2 import Environment, FileSystemLoader
 from pydantic import HttpUrl, computed_field
 from pyodmongo import DbModel, MainBaseModel
 
-from src.persistence.replay_store import ReplayStore, get_replay_store
-from src.replays.types import Replay
-from src.runtime.settings import Config, get_config
-
 from log import DEFAULT_LOGGER_NAME
+from src.persistence.replay_store import ReplayStore, get_replay_store
+from src.runtime.settings import Config, get_config
 
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
@@ -123,7 +121,45 @@ def _configure_matchups_pipeline(settings: Config) -> None:
     MatchupsByMap._pipeline.extend(_map_stats_pipeline(settings))
 
 
-_configure_matchups_pipeline(get_config())
+def _sort_map_stats(stats: list[MatchupsByMap]) -> list[MatchupsByMap]:
+    return sorted(
+        (
+            MatchupsByMap(
+                map=entry.map,
+                matchups=sorted(entry.matchups, key=lambda matchup: matchup.matchup),
+            )
+            for entry in stats
+        ),
+        key=lambda entry: entry.map,
+    )
+
+
+def list_map_stats(
+    map_name: str | None = None,
+    min_date: datetime | None = None,
+    replay_store: ReplayStore | None = None,
+    *,
+    settings: Config | None = None,
+) -> list[MatchupsByMap]:
+    settings = settings or get_config()
+    if min_date is None:
+        min_date = settings.season_start
+
+    replay_store = replay_store or get_replay_store()
+    _configure_matchups_pipeline(settings)
+
+    raw_query: dict[str, Any] = {}
+    if map_name is not None:
+        raw_query["map_name"] = map_name
+    if min_date is not None:
+        raw_query["date"] = {"$gte": min_date}
+
+    find_many_kwargs: dict[str, Any] = {"Model": MatchupsByMap}
+    if raw_query:
+        find_many_kwargs["raw_query"] = raw_query
+
+    maps: list[MatchupsByMap] = replay_store.db.find_many(**find_many_kwargs)
+    return _sort_map_stats(maps)
 
 
 def add_path_segment(url: HttpUrl, *segments: Any) -> str:
@@ -191,15 +227,10 @@ def get_map_stats(
     *,
     settings: Config | None = None,
 ) -> MatchupsByMap | None:
-    settings = settings or get_config()
-    if min_date is None:
-        min_date = settings.season_start
-
-    replay_store = replay_store or get_replay_store()
-    _configure_matchups_pipeline(settings)
-    query = (Replay.map_name == map) & (Replay.date >= min_date)  # pyright: ignore[reportOperatorIssue]
-    maps: list[MatchupsByMap] = replay_store.db.find_many(
-        Model=MatchupsByMap,
-        query=query,  # type: ignore[assignment]
+    maps = list_map_stats(
+        map_name=map,
+        min_date=min_date,
+        replay_store=replay_store,
+        settings=settings,
     )
     return maps[0] if maps else None

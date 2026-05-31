@@ -26,3 +26,8 @@ rep.json
 .ruff_cache/
 .pytest_cache/
 .claude/
+.playwright/
+.playwright-cli/
+test-results/
+playground/tmp/
+playground/icons/

@@ -32,6 +32,7 @@ from src.ai.pricing import (
     get_default_model_pricing,
     normalize_model_name,
 )
+from src.api.config import ApiConfig
 from src.runtime.audio_devices import select_preferred_microphone_index
 
 MongoSRVDsn = Annotated[
@@ -273,6 +274,7 @@ class Config(BaseSettings):
     blizzard_region: SC2Region
     bnet_cache_dir: Optional[DirectoryPath] = None
     include_map_details: bool = True
+    reader_cache_dir: Optional[DirectoryPath] = None
 
     twitch: TwitchConfig | None = None
 
@@ -301,7 +303,8 @@ class Config(BaseSettings):
     default_projection: Dict[str, int]
 
     db_name: str
-    mongo_dsn: MongoSRVDsn
+    mongo_dsn: MongoSRVDsn = "mongodb://localhost:28765/SC2AICOACH"  # pyright: ignore[reportAssignmentType]
+    api: ApiConfig = Field(default_factory=ApiConfig)
 
     @classmethod
     def settings_customise_sources(  # type: ignore[override]
@@ -335,6 +338,10 @@ def load_current_settings(*, require_prepared_environment: bool = True) -> Confi
         raise SettingsLoaderError("Runtime environment is not prepared")
 
     return settings
+
+
+def load_api_settings() -> Config:
+    return load_current_settings(require_prepared_environment=False)
 
 
 _config_cache: Config | None = None

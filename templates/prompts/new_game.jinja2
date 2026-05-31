@@ -10,7 +10,9 @@ Give a 1 sentence summary of {{opponent}} strategy for each replay. Be specific 
 Past replays against {{opponent}}:
 -------------------
 {% for replay in replays %}
+```json
 {{replay}}
+```
 -------------------
 {% endfor %}
 {% endif %}

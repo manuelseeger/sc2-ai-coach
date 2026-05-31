@@ -4,13 +4,13 @@ from typing import Dict, Optional
 
 import httpx
 from blizzardapi2 import BlizzardApi
+from blizzardapi2.types import Locale, Region
 from pydantic import BaseModel, HttpUrl
 
+from log import DEFAULT_LOGGER_NAME
 from shared import REGION_MAP
 from src.replays.types import ToonHandle
 from src.runtime.settings import Config, get_config
-
-from log import DEFAULT_LOGGER_NAME
 
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
@@ -94,13 +94,15 @@ class BattleNet:
         self.realm_id = REGION_MAP[self.settings.blizzard_region.value][1]
 
     def get_profile(self, profile_id: int) -> BattlenetProfile | None:
+
         try:
+            region = Region(self.settings.blizzard_region.value.lower())
             p = self.api_client.starcraft2.community.get_profile(
-                region=self.settings.blizzard_region,
+                region=region,
                 region_id=self.region_id,
                 realm_id=self.realm_id,
                 profile_id=profile_id,
-                locale="en_US",
+                locale=Locale.EN_US,
             )
         except Exception as e:
             # todo WARNING  Failed to get profile 10161794: strptime() argument 1 must be str, not None

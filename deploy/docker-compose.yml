@@ -1,0 +1,59 @@
+name: sc2-ai-coach-db
+
+services:
+  db:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT:-28765}:27017"
+    environment:
+      MONGO_INITDB_DATABASE: "${DB_NAME:-SC2AICOACH}"
+    volumes:
+      - sc2-aicoach-mongo-data:/data/db
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--quiet",
+          "--eval",
+          "db.adminCommand('ping').ok",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-8765}:8765"
+    environment:
+      AICOACH_API__HOST: "0.0.0.0"
+      AICOACH_API__PORT: "8765"
+      AICOACH_MONGO_DSN: "mongodb://db:27017"
+      AICOACH_DB_NAME: "${DB_NAME:-SC2AICOACH}"
+      AICOACH_OPENAI_API_KEY: "${AICOACH_OPENAI_API_KEY:-}"
+      AICOACH_OPENAI_ORG_ID: "${AICOACH_OPENAI_ORG_ID:-}"
+      AICOACH_OPENAI_ENDPOINT: "${AICOACH_OPENAI_ENDPOINT:-}"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/api/health', timeout=3).read()",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+volumes:
+  sc2-aicoach-mongo-data:

@@ -82,7 +82,6 @@ class AIConversationTrigger(str, Enum):
 class AIConversationStatus(str, Enum):
     active = "active"
     closed = "closed"
-    archived = "archived"
     failed = "failed"
 
 
@@ -106,7 +105,6 @@ class AIConversation(DbModel):
     map_name: str | None = None
     opponent: str | None = None
     twitch_user: str | None = None
-    title: str | None = None
     metadata: dict[str, Any] = {}
 
     # Denormalized operational fields.
@@ -174,7 +172,6 @@ class AIConversationItem(DbModel):
 
     # Local assembly/debugging metadata.
     source: str | None = None
-    included_in_context: bool = True
     metadata: dict[str, Any] = {}
 
     _collection: ClassVar = "ai_conversation_items"

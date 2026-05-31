@@ -1,0 +1,235 @@
+<script setup lang="ts">
+import { RouterLink } from "vue-router";
+import { resourceRegistry } from "../route-registry";
+
+const quickLinks = [
+  {
+    label: "Sessions",
+    description: "Recent coaching sessions with linked conversations",
+    path: "/sessions",
+    eyebrow: "Read only",
+    accent: "accent",
+  },
+  {
+    label: "Conversations",
+    description: "Review coaching conversations and transcripts",
+    path: "/conversations",
+    eyebrow: "Curated review",
+    accent: "accent",
+  },
+  {
+    label: "Replays",
+    description: "Browse replays with linked annotations and players",
+    path: "/replays",
+    eyebrow: "Curated review",
+    accent: "accent",
+  },
+  {
+    label: "Players",
+    description: "Browse players with aliases and replay history",
+    path: "/players",
+    eyebrow: "Curated review",
+    accent: "accent",
+  },
+  {
+    label: "Health",
+    description: "Service status and connectivity",
+    path: "/health",
+    eyebrow: "System",
+    accent: "muted",
+  },
+];
+</script>
+
+<template>
+  <section class="page workspace-page">
+    <header class="workspace-hero panel">
+      <div class="workspace-hero__copy">
+        <p class="eyebrow">SC2 AI Coach</p>
+        <h2 class="page-hero__title page-hero__title--xl">Admin Workspace</h2>
+        <p class="workspace-hero__lead">
+          Inspect and manage coaching sessions, replays, players, and conversations.
+        </p>
+      </div>
+    </header>
+
+    <section class="workspace-section">
+      <p class="section-label">Quick access</p>
+      <div class="workspace-quicklinks">
+        <RouterLink
+          v-for="link in quickLinks"
+          :key="link.path"
+          :to="link.path"
+          class="quicklink-card surface-card surface-card--raised surface-card--glow-hover"
+          :class="`quicklink-card--${link.accent}`"
+        >
+          <p class="eyebrow">{{ link.eyebrow }}</p>
+          <strong class="quicklink-card__label">{{ link.label }}</strong>
+          <p class="quicklink-card__desc">{{ link.description }}</p>
+          <span class="quicklink-card__arrow">→</span>
+        </RouterLink>
+      </div>
+    </section>
+
+    <section class="workspace-section">
+      <p class="section-label">Resource families</p>
+      <div class="resource-table">
+        <RouterLink
+          v-for="resource in resourceRegistry"
+          :key="resource.name"
+          :to="`/resources/${resource.name}`"
+          class="resource-row"
+        >
+          <span class="resource-row__name">{{ resource.label }}</span>
+          <span class="resource-row__desc">{{ resource.description }}</span>
+          <span class="tag" :class="resource.writable ? 'tag--ok' : 'tag--warn'">
+            {{ resource.writable ? "Writable" : "Read only" }}
+          </span>
+          <span class="resource-row__path">/{{ resource.name }}</span>
+        </RouterLink>
+      </div>
+    </section>
+  </section>
+</template>
+
+<style scoped>
+.workspace-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+  min-height: 160px;
+  background: var(--workspace-hero-bg);
+}
+
+.workspace-hero__copy {
+  max-width: 60ch;
+}
+
+.workspace-hero__lead {
+  margin: 0;
+  color: var(--text-dim);
+  line-height: 1.65;
+  max-width: 56ch;
+}
+
+.workspace-section {
+  display: grid;
+  gap: 12px;
+}
+
+.workspace-quicklinks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.quicklink-card {
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+  cursor: pointer;
+}
+
+.quicklink-card--accent {
+  border-color: rgba(86, 194, 255, 0.2);
+}
+
+.quicklink-card__label {
+  font-family: var(--display);
+  font-size: 1.25rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.quicklink-card__desc {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.quicklink-card__arrow {
+  margin-top: 4px;
+  color: var(--accent-strong);
+  font-size: 1.1rem;
+  opacity: 0;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.quicklink-card:hover .quicklink-card__arrow {
+  opacity: 1;
+  transform: translateX(4px);
+}
+
+.resource-table {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.resource-row {
+  display: grid;
+  grid-template-columns: 160px 1fr auto 140px;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--surface-card-border-quiet);
+  background: var(--surface-card-bg);
+  transition: background 140ms ease;
+}
+
+.resource-row:last-child {
+  border-bottom: none;
+}
+
+.resource-row:hover {
+  background: var(--surface-card-bg-hover), var(--panel-stripe);
+}
+
+.resource-row__name {
+  font-family: var(--display);
+  font-size: 0.92rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.resource-row__desc {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.resource-row__path {
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  text-align: right;
+}
+
+@media (max-width: 1100px) {
+  .workspace-quicklinks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .workspace-quicklinks {
+    grid-template-columns: 1fr;
+  }
+
+  .resource-row {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+  }
+
+  .resource-row__desc {
+    grid-column: 1 / -1;
+  }
+
+  .resource-row__path {
+    display: none;
+  }
+}
+</style>

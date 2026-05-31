@@ -29,6 +29,19 @@
       }
     },
     {
+      "name": "Admin API",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "src.api",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "PYDEVD_DISABLE_FILE_VALIDATION": "1"
+      },
+      "preLaunchTask": "Build frontend"
+    },
+    {
       "name": "CLI full sync",
       "type": "debugpy",
       "request": "launch",

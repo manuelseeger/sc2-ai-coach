@@ -2,22 +2,30 @@
 
 ## Purpose
 
-The backend API provides a standalone FastAPI service for reviewing and editing the MongoDB-backed SC2 AI Coach data. It is the backend for an admin webapp, but it is not just a raw database browser. The API exposes the persisted models through domain-oriented resources and includes relationship endpoints for workflows that only make sense across multiple collections.
+The backend API provides a standalone FastAPI service for reviewing and editing the MongoDB-backed SC2 AI Coach data. It is the backend for an admin webapp, but it is not just a raw database browser. The API exposes the solution's persisted models.
 
-The API lives in `src/api/` and runs without the coach runtime, replay watcher, voice stack, OBS integration, or OpenAI request loop.
+The API lives in `src/api/` and reuses the overall solutions data access layer and models, but runs without the coach runtime, replay watcher, voice stack, OBS integration, or OpenAI request loop.
 
 ## Design Direction
 
-The API uses dedicated resource paths instead of a generic `/models/{resource}` CRUD surface.
+The API uses dedicated resource paths for its CRUD surface. The API is intentionally simple, and offers a REST interface to the models of the solution. 
 
-Dedicated paths make the API useful beyond raw collection editing:
+Those paths are domain-model-shaped. Route families are named directly after the underlying domain resources, for example `/api/replays/{id}` and `/api/sessions/{id}`. The API does not introduce a generic prefix layer such as `/api/resources/replays/{id}` or `/api/resources/sessions/{id}`.
 
-- Conversations expose their ordered conversation items and response records.
-- Sessions expose their conversations.
-- Replays expose their metadata and participating players.
-- Players expose related replays.
+Apps build on top of the API will have to orchestrate fetching required data on the REST API. The API and apps build on top are expected to run locally, so inefficient fetching is fine. 
 
-The implementation can still share generic CRUD helpers internally. The public API is domain-shaped because the admin UI includes custom views rather than a uniform raw collection editor.
+The API will make use of FastAPI and Pydantic throughout.
+- The solution's DbModel and MainBaseModel are Pydantic-models and can be used with FastAPI. See [../references/pyodmongo.md](../references/pyodmongo.md)
+- Expectation is that the API does not (re)define new models for domain / DB data
+- If an endpoint needs a new response model, this needs to be called out during implementation
+- The API reuses the existing DB stores. If the DB store surface is insufficient, this needs to be called out during implementation and a decision made where the store should be extended. 
+- The API MUST NOT access the DB directly, nor create it's own store/query abstractions
+- Api may define models that are API-only, like error shapes, metadata, or health responses, but not redefine domain models. 
+- Persisted resource endpoints use the existing domain models as FastAPI request and response models. API-only models are limited to helper responses, composite relationship responses, aggregate/read-only transport shapes, and non-resource envelopes such as health and error responses.
+- Route families are implemented as explicit FastAPI routers. Shared code is limited to narrow helpers for repeated mechanics such as pagination, sort parsing, error envelopes, id consistency checks, and patch-style load-merge-validate-save behavior.
+- The implementation does not introduce a generic runtime CRUD-router registration layer that hides resource-specific behavior behind configuration.
+- When the API needs additional resource lookups, relationship reads, or guarded query helpers, those capabilities are added to the existing store classes rather than introduced through an API-owned repository or service abstraction.
+- The API application constructs its own app-scoped dependencies at startup and injects them into request handlers. Request handling must not rely on lazy global getter fallbacks such as `get_config()` or `get_database()`.
 
 ## Scope
 
@@ -25,10 +33,9 @@ In scope:
 
 - Standalone FastAPI application in `src/api/`.
 - CRUD endpoints for persisted PyODMongo models.
-- Relationship endpoints that aggregate linked documents into useful admin views.
 - Pydantic/PyODMongo model validation for request and response payloads.
 - Read-only raw query helpers for advanced admin filtering.
-- Health, metadata, and schema endpoints for the webapp.
+- Health endpoints for the webapp.
 - Static serving support for the built webapp at `/`.
 
 Out of scope:
@@ -39,7 +46,6 @@ Out of scope:
 - Replay ingestion.
 - OpenAI calls.
 - OBS, microphone, TTS, STT, or wake-word integration.
-- Schema migrations.
 - Arbitrary MongoDB write commands.
 
 ## Dependencies
@@ -49,87 +55,78 @@ Python runtime dependencies:
 - `fastapi`
 - `uvicorn[standard]`
 
-Test dependencies already exist in the project, including `pytest`, `pytest-mock`, and the MongoDB test service helpers.
+- `min_date`: inclusive ISO datetime lower bound for replay `date`.
 
-## File Layout
 
-```text
+## File structure 
+
+```
 src/
     api/
-        __init__.py
-        __main__.py
-        app.py
-        config.py
-        database.py
-        errors.py
-        schemas.py
-        serialization.py
-        static.py
-        resources/
-            __init__.py
-            common.py
-            conversations.py
-            health.py
-            map_stats.py
-            metadata.py
-            players.py
-            replays.py
-            responses.py
-            sessions.py
+       ....
 ```
-
-`src/api/resources/common.py` contains shared pagination, sorting, filtering, id parsing, and CRUD helper code. Resource modules own public route definitions and domain-shaped response models.
 
 ## Runtime Configuration
 
-The API has its own settings model in `src/api/config.py`.
+
+The API reuses the main application settings surface in `src.runtime.settings`, including the nested `ApiConfig` child object under `Config.api`, but it must load those settings through an API-safe path that does not require coach-runtime preparation.
 
 ```python
-class ApiConfig(BaseSettings):
-    mongo_dsn: str = "mongodb://localhost:27017"
+from pydantic import BaseModel, Field
+
+from src.api.config import ApiConfig
+
+
+class Config(BaseSettings):
+    ...
+    mongo_dsn: MongoSRVDsn = "mongodb://localhost:27017"
     db_name: str = "SC2AICOACH"
+    api: ApiConfig = Field(default_factory=ApiConfig)
+
+
+class ApiConfig(BaseModel):
     host: str = "127.0.0.1"
     port: int = 8765
     web_dist_dir: Path = Path("webapp/dist")
-    cors_origins: list[str] = ["http://localhost:5173"]
+    mongo_connect_timeout_ms: int = 1000
 ```
 
-The API does not import a global project config module during app startup. Runtime settings load explicitly from `src.runtime.settings`, and API startup must not prompt, exit, or initialize voice/OBS-related paths.
+`ApiConfig` is a distinct nested settings object under `Config.api`. Shared database settings such as `mongo_dsn` and `db_name` remain on the main `Config`, while API-specific settings such as `host`, `port`, `web_dist_dir`, and `mongo_connect_timeout_ms` live on `ApiConfig`.
 
-`ApiConfig` does not import `MongoSRVDsn` from root `config.py`; API configuration is self-contained. If DSN validation is desired, `src/api/config.py` defines its own local annotated type.
+The API does not call the default runtime settings loader unchanged if that loader enforces microphone discovery, OBS path validation, or other coach-runtime requirements. If the existing settings construction path is not API-safe, it must be extended with an API mode or equivalent API-safe loader while keeping the same source-of-truth settings model.
+
+### Lifespan-Based Initialization
+
+Application initialization uses FastAPI's `lifespan` hook with an async context manager, not scattered `startup` handlers or import-time side effects.
+
+Within that lifespan block, the API:
+
+- loads config through the API-safe settings path
+- creates app-scoped dependencies such as the database client, database handle, and stores
+- attaches those dependencies to `app.state` or equivalent app-scoped dependency wiring
+- disposes of clients and other owned resources during shutdown in the same lifespan flow
+
+Initialization must be deterministic and happen once per app instance. Route handlers read already-constructed dependencies and must not perform first-use config loading, first-use database connection, or other lazy process-global initialization.
 
 Environment variables:
 
 - `AICOACH_MONGO_DSN`
 - `AICOACH_DB_NAME`
-- `AICOACH_API_HOST`
-- `AICOACH_API_PORT`
-- `AICOACH_API_WEB_DIST_DIR`
-- `AICOACH_API_CORS_ORIGINS`
-
-The API can reuse `MongoDatabase` and `MongoDatabaseConfig` with values from `ApiConfig`; it does not rely on the global project config object.
+- `AICOACH_API__HOST`
+- `AICOACH_API__PORT`
+- `AICOACH_API__WEB_DIST_DIR`
+- `AICOACH_API__MONGO_CONNECT_TIMEOUT_M
 
 ## Import-Safe Model Imports
 
-The API is standalone only when registered model modules import without constructing the full coach config.
+The API is standalone only when registered model modules import without constructing the full coach.
 
 Import safety requirements:
 
-- `src.replays.types` has no module-import dependency on the global `config.config` object. Config access is localized to methods that need it, such as `ToonHandle.from_id()` and `Replay.default_projection()`.
-- `src.persistence.conversation_store` has no module-import dependency on the global `config.config` object. Pricing config access is localized to `AIResponseRecord.from_response()`.
-- `src.persistence.session_store` does not import `AIBackend` from a root config module. Shared enums needed by DB models live in an import-safe module under `src.runtime.settings`.
-- `src.mapstats` has no API-startup dependency on global config. Map stats are available when their aggregation model is import-safe.
-
-There is no root `config.py` module constructing global settings during module import. DB model modules use explicit settings loading or targeted lazy imports where needed so FastAPI can import models safely.
-
-Import-safety test:
-
-```python
-def test_api_model_imports_do_not_construct_global_config():
-    import src.api.app
-```
-
-This test passes without prompting, exiting, initializing directories, or importing voice/OBS dependencies.
+- If coach application code is being run on import, this needs to be called out during API develepment
+- Importing `src.api.app` must not require audio device discovery, OBS paths, replay watcher setup, or any other prepared runtime environment.
+- API startup loads configuration through an API-safe path based on the main solution settings model and then constructs database and store dependencies explicitly for the app lifespan.
+- Shared persistence helpers may keep compatibility fallbacks for non-API callers, but API routes and dependencies do not use those fallbacks during normal request handling.
 
 ## Runnable Entry Points
 
@@ -165,14 +162,14 @@ Resource route families:
 - `/api/conversation-items`
 - `/api/responses`
 - `/api/map-stats`
-- `/api/schema`
 - `/api/health`
+
+These route families are the canonical public path shape. The API must not wrap them in an additional generic collection namespace such as `/api/resources/{resource_name}/...`.
 
 Specific relationship and alternate-key routes are registered before broad `/{id}` routes. Examples:
 
 - `/api/responses/by-response-id/{response_id}` is registered before `/api/responses/{record_id}`.
 - `/api/replays/{replay_id}/metadata` is registered as a replay relationship route, not as a metadata document-id lookup.
-- `/api/conversations/{conversation_id}/detail` is registered before generic nested routes that could otherwise capture `detail`.
 
 ### IDs
 
@@ -192,22 +189,25 @@ Endpoints that accept both document id and domain id use explicit paths, for exa
 
 ### Pagination
 
-Paginated list responses use this shape:
+Paginated list responses should reuse PyODMongo's built-in pagination support rather than defining an API-local wrapper model.
+
+When the API uses `find_many(..., paginate=True)`, responses use PyODMongo's `ResponsePaginate` shape:
 
 ```json
 {
-    "page": 1,
-    "page_size": 50,
-    "total": 123,
-    "pages": 3,
-    "items": []
+    "current_page": 1,
+    "page_quantity": 3,
+    "docs_quantity": 123,
+    "docs": []
 }
 ```
 
+This chapter intentionally follows PyODMongo terminology and fields.
+
 Query parameters:
 
-- `page`: 1-based page number, default `1`.
-- `page_size`: default `50`, max `200`.
+- `current_page`: 1-based page number, default `1`.
+- `docs_per_page`: documents per page, default `50`.
 
 ### Sorting
 
@@ -239,11 +239,13 @@ Advanced filtering is read-only and uses explicit query endpoints with JSON requ
 {
     "filter": {"players.name": "Serral"},
     "sort": {"date": -1},
-    "page": 1,
-    "page_size": 50,
+    "current_page": 1,
+    "docs_per_page": 50,
     "projection": "table"
 }
 ```
+
+Support for these advanced filters is part of the API contract. Where the current underlying store surface does not already expose the required read-only query capability, the store must be extended to support it. The API should continue to call into the store layer and must not bypass the stores or introduce a separate API-owned query abstraction.
 
 Advanced filter bodies are raw MongoDB filters with guardrails:
 
@@ -251,8 +253,8 @@ Advanced filter bodies are raw MongoDB filters with guardrails:
 - JavaScript execution operators are rejected.
 - The target collection is fixed by the route.
 - The response is paginated.
-
-Aggregation-backed resources may combine guarded raw filters with structured aggregation options. The server builds the MongoDB aggregation pipeline from the declared query shape instead of accepting arbitrary write-capable database commands.
+- All CRUD-backed `/query` endpoints share one baseline validation and guardrail policy for these constraints.
+- Resource families may extend that baseline with resource-specific conveniences such as named projections, documented defaults, or additional safe validation rules, but they do not redefine the core safety policy independently.
 
 ### Projections
 
@@ -260,6 +262,8 @@ Large documents have named projections:
 
 - `table`: compact list/table data.
 - `detail`: full document detail.
+
+Projection views are read shapes over the same underlying resource. They do not redefine the persisted resource model, but a `table` projection is intentionally partial and must not be treated as a full domain-model payload.
 
 Replay table projection includes at least:
 
@@ -279,15 +283,31 @@ Binary fields are omitted from table projections.
 
 The API has a central serializer for project-specific types.
 
+API-only helper models are acceptable in this chapter for dedicated media endpoints and binary/metadata helper responses. These helper contracts are allowed as API-facing transport shapes and do not count as redefining the underlying domain models.
+
+For persisted-resource JSON endpoints, the API returns the existing domain models rather than introducing parallel API DTOs for the same resource.
+The exception is documented projection views for list/query reads such as `projection=table`, where the response intentionally contains partial resource documents shaped for that projection.
+
 Required behavior:
 
 - `ObjectId` and PyODMongo `Id`: string values in JSON responses.
 - `datetime`: ISO 8601 strings.
-- `bson.Binary`: metadata objects in detail views rather than raw bytes in tables.
+- `bson.Binary`: omitted from domain-model JSON responses by default.
 - Enums: serialized values.
 - Pydantic validation errors: FastAPI `422`.
 
-Binary field response shape:
+### Partial Updates
+
+`PATCH` request bodies are plain partial JSON documents. They are not JSON Patch operations and they do not accept MongoDB update operators.
+
+Required behavior:
+
+- The server loads the current document, merges the partial body into that document, validates the merged result against the full domain model, and then saves the updated document.
+- Nested object fields follow ordinary object-merge behavior.
+- Replacement of array fields is explicit: when an array field is present in the patch body, that array value replaces the existing array value.
+- Patch bodies containing operator-style top-level keys such as `$set` are rejected with `400`.
+
+Binary helper response shape:
 
 ```json
 {
@@ -297,7 +317,11 @@ Binary field response shape:
 }
 ```
 
-Image binary fields also have dedicated media endpoints. These endpoints return image bytes with an image `Content-Type` when bytes are present, and return `404` when the requested image field is empty. JSON document endpoints continue to use metadata objects instead of embedding large image payloads by default.
+Dedicated media endpoints return image bytes with an image `Content-Type` when bytes are present, and return `404` when the requested image field is empty.
+
+For domain-model JSON responses, the default rule is omission rather than replacement: binary fields are omitted so the API can return the existing domain model shape without embedding large payloads or redefining the model around binary metadata wrappers.
+
+The helper shape above is only for explicit API-only binary helper responses when such a helper endpoint is intentionally added.
 
 Image response headers:
 
@@ -346,37 +370,18 @@ Response:
 
 MongoDB connectivity failures return `503`.
 
-### `GET /api/resources`
+### `GET /api/openapi.json`
 
-Returns the public API resources and UI metadata.
+Returns the FastAPI-generated OpenAPI document for the API.
 
-Response fields per resource:
+The response is generated from FastAPI route metadata and Pydantic models.
 
-- `name`
-- `path`
-- `collection`
-- `title`
-- `id_field`
-- `read_only`
-- `capabilities`
-- `relationships`
-- `schema_url`
+Required behavior:
 
-### `GET /api/schema/{resource}`
-
-Returns the Pydantic JSON schema for a resource model plus API metadata.
-
-The response is based on `Model.model_json_schema()`.
-
-Supported resources:
-
-- `replays`
-- `metadata`
-- `players`
-- `sessions`
-- `conversations`
-- `conversation-items`
-- `responses`
+- Keep this on FastAPI's built-in OpenAPI machinery rather than maintaining a custom schema endpoint.
+- Resource request and response models appear in `components.schemas` when referenced by registered routes.
+- Query parameter and response envelope shapes are documented through the same generated OpenAPI document.
+- Optional developer docs UIs such as Swagger UI or ReDoc may be exposed through FastAPI's built-in `docs_url` and `redoc_url`, but the stable machine-readable contract is the OpenAPI JSON document.
 
 ## Replay Endpoints
 
@@ -384,14 +389,17 @@ Model: `src.replays.types.Replay`
 
 Collection: `replays`
 
+Replay documents remain writable in the admin API, but that write surface is a secondary expert or repair workflow rather than the normal operator path.
+That expert or repair workflow includes hard delete.
+
 ### `GET /api/replays`
 
 Lists replay documents.
 
 Query parameters:
 
-- `page`
-- `page_size`
+- `current_page`
+- `docs_per_page`
 - `sort`
 - `projection`: `table` or `detail`, default `table`.
 - `player`: player name substring or exact match, implementation-defined but documented in OpenAPI.
@@ -400,6 +408,9 @@ Query parameters:
 - `result`: player result filter.
 - `from_date`: inclusive ISO datetime.
 - `to_date`: inclusive ISO datetime.
+
+`player` and `map` are case-insensitive substring filters by default.
+`race` and `result` match if any embedded replay player has the requested value; they do not bind to the same embedded player matched by `player`.
 
 Default sort: `-date`.
 
@@ -431,9 +442,14 @@ Partially updates a replay document through load-merge-validate-save.
 
 Deletes one replay document.
 
+Deleting a replay also deletes linked replay metadata so replay-scoped annotations do not survive without their source replay.
+
 ### `GET /api/replays/{replay_id}/metadata`
 
 Returns metadata for a replay.
+
+This relationship route returns the same `Metadata` payload as `GET /api/metadata/{metadata_id}`, using replay id as the lookup key instead of metadata document id.
+The response body is the plain `Metadata` document, with no wrapper object.
 
 Missing metadata returns `404` so relationship lookups remain explicit.
 
@@ -451,6 +467,9 @@ Partially updates metadata for a replay. Missing metadata returns `404`.
 
 Returns the players embedded in the replay plus matching `PlayerInfo` records when known.
 
+This route returns the full player list for the replay without pagination.
+The response body is a raw array of the documented response items, with no wrapper object.
+
 Response item shape:
 
 ```json
@@ -467,6 +486,10 @@ Response item shape:
 Model: `src.persistence.replay_store.Metadata`
 
 Collection: `meta`
+
+`Metadata` is both a first-class persisted resource and a one-to-one replay relationship resource. The generic `/api/metadata/*` routes remain the document-centric CRUD surface, while `/api/replays/{replay_id}/metadata` remains the replay-centric relationship surface over the same underlying documents.
+
+Metadata remains fully writable in the admin API, including hard delete, because it is the operator-authored annotation layer rather than the underlying replay source record.
 
 ### `GET /api/metadata`
 
@@ -508,6 +531,9 @@ Model: `src.persistence.replay_store.PlayerInfo`
 
 Collection: `players`
 
+Player documents remain writable in the admin API, but that write surface is a secondary expert or repair workflow rather than the normal operator path.
+That expert or repair workflow includes hard delete.
+
 ### `GET /api/players`
 
 Lists player documents.
@@ -517,9 +543,11 @@ Common filters:
 - `q`: name, alias, or toon handle search.
 - `tag`: player tag.
 
+`q` is a case-insensitive substring search across `name`, `aliases.name`, and the string form of `toon_handle`.
+
 Table projection omits `portrait`, `portrait_constructed`, and `aliases.portraits`.
 
-Detail responses represent portrait fields as binary metadata objects. Image bytes are retrieved through the dedicated portrait endpoints.
+Player JSON responses also omit `portrait`, `portrait_constructed`, and `aliases.portraits` by default. Portrait image bytes are retrieved only through the dedicated portrait endpoints.
 
 ### `POST /api/players/query`
 
@@ -533,9 +561,7 @@ Creates a player document.
 
 Returns a player document.
 
-Optional query parameters:
-
-- `include_binary`: default `false`. When `true`, binary fields use the central binary serializer with base64 payloads. When `false`, binary fields use metadata and portrait endpoint URLs.
+The response reuses the existing `PlayerInfo` domain model while omitting binary fields from JSON serialization so the API does not redefine the model around binary helper payloads. In practice, `portrait`, `portrait_constructed`, and `aliases.portraits` are omitted from the JSON response.
 
 ### `PUT /api/players/{toon_handle}`
 
@@ -549,21 +575,22 @@ Partially updates a player document.
 
 Deletes a player document.
 
+Deleting a player does not modify replay documents. Replay-player relationship reads continue to return the replay-embedded player facts, with `player_info` becoming `null` when no matching player record exists.
+
 ### `GET /api/players/{toon_handle}/replays`
 
 Lists replays containing the player toon handle.
 
-Query parameters match `GET /api/replays` where applicable.
+This route stays paginated and follows the same list, projection, and pagination contract as `GET /api/replays` where applicable.
 
 ### `GET /api/players/{toon_handle}/aliases`
 
 Returns the player aliases without large portrait payloads by default.
 
-Optional query parameter:
+This route returns the full alias list in stored document order, without pagination or additional sort parameters.
+The response body is the raw stored `aliases` array, with no wrapper object.
 
-- `include_portraits`: default `false`.
-
-When `include_portraits=false`, each alias portrait is represented with metadata and a URL to the dedicated alias portrait endpoint.
+Alias portrait binaries are omitted from the JSON response. Clients use the dedicated alias portrait media endpoint when they need the image bytes for a specific alias portrait.
 
 ### `GET /api/players/{toon_handle}/portrait`
 
@@ -596,7 +623,11 @@ Responses:
 
 ### `GET /api/players/{toon_handle}/portrait-metadata`
 
-Returns a compact JSON index of available player and alias portrait images.
+Returns portrait availability metadata for one player without returning image bytes.
+
+Missing players return `404`. A successful helper response means the player exists, even when every portrait availability flag is `false`.
+
+This is an API-only helper response that exists so clients can discover which portrait media endpoints are worth calling while the main player JSON response continues to omit binary fields.
 
 Response shape:
 
@@ -605,14 +636,10 @@ Response shape:
     "toon_handle": "1-S2-1-123456",
     "portrait": {
         "available": true,
-        "length": 12345,
-        "content_type": "image/png",
         "url": "/api/players/1-S2-1-123456/portrait"
     },
     "portrait_constructed": {
         "available": true,
-        "length": 23456,
-        "content_type": "image/png",
         "url": "/api/players/1-S2-1-123456/portrait/constructed"
     },
     "aliases": [
@@ -622,11 +649,61 @@ Response shape:
             "portraits": [
                 {
                     "index": 0,
-                    "length": 12345,
-                    "content_type": "image/png",
+                    "available": true,
                     "url": "/api/players/1-S2-1-123456/aliases/0/portraits/0"
                 }
             ]
+        }
+    ]
+}
+```
+
+### `POST /api/players/portrait-metadata`
+
+Returns portrait availability metadata for a collection of players in one request.
+
+This endpoint is intended for player lists and other collection views where the client needs portrait availability for multiple players without issuing one helper request per player.
+Unknown toon handles are omitted from the `items` array rather than returned as synthetic all-`false` placeholder entries.
+Known players are returned in the same order as the submitted `toon_handles` list.
+Repeated toon handles are deduplicated so each known player appears at most once in `items`, preserving first-occurrence order.
+An empty `toon_handles` list is accepted and returns an empty `items` array.
+
+Request shape:
+
+```json
+{
+    "toon_handles": ["1-S2-1-123456", "2-S2-1-654321"]
+}
+```
+
+Response shape:
+
+```json
+{
+    "items": [
+        {
+            "toon_handle": "1-S2-1-123456",
+            "portrait": {
+                "available": true,
+                "url": "/api/players/1-S2-1-123456/portrait"
+            },
+            "portrait_constructed": {
+                "available": true,
+                "url": "/api/players/1-S2-1-123456/portrait/constructed"
+            },
+            "aliases": []
+        },
+        {
+            "toon_handle": "2-S2-1-654321",
+            "portrait": {
+                "available": false,
+                "url": "/api/players/2-S2-1-654321/portrait"
+            },
+            "portrait_constructed": {
+                "available": false,
+                "url": "/api/players/2-S2-1-654321/portrait/constructed"
+            },
+            "aliases": []
         }
     ]
 }
@@ -637,6 +714,8 @@ Response shape:
 Model: `src.persistence.session_store.Session`
 
 Collection: `sessions`
+
+Sessions are read-only aggregate resources in the admin API. They remain listable and queryable, but generic write operations are not part of the contract.
 
 ### `GET /api/sessions`
 
@@ -654,54 +733,27 @@ Default sort: `-session_date`.
 
 Runs a read-only advanced session query.
 
-### `POST /api/sessions`
-
-Creates a session.
-
 ### `GET /api/sessions/{session_id}`
 
 Returns a session document.
 
-### `PUT /api/sessions/{session_id}`
-
-Replaces a session document.
-
-### `PATCH /api/sessions/{session_id}`
-
-Partially updates a session document.
-
-### `DELETE /api/sessions/{session_id}`
-
-Deletes a session document.
+Write attempts against `/api/sessions` return `405`.
 
 ### `GET /api/sessions/{session_id}/conversations`
 
 Lists conversations for the session.
 
-The response uses the conversation list response shape and default conversation sorting. This endpoint exists as part of the backend relationship contract even when a client also has access to the generic conversation list filter.
-
-### `GET /api/sessions/{session_id}/summary`
-
-Returns a compact aggregate view of the session.
-
-Response fields:
-
-- `session`: session document.
-- `conversation_count`
-- `item_count`
-- `response_count`
-- `total_input_tokens`
-- `total_output_tokens`
-- `total_tokens`
-- `total_cost`
-
-Counts are computed from linked conversation, item, and response records.
+This route returns the full ordered conversation list for the session rather than a paginated list.
+The response body is a raw array of `AIConversation` documents, with no wrapper object.
+The response uses default conversation sorting. This endpoint exists as part of the backend relationship contract even when a client also has access to the generic conversation list filter.
 
 ## Conversation Endpoints
 
 Model: `src.persistence.conversation_store.AIConversation`
 
 Collection: `ai_conversations`
+
+Conversation documents remain writable in the admin API. They are the editable top-level record for a persisted coaching exchange, even while related item and response resources use narrower write rules.
 
 ### `GET /api/conversations`
 
@@ -718,6 +770,8 @@ Common filters:
 - `twitch_user`
 - `from_date`
 - `to_date`
+
+`GET /api/conversations` does not define a generic `q` text-search filter. Simple list filtering stays limited to these explicit fields; broader or combined text-style filtering uses `POST /api/conversations/query`.
 
 Default sort: `-created_at`.
 
@@ -741,22 +795,24 @@ Replaces a conversation document.
 
 Partially updates a conversation document.
 
+Conversation lifecycle fields such as `status` and `closed_at` are maintained through the ordinary `PATCH` and `PUT` document-update surface rather than a dedicated lifecycle action.
+
+When a conversation is updated through `PATCH` or `PUT`, the API normalizes the `status` and `closed_at` pair before save so persisted conversation state remains internally consistent.
+
 ### `DELETE /api/conversations/{conversation_id}`
 
 Deletes a conversation document.
 
 Deleting a conversation does not automatically delete linked conversation items or response records. Cascade behavior is only available through explicit cascade endpoints.
+This non-cascading delete behavior is the default admin contract rather than an implicit cleanup path.
 
 ### `GET /api/conversations/{conversation_id}/items`
 
 Returns ordered conversation items.
 
-Query parameters:
-
-- `include_raw`: default `false`; controls inclusion of large `raw_item` payloads.
-- `included_in_context`: optional boolean filter.
-
 Default sort: `order` ascending.
+
+This route returns the full stored `AIConversationItem` models, including `raw_item` when that field is present.
 
 ### `POST /api/conversations/{conversation_id}/items`
 
@@ -764,36 +820,20 @@ Creates a conversation item linked to the conversation.
 
 The request body is an `AIConversationItem`. The body `conversation` field matches the path id. Mismatches return `409`.
 
+The server assigns `order` for newly created items. Client-supplied `order` values are ignored or rejected so item ordering remains monotonic and server-controlled within each conversation.
+
 ### `GET /api/conversations/{conversation_id}/responses`
 
 Lists response records linked to the conversation.
 
 Default sort: `created_at` ascending.
+This route returns the full ordered response list for the conversation rather than a paginated list.
+The response body is a raw array of `AIResponseRecord` documents, with no wrapper object.
 
-### `GET /api/conversations/{conversation_id}/detail`
+This conversation-scoped route is a timeline view and intentionally keeps oldest-to-newest ordering by default even though the generic `/api/responses` list defaults to newest first.
+It stays relationship-scoped and does not define additional first-class filters such as `response_id`, `model`, or `status`.
 
-Returns an aggregate conversation view for custom UI screens.
-
-Response fields:
-
-- `conversation`: `AIConversation`.
-- `session`: linked `Session | null`.
-- `items`: ordered `AIConversationItem` list.
-- `responses`: ordered `AIResponseRecord` list.
-- `metadata`: replay metadata when `conversation.replay_id` is present and metadata exists.
-- `replay`: compact replay table projection when `conversation.replay_id` exists and replay exists.
-
-This endpoint is the primary backend support for a readable conversation view.
-
-### `POST /api/conversations/{conversation_id}/close`
-
-Closes a conversation.
-
-The endpoint sets `status=closed` and `closed_at` using the model's close behavior. It returns the updated conversation.
-
-### `POST /api/conversations/{conversation_id}/archive`
-
-Archives a conversation by setting `status=archived`. It returns the updated conversation.
+This endpoint exists for direct admin inspection and specialized workflows. It is not required by the primary read-oriented conversation screen.
 
 ## Conversation Item Endpoints
 
@@ -801,7 +841,7 @@ Model: `src.persistence.conversation_store.AIConversationItem`
 
 Collection: `ai_conversation_items`
 
-These endpoints support direct maintenance of items. Conversation-focused clients use `/api/conversations/{conversation_id}/items` and `/api/conversations/{conversation_id}/detail`.
+Conversation items are read-mostly transcript records in the admin API. Conversation-focused clients use `/api/conversations/{conversation_id}/items` together with the conversation resource and other relationship endpoints as needed. Direct generic item writes are not part of the contract.
 
 ### `GET /api/conversation-items`
 
@@ -813,37 +853,30 @@ Common filters:
 - `session`
 - `type`
 - `role`
-- `included_in_context`
+
+Default sort is `-created_at` for the generic cross-conversation list. Order-based default sorting is only used for conversation-scoped item reads such as `GET /api/conversations/{conversation_id}/items` or equivalent requests explicitly filtered to one conversation.
+
+This route returns the full stored `AIConversationItem` models, including `raw_item` when that field is present.
 
 ### `POST /api/conversation-items/query`
 
 Runs a read-only advanced conversation item query.
 
-### `POST /api/conversation-items`
-
-Creates a conversation item.
-
 ### `GET /api/conversation-items/{item_id}`
 
 Returns a conversation item.
 
-### `PUT /api/conversation-items/{item_id}`
+This single-item detail route returns the full stored item by default, including `raw_item` when that field is present.
 
-Replaces a conversation item.
-
-### `PATCH /api/conversation-items/{item_id}`
-
-Partially updates a conversation item.
-
-### `DELETE /api/conversation-items/{item_id}`
-
-Deletes a conversation item.
+Write attempts against `/api/conversation-items` return `405`.
 
 ## Response Record Endpoints
 
 Model: `src.persistence.conversation_store.AIResponseRecord`
 
 Collection: `ai_responses`
+
+Response records are read-only audit and accounting resources in the admin API. They remain listable and queryable, but generic write operations are not part of the contract.
 
 ### `GET /api/responses`
 
@@ -856,7 +889,14 @@ Common filters:
 - `response_id`
 - `model`
 - `status`
-- `streamed`
+
+`response_id` is an exact-match filter.
+`model` is an exact-match filter.
+`status` is an exact-match filter.
+These first-class filters are literal value filters only. Null or missing-field cases use `POST /api/responses/query` rather than special query-string conventions.
+The simple list route does not add a first-class `streamed` filter; streamed/non-streamed diagnostics use `POST /api/responses/query` when needed.
+The simple list route also does not add first-class token or cost threshold filters such as `min_total_tokens` or `min_total_cost`; those analytic-style comparisons use `POST /api/responses/query`.
+Sort support on this simple list stays narrow and explicitly documented rather than allowing arbitrary response-record fields. The documented simple-list sort field is `created_at`.
 
 Default sort: `-created_at`.
 
@@ -864,29 +904,21 @@ Default sort: `-created_at`.
 
 Runs a read-only advanced response query.
 
-### `POST /api/responses`
-
-Creates a response record.
-
 ### `GET /api/responses/{record_id}`
 
 Returns a response record by document id.
+
+This single-record detail route returns the full stored `AIResponseRecord` by default, including fields such as `raw_usage` and `metadata` when present.
 
 ### `GET /api/responses/by-response-id/{response_id}`
 
 Returns a response record by provider response id.
 
-### `PUT /api/responses/{record_id}`
+This alternate-key detail route returns the same full stored `AIResponseRecord` payload as `GET /api/responses/{record_id}`.
 
-Replaces a response record.
+This route assumes `AIResponseRecord.response_id` is unique when present. The current solution already treats provider response ids as a unique deduplication key for stored response records.
 
-### `PATCH /api/responses/{record_id}`
-
-Partially updates a response record.
-
-### `DELETE /api/responses/{record_id}`
-
-Deletes a response record.
+Write attempts against `/api/responses` return `405`.
 
 ## Map Stats Endpoints
 
@@ -903,83 +935,40 @@ Lists map matchup stats.
 Query parameters:
 
 - `map`: optional map name filter.
-- `min_date`: inclusive ISO datetime lower bound for replay `date`; alias of `from_date` and named to match the existing `get_map_stats(map, min_date=...)` usage.
-- `from_date`: inclusive ISO datetime lower bound for replay `date`.
-- `to_date`: inclusive ISO datetime upper bound for replay `date`.
+- `min_date`: inclusive ISO datetime lower bound for replay `date`.
 
-Date filtering is applied before the matchup aggregation. A request with only `min_date` or `from_date` matches replays where `Replay.date >= value`. A request with both `from_date` and `to_date` matches the closed date range. If both `min_date` and `from_date` are supplied, they must represent the same instant or the API returns `400`.
+This endpoint should reuse the existing `src.mapstats.MatchupsByMap` model and the same query pattern already used by the coach application. The server configures the existing aggregation pipeline and returns the existing aggregation result from the `replays` collection with an additional replay filter.
+
+If the existing `src.mapstats` module currently configures its pipeline through import-time runtime settings, that module must be refactored so the API can reuse the same model and helper surface without importing coach-runtime state at module import time. The API does not duplicate the map-stats pipeline in a separate API-only implementation.
+
+Supported filtering is intentionally limited to what that existing concept already supports:
+
+- optional `Replay.map_name == map`
+- optional `Replay.date >= min_date`
+
+If `min_date` is omitted, the API uses the same default as the existing coach code: `settings.season_start`.
+
+The API does not add a separate map-stats-specific query language, arbitrary grouping options, named range comparisons, or upper-bound date filters that the existing model does not support.
 
 Examples:
 
 - `GET /api/map-stats?map=Site%20Delta%20LE&min_date=2026-05-01T00:00:00Z`
-- `GET /api/map-stats?from_date=2026-05-01T00:00:00Z&to_date=2026-05-07T23:59:59Z`
+- `GET /api/map-stats?min_date=2026-05-01T00:00:00Z`
 
-### `POST /api/map-stats/query`
-
-Runs a read-only advanced map stats query.
-
-The request body combines the standard replay filter surface with structured aggregation options:
+Response items use the existing `MatchupsByMap` shape:
 
 ```json
 {
-    "filter": {
-        "map_name": {"$in": ["Site Delta LE", "Amphion LE"]},
-        "date": {"$gte": "2026-04-01T00:00:00Z"}
-    },
-    "date_range": {
-        "from_date": "2026-04-01T00:00:00Z",
-        "to_date": "2026-05-07T23:59:59Z"
-    },
-    "ranges": [
-        {"name": "season", "from_date": "2026-04-01T00:00:00Z", "to_date": null},
-        {"name": "today", "from_date": "2026-05-07T00:00:00Z", "to_date": null}
-    ],
-    "group_by": ["map", "matchup"],
-    "metrics": ["games", "wins", "losses", "winrate"],
-    "sort": {"games": -1},
-    "limit": 100,
-    "include_pipeline": false
-}
-```
-
-Fields:
-
-- `filter`: guarded raw MongoDB filter applied to the `replays` collection before aggregation.
-- `date_range`: convenience date filter using the same inclusive semantics as `GET /api/map-stats`.
-- `ranges`: optional named date ranges, each aggregated independently after applying the base filter.
-- `group_by`: ordered list of supported grouping dimensions. Supported values are `map`, `matchup`, `player_race`, `opponent_race`, `result`, `date_day`, `date_week`, and `date_month`.
-- `metrics`: requested metric fields. Supported values are `games`, `wins`, `losses`, and `winrate`.
-- `sort`: sort over returned group fields or metric fields.
-- `limit`: maximum number of groups returned.
-- `include_pipeline`: when true, includes the effective read-only aggregation pipeline in the response for admin inspection.
-
-The endpoint does not accept arbitrary aggregation pipelines. It uses a fixed server-side aggregation builder so the API can validate grouping dimensions, metric names, result shape, and allowed filter operators.
-
-Response shape:
-
-```json
-{
-    "filter": {},
-    "date_range": {
-        "from_date": "2026-04-01T00:00:00Z",
-        "to_date": "2026-05-07T23:59:59Z"
-    },
-    "group_by": ["map", "matchup"],
-    "metrics": ["games", "wins", "losses", "winrate"],
-    "groups": [
+    "map": "Site Delta LE",
+    "matchups": [
         {
-            "key": {"map": "Site Delta LE", "matchup": "ZvT"},
-            "games": 12,
+            "matchup": "ZvT",
+            "totalGames": 12,
             "wins": 7,
             "losses": 5,
-            "winrate": 58.3333333333,
-            "ranges": {
-                "season": {"games": 12, "wins": 7, "losses": 5, "winrate": 58.3333333333},
-                "today": {"games": 2, "wins": 1, "losses": 1, "winrate": 50.0}
-            }
+            "winrate": 0.5833333333
         }
-    ],
-    "pipeline": null
+    ]
 }
 ```
 
@@ -989,47 +978,13 @@ Returns stats for one map.
 
 Query parameters:
 
-- `min_date`: inclusive ISO datetime lower bound for replay `date`; alias of `from_date`.
-- `from_date`: inclusive ISO datetime lower bound for replay `date`.
-- `to_date`: inclusive ISO datetime upper bound for replay `date`.
+- `min_date`: inclusive ISO datetime lower bound for replay `date`.
 
-This endpoint is equivalent to `GET /api/map-stats?map={map_name}` and exists for clients that already know the map name.
+`min_date` uses the same semantics and defaulting behavior as `GET /api/map-stats`. When omitted, the endpoint uses the same existing coach-code default: `settings.season_start`.
 
-### `GET /api/map-stats/{map_name}/ranges`
+This endpoint is equivalent to calling the existing `get_map_stats(map_name, min_date=...)` helper from `src.mapstats` and returning its `MatchupsByMap` result.
 
-Returns map stats for multiple named date ranges in one response.
-
-Query parameters:
-
-- `range`: repeated range expression in the form `name:from_date:to_date`, where `to_date` may be empty for an open-ended range.
-
-Example:
-
-- `GET /api/map-stats/Site%20Delta%20LE/ranges?range=season:2026-04-01T00:00:00Z:&range=today:2026-05-07T00:00:00Z:`
-
-Response shape:
-
-```json
-{
-    "map": "Site Delta LE",
-    "ranges": [
-        {
-            "name": "season",
-            "from_date": "2026-04-01T00:00:00Z",
-            "to_date": null,
-            "stats": {}
-        },
-        {
-            "name": "today",
-            "from_date": "2026-05-07T00:00:00Z",
-            "to_date": null,
-            "stats": {}
-        }
-    ]
-}
-```
-
-If map stats are not available in a deployment, `/api/resources` reports the resource as unavailable with a reason.
+If no grouped result exists for the requested map after applying the supported filter, the API returns `404`.
 
 ## Static Webapp Serving
 
@@ -1042,6 +997,8 @@ FastAPI route order:
 
 The static app serves `webapp/dist/index.html` for Vue history routes and serves static assets from `/assets/*`.
 
+In development mode, the static frontend endpoint serves all frontend content with caching disabled so browser-based testing always exercises the latest built assets rather than stale cached files.
+
 When the dist folder does not exist:
 
 - `/api` remains available.
@@ -1049,38 +1006,49 @@ When the dist folder does not exist:
 
 ## Verification
 
-API tests use FastAPI `TestClient` and the existing MongoDB test service pattern.
+API tests use FastAPI `TestClient` and the project MongoDB test service pattern.
 
 Minimum coverage:
 
 - `GET /api/health` returns ok with a reachable test database.
-- `GET /api/resources` lists all available resource families.
-- `GET /api/schema/{resource}` returns valid JSON schema.
+- `GET /api/openapi.json` returns a valid OpenAPI document.
 - CRUD round trip for `Metadata`.
 - CRUD round trip for `AIConversation` and `AIConversationItem`.
 - `GET /api/conversations/{conversation_id}/items` returns ordered items.
-- `GET /api/conversations/{conversation_id}/detail` returns conversation, session, items, and responses.
+- `GET /api/conversations/{conversation_id}/responses` returns response records in ascending creation order.
 - `GET /api/sessions/{session_id}/conversations` returns linked conversations.
 - `GET /api/replays/{replay_id}/metadata` returns linked metadata.
-- `GET /api/map-stats/{map_name}` applies inclusive date filters before aggregation.
-- `GET /api/map-stats/{map_name}/ranges` returns separate stats for named date ranges.
-- `POST /api/map-stats/query` returns grouped read-only aggregation results and rejects unsupported grouping dimensions, metric names, write operators, and JavaScript execution operators.
+- `GET /api/map-stats` returns `MatchupsByMap` results using the existing aggregation model with optional `map` and `min_date` replay filters.
+- `GET /api/map-stats/{map_name}` returns one `MatchupsByMap` result using the same existing aggregation model and `min_date` filter behavior as the coach code.
 - `GET /api/players/{toon_handle}/portrait` returns image bytes for a player portrait.
 - `GET /api/players/{toon_handle}/portrait/constructed` returns image bytes for a constructed player portrait.
 - `GET /api/players/{toon_handle}/aliases/{alias_index}/portraits/{portrait_index}` returns image bytes for an alias portrait.
-- `GET /api/players/{toon_handle}/portrait-metadata` returns portrait URLs and metadata.
+- `GET /api/players/{toon_handle}/portrait-metadata` returns portrait availability metadata for one player.
+- `POST /api/players/portrait-metadata` returns portrait availability metadata for a collection of players.
 - List pagination works.
+- Write attempts against session routes return `405`.
+- Write attempts against conversation-item routes outside `/api/conversations/{conversation_id}/items` return `405`.
+- Write attempts against response-record routes return `405`.
 - Unknown resources return `404`.
 - Read-only resource writes return `405`.
 - Invalid model payloads return `422`.
 - Path id/body id mismatches return `409`.
 - Importing `src.api.app` does not construct global coach config.
 
+### End User Testing
+
+As an agent, follow these instructions for performing end user testing: 
+
+- Build the frontend.
+- Run the FastAPI development server.
+- Use Playwright to test the frontend in the browser. Make sure to run playwright with --headed
+- Make sure to clean up after: shutdown any servers after performing your tests. 
+
 ## API Policies
 
 - The API binds to localhost by default.
 - Delete endpoints perform hard deletes for the addressed document.
-- Relationship deletes do not cascade unless an explicit cascade endpoint is added to the API surface.
+- Relationship deletes do not cascade unless the contract explicitly says otherwise. Replay delete is the exception: deleting a replay also deletes linked replay metadata.
 - Map stats are exposed as a read-only resource when their aggregation model is available.
-- Large binary fields are omitted from table projections and represented through the central binary serializer in detail responses.
+- Large binary fields are omitted from domain-model JSON responses, with dedicated media endpoints used when clients need the underlying bytes.
 - Player and alias portrait binaries are image resources with dedicated media endpoints for UI display.

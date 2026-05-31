@@ -1,0 +1,24 @@
+{
+  "name": "sc2-ai-coach-webapp",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "markdown-it": "^14.1.1",
+    "vue": "^3.5.22",
+    "vue-json-pretty": "^2.6.0",
+    "vue-router": "^4.6.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "@vitejs/plugin-vue": "^6.0.2",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.1",
+    "vitest": "^3.2.4"
+  }
+}

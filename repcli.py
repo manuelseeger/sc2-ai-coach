@@ -7,7 +7,7 @@ from datetime import date, datetime, timedelta
 from io import BytesIO
 from os.path import basename, getmtime, join
 from pathlib import Path
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated
 
 import click
 import climage
@@ -24,6 +24,12 @@ from src.playeridentity import PlayerIdentityEnrichmentError
 from src.runtime.playeridentity import build_player_identity_services
 from src.runtime.settings import Config, get_config
 
+if TYPE_CHECKING:
+    from src.persistence.replay_store import PlayerInfo, ReplayStore
+    from src.playeridentity import PlayerIdentityEnricher
+    from src.replays.reader import ReplayReader
+    from src.replays.types import Replay
+
 custom_theme = Theme(
     {
         "on": "bold green",
@@ -37,11 +43,11 @@ console = Console(theme=custom_theme)
 @dataclass
 class RepCliRuntime:
     settings: "Config"
-    reader: Any
-    replay_store: Any
-    replay_model: type
-    player_info_model: type
-    player_identity_enricher: Any
+    reader: "ReplayReader"
+    replay_store: "ReplayStore"
+    replay_model: type["Replay"]
+    player_info_model: type["PlayerInfo"]
+    player_identity_enricher: "PlayerIdentityEnricher"
 
 
 def load_runtime_settings() -> "Config":
@@ -101,6 +107,10 @@ def dformat(x):
     return datetime.fromtimestamp(x).strftime("%Y-%m-%d %H:%M:%S")
 
 
+def _student_sync_enabled(ctx, command_add_student: bool = False) -> bool:
+    return ctx.obj.get("ADD_STUDENT", False) or command_add_student
+
+
 class Summary(BaseModel):
     def to_table(self):
         table = Table(title=self.__class__.__name__)
@@ -154,13 +164,20 @@ class SyncSummary(Summary):
 @click.option(
     "--verbose", "-v", is_flag=True, default=False, help="Print verbose output"
 )
+@click.option(
+    "--add-student",
+    is_flag=True,
+    default=False,
+    help="Create or update a player record for the configured student during replay imports",
+)
 @click.pass_context
-def cli(ctx, clean, debug, simulation, verbose):
+def cli(ctx, clean, debug, simulation, verbose, add_student):
     ctx.ensure_object(dict)
     ctx.obj["CLEAN"] = clean
     ctx.obj["DEBUG"] = debug
     ctx.obj["SIMULATION"] = simulation
     ctx.obj["VERBOSE"] = verbose
+    ctx.obj["ADD_STUDENT"] = add_student
 
     _configure_cli_logging(debug=debug)
 
@@ -171,6 +188,9 @@ def cli(ctx, clean, debug, simulation, verbose):
     )
     console.print(
         "Verbose mode is %s" % ("[on]on[/on]" if verbose else "[off]off[/off]")
+    )
+    console.print(
+        "Add student mode is %s" % ("[on]on[/on]" if add_student else "[off]off[/off]")
     )
 
 
@@ -201,8 +221,17 @@ def cli(ctx, clean, debug, simulation, verbose):
     help="Sync from the most recent replay in DB",
     default=False,
 )
-def sync(ctx, from_: datetime, to_: datetime, from_most_recent: bool):
+@click.option(
+    "--add-student",
+    is_flag=True,
+    default=False,
+    help="Create or update a player record for the configured student during this sync",
+)
+def sync(
+    ctx, from_: datetime, to_: datetime, from_most_recent: bool, add_student: bool
+):
     """Sync replays and players from replay folder to MongoDB"""
+    ctx.obj["ADD_STUDENT"] = _student_sync_enabled(ctx, add_student)
     runtime = _get_runtime(ctx)
     settings = runtime.settings
 
@@ -250,6 +279,8 @@ def _sync(list_of_files, ctx, runtime: RepCliRuntime) -> SyncSummary:
 
             syncreplay(ctx, replay, summary, runtime)
             syncplayer(ctx, replay, summary, runtime)
+            if ctx.obj["ADD_STUDENT"]:
+                syncstudent(ctx, replay, summary, runtime)
         else:
             console.print(f"Filtered {basename(file_path)}")
             summary.filtered_replays += 1
@@ -339,8 +370,15 @@ def players(ctx, query):
 @cli.command()
 @click.pass_context
 @click.argument("replay", type=click.Path(exists=False), required=True, nargs=-1)
-def add(ctx, replay):
+@click.option(
+    "--add-student",
+    is_flag=True,
+    default=False,
+    help="Create or update a player record for the configured student during this import",
+)
+def add(ctx, replay, add_student):
     """Add one or more replays to the DB"""
+    ctx.obj["ADD_STUDENT"] = _student_sync_enabled(ctx, add_student)
     runtime = _get_runtime(ctx)
 
     list_of_files = []
@@ -412,6 +450,35 @@ def syncplayer(ctx, replay, summary: SyncSummary, runtime: RepCliRuntime):
             console.print(
                 f":x: {opponent.name} ({opponent.toon_handle}) not added to DB: {exc}"
             )
+
+
+def syncstudent(ctx, replay, summary: SyncSummary, runtime: RepCliRuntime):
+    student = replay.get_player(runtime.settings.student.name)
+
+    if ctx.obj["SIMULATION"]:
+        console.print(f"Simulation, would add {student.name} ({student.toon_handle})")
+        return
+
+    try:
+        player_info = runtime.player_identity_enricher.save_from_replay(
+            replay, player_name=student.name
+        )
+        console.print(
+            f":white_heavy_check_mark: {student.name} ({student.toon_handle}) added to DB from {replay}"
+        )
+        if player_info.toon_handle not in summary.players:
+            summary.players.append(player_info.toon_handle)
+            summary.players_added += 1
+            summary.portraits_added += 1 if player_info.portrait else 0
+            summary.portraits_constructed += (
+                1 if player_info.portrait_constructed else 0
+            )
+        if ctx.obj["VERBOSE"]:
+            print_player_portrait(player_info)
+    except PlayerIdentityEnrichmentError as exc:
+        console.print(
+            f":x: {student.name} ({student.toon_handle}) not added to DB: {exc}"
+        )
 
 
 def syncreplay(ctx, replay, summary: SyncSummary, runtime: RepCliRuntime):
