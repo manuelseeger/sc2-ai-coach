@@ -134,6 +134,7 @@ ReasoningEffort = Literal["none", "minimal", "low", "medium", "high", "xhigh"]
 class WakeWordConfig(BaseModel):
     engine: Literal["livekit"] = "livekit"
     model_path: FilePath
+    threshold: float = 0.55
 
 
 class ApiSettings(BaseSettings):

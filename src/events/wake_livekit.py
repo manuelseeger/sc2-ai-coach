@@ -28,7 +28,7 @@ class WakeWordListener(threading.Thread):
         self.daemon = True
         self._stop_event = threading.Event()
         self.model = WakeWordModel(models=[self.settings.wakeword.model_path])
-        self.threshold = 0.5
+        self.threshold = self.settings.wakeword.threshold
         self.debounce = 2.0
 
     def stop(self):
