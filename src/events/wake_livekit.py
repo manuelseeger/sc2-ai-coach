@@ -1,9 +1,11 @@
+import contextlib
 import logging
 import threading
 import time
 from collections import deque
 
 import numpy as np
+import onnxruntime as ort
 import pyaudio
 from livekit.wakeword import WakeWordModel
 
@@ -25,13 +27,43 @@ CHUNK_FRAMES = int(CHUNK_SECONDS * SAMPLE_RATE / FRAME_SAMPLES)
 HOP_FRAMES = 5
 
 
+@contextlib.contextmanager
+def _lean_onnx_sessions():
+    """Make WakeWordModel build its ONNX sessions single-threaded and non-spinning.
+
+    The models are tiny but get run ~18x per predict. ORT defaults to one
+    intra-op thread per physical core plus a busy spin-wait between ops, which
+    burns CPU out of proportion to the actual work. The library creates its
+    sessions internally with default options, so we temporarily wrap the
+    InferenceSession constructor to inject leaner SessionOptions.
+    """
+    original = ort.InferenceSession
+
+    def patched(*args, **kwargs):
+        if "sess_options" not in kwargs:
+            so = ort.SessionOptions()
+            so.intra_op_num_threads = 1
+            so.inter_op_num_threads = 1
+            # Don't busy-wait between ops; release the CPU instead.
+            so.add_session_config_entry("session.intra_op.allow_spinning", "0")
+            kwargs["sess_options"] = so
+        return original(*args, **kwargs)
+
+    ort.InferenceSession = patched
+    try:
+        yield
+    finally:
+        ort.InferenceSession = original
+
+
 class WakeWordListener(threading.Thread):
     def __init__(self, *, settings: Config | None = None):
         super().__init__()
         self.settings = settings or get_config()
         self.daemon = True
         self._stop_event = threading.Event()
-        self.model = WakeWordModel(models=[self.settings.wakeword.model_path])
+        with _lean_onnx_sessions():
+            self.model = WakeWordModel(models=[self.settings.wakeword.model_path])
         self.threshold = self.settings.wakeword.threshold
         self.debounce = 2.0
 
