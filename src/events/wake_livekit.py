@@ -19,6 +19,10 @@ FRAME_SAMPLES = 1280  # 80ms per frame
 CHUNK_SECONDS = 2.0
 # Number of 80ms frames that fill a ~2-second chunk (25 frames).
 CHUNK_FRAMES = int(CHUNK_SECONDS * SAMPLE_RATE / FRAME_SAMPLES)
+# Run inference once per ~400ms (every 5th frame) rather than on every frame.
+# The model is stateless and scores a full ~2s window per call, so predicting
+# on every 80ms frame means ~12.5 redundant 2s inferences/sec -> high CPU.
+HOP_FRAMES = 5
 
 
 class WakeWordListener(threading.Thread):
@@ -54,16 +58,22 @@ class WakeWordListener(threading.Thread):
 
         frame_buffer: deque[np.ndarray] = deque(maxlen=CHUNK_FRAMES)
         last_detection_time = 0.0
+        frames_since_predict = 0
 
         try:
             while not self.stopped():
                 data = stream.read(FRAME_SAMPLES, exception_on_overflow=False)
                 frame = np.frombuffer(data, dtype=np.int16)
                 frame_buffer.append(frame)
+                frames_since_predict += 1
 
-                # Wait until the buffer holds a full ~2-second chunk.
+                # Wait until the buffer holds a full ~2-second chunk, then only
+                # run inference on a hop (every HOP_FRAMES frames) to keep CPU low.
                 if len(frame_buffer) < CHUNK_FRAMES:
                     continue
+                if frames_since_predict < HOP_FRAMES:
+                    continue
+                frames_since_predict = 0
 
                 chunk = np.concatenate(list(frame_buffer))
                 scores = self.model.predict(chunk)
