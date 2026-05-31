@@ -56,7 +56,8 @@ class ClientAPIListener(threading.Thread):
                 opponent, race = self.sc2client.get_opponent(gameinfo)
                 mapname = ""
 
-                scanresult = NewMatchEvent(mapname=mapname, opponent=opponent)
+                # The game client API does not expose clan tags.
+                scanresult = NewMatchEvent(mapname=mapname, opponent=opponent, clan=None)
                 signal_queue.put(scanresult)
 
             sleep(1)

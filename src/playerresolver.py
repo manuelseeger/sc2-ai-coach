@@ -47,6 +47,7 @@ class PlayerResolver:
         self,
         name: str,
         portrait: np.ndarray,
+        clan: str | None = None,
     ) -> PlayerInfo | None:
         from external.fast_ssim.ssim import ssim
 
@@ -56,6 +57,21 @@ class PlayerResolver:
         )  # type: ignore[arg-type]
         if len(candidates) == 1:
             return candidates[0]
+
+        # When we know the clan tag, use it to narrow the candidate set. If it
+        # uniquely identifies a player we can resolve right away; otherwise fall
+        # back to portrait matching among the clan-filtered candidates.
+        if clan:
+            clan_candidates = [
+                c
+                for c in candidates
+                if any(a.name == name and a.clan_tag == clan for a in c.aliases)
+            ]
+            if len(clan_candidates) == 1:
+                log.debug(f"Resolved {name} by clan tag {clan}")
+                return clan_candidates[0]
+            if clan_candidates:
+                candidates = clan_candidates
 
         scores = []
 
@@ -112,8 +128,29 @@ class PlayerResolver:
 
         return None
 
+    def _resolve_by_name_and_clan(
+        self, opponent: str, clan: str
+    ) -> PlayerInfo | None:
+        """Resolve a player by an alias matching both name and clan tag.
+
+        This is the main lever for barcodes: the name alone is ambiguous, but a
+        name+clan combination is usually specific enough to identify a player.
+        """
+        log.debug(f"Trying to resolve {opponent} by name and clan {clan}")
+        q = elem_match(
+            Alias.name == opponent,  # type: ignore[arg-type]
+            Alias.clan_tag == clan,  # type: ignore[arg-type]
+            field=PlayerInfo.aliases,
+        )
+        candidates: list[PlayerInfo] = self.replay_store.db.find_many(PlayerInfo, query=q)  # type: ignore[arg-type]
+
+        if len(candidates) == 1:
+            return candidates[0]
+
+        return None
+
     def _resolve_by_portrait(
-        self, opponent: str, mapname: str
+        self, opponent: str, mapname: str, clan: str | None = None
     ) -> tuple[str, str | None, PlayerInfo | None]:
         log.debug(f"Trying to resolve {opponent} by portrait")
         race = None
@@ -131,7 +168,9 @@ class PlayerResolver:
             return opponent, race, None
 
         portrait = Image.open(BytesIO(portrait_bytes))
-        playerinfo = self.resolve_player_with_portrait(opponent, np.array(portrait))
+        playerinfo = self.resolve_player_with_portrait(
+            opponent, np.array(portrait), clan=clan
+        )
         return opponent, race, playerinfo
 
     def _resolve_with_sc2pulse(
@@ -159,14 +198,22 @@ class PlayerResolver:
         )
 
     def resolve_player(
-        self, opponent: str, mapname: str, mmr: int
+        self, opponent: str, mapname: str, mmr: int, clan: str | None = None
     ) -> PlayerInfo | None:
         """Try to identify the opponent."""
-        playerinfo = self._resolve_by_name(opponent)
         race = None
 
+        playerinfo = None
+        if clan:
+            playerinfo = self._resolve_by_name_and_clan(opponent, clan)
+
         if not playerinfo:
-            opponent, race, playerinfo = self._resolve_by_portrait(opponent, mapname)
+            playerinfo = self._resolve_by_name(opponent)
+
+        if not playerinfo:
+            opponent, race, playerinfo = self._resolve_by_portrait(
+                opponent, mapname, clan=clan
+            )
 
         if not playerinfo:
             playerinfo = self._resolve_with_sc2pulse(opponent, race, mmr)

@@ -192,6 +192,7 @@ class PlayerIdentityEnricher:
             toon_handle=player.toon_handle,
             portrait=portrait,
             portrait_constructed=portrait_constructed,
+            clan_tag=player.clan_tag or None,
         )
 
         try:
@@ -209,6 +210,8 @@ class PlayerIdentityEnricher:
             player_info = existing_player_info
 
         player_info.name = player.name
+        if player.clan_tag:
+            player_info.clan_tag = player.clan_tag
         if portrait:
             player_info.portrait = portrait
 

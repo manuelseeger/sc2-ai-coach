@@ -192,8 +192,10 @@ class NewMatchListener(threading.Thread):
 
                 if player1.lower() == self.settings.student.name.lower():
                     opponent = player2
+                    opponent_clan = clan2
                 elif player2.lower() == self.settings.student.name.lower():
                     opponent = player1
+                    opponent_clan = clan1
                 else:
                     log.info(f"not {self.settings.student}, I'll keep looking")
                     os.remove(self.settings.screenshot)
@@ -210,7 +212,9 @@ class NewMatchListener(threading.Thread):
                     rename_file(self.settings.screenshot, new_name)
                     save_portrait(opponent_portrait, new_name)
 
-                    scanresult = NewMatchEvent(mapname=map, opponent=opponent)
+                    scanresult = NewMatchEvent(
+                        mapname=map, opponent=opponent, clan=opponent_clan
+                    )
 
                     signal_queue.put(scanresult)
 

@@ -52,7 +52,7 @@ def test_initiate_from_game_start_resolves_player_then_loads_recent_replays(
     session.initiate_from_game_start("Post-Youth LE", "KnownOpponent", 4000)
 
     session.player_resolver.resolve_player.assert_called_once_with(
-        "KnownOpponent", "Post-Youth LE", 4000
+        "KnownOpponent", "Post-Youth LE", 4000, clan=None
     )
     session.replay_store.get_recent_for_player.assert_called_once_with(
         playerinfo.toon_handle

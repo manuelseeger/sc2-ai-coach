@@ -2,13 +2,14 @@ import os
 import shutil
 from datetime import datetime
 from io import BytesIO
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
 from PIL import Image
 
 from external.fast_ssim.ssim import ssim
-from src.persistence.replay_store import PlayerInfo
+from src.persistence.replay_store import Alias, PlayerInfo
 from src.playeridentity import PlayerPortraitSource
 from src.playerresolver import PlayerResolver
 from tests.conftest import load_test_settings
@@ -67,3 +68,63 @@ def test_resolve_player_returns_identified_player_without_querying_replay_histor
 
     assert resolved_player == player_info
     replay_store.get_recent_for_player.assert_not_called()
+
+
+def _resolver(mocker):
+    return PlayerResolver(
+        load_test_settings(),
+        replay_store=mocker.Mock(),
+        sc2pulse=mocker.Mock(),
+        sc2client=mocker.Mock(),
+    )
+
+
+def test_resolve_player_uses_clan_to_disambiguate_barcode(mocker):
+    resolved = PlayerInfo(
+        id="1-S2-1-3330000",
+        name="llll",
+        toon_handle="1-S2-1-3330000",
+    )
+    resolver = _resolver(mocker)
+    resolver._resolve_by_name_and_clan = MagicMock(return_value=resolved)
+    resolver._resolve_by_name = MagicMock(return_value=None)
+    resolver._resolve_by_portrait = MagicMock(return_value=("llll", None, None))
+
+    resolved_player = resolver.resolve_player(
+        opponent="llll",
+        mapname="Map",
+        mmr=1234,
+        clan="ABC",
+    )
+
+    assert resolved_player == resolved
+    resolver._resolve_by_name_and_clan.assert_called_once_with("llll", "ABC")
+    resolver._resolve_by_portrait.assert_not_called()
+
+
+def test_resolve_by_name_and_clan_returns_unique_candidate(mocker):
+    candidate = PlayerInfo(
+        id="1-S2-1-4440000",
+        name="llll",
+        toon_handle="1-S2-1-4440000",
+        aliases=[Alias(name="llll", clan_tag="ABC")],
+    )
+    resolver = _resolver(mocker)
+    resolver.replay_store.db.find_many = MagicMock(return_value=[candidate])
+
+    result = resolver._resolve_by_name_and_clan("llll", "ABC")
+
+    assert result == candidate
+
+
+def test_resolve_by_name_and_clan_none_when_ambiguous(mocker):
+    candidates = [
+        PlayerInfo(id="1-S2-1-1110000", name="llll", toon_handle="1-S2-1-1110000"),
+        PlayerInfo(id="1-S2-1-2220000", name="llll", toon_handle="1-S2-1-2220000"),
+    ]
+    resolver = _resolver(mocker)
+    resolver.replay_store.db.find_many = MagicMock(return_value=candidates)
+
+    result = resolver._resolve_by_name_and_clan("llll", "ABC")
+
+    assert result is None

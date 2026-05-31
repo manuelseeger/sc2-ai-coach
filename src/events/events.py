@@ -16,6 +16,7 @@ class NewReplayEvent(EventBase):
 class NewMatchEvent(EventBase):
     mapname: str
     opponent: str
+    clan: str | None = None
 
 
 class WakeEvent(EventBase):

@@ -304,7 +304,7 @@ class AISession:
     def is_goodbye(self, response: str):
         return levenshtein(response[-20:].lower().strip(), "good luck, have fun") < 8
 
-    def initiate_from_game_start(self, map, opponent, mmr):
+    def initiate_from_game_start(self, map, opponent, mmr, clan=None):
         """Adds game start information to conversation context
 
         The context is initialized depending on:
@@ -325,7 +325,7 @@ class AISession:
         prompt = None
         match_history = None
 
-        playerinfo = self.player_resolver.resolve_player(opponent, map, mmr)
+        playerinfo = self.player_resolver.resolve_player(opponent, map, mmr, clan=clan)
         past_replays = []
 
         if playerinfo is not None:
@@ -409,7 +409,7 @@ class AISession:
 
         if not self.is_active():
             self.initiate_from_game_start(
-                scanresult.mapname, scanresult.opponent, self.last_mmr
+                scanresult.mapname, scanresult.opponent, self.last_mmr, scanresult.clan
             )
             if self.is_active():
                 response = self.stream_conversation()

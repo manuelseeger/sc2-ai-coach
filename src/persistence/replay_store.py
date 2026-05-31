@@ -35,6 +35,7 @@ class Alias(MainBaseModel):
     name: str
     portraits: list[BsonBinary] = Field(default_factory=list)
     seen_on: datetime | None = None
+    clan_tag: str | None = None
 
     def __str__(self) -> str:
         return f"{self.name}"
@@ -68,11 +69,20 @@ class PlayerInfo(DbModel):
     portrait: BsonBinary | None = None
     portrait_constructed: BsonBinary | None = None
     tags: list[str] | None = None
+    clan_tag: str | None = None
 
     _collection: ClassVar = "players"
 
     def update_aliases(self, seen_on: Optional[datetime] = None):
         seen_on = seen_on or datetime.now()
+
+        # Refresh the clan tag on any alias sharing this name, even when the
+        # alias already exists (the fast-path return below would skip it).
+        if self.clan_tag:
+            for alias in self.aliases:
+                if alias.name == self.name:
+                    alias.clan_tag = self.clan_tag
+
         if self in self.aliases:
             return
         for alias in self.aliases:
@@ -89,6 +99,7 @@ class PlayerInfo(DbModel):
                 name=self.name,
                 seen_on=seen_on,
                 portraits=portraits,
+                clan_tag=self.clan_tag,
             )
         )
 
