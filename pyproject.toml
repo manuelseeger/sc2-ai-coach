@@ -33,7 +33,7 @@ standard = [
   "obsws-python>=1.7.1",
   "opencv-python>=4.11.0.86",
   "pyaudio>=0.2.14",
-  "realtimetts[kokoro,system]>=0.5.7",
+  "realtimetts[kokoro,system]>=0.7.3",
   "soundfile>=0.13.1",
   "speechrecognition[audio]>=3.14.1",
   "tesserocr @ https://github.com/simonflueckiger/tesserocr-windows_build/releases/download/tesserocr-v2.8.0-tesseract-5.5.0/tesserocr-2.8.0-cp312-cp312-win_amd64.whl ; sys_platform == 'win32'",

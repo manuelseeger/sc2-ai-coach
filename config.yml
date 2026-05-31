@@ -16,6 +16,8 @@ wakeword:
   engine: "livekit"
   # Where the model file is to be found: 
   model_path: "external/livekit/hey_coach.onnx"
+  # Sensitivity threshold for wake word detection (between 0 and 1, higher is more sensitive)
+  threshold: 0.55
 # which speech recognition model to use from huggingface speech-to-text
 speech_recognition_model: "openai/whisper-large-v3"
 # transcriber backend to use: "whisper", "canary_qwen", or "xai"
