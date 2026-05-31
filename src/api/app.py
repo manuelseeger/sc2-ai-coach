@@ -23,14 +23,14 @@ from src.api.routers import (
 )
 from src.api.webapp import build_webapp_router
 from src.persistence.runtime import PersistenceServices, build_persistence_services
-from src.runtime.settings import Config, load_api_settings
+from src.runtime.settings import ApiSettings, load_api_settings
 
 
 def create_app(
     *,
-    settings_loader: Callable[[], Config] = load_api_settings,
+    settings_loader: Callable[[], ApiSettings] = load_api_settings,
     persistence_builder: Callable[
-        [Config], PersistenceServices
+        [ApiSettings], PersistenceServices
     ] = build_persistence_services,
 ) -> FastAPI:
     @asynccontextmanager
