@@ -293,11 +293,10 @@ All listeners conform to the `LiveEventListener` Protocol (`start`/`stop`/`join`
 - Polls the SC2 client API to detect when a new match starts (used when OBS integration is disabled)
 - Enqueues `NewMatchEvent`
 
-**`wake_*.py`**: Various wake activation implementations
+**`wake_*.py`**: Wake activation implementations
 - `wake_key.py` - Keyboard hotkey (default `Ctrl+Alt+W`); also the wake-up path for non-voice modes
-- `wake_porcupine.py` - Picovoice Porcupine wake word detection
-- `wake_oww.py` - OpenWakeWord detection
-All enqueue `WakeEvent`
+- `wake_livekit.py` - Continuous mic capture (16 kHz, 80 ms frames) into a rolling ~2 s buffer scored by a `livekit-wakeword` ONNX model. Emits a `WakeEvent` when any model output crosses `wakeword.threshold`, with a 2 s debounce window to suppress double-fires
+All enqueue `WakeEvent`. The previous Picovoice Porcupine and OpenWakeWord backends have been retired
 
 **`twitch.py`**: `TwitchListener`
 - Uses `twitchAPI` for EventSub websocket
@@ -768,13 +767,13 @@ Authoritative version pins live in `pyproject.toml`. The lists below are grouped
 - **Rendering**: `markdown-it`, `vue-json-pretty`
 - **Tests**: `vitest`
 
-### Voice I/O (Optional Dependencies, `standard` and `whisper` extras)
-- **TTS**: `realtimetts` with Kokoro engine
-- **STT**: `transformers`, `speechrecognition`
-- **Audio**: `pyaudio`, `soundfile`
+### Voice I/O (Optional Dependencies)
+- **TTS** (`standard` extra): `realtimetts` with Kokoro engine
+- **STT** (`whisper` extra): `transformers`, `speechrecognition`
+- **Audio** (`standard` extra): `pyaudio`, `soundfile`
 - **ML**: `torch`, `torchaudio` - CUDA 12.4 channel
-- **Wake Words**: `pvporcupine`, `openwakeword`
-- **VAD**: `webrtcvad`
+- **Wake Words** (`livekit` extra): `livekit-wakeword` running a local ONNX model
+- **VAD** (`whisper` extra): `webrtcvad`
 
 ### External Services
 - **Battle.net**: `blizzardapi2`
@@ -846,6 +845,10 @@ reasoning_continuity_enabled: false
 audiomode: "full"  # text | in | out | full
 speech_recognition_model: "openai/whisper-large-v3"
 transcriber_backend: "whisper"  # whisper | canary_qwen | xai
+wakeword:
+  engine: "livekit"
+  model_path: "external/livekit/hey_coach.onnx"
+  threshold: 0.55
 tts:
   engine: "kokoro"
   voice: "af_sky"
@@ -859,7 +862,7 @@ coach_events:
   - twitch
 
 # Admin API
-api:
+api:m
   host: "127.0.0.1"
   port: 8765
   web_dist_dir: "webapp/dist"
@@ -995,9 +998,11 @@ Default unit coverage runs offline with the `fake_openai` Responses client; inte
 - Used for portrait matching
 - License: MIT
 
-**`porcupine/`**: Wake Word Models
-- Picovoice Porcupine wake word detection
-- `hey-coach_en_windows_v3_0_0.ppn` - Custom wake phrase
+**`livekit/`**: Wake Word Model
+- `hey_coach.onnx` - LiveKit wake-word ONNX model used by `wake_livekit.py`
+
+**`porcupine/`**: Legacy wake-word models
+- `hey-coach_en_*.ppn` files left over from the previous Picovoice Porcupine integration; not loaded by the current runtime
 
 ### Modified Third-Party Libraries
 Project uses forked/patched versions:
