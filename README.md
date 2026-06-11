@@ -246,3 +246,9 @@ For advanced setup with voice integration, see [Installation.md](Installation.md
 - **Replay age**: Only tested with LotV replays from early 2023 onwards. Older replays will likely cause errors.
 - **Text mode limitations**: Text mode wake events can cause SC2 lag during gaming sessions. Disable for competetive play.
 - **Platform**: Production code targets Windows. Unit tests pass on both Windows and Linux. 
+
+## Attribution 
+
+SC2 AICoach builds on the replay parsing work of sc2reader: https://github.com/ggtracker/sc2reader and Spawningtool: https://github.com/StoicLoofah/spawningtool
+
+Without these Open Source projects, SC2 AICoach would not be possible. Much love 💜.
