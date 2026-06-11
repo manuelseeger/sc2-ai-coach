@@ -1,5 +1,3 @@
-Kv# SC2 AI coach
-
 ## AI Coach
 
 AICoach is an LLM-powered coach that can help a StarCraft ladder player. It's set up to run with a voice interface during a gaming session and can answer questions from replay history and about opponents such as:
