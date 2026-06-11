@@ -1,0 +1,10 @@
+model_name: hey_coach
+target_phrases:
+  - "hey coach"
+
+n_samples: 10000 # training samples per class
+model:
+  model_type: conv_attention # conv_attention, dnn, or rnn
+  model_size: small # tiny, small, medium, large
+steps: 50000
+target_fp_per_hour: 0.2

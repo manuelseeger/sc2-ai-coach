@@ -1,8 +1,9 @@
 import logging
-from typing import Annotated
+from typing import Annotated, cast
 
 from bson.json_util import dumps, loads
 from pydantic import BaseModel, ConfigDict, Field
+from pyodmongo import ResponsePaginate
 
 from src.persistence.replay_store import ReplayStore, get_replay_store
 from src.replays.types import Replay
@@ -177,20 +178,18 @@ def _query_replay_db(
 
     try:
         replay_store = replay_store or get_replay_store()
-        cursor = replay_store.replays.find(
-            filter=loads(str(filter)),
-            sort=loads(str(sort)),
-            limit=limit,
+        response = cast(
+            ResponsePaginate,
+            replay_store.db.find_many(
+                Model=Replay,
+                paginate=True,
+                current_page=1,
+                docs_per_page=limit,
+                raw_query=loads(str(filter)),
+                raw_sort=loads(str(sort)),
+            ),
         )
-        results = list(cursor)
-        result_replays: list[Replay] = []
-        for result in results:
-            try:
-                r = Replay(**result)
-                result_replays.append(r)
-            except Exception as e:
-                log.debug(f"Failed to parse replay: {e}")
-                pass
+        result_replays: list[Replay] = response.docs
         return [
             result_replay.projection(limit=limit_time, projection=loads(projection))
             for result_replay in result_replays

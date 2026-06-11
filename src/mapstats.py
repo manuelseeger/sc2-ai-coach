@@ -11,7 +11,7 @@ from pyodmongo import DbModel, MainBaseModel
 
 from log import DEFAULT_LOGGER_NAME
 from src.persistence.replay_store import ReplayStore, get_replay_store
-from src.runtime.settings import Config, get_config
+from src.runtime.settings import ApiSettings, Config, get_config
 
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 
@@ -35,7 +35,7 @@ class MatchupsByMap(DbModel):
     _pipeline: ClassVar[list[dict[str, Any]]] = []
 
 
-def _map_stats_pipeline(settings: Config) -> list[dict[str, Any]]:
+def _map_stats_pipeline(settings: ApiSettings) -> list[dict[str, Any]]:
     return [
         {"$match": {"players.name": settings.student.name}},
         {
@@ -116,7 +116,7 @@ def _map_stats_pipeline(settings: Config) -> list[dict[str, Any]]:
     ]
 
 
-def _configure_matchups_pipeline(settings: Config) -> None:
+def _configure_matchups_pipeline(settings: ApiSettings) -> None:
     MatchupsByMap._pipeline.clear()
     MatchupsByMap._pipeline.extend(_map_stats_pipeline(settings))
 
@@ -139,7 +139,7 @@ def list_map_stats(
     min_date: datetime | None = None,
     replay_store: ReplayStore | None = None,
     *,
-    settings: Config | None = None,
+    settings: ApiSettings | None = None,
 ) -> list[MatchupsByMap]:
     settings = settings or get_config()
     if min_date is None:
@@ -225,7 +225,7 @@ def get_map_stats(
     min_date: datetime | None = None,
     replay_store: ReplayStore | None = None,
     *,
-    settings: Config | None = None,
+    settings: ApiSettings | None = None,
 ) -> MatchupsByMap | None:
     maps = list_map_stats(
         map_name=map,

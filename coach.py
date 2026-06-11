@@ -210,10 +210,7 @@ def _build_live_event_listeners(
             settings.audiomode in [AudioMode.full, AudioMode.voice_in]
             and settings.interactive
         ):
-            if settings.wakeword.engine == "porcupine":
-                from src.events.wake_porcupine import WakeWordListener
-            else:
-                from src.events.wake_oww import WakeWordListener
+            from src.events.wake_livekit import WakeWordListener
 
             wake = WakeWordListener(settings=settings)
         else:

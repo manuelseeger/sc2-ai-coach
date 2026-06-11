@@ -44,8 +44,8 @@ class TTS(TTSService):
 
     def is_speaking(self):
         # https://github.com/KoljaB/RealtimeTTS/issues/320
-        return self.tts.stream_running and self.tts.is_playing_flag
-        # return self.tts.is_playing()
+        # return self.tts.stream_running and self.tts.is_playing_flag
+        return self.tts.is_playing()
 
 
 def make_tts_stream(*, tts_config: "TTSConfig") -> TTS:

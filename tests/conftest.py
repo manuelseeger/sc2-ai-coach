@@ -4,6 +4,7 @@ import sys
 import time
 from dataclasses import dataclass
 from os.path import exists, join
+from pathlib import Path
 from unittest.mock import MagicMock
 from urllib.parse import urljoin
 from uuid import uuid4
@@ -64,7 +65,8 @@ def load_test_settings(**_) -> Config:
         audiomode=AudioMode.text,
         microphone_index=None,
         wakeword=WakeWordConfig(
-            engine="openwakeword", model="hey_jarvis", sensitivity=0.65
+            engine="livekit",
+            model_path=Path("external/livekit/hey_coach.onnx"),
         ),
         speech_recognition_model="openai/whisper-large-v3",
         transcriber_backend=TranscriberBackend.xai,

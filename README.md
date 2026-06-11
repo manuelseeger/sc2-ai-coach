@@ -1,8 +1,8 @@
-# SC2 AI coach
+Kv# SC2 AI coach
 
 ## AI Coach
 
-[coach.py](coach.py) is an LLM-powered coach that can help a StarCraft ladder player. It's set up to run with a voice interface during a gaming session and can answer questions from replay history and about opponents such as:
+AICoach is an LLM-powered coach that can help a StarCraft ladder player. It's set up to run with a voice interface during a gaming session and can answer questions from replay history and about opponents such as:
 
 - When did I last play against this player?
 - What was the opening build order of this player, in summary?
@@ -26,7 +26,7 @@ This is a personal research project to explore LLM-based agents applied to compe
 
 The app comes with a replay DB and a simple UI to review replay, players, conversations, and replay metadata. The UI is meant for keeping track of AI coach conversations and generated metadata. The replay data stored with AICoach is intentionally filtered to the basics, and the UI does not fully replace a replay DB like SCElight. 
 
-| Replay DB UI | Replay conversation |
+| Replay DB UI | Analyzing an AICoach conversation |
 |--|--|
 | ![Replay DB UI](assets/ReplayDB-admin.png) | ![Replay conversation](assets/ReplayDB-conversation.png) |
 
@@ -221,7 +221,7 @@ Please note: This is a hobby project and advanced features are not ready to use 
 - All requirements from minimal setup above
 - torch, RealtimeTTS for voice synthesis
 - xAI API key for transcription
-- Porcupine API for wake word
+- Livekit for wake word
 - Microphone and speakers, ideally with NVidia Broadcast
 
 For advanced setup with voice integration, see [Installation.md](Installation.md) for detailed steps. This requires Python experience and familiarity with machine learning tools.
@@ -246,3 +246,9 @@ For advanced setup with voice integration, see [Installation.md](Installation.md
 - **Replay age**: Only tested with LotV replays from early 2023 onwards. Older replays will likely cause errors.
 - **Text mode limitations**: Text mode wake events can cause SC2 lag during gaming sessions. Disable for competetive play.
 - **Platform**: Production code targets Windows. Unit tests pass on both Windows and Linux. 
+
+## Attribution 
+
+SC2 AICoach builds on the replay parsing work of sc2reader: https://github.com/ggtracker/sc2reader and Spawningtool: https://github.com/StoicLoofah/spawningtool
+
+Without these Open Source projects, SC2 AICoach would not be possible. Much love 💜.

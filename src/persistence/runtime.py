@@ -9,7 +9,7 @@ from src.persistence.replay_store import ReplayStore
 from src.persistence.session_store import SessionStore
 
 if TYPE_CHECKING:
-    from src.runtime.settings import Config
+    from src.runtime.settings import ApiSettings
 
 
 @dataclass(frozen=True)
@@ -20,7 +20,7 @@ class PersistenceServices:
     session_store: SessionStore
 
 
-def build_persistence_services(settings: "Config") -> PersistenceServices:
+def build_persistence_services(settings: "ApiSettings") -> PersistenceServices:
     database = MongoDatabase(MongoDatabaseConfig.from_config(settings))
     return PersistenceServices(
         database=database,

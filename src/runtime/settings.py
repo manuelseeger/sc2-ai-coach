@@ -3,13 +3,13 @@ from enum import Enum
 from functools import cached_property
 from glob import glob
 from os.path import join
-from pathlib import Path
 from typing import Annotated, Dict, List, Literal, Optional, Tuple, Type
 
 from pydantic import (
     BaseModel,
     DirectoryPath,
     Field,
+    FilePath,
     ValidationError,
     computed_field,
     field_validator,
@@ -132,25 +132,19 @@ ReasoningEffort = Literal["none", "minimal", "low", "medium", "high", "xhigh"]
 
 
 class WakeWordConfig(BaseModel):
-    engine: Literal["openwakeword", "porcupine"] = "openwakeword"
-    model: Optional[str] = None
-    sensitivity: Optional[float] = None
-    porcupine_accesskey: Optional[str] = None
-    porcupine_model_path: Optional[str] = None
-
-    @model_validator(mode="after")
-    def validate_openwakeword_fields(self):
-        if self.engine == "openwakeword":
-            if self.model is None:
-                raise ValueError("model is required when engine is 'openwakeword'")
-            if self.sensitivity is None:
-                raise ValueError(
-                    "sensitivity is required when engine is 'openwakeword'"
-                )
-        return self
+    engine: Literal["livekit"] = "livekit"
+    model_path: FilePath
+    threshold: float = 0.55
 
 
-class Config(BaseSettings):
+class ApiSettings(BaseSettings):
+    """API-safe settings slice.
+
+    Holds only the settings the standalone API needs, all defaulted, so it loads
+    even when every coach-only setting is absent (e.g. a deployment running on
+    defaults + env vars). ``Config`` extends this with the coach-runtime fields.
+    """
+
     model_config = SettingsConfigDict(
         yaml_file=yaml_files,
         env_file=env_files,
@@ -158,6 +152,35 @@ class Config(BaseSettings):
         extra="ignore",
         env_nested_delimiter="__",
     )
+
+    db_name: str = "SC2AICOACH"
+    mongo_dsn: MongoSRVDsn = "mongodb://localhost:28765/SC2AICOACH"  # pyright: ignore[reportAssignmentType]
+    student: StudentConfig = Field(
+        default_factory=lambda: StudentConfig(name="Player", race="Terran")
+    )
+    season_start: Optional[datetime] = None
+    api: ApiConfig = Field(default_factory=ApiConfig)
+
+    @classmethod
+    def settings_customise_sources(  # type: ignore[override]
+        cls,
+        settings_cls: Type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: EnvSettingsSource,
+        dotenv_settings: DotEnvSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> Tuple[PydanticBaseSettingsSource, ...]:
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            file_secret_settings,
+            YamlConfigSettingsSource(settings_cls),
+        )
+
+
+class Config(ApiSettings):
+    # model_config + settings_customise_sources inherited from ApiSettings
     name: str = "AICoach"
     replay_folder: str
     instant_leave_max: int
@@ -176,7 +199,9 @@ class Config(BaseSettings):
 
     tts: TTSConfig
 
-    student: StudentConfig
+    # Re-declared without a default to keep coach validation strict (overrides the
+    # API-safe default on ApiSettings, so the coach still fails loudly when missing).
+    student: StudentConfig  # pyright: ignore[reportGeneralTypeIssues]
 
     aibackend: AIBackend
     openai_endpoint: Optional[str] = None
@@ -296,52 +321,34 @@ class Config(BaseSettings):
 
     season: int
 
-    season_start: Optional[datetime] = None
-
     ladder_maps: List[str]
 
     default_projection: Dict[str, int]
 
-    db_name: str
-    mongo_dsn: MongoSRVDsn = "mongodb://localhost:28765/SC2AICOACH"  # pyright: ignore[reportAssignmentType]
-    api: ApiConfig = Field(default_factory=ApiConfig)
-
-    @classmethod
-    def settings_customise_sources(  # type: ignore[override]
-        cls,
-        settings_cls: Type[BaseSettings],
-        init_settings: PydanticBaseSettingsSource,
-        env_settings: EnvSettingsSource,
-        dotenv_settings: DotEnvSettingsSource,
-        file_secret_settings: PydanticBaseSettingsSource,
-    ) -> Tuple[PydanticBaseSettingsSource, ...]:
-        return (
-            init_settings,
-            env_settings,
-            dotenv_settings,
-            file_secret_settings,
-            YamlConfigSettingsSource(settings_cls),
-        )
+    # Re-declared without a default to keep coach validation strict (overrides the
+    # API-safe default on ApiSettings). mongo_dsn / season_start / api keep the
+    # inherited defaults.
+    db_name: str  # pyright: ignore[reportGeneralTypeIssues]
 
 
 class SettingsLoaderError(Exception):
     pass
 
 
-def load_current_settings(*, require_prepared_environment: bool = True) -> Config:
+def load_current_settings() -> Config:
     try:
         settings = Config()  # type: ignore
     except ValidationError as exc:
         raise SettingsLoaderError("Failed to load runtime settings") from exc
 
-    if require_prepared_environment and not Path(settings.obs_dir).exists():
-        raise SettingsLoaderError("Runtime environment is not prepared")
-
     return settings
 
 
-def load_api_settings() -> Config:
-    return load_current_settings(require_prepared_environment=False)
+def load_api_settings() -> ApiSettings:
+    try:
+        return ApiSettings()  # type: ignore
+    except ValidationError as exc:
+        raise SettingsLoaderError("Failed to load API settings") from exc
 
 
 _config_cache: Config | None = None

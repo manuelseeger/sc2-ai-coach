@@ -32,9 +32,8 @@ standard = [
   "numpy",
   "obsws-python>=1.7.1",
   "opencv-python>=4.11.0.86",
-  "pvporcupine>=3.0.5",
   "pyaudio>=0.2.14",
-  "realtimetts[kokoro,system]>=0.5.7",
+  "realtimetts[kokoro,system]>=0.7.3",
   "soundfile>=0.13.1",
   "speechrecognition[audio]>=3.14.1",
   "tesserocr @ https://github.com/simonflueckiger/tesserocr-windows_build/releases/download/tesserocr-v2.8.0-tesseract-5.5.0/tesserocr-2.8.0-cp312-cp312-win_amd64.whl ; sys_platform == 'win32'",
@@ -57,10 +56,9 @@ whisper = [
 nemo = [
   "nemo-toolkit[asr]>=2.7.2",
 ]
-openwakeword = [
-  "onnxruntime>=1.25",
-  "openwakeword>=0.6.0; sys_platform == 'win32'",
-  "torch>=2.6.0",
+livekit = [
+    "livekit-wakeword[eval,export,train]>=0.2.1",
+    "torchaudio>=2.6.0",
 ]
 
 

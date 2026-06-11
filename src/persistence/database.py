@@ -9,7 +9,7 @@ from pyodmongo import DbEngine
 from src.runtime.settings import get_config
 
 if TYPE_CHECKING:
-    from src.runtime.settings import Config
+    from src.runtime.settings import ApiSettings, Config
 
 
 class MongoDatabaseConfig(BaseModel):
@@ -20,7 +20,7 @@ class MongoDatabaseConfig(BaseModel):
     tz_info: tzinfo | None = None
 
     @classmethod
-    def from_config(cls, app_config: Config) -> MongoDatabaseConfig:
+    def from_config(cls, app_config: ApiSettings) -> MongoDatabaseConfig:
         return cls(mongo_uri=str(app_config.mongo_dsn), db_name=app_config.db_name)
 
 

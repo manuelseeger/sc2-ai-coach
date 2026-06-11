@@ -1,5 +1,5 @@
 from src.ai.pricing import ModelPricingOverride
-from src.runtime.settings import AudioMode, Config
+from src.runtime.settings import ApiSettings, AudioMode, Config, load_api_settings
 
 
 def test_model_pricing_defaults_to_builtin_lookup():
@@ -93,3 +93,26 @@ def test_microphone_autoselection_runs_for_full_mode(monkeypatch):
     config._resolve_microphone_index()
 
     assert config.microphone_index == 9
+
+
+def test_api_settings_has_no_required_fields():
+    # The API-safe loader must construct even when every coach-only setting is
+    # absent (e.g. a deployment running on defaults + env vars). That only holds
+    # if no ApiSettings field is required.
+    required = [name for name, f in ApiSettings.model_fields.items() if f.is_required()]
+
+    assert required == []
+
+
+def test_load_api_settings_returns_api_settings():
+    settings = load_api_settings()
+
+    assert isinstance(settings, ApiSettings)
+    assert settings.api.port == 8765
+
+
+def test_config_keeps_coach_fields_required():
+    # ApiSettings defaults must not leak into the coach Config: it stays strict so
+    # a missing student / db_name still fails loudly.
+    assert Config.model_fields["student"].is_required()
+    assert Config.model_fields["db_name"].is_required()
