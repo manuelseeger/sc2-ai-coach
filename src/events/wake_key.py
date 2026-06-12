@@ -4,8 +4,8 @@ import threading
 import keyboard
 
 from shared import signal_queue
-from src.events import WakeEvent
-from src.runtime.settings import Config, get_config
+from events import WakeEvent
+from runtime.settings import Config, get_config
 
 from log import DEFAULT_LOGGER_NAME
 

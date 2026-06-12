@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.api.errors import raise_api_error
+from api.errors import raise_api_error
 
 FORBIDDEN_QUERY_OPERATORS = {
     "$set",

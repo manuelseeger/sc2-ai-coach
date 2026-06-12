@@ -13,7 +13,7 @@ from sc2reader_plugins import (
 
 import sc2reader
 from log import DEFAULT_LOGGER_NAME
-from src.runtime.settings import Config, get_config
+from runtime.settings import Config, get_config
 
 from .plugins.ReplayStats import ReplayStats
 from .plugins.SpawningTool import SpawningTool

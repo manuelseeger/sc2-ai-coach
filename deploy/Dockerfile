@@ -18,7 +18,6 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml README.md ./
-COPY coach.py repcli.py log.py obs_client.py shared.py ./
 COPY src ./src
 COPY config.yml ./config.yml
 COPY templates ./templates
@@ -29,4 +28,4 @@ RUN mkdir -p logs obs
 
 EXPOSE 8765
 
-CMD ["uv", "run", "python", "-m", "src.api"]
+CMD ["uv", "run", "python", "-m", "api"]

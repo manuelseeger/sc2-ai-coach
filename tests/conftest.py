@@ -16,11 +16,11 @@ from pydantic import BaseModel, ValidationError
 from pymongo import MongoClient
 from pytest_mock import MockerFixture
 
-from src.persistence.conversation_store import ConversationStore
-from src.persistence.database import MongoDatabase, MongoDatabaseConfig
-from src.persistence.replay_store import ReplayStore
-from src.persistence.session_store import SessionStore
-from src.runtime.settings import (
+from persistence.conversation_store import ConversationStore
+from persistence.database import MongoDatabase, MongoDatabaseConfig
+from persistence.replay_store import ReplayStore
+from persistence.session_store import SessionStore
+from runtime.settings import (
     AIBackend,
     AudioMode,
     CoachEvent,
@@ -37,11 +37,11 @@ from tests.support.container_services import MongoServiceHandle, start_mongo_ser
 
 pytest_services.bootstrap_test_services()
 
-from src.lib.sc2client import NORMAL_MAP as race_map  # noqa: E402
-from src.lib.sc2client import GameInfo, Race, Result  # noqa: E402
-from src.lib.sc2client import Player as ApiPlayer  # noqa: E402
-from src.replays.reader import ReplayReader  # noqa: E402
-from src.replays.types import Player as ReplayPlayer  # noqa: E402
+from lib.sc2client import NORMAL_MAP as race_map  # noqa: E402
+from lib.sc2client import GameInfo, Race, Result  # noqa: E402
+from lib.sc2client import Player as ApiPlayer  # noqa: E402
+from replays.reader import ReplayReader  # noqa: E402
+from replays.types import Player as ReplayPlayer  # noqa: E402
 from tests.critic import LmmCritic  # noqa: E402
 
 TESTDATA_DIR = "tests/testdata"
@@ -505,7 +505,7 @@ def sc2api_mock(mocker: MockerFixture, replay_file):
     )
 
     mocker.patch(
-        "src.ai.functions.GetCurrentGameInfo.sc2client.get_gameinfo",
+        "ai.functions.GetCurrentGameInfo.sc2client.get_gameinfo",
         return_value=gameinfo,
     )
 
@@ -513,7 +513,7 @@ def sc2api_mock(mocker: MockerFixture, replay_file):
         if time is not None:
             gameinfo.displayTime = time
         return mocker.patch(
-            "src.ai.functions.GetCurrentGameInfo.sc2client.get_gameinfo",
+            "ai.functions.GetCurrentGameInfo.sc2client.get_gameinfo",
             return_value=gameinfo,
         )
 

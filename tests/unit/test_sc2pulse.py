@@ -1,6 +1,6 @@
 import pytest
 
-from src.lib.sc2pulse import SC2PulseLeagueBounds, get_division_for_mmr
+from lib.sc2pulse import SC2PulseLeagueBounds, get_division_for_mmr
 
 
 @pytest.mark.parametrize(

@@ -11,11 +11,11 @@ from typing import Callable
 from PIL import Image
 
 from shared import http_client
-from src.lib.battlenet import BattleNet
-from src.persistence.replay_store import PlayerInfo, ReplayStore, get_replay_store
-from src.replays.types import Replay, to_bson_binary
-from src.runtime.settings import Config
-from src.util import is_aware, is_barcode
+from lib.battlenet import BattleNet
+from persistence.replay_store import PlayerInfo, ReplayStore, get_replay_store
+from replays.types import Replay, to_bson_binary
+from runtime.settings import Config
+from util import is_aware, is_barcode
 
 from log import DEFAULT_LOGGER_NAME
 

@@ -18,7 +18,7 @@ from transformers.utils import is_flash_attn_2_available
 from typing_extensions import override
 
 from log import DEFAULT_LOGGER_NAME
-from src.contracts import TranscriberService
+from contracts import TranscriberService
 
 transformers.logging.set_verbosity_error()
 

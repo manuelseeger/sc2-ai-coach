@@ -4,11 +4,11 @@ from typing import TYPE_CHECKING
 from RealtimeTTS import SystemEngine, TextToAudioStream
 from RealtimeTTS.engines.kokoro_engine import KokoroEngine
 
-from src.contracts import TTSService
-from src.util import strip_markdown
+from contracts import TTSService
+from util import strip_markdown
 
 if TYPE_CHECKING:
-    from src.runtime.settings import TTSConfig
+    from runtime.settings import TTSConfig
 
 from log import DEFAULT_LOGGER_NAME
 

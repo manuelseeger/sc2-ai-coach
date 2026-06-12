@@ -1,5 +1,5 @@
-from src.ai.pricing import ModelPricingOverride
-from src.runtime.settings import ApiSettings, AudioMode, Config, load_api_settings
+from ai.pricing import ModelPricingOverride
+from runtime.settings import ApiSettings, AudioMode, Config, load_api_settings
 
 
 def test_model_pricing_defaults_to_builtin_lookup():
@@ -64,7 +64,7 @@ def test_microphone_autoselection_skips_text_mode(monkeypatch):
         return 9
 
     monkeypatch.setattr(
-        "src.runtime.settings.select_preferred_microphone_index",
+        "runtime.settings.select_preferred_microphone_index",
         fake_select_preferred_microphone_index,
     )
 
@@ -81,7 +81,7 @@ def test_microphone_autoselection_skips_text_mode(monkeypatch):
 
 def test_microphone_autoselection_runs_for_full_mode(monkeypatch):
     monkeypatch.setattr(
-        "src.runtime.settings.select_preferred_microphone_index",
+        "runtime.settings.select_preferred_microphone_index",
         lambda: 9,
     )
 

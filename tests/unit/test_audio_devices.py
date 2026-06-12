@@ -2,7 +2,7 @@ import importlib
 
 
 def test_select_preferred_microphone_index_prefers_nvidia_broadcast(monkeypatch):
-    audio_devices = importlib.import_module("src.runtime.audio_devices")
+    audio_devices = importlib.import_module("runtime.audio_devices")
 
     class FakeAudio:
         def get_device_count(self):
@@ -25,7 +25,7 @@ def test_select_preferred_microphone_index_prefers_nvidia_broadcast(monkeypatch)
 
 
 def test_select_preferred_microphone_index_falls_back_to_default(monkeypatch):
-    audio_devices = importlib.import_module("src.runtime.audio_devices")
+    audio_devices = importlib.import_module("runtime.audio_devices")
 
     class FakeAudio:
         def get_device_count(self):
@@ -47,7 +47,7 @@ def test_select_preferred_microphone_index_falls_back_to_default(monkeypatch):
 
 
 def test_get_microphone_name_uses_default_input_when_index_missing(monkeypatch):
-    audio_devices = importlib.import_module("src.runtime.audio_devices")
+    audio_devices = importlib.import_module("runtime.audio_devices")
 
     class FakeAudio:
         def get_default_input_device_info(self):

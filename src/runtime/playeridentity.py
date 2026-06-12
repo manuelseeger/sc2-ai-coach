@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.playeridentity import PlayerIdentityEnricher, PlayerPortraitSource
-from src.playerresolver import PlayerResolver
+from playeridentity import PlayerIdentityEnricher, PlayerPortraitSource
+from playerresolver import PlayerResolver
 
 
 @dataclass(frozen=True)

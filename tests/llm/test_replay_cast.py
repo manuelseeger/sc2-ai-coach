@@ -7,9 +7,9 @@ if sys.gettrace() is None:
     pytest.skip("Skipping debug-only LLM test.", allow_module_level=True)
 
 from coach import AISession
-from src.events import CastReplayEvent
-from src.io.tts import make_tts_stream
-from src.replays.reader import ReplayReader
+from events import CastReplayEvent
+from iosvc.tts import make_tts_stream
+from replays.reader import ReplayReader
 from tests.conftest import load_test_settings
 
 
@@ -53,17 +53,17 @@ def test_cast_replay(replay_file, mocker):
 
     # Mock SC2Client to simulate game progression
     mock_sc2_client = MockSC2Client(max_iterations=3)
-    mocker.patch("src.session.SC2Client", return_value=mock_sc2_client)
+    mocker.patch("session.SC2Client", return_value=mock_sc2_client)
 
     # Mock SC2PulseClient for league bounds
     mock_sc2pulse = MagicMock()
     mock_sc2pulse.get_league_bounds.return_value = {
         "DIAMOND": {"min": 3200, "max": 4199}
     }
-    mocker.patch("src.session.SC2PulseClient", return_value=mock_sc2pulse)
+    mocker.patch("session.SC2PulseClient", return_value=mock_sc2pulse)
 
     # Mock get_division_for_mmr
-    mocker.patch("src.session.get_division_for_mmr", return_value=("Diamond", "1"))
+    mocker.patch("session.get_division_for_mmr", return_value=("Diamond", "1"))
 
     replay = reader.load_replay(replay_file)
     # Set a shorter real_length for testing to end the casting loop quickly

@@ -7,8 +7,8 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.status import Status
 
-from src.replays.types import Role
-from src.runtime.settings import get_config
+from replays.types import Role
+from runtime.settings import get_config
 
 console = Console()
 
@@ -56,7 +56,7 @@ EMOJI_MAP = {
     "replays": Emojis.replay,
     "obs_tools.mic": Emojis.mic,
     "aicoach.transcribe": Emojis.transcribe,
-    "src.io.transcribe_xai": Emojis.transcribe,
+    "iosvc.transcribe_xai": Emojis.transcribe,
     "converse": Emojis.mic,
     "main": Emojis.system,
     "close": Emojis.system,

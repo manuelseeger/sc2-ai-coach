@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from src.replays.types import Replay
+from replays.types import Replay
 
 
 def test_matchups_by_map_aggregates_seeded_replays_in_fresh_container(
     seeded_replay_mongo_container,
 ):
-    from src.mapstats import MatchupsByMap, _configure_matchups_pipeline
+    from mapstats import MatchupsByMap, _configure_matchups_pipeline
 
     runtime_settings = seeded_replay_mongo_container.settings
     replay_store = seeded_replay_mongo_container.replay_store

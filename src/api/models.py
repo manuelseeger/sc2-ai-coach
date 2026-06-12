@@ -4,8 +4,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from src.persistence.replay_store import Alias, PlayerInfo
-from src.replays.types import Player
+from persistence.replay_store import Alias, PlayerInfo
+from replays.types import Player
 
 
 class HealthResponse(BaseModel):

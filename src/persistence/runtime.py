@@ -3,13 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from src.persistence.conversation_store import ConversationStore
-from src.persistence.database import MongoDatabase, MongoDatabaseConfig
-from src.persistence.replay_store import ReplayStore
-from src.persistence.session_store import SessionStore
+from persistence.conversation_store import ConversationStore
+from persistence.database import MongoDatabase, MongoDatabaseConfig
+from persistence.replay_store import ReplayStore
+from persistence.session_store import SessionStore
 
 if TYPE_CHECKING:
-    from src.runtime.settings import ApiSettings
+    from runtime.settings import ApiSettings
 
 
 @dataclass(frozen=True)

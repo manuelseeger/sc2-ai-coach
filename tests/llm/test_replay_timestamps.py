@@ -11,8 +11,8 @@ if not os.getenv("RUN_LIVE_OPENAI_TESTS"):
     )
 
 from coach import AISession
-from src.replays.reader import ReplayReader
-from src.replays.types import Replay
+from replays.reader import ReplayReader
+from replays.types import Replay
 
 
 @pytest.mark.parametrize(

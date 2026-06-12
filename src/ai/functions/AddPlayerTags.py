@@ -3,8 +3,8 @@ from typing import Annotated
 
 from pyodmongo.queries import eq
 
-from src.persistence.replay_store import PlayerInfo, get_replay_store
-from src.replays.types import FieldTypeValidator, ToonHandle
+from persistence.replay_store import PlayerInfo, get_replay_store
+from replays.types import FieldTypeValidator, ToonHandle
 
 from .base import AIFunction
 

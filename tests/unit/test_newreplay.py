@@ -2,14 +2,14 @@ import importlib
 import logging
 from types import SimpleNamespace
 
-from src.playeridentity import PlayerIdentityEnrichmentError
-from src.replays.types import Replay
+from playeridentity import PlayerIdentityEnrichmentError
+from replays.types import Replay
 
 
 def test_process_new_file_logs_and_continues_on_player_identity_enrichment_failure(
     mocker, runtime_settings, caplog
 ):
-    newreplay = importlib.import_module("src.events.newreplay")
+    newreplay = importlib.import_module("events.newreplay")
 
     replay = Replay.model_construct(id="a" * 64)
     reader = mocker.Mock()

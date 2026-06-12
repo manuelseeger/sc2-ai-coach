@@ -6,7 +6,7 @@ import soundfile as sf
 from speech_recognition.audio import AudioData
 
 from log import DEFAULT_LOGGER_NAME
-from src.contracts import TranscriberService
+from contracts import TranscriberService
 
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 

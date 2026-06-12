@@ -28,8 +28,8 @@ def test_twitch_chat(user, message, criteria, expected, util, critic: LmmCritic)
     completions on another LLM, which is why we only run these in debugging."""
 
     # arrange
-    from src.ai.aicoach import AICoach
-    from src.ai.prompt import Templates
+    from ai.aicoach import AICoach
+    from ai.prompt import Templates
 
     runtime_settings = load_test_settings()
 

@@ -5,8 +5,8 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
 
-from src.api.models import ErrorBody, ErrorResponse
-from src.api.state import get_settings
+from api.models import ErrorBody, ErrorResponse
+from api.state import get_settings
 
 
 def get_webapp_dist_dir(request: Request) -> Path:

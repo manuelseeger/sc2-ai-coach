@@ -8,7 +8,7 @@ from .GetCurrentGameInfo import GetCurrentGameInfo
 from .QueryReplayDB import QueryReplayDB, build_query_replay_db_function
 
 if TYPE_CHECKING:
-    from src.persistence.replay_store import ReplayStore
+    from persistence.replay_store import ReplayStore
 
 AIFunctions = [QueryReplayDB, AddMetadata, GetCurrentGameInfo, CastReplay]
 

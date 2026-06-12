@@ -2,7 +2,7 @@ import logging
 
 from pydantic import BaseModel, ConfigDict
 
-from src.lib.sc2client import GameInfo, SC2Client
+from lib.sc2client import GameInfo, SC2Client
 
 from .base import AIFunction
 

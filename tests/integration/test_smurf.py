@@ -1,7 +1,7 @@
 import pytest
 
-from src.matchhistory import get_sc2pulse_match_history
-from src.replays.types import ToonHandle
+from matchhistory import get_sc2pulse_match_history
+from replays.types import ToonHandle
 
 
 # Amygdala (38) TvZ smurf leaves TvT.SC2Replay

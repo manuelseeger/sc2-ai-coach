@@ -2,7 +2,7 @@
 import pandas as pd
 import pytest
 
-from src.matchhistory import MatchHistory
+from matchhistory import MatchHistory
 
 
 @pytest.mark.parametrize(

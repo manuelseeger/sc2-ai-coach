@@ -4,8 +4,8 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from pyodmongo.queries import eq
 
-from src.ai.utils import get_clean_tags
-from src.persistence.replay_store import Metadata, ReplayStore, get_replay_store
+from ai.utils import get_clean_tags
+from persistence.replay_store import Metadata, ReplayStore, get_replay_store
 
 from .base import AIFunction
 

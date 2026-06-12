@@ -9,18 +9,18 @@ from pymongo import ASCENDING, IndexModel
 from pyodmongo import DbModel, Id, ResponsePaginate
 from pyodmongo.queries import eq, sort
 
-from src.persistence.database import MongoDatabase, get_database
-from src.replays.types import (
+from persistence.database import MongoDatabase, get_database
+from replays.types import (
     AIContentPart,
     AIConversationItemType,
     AIConversationStatus,
     AIConversationTrigger,
     AIMessageRole,
 )
-from src.runtime.settings import get_config
+from runtime.settings import get_config
 
 if TYPE_CHECKING:
-    from src.persistence.session_store import Session
+    from persistence.session_store import Session
 
 ModelT = TypeVar("ModelT")
 
@@ -670,7 +670,7 @@ class ConversationStore:
     def _session(self, session: Id | str | None):
         if session is None:
             return None
-        from src.persistence.session_store import Session
+        from persistence.session_store import Session
 
         return self.db.find_one(
             Model=Session,

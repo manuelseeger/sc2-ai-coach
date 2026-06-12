@@ -1,4 +1,4 @@
-from src.persistence.conversation_store import (
+from persistence.conversation_store import (
     AIConversation,
     AIConversationItem,
     AIResponseRecord,
@@ -6,14 +6,14 @@ from src.persistence.conversation_store import (
     get_conversation_store,
     reset_conversation_store,
 )
-from src.persistence.database import (
+from persistence.database import (
     MongoDatabase,
     MongoDatabaseConfig,
     get_database,
     reset_database,
     set_database,
 )
-from src.persistence.replay_store import (
+from persistence.replay_store import (
     Alias,
     Metadata,
     PlayerInfo,
@@ -21,7 +21,7 @@ from src.persistence.replay_store import (
     get_replay_store,
     reset_replay_store,
 )
-from src.persistence.session_store import Session, SessionStore
+from persistence.session_store import Session, SessionStore
 
 __all__ = [
     "AIConversation",

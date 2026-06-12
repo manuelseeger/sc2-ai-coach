@@ -16,7 +16,7 @@ def test_channel_follow():
     if runtime_settings.twitch is None or runtime_settings.twitch.mocked is False:
         pytest.skip("Only run when twitch events are mocked locally.")
 
-    from src.events.twitch import TwitchListener
+    from events.twitch import TwitchListener
 
     twitch = TwitchListener(name="twitch")
     twitch.start()

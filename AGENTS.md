@@ -13,8 +13,8 @@ Use:
 
 **Always use uv to run Python or python tools**: 
 ```sh
-uv run coach.py --repl
-uv run repcli.py --help
+uv run coach --repl
+uv run repcli --help
 uv run pytest tests/unit
 ```
 
@@ -25,8 +25,8 @@ Use MongoDB MCP to inspect the local DB (readonly).
 ## Running the app
 
 During developement, testing, you may run: 
-- The CLI `uv run repcli.py --validate`
-- The full app in text-only mode `uv run coach.py --repl`
+- The CLI `uv run repcli --validate`
+- The full app in text-only mode `uv run coach --repl`
 
 ## Agent skills
 

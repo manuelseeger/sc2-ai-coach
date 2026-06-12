@@ -26,14 +26,14 @@ from pydantic_settings import (
     YamlConfigSettingsSource,
 )
 
-from src.ai.pricing import (
+from ai.pricing import (
     ModelPricing,
     ModelPricingOverride,
     get_default_model_pricing,
     normalize_model_name,
 )
-from src.api.config import ApiConfig
-from src.runtime.audio_devices import select_preferred_microphone_index
+from api.config import ApiConfig
+from runtime.audio_devices import select_preferred_microphone_index
 
 MongoSRVDsn = Annotated[
     MultiHostUrl, UrlConstraints(allowed_schemes=["mongodb+srv", "mongodb"])

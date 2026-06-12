@@ -7,7 +7,7 @@ from tests.conftest import load_test_settings
 
 
 def test_get_barcode_character_ids():
-    from src.lib.sc2pulse import SC2PulseClient
+    from lib.sc2pulse import SC2PulseClient
 
     barcode = "IIIIIIIIIIII"
 
@@ -20,7 +20,7 @@ def test_get_barcode_character_ids():
 
 
 def test_get_unmasked_player():
-    from src.lib.sc2pulse import SC2PulseClient, SC2PulseRace
+    from lib.sc2pulse import SC2PulseClient, SC2PulseRace
 
     barcode = "IIIIIIIIIIII"
 
@@ -41,7 +41,7 @@ def test_get_unmasked_player():
     ],
 )
 def test_get_profile(profile_id, expected_name):
-    from src.lib.battlenet import BattleNet
+    from lib.battlenet import BattleNet
 
     bnet = BattleNet()
     profile = bnet.get_profile(profile_id)
@@ -54,7 +54,7 @@ def test_get_profile(profile_id, expected_name):
 
 def test_get_current_season():
     runtime_settings = load_test_settings()
-    from src.lib.sc2pulse import SC2PulseClient
+    from lib.sc2pulse import SC2PulseClient
 
     sc2pulse = SC2PulseClient()
     season = sc2pulse.get_current_season()
@@ -63,7 +63,7 @@ def test_get_current_season():
 
 
 def test_get_season_bounds():
-    from src.lib.sc2pulse import SC2PulseClient
+    from lib.sc2pulse import SC2PulseClient
 
     sc2pulse = SC2PulseClient()
     season = sc2pulse.get_current_season()
@@ -74,7 +74,7 @@ def test_get_season_bounds():
 
 
 def get_division_for_mmr():
-    from src.lib.sc2pulse import SC2PulseClient
+    from lib.sc2pulse import SC2PulseClient
 
     sc2pulse = SC2PulseClient()
     season = sc2pulse.get_current_season()

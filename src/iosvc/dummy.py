@@ -1,6 +1,6 @@
 from time import time
 
-from src.contracts import TTSService
+from contracts import TTSService
 
 
 class TTSDummy(TTSService):

@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request
 
-from src.api.errors import conversation_item_not_found
-from src.api.models import QueryRequest
-from src.api.state import get_persistence
-from src.api.validation import parse_sort, validate_projection, validate_query_filter
-from src.persistence.conversation_store import (
+from api.errors import conversation_item_not_found
+from api.models import QueryRequest
+from api.state import get_persistence
+from api.validation import parse_sort, validate_projection, validate_query_filter
+from persistence.conversation_store import (
     AIConversationItem,
     AIConversationItemType,
     AIMessageRole,

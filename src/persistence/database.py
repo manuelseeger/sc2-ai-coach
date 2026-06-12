@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel, ConfigDict
 from pyodmongo import DbEngine
 
-from src.runtime.settings import get_config
+from runtime.settings import get_config
 
 if TYPE_CHECKING:
-    from src.runtime.settings import ApiSettings, Config
+    from runtime.settings import ApiSettings, Config
 
 
 class MongoDatabaseConfig(BaseModel):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from src.ai.functions import responses_tools
+from ai.functions import responses_tools
 
 
 def build_tools_router() -> APIRouter:

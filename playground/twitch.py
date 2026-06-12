@@ -4,7 +4,7 @@ import sys
 sys.path.append(".")
 from time import sleep
 
-from src.events.twitch import TwitchListener
+from events.twitch import TwitchListener
 
 twitch = TwitchListener("twitch")
 

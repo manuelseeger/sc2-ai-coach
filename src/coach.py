@@ -6,22 +6,22 @@ import click
 
 from log import configure_application_logging, log
 from shared import signal_queue
-from src.contracts import (
+from contracts import (
     LiveEventListener,
     MicrophoneService,
     TranscriberService,
     TTSService,
 )
-from src.events.events import ReplEvent
-from src.persistence.runtime import build_persistence_services
-from src.runtime.playeridentity import build_player_identity_services
-from src.runtime.settings import (
+from events.events import ReplEvent
+from persistence.runtime import build_persistence_services
+from runtime.playeridentity import build_player_identity_services
+from runtime.settings import (
     AudioMode,
     Config,
     TranscriberBackend,
     get_config,
 )
-from src.session import AISession
+from session import AISession
 
 
 def load_runtime_settings() -> "Config":
@@ -134,7 +134,7 @@ def main(debug, repl, trace):
 
 
 def _install_rich_log_handler(log: logging.Logger) -> None:
-    from src.io.rich_log import RichConsoleLogHandler
+    from iosvc.rich_log import RichConsoleLogHandler
 
     if any(isinstance(handler, RichConsoleLogHandler) for handler in log.handlers):
         return
@@ -157,7 +157,7 @@ def _build_io_services(
         settings.audiomode in [AudioMode.voice_in, AudioMode.full]
         and settings.interactive
     ):
-        from src.io.mic import Microphone
+        from iosvc.mic import Microphone
 
         mic = Microphone(
             device_index=settings.microphone_index,
@@ -167,11 +167,11 @@ def _build_io_services(
         logging.getLogger(__name__).info(f"Using microphone: {mic.name}")
 
     if settings.audiomode in [AudioMode.voice_out, AudioMode.full]:
-        from src.io.tts import make_tts_stream
+        from iosvc.tts import make_tts_stream
 
         tts = make_tts_stream(tts_config=settings.tts)
     else:
-        from src.io.dummy import TTSDummy
+        from iosvc.dummy import TTSDummy
 
         tts = TTSDummy()
 
@@ -190,7 +190,7 @@ def _build_live_event_listeners(
     LiveEventListener | None,
     LiveEventListener | None,
 ]:
-    from src.runtime.settings import CoachEvent
+    from runtime.settings import CoachEvent
 
     wake = None
     scanner = None
@@ -201,7 +201,7 @@ def _build_live_event_listeners(
         return wake, scanner, replay_scanner, twitch
 
     if CoachEvent.twitch in settings.coach_events:
-        from src.events.twitch import TwitchListener
+        from events.twitch import TwitchListener
 
         twitch = TwitchListener(settings=settings)
 
@@ -210,26 +210,26 @@ def _build_live_event_listeners(
             settings.audiomode in [AudioMode.full, AudioMode.voice_in]
             and settings.interactive
         ):
-            from src.events.wake_livekit import WakeWordListener
+            from events.wake_livekit import WakeWordListener
 
             wake = WakeWordListener(settings=settings)
         else:
-            from src.events.wake_key import WakeKeyListener
+            from events.wake_key import WakeKeyListener
 
             wake = WakeKeyListener(settings=settings)
 
     if CoachEvent.game_start in settings.coach_events:
         if settings.obs_integration:
-            from src.events.loading_screen import NewMatchListener
+            from events.loading_screen import NewMatchListener
 
             scanner = NewMatchListener(settings=settings)
         else:
-            from src.events.clientapi import ClientAPIListener
+            from events.clientapi import ClientAPIListener
 
             scanner = ClientAPIListener(settings=settings)
 
     if CoachEvent.new_replay in settings.coach_events:
-        from src.events.newreplay import NewReplayListener
+        from events.newreplay import NewReplayListener
 
         replay_scanner = NewReplayListener(
             settings=settings,
@@ -242,19 +242,19 @@ def _build_live_event_listeners(
 
 def _build_transcriber(settings: "Config") -> TranscriberService:
     if settings.transcriber_backend == TranscriberBackend.canary_qwen:
-        from src.io.transcribe_qwen import QwenTranscriberService
+        from iosvc.transcribe_qwen import QwenTranscriberService
 
         return QwenTranscriberService()
 
     if settings.transcriber_backend == TranscriberBackend.xai:
-        from src.io.transcribe_xai import XAITranscriberService
+        from iosvc.transcribe_xai import XAITranscriberService
 
         return XAITranscriberService(
             api_key=settings.xai_api_key,
             language=settings.xai_stt_language,
         )
 
-    from src.io.transcribe_whisper import Transcriber
+    from iosvc.transcribe_whisper import Transcriber
 
     return Transcriber(model_id=settings.speech_recognition_model)
 

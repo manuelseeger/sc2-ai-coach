@@ -2,8 +2,8 @@ from types import SimpleNamespace
 
 from pyodmongo.queries import eq, sort
 
-from src.persistence.replay_store import ReplayStore
-from src.replays.types import Replay
+from persistence.replay_store import ReplayStore
+from replays.types import Replay
 
 
 def test_list_replays_uses_pyodmongo_pagination(mocker):

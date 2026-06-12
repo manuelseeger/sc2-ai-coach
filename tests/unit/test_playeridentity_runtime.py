@@ -1,5 +1,5 @@
-from src.runtime.playeridentity import build_player_identity_services
-from src.util import is_barcode
+from runtime.playeridentity import build_player_identity_services
+from util import is_barcode
 
 
 def _seeded_named_student_replay(seeded_replay_mongo_container):

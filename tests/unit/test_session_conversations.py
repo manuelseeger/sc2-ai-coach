@@ -1,9 +1,9 @@
 import pytest
 from pydantic import BaseModel
 
-from src.persistence.replay_store import Metadata
-from src.replays.types import Replay
-from src.session import AISession
+from persistence.replay_store import Metadata
+from replays.types import Replay
+from session import AISession
 
 CONVERSATION_ID = "0123456789abcdef01234567"
 

@@ -1,6 +1,6 @@
 import pytest
 
-from src.ai.functions import AddMetadata
+from ai.functions import AddMetadata
 
 
 @pytest.mark.parametrize(

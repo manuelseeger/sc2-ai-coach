@@ -3,10 +3,10 @@ from datetime import datetime
 import pytest
 from pyodmongo.queries import eq
 
-from src.persistence.conversation_store import AIConversation
-from src.persistence.replay_store import Metadata, get_replay_store
-from src.replays.reader import ReplayReader
-from src.replays.types import AIConversationTrigger, Replay
+from persistence.conversation_store import AIConversation
+from persistence.replay_store import Metadata, get_replay_store
+from replays.reader import ReplayReader
+from replays.types import AIConversationTrigger, Replay
 from tests.conftest import load_test_settings
 
 replay_store = get_replay_store()

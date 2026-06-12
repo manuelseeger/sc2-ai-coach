@@ -5,16 +5,16 @@ from typing import Any
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
-from src.api.errors import player_not_found, raise_api_error
-from src.api.models import PlayerAliasResponse, PlayerInfoResponse, QueryRequest
-from src.api.state import get_persistence
-from src.api.validation import (
+from api.errors import player_not_found, raise_api_error
+from api.models import PlayerAliasResponse, PlayerInfoResponse, QueryRequest
+from api.state import get_persistence
+from api.validation import (
     parse_sort,
     validate_patch_document,
     validate_projection,
     validate_query_filter,
 )
-from src.persistence.replay_store import PlayerInfo
+from persistence.replay_store import PlayerInfo
 
 
 def _player_page_payload(page: Any) -> dict[str, Any]:
@@ -165,7 +165,7 @@ def build_players_router() -> APIRouter:
     ) -> PlayerInfoResponse:
         persistence = get_persistence(request)
         if str(player.id) != toon_handle or str(player.toon_handle) != toon_handle:
-            from src.api.errors import raise_api_error
+            from api.errors import raise_api_error
 
             raise_api_error(
                 status_code=409,
@@ -185,7 +185,7 @@ def build_players_router() -> APIRouter:
         persistence = get_persistence(request)
         validate_patch_document(patch)
         if "id" in patch and str(patch["id"]) != toon_handle:
-            from src.api.errors import raise_api_error
+            from api.errors import raise_api_error
 
             raise_api_error(
                 status_code=409,
@@ -194,7 +194,7 @@ def build_players_router() -> APIRouter:
                 details={"resource": "players", "path_id": toon_handle},
             )
         if "toon_handle" in patch and str(patch["toon_handle"]) != toon_handle:
-            from src.api.errors import raise_api_error
+            from api.errors import raise_api_error
 
             raise_api_error(
                 status_code=409,

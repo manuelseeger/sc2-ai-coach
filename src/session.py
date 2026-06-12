@@ -8,10 +8,10 @@ from pydantic import BaseModel
 from rich.prompt import Prompt
 
 from log import log
-from src.ai.aicoach import AICoach
-from src.ai.prompt import Templates
-from src.contracts import MicrophoneService, TranscriberService, TTSService
-from src.events import (
+from ai.aicoach import AICoach
+from ai.prompt import Templates
+from contracts import MicrophoneService, TranscriberService, TTSService
+from events import (
     CastReplayEvent,
     NewMatchEvent,
     NewReplayEvent,
@@ -21,17 +21,17 @@ from src.events import (
     TwitchRaidEvent,
     WakeEvent,
 )
-from src.lib.sc2client import SC2Client
-from src.lib.sc2pulse import SC2PulseClient, get_division_for_mmr
-from src.mapstats import update_map_stats
-from src.matchhistory import get_sc2pulse_match_history
-from src.persistence.conversation_store import ConversationStore, get_conversation_store
-from src.persistence.replay_store import Metadata, ReplayStore, get_replay_store
-from src.persistence.session_store import Session, SessionStore
-from src.playerresolver import PlayerResolver
-from src.replays.types import AIConversationTrigger, Replay, Role
-from src.runtime.settings import AudioMode, Config, get_config
-from src.util import secs2time
+from lib.sc2client import SC2Client
+from lib.sc2pulse import SC2PulseClient, get_division_for_mmr
+from mapstats import update_map_stats
+from matchhistory import get_sc2pulse_match_history
+from persistence.conversation_store import ConversationStore, get_conversation_store
+from persistence.replay_store import Metadata, ReplayStore, get_replay_store
+from persistence.session_store import Session, SessionStore
+from playerresolver import PlayerResolver
+from replays.types import AIConversationTrigger, Replay, Role
+from runtime.settings import AudioMode, Config, get_config
+from util import secs2time
 
 
 class DummyMicrophoneService(MicrophoneService):

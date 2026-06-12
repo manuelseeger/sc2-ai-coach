@@ -8,8 +8,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from src.api.errors import default_error_code, json_error
-from src.api.routers import (
+from api.errors import default_error_code, json_error
+from api.routers import (
     build_conversation_items_router,
     build_conversations_router,
     build_health_router,
@@ -21,9 +21,9 @@ from src.api.routers import (
     build_sessions_router,
     build_tools_router,
 )
-from src.api.webapp import build_webapp_router
-from src.persistence.runtime import PersistenceServices, build_persistence_services
-from src.runtime.settings import ApiSettings, load_api_settings
+from api.webapp import build_webapp_router
+from persistence.runtime import PersistenceServices, build_persistence_services
+from runtime.settings import ApiSettings, load_api_settings
 
 
 def create_app(

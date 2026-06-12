@@ -5,7 +5,7 @@ import httpx
 from openai import OpenAI
 
 from shared import ctx
-from src.runtime.settings import Config, get_config
+from runtime.settings import Config, get_config
 
 DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1/"
 

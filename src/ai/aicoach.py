@@ -8,11 +8,11 @@ from openai import OpenAI
 from pydantic import BaseModel
 
 from log import DEFAULT_LOGGER_NAME
-from src.persistence.conversation_store import ConversationStore, get_conversation_store
-from src.persistence.replay_store import ReplayStore
-from src.persistence.session_store import Session
-from src.replays.types import AIMessageRole
-from src.runtime.settings import Config, get_config
+from persistence.conversation_store import ConversationStore, get_conversation_store
+from persistence.replay_store import ReplayStore
+from persistence.session_store import Session
+from replays.types import AIMessageRole
+from runtime.settings import Config, get_config
 
 from .functions import build_ai_functions, responses_tools
 from .functions.base import strict_json_schema

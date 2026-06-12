@@ -7,7 +7,7 @@ from click.testing import CliRunner
 
 
 def test_importing_repcli_does_not_require_ambient_config(monkeypatch):
-    for module_name in ["repcli", "config", "src.playerresolver", "src.replays.reader"]:
+    for module_name in ["repcli", "config", "playerresolver", "replays.reader"]:
         sys.modules.pop(module_name, None)
 
     root_logger = logging.getLogger()
@@ -86,10 +86,10 @@ def test_build_runtime_constructs_persistence_explicitly(monkeypatch):
 
     fake_replay_store = FakeReplayStore()
 
-    fake_replay_store_module = types.ModuleType("src.persistence.replay_store")
+    fake_replay_store_module = types.ModuleType("persistence.replay_store")
     fake_replay_store_module.PlayerInfo = type("FakePlayerInfo", (), {})
 
-    fake_persistence_module = types.ModuleType("src.persistence.runtime")
+    fake_persistence_module = types.ModuleType("persistence.runtime")
 
     def build_persistence_services(current_settings):
         calls.append(("persistence", current_settings))
@@ -103,7 +103,7 @@ def test_build_runtime_constructs_persistence_explicitly(monkeypatch):
         calls.append(("player_identity", current_settings, replay_store))
         return types.SimpleNamespace(enricher=fake_player_identity_enricher)
 
-    fake_reader_module = types.ModuleType("src.replays.reader")
+    fake_reader_module = types.ModuleType("replays.reader")
 
     class FakeReplayReader:
         def __init__(self, settings=None):
@@ -111,15 +111,15 @@ def test_build_runtime_constructs_persistence_explicitly(monkeypatch):
 
     fake_reader_module.ReplayReader = FakeReplayReader
 
-    fake_replays_types_module = types.ModuleType("src.replays.types")
+    fake_replays_types_module = types.ModuleType("replays.types")
     fake_replays_types_module.Replay = type("FakeReplay", (), {})
 
     monkeypatch.setitem(
-        sys.modules, "src.persistence.replay_store", fake_replay_store_module
+        sys.modules, "persistence.replay_store", fake_replay_store_module
     )
-    monkeypatch.setitem(sys.modules, "src.persistence.runtime", fake_persistence_module)
-    monkeypatch.setitem(sys.modules, "src.replays.reader", fake_reader_module)
-    monkeypatch.setitem(sys.modules, "src.replays.types", fake_replays_types_module)
+    monkeypatch.setitem(sys.modules, "persistence.runtime", fake_persistence_module)
+    monkeypatch.setitem(sys.modules, "replays.reader", fake_reader_module)
+    monkeypatch.setitem(sys.modules, "replays.types", fake_replays_types_module)
     monkeypatch.setattr(
         repcli, "build_player_identity_services", build_player_identity_services
     )

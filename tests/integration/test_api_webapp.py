@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
-from src.runtime.settings import Config
+from runtime.settings import Config
 
 
 def _fake_persistence_services(db_name: str = "SC2AICOACH_TEST") -> SimpleNamespace:
@@ -25,7 +25,7 @@ def test_root_serves_built_webapp_index(tmp_path, runtime_settings: Config) -> N
     index_path.write_text("<html><body>admin webapp</body></html>", encoding="utf-8")
     runtime_settings.api.web_dist_dir = dist_dir
 
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     app = api_app.create_app(
         settings_loader=lambda: runtime_settings,
         persistence_builder=api_app.build_persistence_services,
@@ -45,7 +45,7 @@ def test_root_returns_missing_build_response_when_webapp_dist_is_missing(
 ) -> None:
     runtime_settings.api.web_dist_dir = tmp_path / "missing-dist"
 
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     app = api_app.create_app(
         settings_loader=lambda: runtime_settings,
         persistence_builder=api_app.build_persistence_services,
@@ -76,7 +76,7 @@ def test_history_routes_serve_built_webapp_index(
     )
     runtime_settings.api.web_dist_dir = dist_dir
 
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     app = api_app.create_app(
         settings_loader=lambda: runtime_settings,
         persistence_builder=api_app.build_persistence_services,
@@ -96,7 +96,7 @@ def test_api_routes_remain_available_when_webapp_dist_is_missing(
 ) -> None:
     runtime_settings.api.web_dist_dir = tmp_path / "missing-dist"
 
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     app = api_app.create_app(
         settings_loader=lambda: runtime_settings,
         persistence_builder=lambda _settings: _fake_persistence_services(

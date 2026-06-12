@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import uvicorn
 
-from src.api.app import app
-from src.runtime.settings import load_api_settings
+from api.app import app
+from runtime.settings import load_api_settings
 
 
 def main() -> None:

@@ -1,5 +1,5 @@
-from src.playeridentity import PlayerIdentityEnricher
-from src.replays.types import Replay
+from playeridentity import PlayerIdentityEnricher
+from replays.types import Replay
 
 
 def _seeded_student_replay(seeded_replay_mongo_container) -> Replay:

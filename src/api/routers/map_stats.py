@@ -4,9 +4,9 @@ from datetime import datetime
 
 from fastapi import APIRouter, Request
 
-from src.api.errors import raise_api_error
-from src.api.state import get_persistence, get_settings
-from src.mapstats import MatchupsByMap, get_map_stats, list_map_stats
+from api.errors import raise_api_error
+from api.state import get_persistence, get_settings
+from mapstats import MatchupsByMap, get_map_stats, list_map_stats
 
 
 def build_map_stats_router() -> APIRouter:

@@ -1,8 +1,8 @@
 import pytest
 from pydantic import BaseModel
 
-from src.ai.aicoach import AICoach
-from src.persistence.conversation_store import (
+from ai.aicoach import AICoach
+from persistence.conversation_store import (
     AIConversation,
     AIConversationTrigger,
     AIResponseRecord,
@@ -140,8 +140,8 @@ def test_get_response_executes_tool_loop_and_replays_tool_transcript(
         store=conversation_store,
         replay_store=replay_store,
     )
-    warning_log = mocker.patch("src.ai.aicoach.log.warning")
-    info_log = mocker.patch("src.ai.aicoach.log.info")
+    warning_log = mocker.patch("ai.aicoach.log.warning")
+    info_log = mocker.patch("ai.aicoach.log.info")
     query_tool = coach.functions["QueryReplayDB"]
     invoke_spy = mocker.patch.object(
         query_tool,
@@ -216,7 +216,7 @@ def test_trace_logs_full_request_and_response(
             )
         ]
     )
-    debug_log = mocker.patch("src.ai.aicoach.log.debug")
+    debug_log = mocker.patch("ai.aicoach.log.debug")
     coach = AICoach(
         client=client,
         store=conversation_store,

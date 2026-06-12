@@ -8,12 +8,12 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer as ObserverType
 
 from shared import signal_queue
-from src.events import NewReplayEvent
-from src.persistence.replay_store import ReplayStore, get_replay_store
-from src.playeridentity import PlayerIdentityEnricher, PlayerIdentityEnrichmentError
-from src.replays.reader import ReplayReader
-from src.runtime.settings import Config, get_config
-from src.util import wait_for_file
+from events import NewReplayEvent
+from persistence.replay_store import ReplayStore, get_replay_store
+from playeridentity import PlayerIdentityEnricher, PlayerIdentityEnrichmentError
+from replays.reader import ReplayReader
+from runtime.settings import Config, get_config
+from util import wait_for_file
 
 from log import DEFAULT_LOGGER_NAME
 

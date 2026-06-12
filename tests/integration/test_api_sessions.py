@@ -6,12 +6,12 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from fastapi.testclient import TestClient
 
-from src.persistence.conversation_store import AIConversationTrigger, ConversationStore
-from src.persistence.database import MongoDatabase
-from src.persistence.replay_store import ReplayStore
-from src.persistence.runtime import PersistenceServices
-from src.persistence.session_store import SessionStore
-from src.runtime.settings import Config
+from persistence.conversation_store import AIConversationTrigger, ConversationStore
+from persistence.database import MongoDatabase
+from persistence.replay_store import ReplayStore
+from persistence.runtime import PersistenceServices
+from persistence.session_store import SessionStore
+from runtime.settings import Config
 
 
 @pytest.mark.mongo
@@ -62,7 +62,7 @@ def test_get_session_conversations_returns_full_session_scoped_conversation_list
     conversation_store.save(newer_conversation)
     conversation_store.save(unrelated_conversation)
 
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     app = api_app.create_app(
         settings_loader=lambda: runtime_settings,
         persistence_builder=lambda _settings: PersistenceServices(
@@ -112,7 +112,7 @@ def test_get_sessions_returns_paginated_recent_first_sessions(
         prompt_pricing=0.4,
     )
 
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     app = api_app.create_app(
         settings_loader=lambda: runtime_settings,
         persistence_builder=lambda _settings: PersistenceServices(
@@ -150,7 +150,7 @@ def test_get_session_returns_one_persisted_session_document(
         prompt_pricing=0.4,
     )
 
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     app = api_app.create_app(
         settings_loader=lambda: runtime_settings,
         persistence_builder=lambda _settings: PersistenceServices(
@@ -196,7 +196,7 @@ def test_get_sessions_supports_documented_filters(
         prompt_pricing=0.6,
     )
 
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     app = api_app.create_app(
         settings_loader=lambda: runtime_settings,
         persistence_builder=lambda _settings: PersistenceServices(

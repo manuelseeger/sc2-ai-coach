@@ -8,8 +8,8 @@ if sys.gettrace() is None:
     pytest.skip("Skipping debug-only LLM test.", allow_module_level=True)
 
 from coach import AISession
-from src.matchhistory import MatchHistory
-from src.persistence.replay_store import PlayerInfo
+from matchhistory import MatchHistory
+from persistence.replay_store import PlayerInfo
 from tests.critic import LmmCritic
 from tests.mocks import MicMock, TranscriberMock, TTSMock
 
@@ -45,7 +45,7 @@ def test_detects_smurfing(
     mocker.patch.object(
         session.replay_store, "get_recent_for_player", return_value=past_replays
     )
-    mocker.patch("src.session.get_sc2pulse_match_history", return_value=match_history)
+    mocker.patch("session.get_sc2pulse_match_history", return_value=match_history)
 
     # act
     session.initiate_from_game_start(mapname, opponent, mmr)

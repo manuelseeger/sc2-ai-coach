@@ -12,10 +12,10 @@ from typing import Any, List, Optional
 import httpx
 from pydantic import BaseModel, computed_field
 
-from src.lib.sc2client import Race as GameInfoRace
-from src.replays.types import ToonHandle
-from src.runtime.settings import Config, get_config
-from src.util import convert_enum, is_barcode
+from lib.sc2client import Race as GameInfoRace
+from replays.types import ToonHandle
+from runtime.settings import Config, get_config
+from util import convert_enum, is_barcode
 
 from log import DEFAULT_LOGGER_NAME
 

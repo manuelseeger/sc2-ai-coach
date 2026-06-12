@@ -9,7 +9,7 @@ from httpx import ConnectError
 from pydantic import BaseModel
 from pydantic_core import ValidationError
 
-from src.runtime.settings import Config, get_config
+from runtime.settings import Config, get_config
 
 from log import DEFAULT_LOGGER_NAME
 

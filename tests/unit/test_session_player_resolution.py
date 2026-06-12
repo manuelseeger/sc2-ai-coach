@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
-from src.persistence.replay_store import PlayerInfo
-from src.session import AISession
+from persistence.replay_store import PlayerInfo
+from session import AISession
 
 
 def test_initiate_from_game_start_resolves_player_then_loads_recent_replays(
@@ -33,11 +33,11 @@ def test_initiate_from_game_start_resolves_player_then_loads_recent_replays(
     session.replay_store.get_recent_for_player.return_value = [replay]
 
     monkeypatch.setattr(
-        "src.session.get_sc2pulse_match_history",
+        "session.get_sc2pulse_match_history",
         mocker.Mock(return_value=None),
     )
     monkeypatch.setattr(
-        "src.session.Templates",
+        "session.Templates",
         SimpleNamespace(
             new_game=SimpleNamespace(
                 render=mocker.Mock(return_value="new-game-prompt")

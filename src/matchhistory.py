@@ -7,9 +7,9 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict, computed_field, field_validator
 
 from shared import http_client
-from src.lib.sc2pulse import SC2PulseClient, SC2PulseCommonCharacter, SC2PulseRace
-from src.replays.types import ToonHandle
-from src.runtime.settings import Config, get_config
+from lib.sc2pulse import SC2PulseClient, SC2PulseCommonCharacter, SC2PulseRace
+from replays.types import ToonHandle
+from runtime.settings import Config, get_config
 
 from log import DEFAULT_LOGGER_NAME
 

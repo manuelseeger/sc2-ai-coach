@@ -8,9 +8,9 @@ import pytest
 from PIL import Image
 
 from external.fast_ssim.ssim import ssim
-from src.persistence.replay_store import PlayerInfo
-from src.playeridentity import PlayerPortraitSource
-from src.playerresolver import PlayerResolver
+from persistence.replay_store import PlayerInfo
+from playeridentity import PlayerPortraitSource
+from playerresolver import PlayerResolver
 from tests.conftest import load_test_settings
 
 

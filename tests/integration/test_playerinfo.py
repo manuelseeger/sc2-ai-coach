@@ -8,11 +8,11 @@ import pytest
 from PIL import Image
 
 from external.fast_ssim.ssim import ssim
-from src.lib.sc2pulse import SC2PulseClient
-from src.persistence.replay_store import Alias, PlayerInfo, get_replay_store
-from src.playeridentity import PlayerIdentityEnricher, PlayerPortraitSource
-from src.playerresolver import PlayerResolver
-from src.replays.reader import ReplayReader
+from lib.sc2pulse import SC2PulseClient
+from persistence.replay_store import Alias, PlayerInfo, get_replay_store
+from playeridentity import PlayerIdentityEnricher, PlayerPortraitSource
+from playerresolver import PlayerResolver
+from replays.reader import ReplayReader
 from tests.conftest import load_test_settings, only_in_debugging
 
 replay_store = get_replay_store()
@@ -177,7 +177,7 @@ def test_resolve_barcode_player(portrait_file):
     indirect=["portrait_file"],
 )
 def test_resolve_current_player(portrait_file, opponent, num_replays, mocker):
-    from src.lib.sc2client import GameInfo, Player
+    from lib.sc2client import GameInfo, Player
 
     # arrange
     def get_portrait_mocked(o, m, r):

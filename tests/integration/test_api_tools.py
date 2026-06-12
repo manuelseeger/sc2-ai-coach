@@ -9,7 +9,7 @@ from tests.conftest import load_test_settings
 
 def test_get_tools_returns_ordered_tool_definitions() -> None:
     """GET /api/tools returns the 4 OpenAI-style tool definitions in registry order."""
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     settings = load_test_settings()
     app = api_app.create_app(
         settings_loader=lambda: settings,

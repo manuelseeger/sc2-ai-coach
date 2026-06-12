@@ -21,6 +21,7 @@ user_token.json
 .venv/
 build/
 dist/
+*.egg-info/
 .specstory/
 rep.json
 .ruff_cache/

@@ -9,8 +9,8 @@ from livekit.wakeword import WakeWordModel
 
 from log import DEFAULT_LOGGER_NAME
 from shared import signal_queue
-from src.events import WakeEvent
-from src.runtime.settings import Config, get_config
+from events import WakeEvent
+from runtime.settings import Config, get_config
 
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 

@@ -2,8 +2,8 @@ import re
 
 import pytest
 
-from src.ai.functions import AddMetadata, AIFunctions, responses_tools
-from src.ai.utils import force_valid_json_string, get_clean_tags
+from ai.functions import AddMetadata, AIFunctions, responses_tools
+from ai.utils import force_valid_json_string, get_clean_tags
 
 
 @pytest.mark.parametrize(

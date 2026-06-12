@@ -3,10 +3,10 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
 
 from shared import signal_queue
-from src.ai.functions.base import AIFunction
-from src.events.events import CastReplayEvent
-from src.persistence.replay_store import ReplayStore, get_replay_store
-from src.replays.types import Replay
+from ai.functions.base import AIFunction
+from events.events import CastReplayEvent
+from persistence.replay_store import ReplayStore, get_replay_store
+from replays.types import Replay
 
 
 class CastReplayArgs(BaseModel):

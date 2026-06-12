@@ -9,7 +9,7 @@ import click
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from src.persistence.database import get_database
+from persistence.database import get_database
 
 
 @dataclass(frozen=True)

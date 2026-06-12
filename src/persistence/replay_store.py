@@ -10,8 +10,8 @@ from pyodmongo import DbModel, Id, MainBaseModel, ResponsePaginate
 from pyodmongo.models.responses import DbResponse
 from pyodmongo.queries import eq, sort
 
-from src.persistence.database import MongoDatabase, get_database
-from src.replays.types import (
+from persistence.database import MongoDatabase, get_database
+from replays.types import (
     BsonBinary,
     Player,
     Replay,

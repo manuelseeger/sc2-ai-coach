@@ -5,12 +5,12 @@ import importlib
 import pytest
 from fastapi.testclient import TestClient
 
-from src.persistence.conversation_store import ConversationStore
-from src.persistence.database import MongoDatabase
-from src.persistence.replay_store import ReplayStore
-from src.persistence.runtime import PersistenceServices
-from src.persistence.session_store import SessionStore
-from src.runtime.settings import Config
+from persistence.conversation_store import ConversationStore
+from persistence.database import MongoDatabase
+from persistence.replay_store import ReplayStore
+from persistence.runtime import PersistenceServices
+from persistence.session_store import SessionStore
+from runtime.settings import Config
 
 
 def _create_app(
@@ -21,7 +21,7 @@ def _create_app(
     conversation_store: ConversationStore,
     session_store: SessionStore,
 ):
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     return api_app.create_app(
         settings_loader=lambda: runtime_settings,
         persistence_builder=lambda _settings: PersistenceServices(

@@ -7,11 +7,11 @@ from pydantic import Field
 from pyodmongo import DbModel, Id, ResponsePaginate
 from pyodmongo.queries import eq, sort
 
-from src.persistence.database import MongoDatabase, get_database
-from src.runtime.settings import AIBackend
+from persistence.database import MongoDatabase, get_database
+from runtime.settings import AIBackend
 
 if TYPE_CHECKING:
-    from src.persistence.conversation_store import AIResponseRecord
+    from persistence.conversation_store import AIResponseRecord
 
 
 class Session(DbModel):

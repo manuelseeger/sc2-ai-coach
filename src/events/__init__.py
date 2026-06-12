@@ -1,4 +1,4 @@
-from src.events.events import (
+from events.events import (
     CastReplayEvent,
     NewMatchEvent,
     NewReplayEvent,

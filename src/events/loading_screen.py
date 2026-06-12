@@ -13,9 +13,9 @@ from Levenshtein import distance as levenstein
 from PIL import Image
 
 from shared import signal_queue
-from src.events import NewMatchEvent
-from src.lib.sc2client import SC2Client
-from src.runtime.settings import Config, get_config
+from events import NewMatchEvent
+from lib.sc2client import SC2Client
+from runtime.settings import Config, get_config
 
 from log import DEFAULT_LOGGER_NAME
 

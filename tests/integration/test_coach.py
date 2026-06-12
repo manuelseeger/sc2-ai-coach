@@ -5,7 +5,7 @@ import pytest
 if sys.gettrace() is None:
     pytest.skip("Skipping debug-only integration test.", allow_module_level=True)
 
-from src.replays.reader import ReplayReader
+from replays.reader import ReplayReader
 from tests.conftest import load_test_settings
 from tests.mocks import MicMock, TranscriberMock, TTSMock
 
@@ -74,7 +74,7 @@ def test_init_from_replay_with_nonutf8_chars(replay_file, mocker):
 )
 def test_init_from_replay_with_metadata(replay_file, mocker):
     from coach import AISession
-    from src.events import NewReplayEvent
+    from events import NewReplayEvent
 
     runtime_settings = load_test_settings()
 

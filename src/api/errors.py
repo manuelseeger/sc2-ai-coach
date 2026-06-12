@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
-from src.api.models import ErrorBody, ErrorResponse
+from api.models import ErrorBody, ErrorResponse
 
 
 def json_error(

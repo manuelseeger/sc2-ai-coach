@@ -5,9 +5,9 @@ from bson.json_util import dumps, loads
 from pydantic import BaseModel, ConfigDict, Field
 from pyodmongo import ResponsePaginate
 
-from src.persistence.replay_store import ReplayStore, get_replay_store
-from src.replays.types import Replay
-from src.runtime.settings import get_config
+from persistence.replay_store import ReplayStore, get_replay_store
+from replays.types import Replay
+from runtime.settings import get_config
 
 from ..utils import force_valid_json_string
 from .base import AIFunction

@@ -13,8 +13,8 @@ from rich.traceback import install
 # IMPORTANT: Any module that needs to appear on the rich console MUST use a logger that
 # is a child of DEFAULT_LOGGER_NAME, e.g.:
 #   log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
-# Using plain logging.getLogger(__name__) routes records into the "src.*" hierarchy,
-# which never reaches this logger and silently drops rich output.
+# Using plain logging.getLogger(__name__) routes records into the module's own
+# hierarchy, which never reaches this logger and silently drops rich output.
 # propagate = False (set in configure_application_logging) stops records here so they
 # don't also go to the root logger.
 DEFAULT_LOGGER_NAME = "AICoach"

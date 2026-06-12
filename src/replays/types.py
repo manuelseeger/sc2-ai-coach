@@ -22,8 +22,8 @@ from pydantic_core import CoreSchema, core_schema
 from pyodmongo import DbModel, MainBaseModel
 
 from shared import REGION_MAP
-from src.runtime.settings import get_config
-from src.util import time2secs
+from runtime.settings import get_config
+from util import time2secs
 
 
 def convert_to_nested_structure(d: dict[str, Any]) -> dict:

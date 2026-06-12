@@ -2,7 +2,7 @@ import numpy
 import pytest
 
 from external.fast_ssim.ssim import ssim
-from src.events.loading_screen import parse_map_loading_screen
+from events.loading_screen import parse_map_loading_screen
 
 cv2 = pytest.importorskip("cv2")
 

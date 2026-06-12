@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from fastapi import Request
 
-from src.persistence.runtime import PersistenceServices
-from src.runtime.settings import ApiSettings
+from persistence.runtime import PersistenceServices
+from runtime.settings import ApiSettings
 
 
 def get_settings(request: Request) -> ApiSettings:

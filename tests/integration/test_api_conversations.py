@@ -6,18 +6,18 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from fastapi.testclient import TestClient
 
-from src.persistence.conversation_store import (
+from persistence.conversation_store import (
     AIConversationStatus,
     AIConversationTrigger,
     AIMessageRole,
     AIResponseRecord,
     ConversationStore,
 )
-from src.persistence.database import MongoDatabase
-from src.persistence.replay_store import ReplayStore
-from src.persistence.runtime import PersistenceServices
-from src.persistence.session_store import SessionStore
-from src.runtime.settings import Config
+from persistence.database import MongoDatabase
+from persistence.replay_store import ReplayStore
+from persistence.runtime import PersistenceServices
+from persistence.session_store import SessionStore
+from runtime.settings import Config
 
 
 @pytest.mark.mongo
@@ -63,7 +63,7 @@ def test_get_conversations_returns_paginated_recent_first_results_and_typed_filt
     conversation_store.save(newer)
     conversation_store.save(closed)
 
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     app = api_app.create_app(
         settings_loader=lambda: runtime_settings,
         persistence_builder=lambda _settings: PersistenceServices(
@@ -130,7 +130,7 @@ def test_get_conversation_items_returns_full_ordered_flow_and_supports_included_
     trace_item.raw_item = {"kind": "trace"}
     conversation_store.save(trace_item)
 
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     app = api_app.create_app(
         settings_loader=lambda: runtime_settings,
         persistence_builder=lambda _settings: PersistenceServices(
@@ -168,7 +168,7 @@ def test_get_conversation_returns_persisted_conversation_document(
         metadata={"test_scope": "api_conversation_detail"},
     )
 
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     app = api_app.create_app(
         settings_loader=lambda: runtime_settings,
         persistence_builder=lambda _settings: PersistenceServices(
@@ -243,7 +243,7 @@ def test_get_conversation_responses_returns_full_ordered_response_timeline(
         )
     )
 
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     app = api_app.create_app(
         settings_loader=lambda: runtime_settings,
         persistence_builder=lambda _settings: PersistenceServices(
@@ -297,7 +297,7 @@ def test_get_response_by_response_id_returns_matching_record(
         )
     )
 
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     app = api_app.create_app(
         settings_loader=lambda: runtime_settings,
         persistence_builder=lambda _settings: PersistenceServices(
@@ -379,7 +379,7 @@ def test_response_resource_routes_support_list_detail_and_query_reads(
         )
     )
 
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     app = api_app.create_app(
         settings_loader=lambda: runtime_settings,
         persistence_builder=lambda _settings: PersistenceServices(
@@ -466,7 +466,7 @@ def test_conversation_item_resource_routes_support_list_detail_and_query_reads(
         text="other conversation",
     )
 
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     app = api_app.create_app(
         settings_loader=lambda: runtime_settings,
         persistence_builder=lambda _settings: PersistenceServices(
@@ -528,7 +528,7 @@ def test_conversation_crud_and_query_cover_documented_routes(
         "metadata": {"scope": "conversation-crud", "step": "created"},
     }
 
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     app = api_app.create_app(
         settings_loader=lambda: runtime_settings,
         persistence_builder=lambda _settings: PersistenceServices(
@@ -612,7 +612,7 @@ def test_append_conversation_item_assigns_server_order_and_rejects_path_mismatch
         metadata={"scope": "conversation-append-other"},
     )
 
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     app = api_app.create_app(
         settings_loader=lambda: runtime_settings,
         persistence_builder=lambda _settings: PersistenceServices(

@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING
 import speech_recognition as sr
 from speech_recognition.audio import AudioData
 
-from src.contracts import MicrophoneService
-from src.runtime.audio_devices import get_microphone_name
+from contracts import MicrophoneService
+from runtime.audio_devices import get_microphone_name
 
 if TYPE_CHECKING:
-    from src.runtime.settings import RecognizerConfig
+    from runtime.settings import RecognizerConfig
 
 from log import DEFAULT_LOGGER_NAME
 

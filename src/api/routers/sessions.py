@@ -4,9 +4,9 @@ from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Request
 
-from src.api.state import get_persistence
-from src.persistence.conversation_store import AIConversation
-from src.runtime.settings import AIBackend
+from api.state import get_persistence
+from persistence.conversation_store import AIConversation
+from runtime.settings import AIBackend
 
 
 def build_sessions_router() -> APIRouter:

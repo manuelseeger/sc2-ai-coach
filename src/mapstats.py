@@ -10,8 +10,8 @@ from pydantic import HttpUrl, computed_field
 from pyodmongo import DbModel, MainBaseModel
 
 from log import DEFAULT_LOGGER_NAME
-from src.persistence.replay_store import ReplayStore, get_replay_store
-from src.runtime.settings import ApiSettings, Config, get_config
+from persistence.replay_store import ReplayStore, get_replay_store
+from runtime.settings import ApiSettings, Config, get_config
 
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 

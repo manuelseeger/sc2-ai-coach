@@ -81,14 +81,14 @@ and add the MongoDB connection string to the env variable `AICOACH_MONGO_DSN`.
 
 ### Populate DB
 
-Use the tool [repcli.py](repcli.py) to populate your DB with replays. The tool offers a few options:
+Use the tool [repcli](src/repcli.py) to populate your DB with replays. The tool offers a few options:
 
 ```sh
-> uv run repcli.py --help
+> uv run repcli --help
 ```
 
 ```text
-Usage: repcli.py [OPTIONS] COMMAND [ARGS]...
+Usage: repcli [OPTIONS] COMMAND [ARGS]...
 
 Options:
   --clean        Delete replays from instant-leave games
@@ -110,7 +110,7 @@ Commands:
 Run
 
 ```sh
-> uv run repcli.py sync --from=2024-01-01 
+> uv run repcli sync --from=2024-01-01 
 ```
 to read all 1v1 ladder replays from beginning of 2024, and add the replays and the players from the replays to the DB. 
 
@@ -118,7 +118,7 @@ Use the `--simulation` flag to just read replays but not commit to DB.
 
 The `replays` collection of the DB should now be populated with replay documents.
 
-See `uv run repcli.py sync --help` for more options. You can always repopulate the DB from replay files without destroying anything. AICoach does not change anything on the replay data in the DB.
+See `uv run repcli sync --help` for more options. You can always repopulate the DB from replay files without destroying anything. AICoach does not change anything on the replay data in the DB.
 
 ### AI Coach
 
@@ -160,7 +160,7 @@ interactive: true
 ## Run AICoach
 
 ```sh
-> python coach.py
+> uv run coach
 ```
 
 This starts a listener that reacts to configured events. For each event, AICoach performs an action and asks the student for input.
@@ -168,7 +168,7 @@ This starts a listener that reacts to configured events. For each event, AICoach
 For a direct text-only REPL that uses the same session and local conversation machinery without starting gameplay listeners, run:
 
 ```sh
-> python coach.py --repl
+> uv run coach --repl
 ```
 
 Students can chat with AICoach. The conversation continues as long as both parties keep engaging. AICoach determines autonomously when a conversation is complete - typically when you thank it or say goodbye.

@@ -21,7 +21,7 @@ class SC2ApiEmulatorData(BaseModel):
 # uses SC2ApiEmulator docker image
 @pytest.mark.parametrize("opponent", ["BarCode", "HobGoblin"])
 def test_sc2client_get_opponent(opponent, sc2apiemulator):
-    from src.lib.sc2client import Player, SC2Client, Screen
+    from lib.sc2client import Player, SC2Client, Screen
 
     runtime_settings = load_test_settings()
 

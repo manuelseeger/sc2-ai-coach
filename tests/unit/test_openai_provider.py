@@ -3,7 +3,7 @@ from unittest.mock import sentinel
 
 import httpx
 
-from src.ai.openai_provider import (
+from ai.openai_provider import (
     DEFAULT_OPENAI_BASE_URL,
     OpenAIClientProvider,
     resolve_openai_base_url,
@@ -32,7 +32,7 @@ def test_resolve_openai_base_url_normalizes_custom_endpoint():
 
 
 def test_provider_uses_ssl_context_and_bearer_header_for_default_openai(mocker):
-    openai_ctor = mocker.patch("src.ai.openai_provider.OpenAI", autospec=True)
+    openai_ctor = mocker.patch("ai.openai_provider.OpenAI", autospec=True)
     http_client_factory = mocker.Mock()
     http_client = mocker.Mock()
     http_client_factory.return_value = http_client
@@ -62,7 +62,7 @@ def test_provider_uses_ssl_context_and_bearer_header_for_default_openai(mocker):
 
 
 def test_provider_adds_api_key_header_for_custom_endpoint(mocker):
-    openai_ctor = mocker.patch("src.ai.openai_provider.OpenAI", autospec=True)
+    openai_ctor = mocker.patch("ai.openai_provider.OpenAI", autospec=True)
     http_client_factory = mocker.Mock()
     http_client = mocker.Mock()
     http_client_factory.return_value = http_client

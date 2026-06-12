@@ -5,16 +5,16 @@ from typing import Any
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
-from src.api.errors import metadata_not_found, raise_api_error
-from src.api.models import QueryRequest
-from src.api.state import get_persistence
-from src.api.validation import (
+from api.errors import metadata_not_found, raise_api_error
+from api.models import QueryRequest
+from api.state import get_persistence
+from api.validation import (
     parse_sort,
     validate_patch_document,
     validate_projection,
     validate_query_filter,
 )
-from src.persistence.replay_store import Metadata
+from persistence.replay_store import Metadata
 
 
 def build_metadata_router() -> APIRouter:

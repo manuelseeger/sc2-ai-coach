@@ -1,6 +1,6 @@
 import pytest
 
-from src.replays.types import FieldTypeValidator, ToonHandle
+from replays.types import FieldTypeValidator, ToonHandle
 
 
 @pytest.mark.parametrize(

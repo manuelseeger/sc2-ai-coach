@@ -6,15 +6,15 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 
-from src.api.errors import raise_api_error
-from src.api.models import QueryRequest
-from src.api.state import get_persistence
-from src.api.validation import (
+from api.errors import raise_api_error
+from api.models import QueryRequest
+from api.state import get_persistence
+from api.validation import (
     parse_sort,
     validate_patch_document,
     validate_query_filter,
 )
-from src.persistence.conversation_store import (
+from persistence.conversation_store import (
     AIConversation,
     AIConversationItem,
     AIConversationStatus,

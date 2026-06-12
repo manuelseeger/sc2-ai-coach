@@ -1,6 +1,6 @@
 import pytest
 
-from src.util import strip_markdown
+from util import strip_markdown
 
 
 @pytest.mark.parametrize(

@@ -11,14 +11,14 @@ if not os.getenv("RUN_LIVE_OPENAI_TESTS"):
 from pydantic import BaseModel
 from rich import print
 
-from src.persistence.replay_store import get_replay_store
+from persistence.replay_store import get_replay_store
 from tests.conftest import load_test_settings
 
 replay_store = get_replay_store()
 
 
 def test_function_smurf_detection(util):
-    from src.ai.aicoach import AICoach
+    from ai.aicoach import AICoach
 
     aicoach = AICoach()
 
@@ -36,7 +36,7 @@ def test_function_smurf_detection(util):
 
 
 def test_function_query_build_order(util):
-    from src.ai.aicoach import AICoach
+    from ai.aicoach import AICoach
 
     aicoach = AICoach()
 
@@ -52,8 +52,8 @@ def test_function_query_build_order(util):
 
 
 def test_get_structured_response():
-    from src.ai.aicoach import AICoach
-    from src.ai.prompt import Templates
+    from ai.aicoach import AICoach
+    from ai.prompt import Templates
 
     runtime_settings = load_test_settings()
     aicoach = AICoach()

@@ -9,8 +9,8 @@ from pydantic import BaseModel, HttpUrl
 
 from log import DEFAULT_LOGGER_NAME
 from shared import REGION_MAP
-from src.replays.types import ToonHandle
-from src.runtime.settings import Config, get_config
+from replays.types import ToonHandle
+from runtime.settings import Config, get_config
 
 log = logging.getLogger(f"{DEFAULT_LOGGER_NAME}.{__name__}")
 

@@ -19,16 +19,16 @@ from rich.logging import RichHandler
 from rich.table import Table
 from rich.theme import Theme
 
-from src.ai.utils import force_valid_json_string
-from src.playeridentity import PlayerIdentityEnrichmentError
-from src.runtime.playeridentity import build_player_identity_services
-from src.runtime.settings import Config, get_config
+from ai.utils import force_valid_json_string
+from playeridentity import PlayerIdentityEnrichmentError
+from runtime.playeridentity import build_player_identity_services
+from runtime.settings import Config, get_config
 
 if TYPE_CHECKING:
-    from src.persistence.replay_store import PlayerInfo, ReplayStore
-    from src.playeridentity import PlayerIdentityEnricher
-    from src.replays.reader import ReplayReader
-    from src.replays.types import Replay
+    from persistence.replay_store import PlayerInfo, ReplayStore
+    from playeridentity import PlayerIdentityEnricher
+    from replays.reader import ReplayReader
+    from replays.types import Replay
 
 custom_theme = Theme(
     {
@@ -74,10 +74,10 @@ def _configure_cli_logging(*, debug: bool) -> logging.Logger:
 def _build_runtime() -> RepCliRuntime:
     settings = load_runtime_settings()
 
-    from src.persistence.replay_store import PlayerInfo
-    from src.persistence.runtime import build_persistence_services
-    from src.replays.reader import ReplayReader
-    from src.replays.types import Replay
+    from persistence.replay_store import PlayerInfo
+    from persistence.runtime import build_persistence_services
+    from replays.reader import ReplayReader
+    from replays.types import Replay
 
     persistence = build_persistence_services(settings)
     player_identity = build_player_identity_services(

@@ -8,7 +8,7 @@
       "name": "AI Coach",
       "type": "debugpy",
       "request": "launch",
-      "program": "coach.py",
+      "program": "src/coach.py",
       "console": "integratedTerminal",
       "envFile": "${workspaceFolder}/.env",
       "env": {
@@ -19,7 +19,7 @@
       "name": "AI Coach Text only",
       "type": "debugpy",
       "request": "launch",
-      "program": "coach.py",
+      "program": "src/coach.py",
       "console": "integratedTerminal",
       "envFile": "${workspaceFolder}/.env",
       "env": {
@@ -32,7 +32,7 @@
       "name": "Admin API",
       "type": "debugpy",
       "request": "launch",
-      "module": "src.api",
+      "module": "api",
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}",
       "envFile": "${workspaceFolder}/.env",
@@ -45,7 +45,7 @@
       "name": "CLI full sync",
       "type": "debugpy",
       "request": "launch",
-      "program": "repcli.py",
+      "program": "src/repcli.py",
       "console": "integratedTerminal",
       "envFile": "${workspaceFolder}/.env",
       "args": [
@@ -59,7 +59,7 @@
       "name": "OBS client",
       "type": "debugpy",
       "request": "launch",
-      "program": "obs_client.py",
+      "program": "src/obs_client.py",
       "console": "integratedTerminal",
       "envFile": "${workspaceFolder}/.env",
       "args": []
@@ -88,7 +88,7 @@
       "name": "CLI add testdata",
       "type": "debugpy",
       "request": "launch",
-      "program": "repcli.py",
+      "program": "src/repcli.py",
       "console": "integratedTerminal",
       "envFile": "${workspaceFolder}/.env",
       "args": [

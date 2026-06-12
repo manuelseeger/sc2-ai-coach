@@ -6,17 +6,17 @@ from typing import Any
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
-from src.api.errors import raise_api_error, replay_metadata_not_found, replay_not_found
-from src.api.models import PlayerInfoResponse, QueryRequest, ReplayPlayerRelationship
-from src.api.state import get_persistence
-from src.api.validation import (
+from api.errors import raise_api_error, replay_metadata_not_found, replay_not_found
+from api.models import PlayerInfoResponse, QueryRequest, ReplayPlayerRelationship
+from api.state import get_persistence
+from api.validation import (
     parse_sort,
     validate_patch_document,
     validate_projection,
     validate_query_filter,
 )
-from src.persistence.replay_store import Metadata
-from src.replays.types import Replay
+from persistence.replay_store import Metadata
+from replays.types import Replay
 
 
 def build_replays_router() -> APIRouter:

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request
 
-from src.api.models import HealthResponse
-from src.api.state import get_persistence
+from api.models import HealthResponse
+from api.state import get_persistence
 
 
 def build_health_router() -> APIRouter:

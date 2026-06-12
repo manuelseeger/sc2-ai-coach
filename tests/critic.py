@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
-from src.ai.functions.base import strict_json_schema
-from src.ai.openai_provider import get_openai_client
+from ai.functions.base import strict_json_schema
+from ai.openai_provider import get_openai_client
 
 
 class Evaluation(BaseModel):

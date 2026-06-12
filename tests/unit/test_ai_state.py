@@ -4,7 +4,7 @@ import pytest
 from pydantic import BaseModel
 from pyodmongo.queries import eq, sort
 
-from src.persistence.conversation_store import (
+from persistence.conversation_store import (
     AIConversation,
     AIConversationStatus,
     AIConversationTrigger,
@@ -12,8 +12,8 @@ from src.persistence.conversation_store import (
     AIResponseRecord,
     ConversationStore,
 )
-from src.persistence.replay_store import ReplayStore
-from src.persistence.session_store import Session
+from persistence.replay_store import ReplayStore
+from persistence.session_store import Session
 from tests.conftest import load_test_settings
 
 pytestmark = pytest.mark.mongo

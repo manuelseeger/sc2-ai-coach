@@ -5,14 +5,14 @@ import importlib
 import pytest
 from fastapi.testclient import TestClient
 
-from src.persistence.conversation_store import ConversationStore
-from src.persistence.replay_store import Alias, PlayerInfo
-from src.persistence.runtime import PersistenceServices
-from src.persistence.session_store import SessionStore
+from persistence.conversation_store import ConversationStore
+from persistence.replay_store import Alias, PlayerInfo
+from persistence.runtime import PersistenceServices
+from persistence.session_store import SessionStore
 
 
 def _create_app(seeded_replay_mongo_container):
-    api_app = importlib.import_module("src.api.app")
+    api_app = importlib.import_module("api.app")
     database = seeded_replay_mongo_container.database
     runtime_settings = seeded_replay_mongo_container.settings
     replay_store = seeded_replay_mongo_container.replay_store
