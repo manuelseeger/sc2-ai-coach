@@ -4,11 +4,41 @@ import type {
   ListParams,
   PaginatedResponse,
   PlayerAliasRecord,
+  PlayerInboxState,
   PlayerInfoRecord,
   PlayerPortraitMetadataRecord,
   QueryBody,
   ReplayRecord,
 } from "./types";
+
+const defaultPlayerInboxState: PlayerInboxState = {
+  params: {
+    sort: "name",
+    current_page: 1,
+  },
+};
+
+let playerInboxState: PlayerInboxState = {
+  params: { ...defaultPlayerInboxState.params },
+};
+
+export function getPlayerInboxState(): PlayerInboxState {
+  return {
+    params: { ...playerInboxState.params },
+  };
+}
+
+export function setPlayerInboxState(state: PlayerInboxState): void {
+  playerInboxState = {
+    params: { ...state.params },
+  };
+}
+
+export function resetPlayerInboxState(): void {
+  playerInboxState = {
+    params: { ...defaultPlayerInboxState.params },
+  };
+}
 
 export function loadPlayerInbox(
   apiClient: ApiClient,

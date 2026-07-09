@@ -3,11 +3,14 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createMetadataRecord,
   deleteMetadataRecord,
+  getMetadataInboxState,
   loadMetadataDetail,
   loadMetadataInbox,
   patchMetadataRecord,
   queryMetadataRecords,
   replaceMetadataRecord,
+  resetMetadataInboxState,
+  setMetadataInboxState,
 } from "./metadata";
 import type { ApiClient, MetadataRecord, PaginatedResponse } from "./types";
 
@@ -102,5 +105,41 @@ describe("metadata workflows", () => {
       replaceBody,
     );
     expect(apiClient.deleteResource).toHaveBeenCalledWith("metadata", created.id);
+  });
+
+  it("persists inbox filter state across SPA navigation only", () => {
+    resetMetadataInboxState();
+
+    setMetadataInboxState({
+      params: {
+        replay: "a".repeat(64),
+        tag: "macro",
+        has_summary: true,
+        sort: "-updated_at",
+        current_page: 2,
+        docs_per_page: 25,
+      },
+    });
+
+    expect(getMetadataInboxState()).toEqual({
+      params: {
+        replay: "a".repeat(64),
+        tag: "macro",
+        has_summary: true,
+        sort: "-updated_at",
+        current_page: 2,
+        docs_per_page: 25,
+      },
+    });
+
+    resetMetadataInboxState();
+
+    expect(getMetadataInboxState()).toEqual({
+      params: {
+        sort: "-updated_at",
+        current_page: 1,
+        docs_per_page: 25,
+      },
+    });
   });
 });

@@ -8,21 +8,34 @@ import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PageHeader from "../components/PageHeader.vue";
 import PaginationControls from "../components/PaginationControls.vue";
 import { formatDate, formatDuration, replayRaceAbbr, replayRaceClass } from "../formatters";
-import { loadReplayInbox } from "../replays";
+import { getReplayInboxState, loadReplayInbox, setReplayInboxState } from "../replays";
 import type { PaginatedResponse, ReplayRecord } from "../types";
 
 const apiClient = createApiClient();
+const restoredState = getReplayInboxState();
 
 const inbox = ref<PaginatedResponse<ReplayRecord> | null>(null);
 const loading = ref(true);
 const errorMessage = ref<string | null>(null);
 const filters = reactive({
-  player: "",
-  map: "",
-  sort: "-date",
-  currentPage: 1,
-  docsPerPage: 25,
+  player: String(restoredState.params.player ?? ""),
+  map: String(restoredState.params.map ?? ""),
+  sort: String(restoredState.params.sort ?? "-date"),
+  currentPage: Number(restoredState.params.current_page ?? 1),
+  docsPerPage: Number(restoredState.params.docs_per_page ?? 25),
 });
+
+function saveState(): void {
+  setReplayInboxState({
+    params: {
+      player: filters.player || undefined,
+      map: filters.map || undefined,
+      sort: filters.sort,
+      current_page: filters.currentPage,
+      docs_per_page: filters.docsPerPage,
+    },
+  });
+}
 
 async function refreshInbox(): Promise<void> {
   loading.value = true;
@@ -36,6 +49,7 @@ async function refreshInbox(): Promise<void> {
       current_page: filters.currentPage,
       docs_per_page: filters.docsPerPage,
     });
+    saveState();
   } catch (error) {
     errorMessage.value = error instanceof ApiError ? error.message : "Unable to load replays.";
   } finally {

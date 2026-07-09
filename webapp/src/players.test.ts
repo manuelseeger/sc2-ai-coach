@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createPlayerRecord,
   deletePlayerRecord,
+  getPlayerInboxState,
   loadPlayerDetail,
   loadPlayerInbox,
   loadPlayerPortraitMetadataMap,
@@ -10,6 +11,8 @@ import {
   patchPlayerRecord,
   queryPlayerRecords,
   replacePlayerRecord,
+  resetPlayerInboxState,
+  setPlayerInboxState,
 } from "./players";
 import type {
   ApiClient,
@@ -131,5 +134,38 @@ describe("player workflows", () => {
       name: "ReplacedName",
     });
     expect(apiClient.deleteResource).toHaveBeenCalledWith("players", player.toon_handle);
+  });
+
+  it("persists inbox filter state across SPA navigation only", () => {
+    resetPlayerInboxState();
+
+    setPlayerInboxState({
+      params: {
+        q: "zat",
+        tag: "ladder",
+        sort: "name",
+        current_page: 2,
+        docs_per_page: 25,
+      },
+    });
+
+    expect(getPlayerInboxState()).toEqual({
+      params: {
+        q: "zat",
+        tag: "ladder",
+        sort: "name",
+        current_page: 2,
+        docs_per_page: 25,
+      },
+    });
+
+    resetPlayerInboxState();
+
+    expect(getPlayerInboxState()).toEqual({
+      params: {
+        sort: "name",
+        current_page: 1,
+      },
+    });
   });
 });

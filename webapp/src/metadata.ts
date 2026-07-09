@@ -1,4 +1,41 @@
-import type { ApiClient, ListParams, MetadataRecord, PaginatedResponse, QueryBody } from "./types";
+import type {
+  ApiClient,
+  ListParams,
+  MetadataInboxState,
+  MetadataRecord,
+  PaginatedResponse,
+  QueryBody,
+} from "./types";
+
+const defaultMetadataInboxState: MetadataInboxState = {
+  params: {
+    sort: "-updated_at",
+    current_page: 1,
+    docs_per_page: 25,
+  },
+};
+
+let metadataInboxState: MetadataInboxState = {
+  params: { ...defaultMetadataInboxState.params },
+};
+
+export function getMetadataInboxState(): MetadataInboxState {
+  return {
+    params: { ...metadataInboxState.params },
+  };
+}
+
+export function setMetadataInboxState(state: MetadataInboxState): void {
+  metadataInboxState = {
+    params: { ...state.params },
+  };
+}
+
+export function resetMetadataInboxState(): void {
+  metadataInboxState = {
+    params: { ...defaultMetadataInboxState.params },
+  };
+}
 
 export function loadMetadataInbox(
   apiClient: ApiClient,

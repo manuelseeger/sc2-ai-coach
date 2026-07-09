@@ -5,10 +5,41 @@ import type {
   MetadataRecord,
   PaginatedResponse,
   QueryBody,
+  ReplayInboxState,
   ReplayPlayerRelationship,
   ReplayRecord,
   ReplayWritePayload,
 } from "./types";
+
+const defaultReplayInboxState: ReplayInboxState = {
+  params: {
+    sort: "-date",
+    current_page: 1,
+    docs_per_page: 25,
+  },
+};
+
+let replayInboxState: ReplayInboxState = {
+  params: { ...defaultReplayInboxState.params },
+};
+
+export function getReplayInboxState(): ReplayInboxState {
+  return {
+    params: { ...replayInboxState.params },
+  };
+}
+
+export function setReplayInboxState(state: ReplayInboxState): void {
+  replayInboxState = {
+    params: { ...state.params },
+  };
+}
+
+export function resetReplayInboxState(): void {
+  replayInboxState = {
+    params: { ...defaultReplayInboxState.params },
+  };
+}
 
 export function loadReplayInbox(
   apiClient: ApiClient,

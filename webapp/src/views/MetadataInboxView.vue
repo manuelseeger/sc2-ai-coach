@@ -10,10 +10,11 @@ import PanelHeading from "../components/PanelHeading.vue";
 import ResourceInboxControls from "../components/ResourceInboxControls.vue";
 import ResourceListRow from "../components/ResourceListRow.vue";
 import { formatDate } from "../formatters";
-import { loadMetadataInbox, queryMetadataRecords } from "../metadata";
+import { getMetadataInboxState, loadMetadataInbox, queryMetadataRecords, setMetadataInboxState } from "../metadata";
 import type { ListParams, MetadataRecord, PaginatedResponse, QueryBody } from "../types";
 
 const apiClient = createApiClient();
+const restoredState = getMetadataInboxState();
 
 const loading = ref(true);
 const errorMessage = ref<string | null>(null);
@@ -21,12 +22,15 @@ const result = ref<PaginatedResponse<MetadataRecord> | null>(null);
 const resultMode = ref<"list" | "query">("list");
 
 const filters = reactive({
-  replay: "",
-  tag: "",
-  hasSummary: "any",
-  sort: "-updated_at",
-  currentPage: 1,
-  docsPerPage: 25,
+  replay: String(restoredState.params.replay ?? ""),
+  tag: String(restoredState.params.tag ?? ""),
+  hasSummary:
+    restoredState.params.has_summary === undefined
+      ? "any"
+      : String(restoredState.params.has_summary),
+  sort: String(restoredState.params.sort ?? "-updated_at"),
+  currentPage: Number(restoredState.params.current_page ?? 1),
+  docsPerPage: Number(restoredState.params.docs_per_page ?? 25),
 });
 
 const queryText = ref(`{
@@ -58,7 +62,9 @@ async function refreshList(): Promise<void> {
   resultMode.value = "list";
 
   try {
-    result.value = await loadMetadataInbox(apiClient, listParams());
+    const params = listParams();
+    result.value = await loadMetadataInbox(apiClient, params);
+    setMetadataInboxState({ params });
   } catch (error) {
     errorMessage.value =
       error instanceof ApiError ? error.message : "Unable to load metadata records.";

@@ -8,10 +8,11 @@ import LoadingErrorEmpty from "../components/LoadingErrorEmpty.vue";
 import PageHeader from "../components/PageHeader.vue";
 import PanelHeading from "../components/PanelHeading.vue";
 import PaginationControls from "../components/PaginationControls.vue";
-import { loadPlayerInbox, loadPlayerPortraitMetadataMap } from "../players";
+import { getPlayerInboxState, loadPlayerInbox, loadPlayerPortraitMetadataMap, setPlayerInboxState } from "../players";
 import type { PaginatedResponse, PlayerInfoRecord, PlayerPortraitMetadataRecord } from "../types";
 
 const apiClient = createApiClient();
+const restoredState = getPlayerInboxState();
 
 const loading = ref(true);
 const errorMessage = ref<string | null>(null);
@@ -19,11 +20,23 @@ const inbox = ref<PaginatedResponse<PlayerInfoRecord> | null>(null);
 const portraits = ref<Record<string, PlayerPortraitMetadataRecord>>({});
 
 const filters = reactive({
-  q: "",
-  tag: "",
-  sort: "name",
-  currentPage: 1,
+  q: String(restoredState.params.q ?? ""),
+  tag: String(restoredState.params.tag ?? ""),
+  sort: String(restoredState.params.sort ?? "name"),
+  currentPage: Number(restoredState.params.current_page ?? 1),
 });
+
+function saveState(): void {
+  setPlayerInboxState({
+    params: {
+      q: filters.q || undefined,
+      tag: filters.tag || undefined,
+      sort: filters.sort || undefined,
+      current_page: filters.currentPage,
+      docs_per_page: 25,
+    },
+  });
+}
 
 async function refreshInbox(): Promise<void> {
   loading.value = true;
@@ -38,6 +51,7 @@ async function refreshInbox(): Promise<void> {
       docs_per_page: 25,
     });
     inbox.value = loaded;
+    saveState();
     portraits.value = await loadPlayerPortraitMetadataMap(
       apiClient,
       loaded.docs.map((player) => player.toon_handle),

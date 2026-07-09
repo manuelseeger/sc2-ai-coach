@@ -4,11 +4,14 @@ import { ApiError } from "./api";
 import {
   createReplayRecord,
   deleteReplayRecord,
+  getReplayInboxState,
   loadReplayDetail,
   loadReplayInbox,
   patchReplayRecord,
   queryReplayRecords,
   replaceReplayRecord,
+  resetReplayInboxState,
+  setReplayInboxState,
 } from "./replays";
 import type {
   ApiClient,
@@ -193,5 +196,39 @@ describe("replay workflows", () => {
       filename: "replaced.SC2Replay",
     });
     expect(apiClient.deleteResource).toHaveBeenCalledWith("replays", replay.id);
+  });
+
+  it("persists inbox filter state across SPA navigation only", () => {
+    resetReplayInboxState();
+
+    setReplayInboxState({
+      params: {
+        player: "zatic",
+        map: "Alcyone",
+        sort: "-date",
+        current_page: 3,
+        docs_per_page: 25,
+      },
+    });
+
+    expect(getReplayInboxState()).toEqual({
+      params: {
+        player: "zatic",
+        map: "Alcyone",
+        sort: "-date",
+        current_page: 3,
+        docs_per_page: 25,
+      },
+    });
+
+    resetReplayInboxState();
+
+    expect(getReplayInboxState()).toEqual({
+      params: {
+        sort: "-date",
+        current_page: 1,
+        docs_per_page: 25,
+      },
+    });
   });
 });

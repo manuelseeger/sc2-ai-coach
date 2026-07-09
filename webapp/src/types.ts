@@ -120,6 +120,18 @@ export interface ConversationInboxState {
   selectedConversationId: string | null;
 }
 
+export interface ReplayInboxState {
+  params: ListParams;
+}
+
+export interface PlayerInboxState {
+  params: ListParams;
+}
+
+export interface MetadataInboxState {
+  params: ListParams;
+}
+
 export interface MetadataRecord {
   id: string;
   replay: string;
