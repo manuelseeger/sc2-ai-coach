@@ -20,6 +20,10 @@ This is a personal research project to explore LLM-based agents applied to compe
 |--|--|
 | ![Example replay](assets/aicoach-newreplay-manners.png "New Replay, discussing player's manners") | ![Example new game](assets/aicoach-scanner-example.png "New game started") |
 
+### Example live integration with voice
+
+https://github.com/user-attachments/assets/143963f9-7e37-48c8-a8ad-c94522a53057
+
 ### Replay DB
 
 The app comes with a replay DB and a simple UI to review replay, players, conversations, and replay metadata. The UI is meant for keeping track of AI coach conversations and generated metadata. The replay data stored with AICoach is intentionally filtered to the basics, and the UI does not fully replace a replay DB like SCElight. 
